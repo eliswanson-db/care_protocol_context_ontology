@@ -7,11 +7,12 @@ Ordered operational steps that are **not** automated by the bundle. Keep this cu
 2. ⚙ **Capability gate** — confirm on ECT and record in `capability-matrix.md`: **Genie Ontology ON**,
    **Apps enabled**, MLflow 3, Lakebase, Model Serving + embedding endpoint, Genie Agent API.
 3. 🤖 **Create catalog/schema** — `care_protocol_ontology.{care_protocol,terminology,eval,demo}` (scripts/).
-4. ⚙ **Stage terminology from Drive → UC Volume** (read-only; never write to Drive, never commit):
-   LOINC 2.83 (`Loinc.csv`, `LoincPartLink_*`, value sets), + fetch ICD-10-CM + RxNorm. See ADR-0002.
+4. 🤖 **Load vendored terminology** (`src/terminology/` → UC tables via `load_terminology.py`; no Drive —
+   ADR-0007): `icd10_hier`, `loinc`, `rxnorm_statin`, `value_set_segment`. Then build the closure
+   (`src/semantic/closure_tables.sql`).
 
 ## Terminology — NO license wait (ADR-0002)
-- No SNOMED/UMLS/VSAC. LOINC (Drive) + ICD-10-CM + RxNorm (free) + hand-curated demo value sets.
+- No SNOMED/UMLS/VSAC. Curated LOINC + ICD-10-CM + RxNorm subsets **vendored in `src/terminology/`** (no Drive) + hand-curated demo value sets.
 
 ## Ontobricks (A5) — Eli-owned, do NOT automate (ADR-0005)
 - ⚙ Eli deploys/configures Ontobricks (UI + `mcp-ontobricks`) with his own instructions; `ontobricks_wh` exists.

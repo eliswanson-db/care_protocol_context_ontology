@@ -1,15 +1,9 @@
-# Terminology sources & licenses
+# Terminology licenses — moved
 
-**Rule:** terminology content is **never committed** to this repo. It is staged into a UC Volume at
-runtime and read from there. `context/terminology/data/` is gitignored. We do not write back to any Drive.
+> **Moved (ADR-0007):** the terminology the demo uses is **vendored in-repo** at
+> [`../../src/terminology/`](../../src/terminology/), with its own `LICENSES.md` and `README.md`. There is
+> no Google Drive / runtime download dependency.
 
-| System | Use | Source | License / note |
-|---|---|---|---|
-| **LOINC 2.83** | labs/observations + Part hierarchy | Eli's Google Drive (standard release) | LOINC License v5.8 (`LoincLicense_5.8.txt`) — honor terms; load from Volume |
-| **ICD-10-CM** | diagnoses, cohort, exclusions, subsumption demo | CMS / CDC | Public domain |
-| **RxNorm** | medications (statins/SPD) | NLM | Free (RxNorm is open; no UMLS needed for core files) |
-| **Demo value sets** | measure numerators/denominators | hand-curated from the above | Labeled *demo — not NCQA/VSAC* |
-| LOINC SNOMED Extension (optional) | LOINC-side ontology for Ontobricks only | Eli's Drive (`SnomedCT_LOINCExtension_…20261021`) | **Only if SNOMED is licensed** — not used by default (ADR-0002) |
-
-**Not used:** SNOMED CT base, UMLS, VSAC (no license; ADR-0002). The subsumption story uses the
-ICD-10-CM hierarchy instead of SNOMED is-a.
+This path (`context/terminology/data/`) is retained only as the gitignored location for **full raw
+terminology releases** if anyone ever stages them locally — those are never committed. The codes the demo
+actually uses live as curated subsets under `src/terminology/`.

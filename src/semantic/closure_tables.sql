@@ -8,8 +8,8 @@ USE CATALOG ${catalog};
 USE SCHEMA  ${schema};
 
 -- ---------------------------------------------------------------------
--- 1) Adjacency source — the tree. ICD-10-CM parent/child (from the CMS
---    order file, or derived from code structure). A few diabetes rows shown.
+-- 1) Adjacency source — the tree. Loaded by src/terminology/load_terminology.py from the vendored
+--    src/terminology/icd10cm_subset.csv (ICD-10-CM, public domain — no Drive/download; ADR-0007).
 -- ---------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS icd10_hier (
   code        STRING COMMENT 'ICD-10-CM code, e.g. E11.21',
@@ -18,9 +18,7 @@ CREATE TABLE IF NOT EXISTS icd10_hier (
   code_system STRING DEFAULT 'ICD10CM'
 ) COMMENT 'ICD-10-CM adjacency list (parent_id encoding). Build the closure from this.';
 
--- illustrative diabetes subtree (real load comes from the CMS order file)
--- INSERT: ('E11','E10-E13…','Type 2 diabetes mellitus'), ('E11.2','E11','… with kidney complications'),
---         ('E11.21','E11.2','… with diabetic nephropathy'), ('E11.22','E11.2','… with CKD'), …
+-- Rows are loaded from src/terminology/icd10cm_subset.csv (includes E11.21 ⊏ E11.2 ⊏ E11 — the T3 tracer).
 
 -- ---------------------------------------------------------------------
 -- 2) Closure table — ONE row per ancestor→descendant pair, incl. depth-0

@@ -1,0 +1,16 @@
+code,parent_code,name
+E10,,Type 1 diabetes mellitus
+E11,,Type 2 diabetes mellitus
+E13,,Other specified diabetes mellitus
+E11.2,E11,Type 2 diabetes mellitus with kidney complications
+E11.21,E11.2,Type 2 diabetes mellitus with diabetic nephropathy
+E11.22,E11.2,Type 2 diabetes mellitus with diabetic chronic kidney disease
+E11.29,E11.2,Type 2 diabetes mellitus with other diabetic kidney complication
+E11.3,E11,Type 2 diabetes mellitus with ophthalmic complications
+E11.31,E11.3,Type 2 diabetes mellitus with unspecified diabetic retinopathy
+E11.319,E11.31,Type 2 diabetes mellitus with unspecified diabetic retinopathy without macular edema
+E11.65,E11,Type 2 diabetes mellitus with hyperglycemia
+E11.9,E11,Type 2 diabetes mellitus without complications
+E10.2,E10,Type 1 diabetes mellitus with kidney complications
+E10.21,E10.2,Type 1 diabetes mellitus with diabetic nephropathy
+E10.9,E10,Type 1 diabetes mellitus without complications

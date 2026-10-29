@@ -5,6 +5,18 @@ statement in the source plans under `docs/sources/`.
 
 ---
 
+## ADR-0007 — Vendor curated terminology subsets in-repo (no Drive/runtime dependency)
+**Date:** 2026-10-29 · **Status:** accepted
+Terminology the demo references is **vendored in the repo** at `src/terminology/` as small **curated
+subsets** — not pulled from Google Drive at runtime and not the full licensed releases. Rationale:
+reproducible from the repo alone; code values are facts; subsets stay minimal and attributed. Files:
+`icd10cm_subset.csv` (public), `loinc_subset.csv` (LOINC License, attributed), `rxnorm_statins.csv` (NLM),
+`value_sets_demo.csv` (demo value sets — not NCQA/VSAC), loaded by `load_terminology.py`.
+`icd10cm_subset.csv` is the adjacency that `closure_tables.sql` builds `icd10_closure` from. **Supersedes
+the "staged from Drive / never commit" mechanism in ADR-0002** (the terminology *choice* in ADR-0002
+stands; only the sourcing changes). Full raw releases, if ever staged, stay gitignored under
+`context/terminology/data/`. Demo scope — validate codes against official sources before non-demo use.
+
 ## ADR-0006 — Add closure + segment tables as a third hierarchy-encoding differentiator
 **Date:** 2026-10-29 · **Status:** accepted
 Include a **closure table** (`icd10_closure`, optional `loinc_part_closure`) + **segment table**

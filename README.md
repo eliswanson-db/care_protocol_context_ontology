@@ -45,6 +45,8 @@ scripts/                  preflight/doctor, reset, replay
 
 ## Terminology & licensing
 
-Free code systems only — **no SNOMED/UMLS/VSAC required** (see ADR-0002): **LOINC 2.83**, **ICD-10-CM**,
-**RxNorm**, plus hand-curated *demo* value sets. Terminology is staged into a UC Volume at runtime and
-**never committed** (see [`context/terminology/LICENSES.md`](context/terminology/LICENSES.md)).
+Free code systems only — **no SNOMED/UMLS/VSAC required** (ADR-0002) — and **vendored in-repo** as a
+curated demo subset so the build is reproducible with **no Drive/runtime dependency** (ADR-0007):
+**LOINC** (curated), **ICD-10-CM**, **RxNorm**, plus hand-curated *demo* value sets — all in
+[`src/terminology/`](src/terminology/) (see its `LICENSES.md`). Validate codes against official sources
+before any non-demo use.

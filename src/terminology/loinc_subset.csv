@@ -1,0 +1,12 @@
+loinc_code,long_common_name,concept
+4548-4,Hemoglobin A1c/Hemoglobin.total in Blood,HbA1c
+17856-6,Hemoglobin A1c/Hemoglobin.total in Blood by HPLC,HbA1c
+59261-8,Hemoglobin A1c/Hemoglobin.total in Blood by IFCC-calibrated method,HbA1c
+98979-8,Glomerular filtration rate predicted among non-blacks by Creatinine-based formula (CKD-EPI 2021),eGFR
+9318-7,Albumin/Creatinine [Mass Ratio] in Urine,uACR
+14959-1,Microalbumin/Creatinine [Mass ratio] in Urine,uACR
+8480-6,Systolic blood pressure,BP_systolic
+8462-4,Diastolic blood pressure,BP_diastolic
+39156-5,Body mass index (BMI) [Ratio],BMI
+44261-6,Patient Health Questionnaire 9 item (PHQ-9) total score [Reported],PHQ9
+55758-7,Patient Health Questionnaire 2 item (PHQ-2) total score [Reported],PHQ2

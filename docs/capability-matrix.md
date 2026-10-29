@@ -10,7 +10,7 @@ Re-verify at P0 start (preview features move).
 | Lakebase (Postgres) | ✅ AVAILABLE | `databricks database …` (Public Preview) |
 | Model Serving (LLMs) | ✅ AVAILABLE | Claude Opus/Sonnet/Haiku, GPT, Gemini, etc. |
 | Embedding endpoints | ✅ AVAILABLE | `databricks-gte-large-en`, `bge-large-en`, `qwen3-embedding` |
-| LOINC + LOINC Ontology | ✅ AVAILABLE | staged in Eli's Drive (2.83 + SNOMED LOINC Extension) |
+| Terminology (LOINC/ICD-10/RxNorm) | ✅ VENDORED | curated subset in `src/terminology/` — no Drive (ADR-0007) |
 | Ontobricks | 🟡 Eli-owned | `ontobricks_wh` exists; Eli sets up (ADR-0005) |
 | Genie Ontology ON | ❓ VERIFY | confirm enabled before P7 seeding |
 | Apps enabled | ❓ VERIFY | needed for P13 (and Ontobricks apps) |
