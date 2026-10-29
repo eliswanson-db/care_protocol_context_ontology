@@ -6,8 +6,8 @@ bundle:
 
 variables:
   catalog:
-    description: Unity Catalog holding all demo assets (create once; see scripts/)
-    default: care_protocol_ontology
+    description: Unity Catalog holding all demo assets (ADR-0001; ECT Default Storage blocks ad-hoc catalog creation, so we use the workspace's managed catalog)
+    default: eli_test_classic_catalog
   schema:
     description: Default schema for pipeline + semantic assets
     default: care_protocol

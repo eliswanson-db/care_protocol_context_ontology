@@ -5,7 +5,7 @@ quality measures computed from synthetic, Epic-(Clarity-)shaped data — with **
 door, multiple benchmarked retrieval approaches, record-level traceability, and a measure-drift demo.
 
 > **Status:** scaffolding. Plan of record: [`docs/UNIFIED_BUILD_ROADMAP.md`](docs/UNIFIED_BUILD_ROADMAP.md).
-> **Target workspace:** `ECT` (`fevm-eli-test-classic`, serverless). **Catalog:** `care_protocol_ontology`.
+> **Target workspace:** `ECT` (`fevm-eli-test-classic`, serverless). **Catalog:** `eli_test_classic_catalog` (schemas `care_protocol`, `care_protocol_terminology`).
 > **Label on all outputs:** *Synthetic · HEDIS-aligned · Not NCQA-certified · Not for clinical use.*
 
 ## Quick start

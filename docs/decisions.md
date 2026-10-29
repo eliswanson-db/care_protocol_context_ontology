@@ -71,6 +71,9 @@ Volume, never commit it, never write back to Drive. *Supersedes VSAC/SNOMED assu
 **Date:** 2026-10-29 · **Status:** accepted
 Build on the **ECT** profile (`fevm-eli-test-classic.cloud.databricks.com`). A FEVM "classic" workspace
 includes **both serverless and classic** compute; ECT has serverless, Lakebase (Public Preview), embedding
-endpoints (`gte/bge/qwen3`), Claude/GPT/Gemini model serving, and an existing `ontobricks_wh`. Use the
-pre-existing catalog convention; demo assets live under catalog `care_protocol_ontology`. Never auto-select
-a profile — always `--profile ECT`.
+endpoints (`gte/bge/qwen3`), Claude/GPT/Gemini model serving, and an existing `ontobricks_wh`. ECT has
+**Default Storage**, which blocks ad-hoc SQL catalog creation, so demo assets live in the workspace's
+managed catalog **`eli_test_classic_catalog`** — schemas `care_protocol` (medallion/semantic) and
+`care_protocol_terminology` (terminology + closure). Never auto-select a profile — always `--profile ECT`.
+(To use a dedicated `care_protocol_ontology` catalog instead, create it once in Catalog Explorer with
+Default Storage and set `--var catalog=care_protocol_ontology`.)

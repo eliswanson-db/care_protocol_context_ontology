@@ -6,7 +6,7 @@ Ordered operational steps that are **not** automated by the bundle. Keep this cu
 1. ⚙ **Auth** — `databricks auth login https://fevm-eli-test-classic.cloud.databricks.com --profile ECT` (already valid).
 2. ⚙ **Capability gate** — confirm on ECT and record in `capability-matrix.md`: **Genie Ontology ON**,
    **Apps enabled**, MLflow 3, Lakebase, Model Serving + embedding endpoint, Genie Agent API.
-3. 🤖 **Create catalog/schema** — `care_protocol_ontology.{care_protocol,terminology,eval,demo}` (scripts/).
+3. ✅ **Schemas created** — `eli_test_classic_catalog.{care_protocol, care_protocol_terminology}` (catalog pre-exists; ECT Default Storage blocks SQL catalog creation — ADR-0001).
 4. 🤖 **Load vendored terminology** (`src/terminology/` → UC tables via `load_terminology.py`; no Drive —
    ADR-0007): `icd10_hier`, `loinc`, `rxnorm_statin`, `value_set_segment`. Then build the closure
    (`src/semantic/closure_tables.sql`).
