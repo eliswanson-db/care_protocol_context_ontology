@@ -5,6 +5,20 @@ statement in the source plans under `docs/sources/`.
 
 ---
 
+## ADR-0006 — Add closure + segment tables as a third hierarchy-encoding differentiator
+**Date:** 2026-10-29 · **Status:** accepted
+Include a **closure table** (`icd10_closure`, optional `loinc_part_closure`) + **segment table**
+(`value_set_segment`) as a distinct, purely relational way to encode hierarchy/semantics — a **third
+differentiator** alongside Genie Ontology (LLM writes SQL from context) and Ontobricks (OWL graph via MCP).
+"Whole subtree at any depth" collapses to one equality (`WHERE ancestor_code = X`), which answers the **T3
+subsumption tracer** (`E11.21` ⊏ `E11`) deterministically; the segment table captures cross-branch value
+sets/cohorts no subtree equals (each with a named owner). It is also the **"Genie + closure view"** benchmark
+arm (Genie reaches graph parity once a closure view + metadata exist). Plugs in at **P2** (build, recursive
+CTE at write time), **P4** (register as governed UC tables/views), **P12** (closure vs adjacency encoding +
+the Genie-with-closure ablation point), **P13** (a "Hierarchy Encodings" app exhibit: six patterns + paired
+queries). Costs: closure grows with depth×nodes and rebuilds on restructure (drift); segments need owners.
+Spec: `src/semantic/hierarchy_encodings.md` + `src/semantic/closure_tables.sql`.
+
 ## ADR-0005 — All six retrieval arms in scope; Ontobricks set up manually by Eli
 **Date:** 2026-10-29 · **Status:** accepted
 Scaffold for all arms A1–A6 (Genie One, Genie Agents, ablation ladder, Lakebase, Ontobricks, supervisor).
