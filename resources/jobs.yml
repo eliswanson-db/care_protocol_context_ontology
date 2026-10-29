@@ -1,6 +1,29 @@
-# Jobs: end-to-end orchestration, query-history seeding (P7), benchmark eval (P12).
-# Placeholder: resources added as source lands. Prefer serverless job compute.
-# resources:
-#   jobs:
-#     ontology_seeding:        # P7 — runs on a schedule so usage/freshness accrue
-#     hedis_benchmark:         # P12 — runs hedis_eval, writes eval.results
+# Jobs: terminology load (now), ontology seeding (P7), benchmark eval (P12). Serverless.
+
+resources:
+  jobs:
+    load_terminology:
+      name: load_terminology_${bundle.target}
+      description: >-
+        Load vendored terminology subsets (src/terminology/*.csv) into UC Delta tables
+        (icd10_hier, loinc, rxnorm_statin, value_set_segment). Self-contained, no Drive (ADR-0007).
+      tasks:
+        - task_key: load_terminology
+          spark_python_task:
+            python_file: ../src/terminology/load_terminology.py
+            parameters:
+              - "--catalog"
+              - "${var.catalog}"
+              - "--schema"
+              - "${var.schema}"
+              - "--src_dir"
+              - "${workspace.file_path}/src/terminology"
+          environment_key: serverless
+      environments:
+        - environment_key: serverless
+          spec:
+            client: "3"
+
+# Planned (added as source lands):
+#   ontology_seeding   # P7 — scheduled; generates usage/freshness for Genie Ontology
+#   hedis_benchmark    # P12 — runs hedis_eval, writes eval.results
