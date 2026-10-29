@@ -1,0 +1,107 @@
+flowchart LR
+
+  %% ── HEDIS Context & Evidence Lab — Architecture Diagram ──────────────────
+
+  subgraph SRC["① Sources — UC Volumes"]
+    SYN["Synthea<br/>fixed seed → FHIR/CSV"]
+    DOCS["Synthetic unstructured docs<br/>eye-exam PDFs · policies · MY2025/26 specs"]
+    TERM["⚙ Terminology (licensed)<br/>LOINC · SNOMED US · VSAC value sets"]
+  end
+
+  subgraph PIPE["② Lakeflow Declarative Pipeline (medallion)"]
+    direction TB
+    BRZ["Bronze<br/>Clarity-shaped tables + raw docs (immutable)"]
+    SLV["Silver<br/>normalized events · code mapping<br/>doc assertions (ai_parse / ai_extract)"]
+    ENG["Deterministic versioned<br/>Measure Engine"]
+    GLD["Gold<br/>adherence_event_log · hedis_member_measure<br/>recon · provenance · tracer_registry"]
+    BRZ --> SLV --> ENG --> GLD
+  end
+
+  subgraph TERMD["Terminology-as-data"]
+    TD["snomed_concept · snomed_isa_closure<br/>loinc_parts · value_set_version"]
+  end
+
+  subgraph SEM["③ Semantic layer — Unity Catalog"]
+    MV["Metric views (YAML in Git)"]
+    CM["Comments · tags · PK/FK"]
+    PG["⚙ Pages (glossary + measure specs)"]
+    DM["⚙ Domains / subdomains"]
+    CERT["⚙ Certification"]
+  end
+
+  subgraph ARMS["④ Retrieval approaches (benchmark arms)"]
+    GA["A2 · Genie Agents x3<br/>Quality · Clinical Evidence · Terminology"]
+    LB["A4 · Lakebase Search<br/>BM25 + vector + hybrid RRF"]
+    OB["A5 · ⏳ Ontobricks<br/>OWL · R2RML · SHACL + mcp-ontobricks"]
+    MCPT["Custom MCP tools<br/>bounded read-only"]
+    SUP["A6 · Supervisor agent<br/>Model Serving / App"]
+  end
+
+  G1["⑤ Genie One — front door (A1)<br/>UI + MCP · ⏳ ontology sync"]
+
+  subgraph EVAL["⑥ Evaluation (parallel)"]
+    direction TB
+    ORAC["Deterministic SQL oracle<br/>(ground truth)"]
+    ML["MLflow 3 GenAI eval + tracing"]
+    RES["eval.results (Delta)"]
+    ORAC --> ML --> RES
+  end
+
+  subgraph APP["⑦ App — net-new or forked Control Tower"]
+    T["Quality · Patient Evidence/Tracer · Context Explorer<br/>Retrieval Arena · Trace Explorer · Benchmark · Drift Lab · Ontology Explorer"]
+  end
+
+  subgraph LEGEND["Legend"]
+    direction TB
+    L1["⚙ = manual / human step"]
+    L2["⏳ = requires wait time (async sync / extraction)"]
+  end
+
+  %% ── Edges ────────────────────────────────────────────────────────────────
+
+  SYN  --> BRZ
+  DOCS --> BRZ
+  TERM --> TD
+  TD   --> SLV
+  TD   --> ENG
+  GLD  --> SEM
+  GLD  --> LB
+  GLD  --> OB
+  GLD  --> MCPT
+  SEM  --> GA
+  GA   --> G1
+  MV   --> G1
+  PG   --> G1
+  LB   --> SUP
+  OB   --> SUP
+  MCPT --> SUP
+  GA   --> SUP
+  G1   -->|"guarded ↔"| SUP
+  SUP  -.->|"non-recursive"| G1
+  G1   --> APP
+  ARMS --> ML
+  G1   --> ML
+  RES  --> APP
+  GLD  --> APP
+
+  %% ── Styles ───────────────────────────────────────────────────────────────
+
+  classDef accent    fill:#FF3621,stroke:#C02A14,color:#FFFFFF,font-weight:bold
+  classDef supacc    fill:#D63031,stroke:#AA2020,color:#FFFFFF,font-weight:bold
+  classDef pipeline  fill:#2D3436,stroke:#1B2024,color:#FFFFFF
+  classDef manual    fill:#636E72,stroke:#4A5568,color:#FFFFFF
+  classDef asyncwait fill:#E17055,stroke:#C0522E,color:#FFFFFF
+  classDef evalnode  fill:#FDCB6E,stroke:#C8980A,color:#2D3436
+  classDef appnode   fill:#0984E3,stroke:#0770C1,color:#FFFFFF,font-weight:bold
+  classDef termdata  fill:#D6EAF8,stroke:#7FB3D3,color:#1B2024
+  classDef legenditem fill:#F7F8F9,stroke:#DDE1E4,color:#636E72,font-style:italic
+
+  class G1          accent
+  class SUP         supacc
+  class BRZ,SLV,ENG,GLD pipeline
+  class TERM,PG,DM,CERT manual
+  class OB          asyncwait
+  class ORAC,ML,RES evalnode
+  class T           appnode
+  class TD          termdata
+  class L1,L2       legenditem

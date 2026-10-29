@@ -1,0 +1,50 @@
+# Architecture Decision Records (ADRs)
+
+Short, dated records of decisions that shape the build. Newest first. These **supersede** any conflicting
+statement in the source plans under `docs/sources/`.
+
+---
+
+## ADR-0005 — All six retrieval arms in scope; Ontobricks set up manually by Eli
+**Date:** 2026-10-29 · **Status:** accepted
+Scaffold for all arms A1–A6 (Genie One, Genie Agents, ablation ladder, Lakebase, Ontobricks, supervisor).
+**Ontobricks (A5) is set up by Eli using his own detailed instructions — do NOT automate its deploy.** The
+build provides only the integration contract (what the ontology consumes from Gold + terminology; R2RML
+targets). An `ontobricks_wh` already exists on ECT.
+
+## ADR-0004 — Benchmark seeds from the vendored Genie GenAI Evals notebook (A2 only)
+**Date:** 2026-10-29 · **Status:** accepted
+`src/benchmark/Genie GenAI Evals.dbc` (Eli's, FEVM-proven) is the P12 starting point. It evaluates a
+**Genie Agent (space)** in chat + Research modes — this is **arm A2 only**. It does **not** evaluate
+**Genie One (A1)**; A1 needs a separate `predict_fn` reusing the scorer/tracing pattern. Extend `predict_fn`
++ scorer registry for A4/A5/A6. `sql_result_match` applies only to arms returning result rows; never
+penalize a correct refusal. See `src/benchmark/README.md`.
+
+## ADR-0003 — App: reuse-vs-net-new still open (leaning net-new)
+**Date:** 2026-10-29 · **Status:** open
+The Hospital Control Tower is leverage-or-rebuild. Net-new is likely cleaner (its date-shifting/startup
+mutation would break measurement-year reproducibility; string-based SQL "security" must be replaced).
+Decide at P13. Tabs are the same either way.
+
+## ADR-0002 — Terminology without SNOMED/UMLS/VSAC
+**Date:** 2026-10-29 · **Status:** accepted
+No SNOMED CT / UMLS / VSAC license is available or will be requested. Terminology uses **free code systems
+only**:
+- **LOINC 2.83** (standard release, staged from Eli's Drive) — labs/observations + the Part hierarchy.
+- **ICD-10-CM** (public domain) — diagnoses, cohort, exclusions, **and the subsumption demo** via its code
+  hierarchy (e.g. `E11.21` ⊏ `E11.*`), replacing SNOMED is-a. The T3 tracer uses ICD-10-CM.
+- **RxNorm** (free NLM) — medications (statins/SPD).
+- **Hand-curated demo value sets** (from LOINC/ICD-10-CM/RxNorm), labeled *demo — not NCQA/VSAC*.
+
+Synthea's SNOMED-coded conditions are crosswalked to ICD-10-CM (code values in synthetic data are fine; we
+do not ship licensed SNOMED hierarchy tables). The **LOINC SNOMED Extension** in Drive is optional input for
+the Ontobricks track only, if SNOMED is ever licensed. Honor `LoincLicense_5.8`; load terminology from a UC
+Volume, never commit it, never write back to Drive. *Supersedes VSAC/SNOMED assumptions in `docs/sources/`.*
+
+## ADR-0001 — Target workspace = ECT (serverless)
+**Date:** 2026-10-29 · **Status:** accepted
+Build on the **ECT** profile (`fevm-eli-test-classic.cloud.databricks.com`). A FEVM "classic" workspace
+includes **both serverless and classic** compute; ECT has serverless, Lakebase (Public Preview), embedding
+endpoints (`gte/bge/qwen3`), Claude/GPT/Gemini model serving, and an existing `ontobricks_wh`. Use the
+pre-existing catalog convention; demo assets live under catalog `care_protocol_ontology`. Never auto-select
+a profile — always `--profile ECT`.

@@ -1,0 +1,21 @@
+# Databricks
+.databricks/
+*.egg-info/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+.ipynb_checkpoints/
+
+# Licensed terminology — NEVER commit. Stage into a UC Volume at runtime.
+# (LOINC / LOINC SNOMED Extension / any SNOMED content.) See context/terminology/LICENSES.md
+context/terminology/data/
+**/terminology_raw/
+
+# Secrets / local config
+*.pem
+secrets.*
+.DS_Store

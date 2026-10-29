@@ -1,0 +1,12 @@
+# Lakeflow Declarative Pipeline — bronze → silver → gold + deterministic measure engine (P2/P3).
+# Placeholder: resources added when the pipeline source lands in src/pipelines/.
+# resources:
+#   pipelines:
+#     care_protocol_medallion:
+#       name: care_protocol_medallion_${bundle.target}
+#       catalog: ${var.catalog}
+#       schema: ${var.schema}
+#       serverless: true
+#       libraries:
+#         - glob:
+#             include: ../src/pipelines/**

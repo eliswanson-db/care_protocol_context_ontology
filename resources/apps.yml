@@ -1,0 +1,8 @@
+# Databricks App — the demo UI (tabs: Quality, Tracer Journey, Retrieval Arena, Trace Explorer,
+# Benchmark Scorecard, Drift Lab, Ontology Explorer). Reuse-vs-net-new pending (ADR-0003).
+# Placeholder: resource added at P13 when src/app/ lands.
+# resources:
+#   apps:
+#     care_protocol_app:
+#       name: care-protocol-context-${bundle.target}
+#       source_code_path: ../src/app

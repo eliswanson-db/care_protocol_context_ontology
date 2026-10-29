@@ -1,0 +1,7 @@
+# AI/BI dashboards over the metric views (P4). Over-build (6–8) — also an ontology inferred-snippet
+# + usage source (roadmap §7a). Placeholder until dashboard defs land in src/semantic/.
+# resources:
+#   dashboards:
+#     hedis_quality_overview:
+#     care_gaps:
+#     protocol_vs_hedis_recon:
