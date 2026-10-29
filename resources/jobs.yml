@@ -1,12 +1,15 @@
-# Jobs: terminology load (now), ontology seeding (P7), benchmark eval (P12). Serverless.
+# Setup jobs — all bundle-managed. Schemas + volume are declared in schemas.yml / volumes.yml.
+# Fresh-workspace setup order:
+#   1) setup            (serverless)  load_terminology -> build_closure
+#   2) generate_synthea (classic)     stage JAR -> run Synthea -> raw_synthea_* tables
+#   3) epicize          (serverless)  SNOMED->ICD-10 crosswalk -> Clarity-shaped bronze_* tables
 
 resources:
   jobs:
-    load_terminology:
-      name: load_terminology_${bundle.target}
-      description: >-
-        Load vendored terminology subsets (src/terminology/*.csv) into UC Delta tables
-        (icd10_hier, loinc, rxnorm_statin, value_set_segment). Self-contained, no Drive (ADR-0007).
+
+    setup:
+      name: setup_${bundle.target}
+      description: Load vendored terminology (no Drive; ADR-0007) and build the ICD-10 closure.
       tasks:
         - task_key: load_terminology
           spark_python_task:
@@ -19,11 +22,81 @@ resources:
               - "--src_dir"
               - "${workspace.file_path}/src/terminology"
           environment_key: serverless
+        - task_key: build_closure
+          depends_on:
+            - task_key: load_terminology
+          spark_python_task:
+            python_file: ../src/semantic/build_closure.py
+            parameters:
+              - "--catalog"
+              - "${var.catalog}"
+              - "--schema"
+              - "care_protocol_terminology"
+          environment_key: serverless
       environments:
         - environment_key: serverless
           spec:
             client: "3"
 
-# Planned (added as source lands):
-#   ontology_seeding   # P7 — scheduled; generates usage/freshness for Genie Ontology
-#   hedis_benchmark    # P12 — runs hedis_eval, writes eval.results
+    generate_synthea:
+      name: generate_synthea_${bundle.target}
+      description: Stage the pinned Synthea JAR to the Volume, run Synthea (classic JVM), load raw_synthea_* tables.
+      job_clusters:
+        - job_cluster_key: synthea_classic
+          new_cluster:
+            spark_version: "15.4.x-scala2.12"
+            node_type_id: "m5d.large"
+            num_workers: 0
+            spark_conf:
+              spark.databricks.cluster.profile: singleNode
+              spark.master: "local[*]"
+            spark_env_vars:
+              JNAME: "zulu17-ca-amd64"
+            custom_tags:
+              ResourceClass: "SingleNode"
+            data_security_mode: "SINGLE_USER"
+      tasks:
+        - task_key: stage_synthea
+          job_cluster_key: synthea_classic
+          spark_python_task:
+            python_file: ../scripts/stage_synthea.py
+            parameters:
+              - "--volume_dir"
+              - "/Volumes/${var.catalog}/care_protocol/synthea"
+        - task_key: generate
+          depends_on:
+            - task_key: stage_synthea
+          job_cluster_key: synthea_classic
+          spark_python_task:
+            python_file: ../src/data_generation/generate_synthea.py
+            parameters:
+              - "--catalog"
+              - "${var.catalog}"
+              - "--schema"
+              - "care_protocol"
+              - "--volume_dir"
+              - "/Volumes/${var.catalog}/care_protocol/synthea"
+              - "--population"
+              - "500"
+              - "--seed"
+              - "20261029"
+
+    epicize:
+      name: epicize_${bundle.target}
+      description: Crosswalk SNOMED->ICD-10 and shape raw Synthea into Clarity-like bronze_* tables.
+      tasks:
+        - task_key: epicize
+          spark_python_task:
+            python_file: ../src/data_generation/epicize_map.py
+            parameters:
+              - "--catalog"
+              - "${var.catalog}"
+              - "--schema"
+              - "care_protocol"
+              - "--src_dir"
+              - "${workspace.file_path}/src/terminology"
+          environment_key: serverless
+      environments:
+        - environment_key: serverless
+          spec:
+            client: "3"

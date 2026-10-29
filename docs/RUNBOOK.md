@@ -6,10 +6,13 @@ Ordered operational steps that are **not** automated by the bundle. Keep this cu
 1. ⚙ **Auth** — `databricks auth login https://fevm-eli-test-classic.cloud.databricks.com --profile ECT` (already valid).
 2. ⚙ **Capability gate** — confirm on ECT and record in `capability-matrix.md`: **Genie Ontology ON**,
    **Apps enabled**, MLflow 3, Lakebase, Model Serving + embedding endpoint, Genie Agent API.
-3. ✅ **Schemas created** — `eli_test_classic_catalog.{care_protocol, care_protocol_terminology}` (catalog pre-exists; ECT Default Storage blocks SQL catalog creation — ADR-0001).
-4. 🤖 **Load vendored terminology** (`src/terminology/` → UC tables via `load_terminology.py`; no Drive —
-   ADR-0007): `icd10_hier`, `loinc`, `rxnorm_statin`, `value_set_segment`. Then build the closure
-   (`src/semantic/closure_tables.sql`).
+3. 🤖 **Schemas + volume are declarative** (`resources/schemas.yml`, `resources/volumes.yml`) — created by
+   `databricks bundle deploy -t ect --profile ECT`. The catalog pre-exists (ECT Default Storage blocks SQL
+   catalog creation — ADR-0001).
+4. 🤖 **Run the setup jobs (all bundle-managed — no ad-hoc SQL):**
+   - `bundle run setup -t ect` → `load_terminology` (vendored CSVs → UC tables, no Drive, ADR-0007) → `build_closure` (iterative BFS → `icd10_closure`).
+   - `bundle run generate_synthea -t ect` → classic job: stage pinned Synthea JAR to the Volume → run Synthea → `raw_synthea_*` tables.
+   - `bundle run epicize -t ect` → SNOMED→ICD-10 crosswalk → `bronze_*` Clarity-shaped tables.
 
 ## Terminology — NO license wait (ADR-0002)
 - No SNOMED/UMLS/VSAC. Curated LOINC + ICD-10-CM + RxNorm subsets **vendored in `src/terminology/`** (no Drive) + hand-curated demo value sets.

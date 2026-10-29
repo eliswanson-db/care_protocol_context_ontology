@@ -1,0 +1,9 @@
+# Unity Catalog volume for staged Synthea artifacts (JAR + raw generator output).
+resources:
+  volumes:
+    synthea:
+      catalog_name: ${var.catalog}
+      schema_name: ${resources.schemas.care_protocol.name}
+      name: synthea
+      volume_type: MANAGED
+      comment: Staged Synthea JAR + raw generator output (binary; not in git).

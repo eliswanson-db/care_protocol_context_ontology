@@ -28,8 +28,7 @@ def main() -> None:
     args = p.parse_args()
 
     spark = SparkSession.builder.getOrCreate()
-    # Catalog is pre-created (ECT Default Storage blocks SQL catalog creation; ADR-0001).
-    spark.sql(f"CREATE SCHEMA IF NOT EXISTS {args.catalog}.{args.schema}")
+    # Catalog + schemas are created declaratively by the bundle (resources/schemas.yml).
 
     loads = {
         "icd10cm_subset.csv": "icd10_hier",
@@ -37,11 +36,18 @@ def main() -> None:
         "rxnorm_statins.csv": "rxnorm_statin",
         "value_sets_demo.csv": "value_set_segment",
     }
+    comments = {
+        "icd10_hier": "ICD-10-CM adjacency list (code, parent_code, name). Source tree for icd10_closure. Curated demo subset (diabetes), ADR-0007.",
+        "loinc": "LOINC code subset (loinc_code, long_common_name, concept) for demo measures: A1c, eGFR, uACR, BP, BMI, PHQ. LOINC (c) Regenstrief, used under LOINC License.",
+        "rxnorm_statin": "RxNorm statin ingredients (rxcui, ingredient) for the Statin Therapy (SPD) measure.",
+        "value_set_segment": "Cross-branch demo value sets / cohorts (the segment table; not NCQA/VSAC). Named sets spanning the hierarchy, incl. CARDIORENAL_COHORT (diabetes+CKD+HF).",
+    }
     for csv_name, table in loads.items():
         path = os.path.join(args.src_dir, csv_name)  # local FS or /Workspace FUSE path
         df = spark.createDataFrame(pd.read_csv(path, dtype=str))
         fqn = f"{args.catalog}.{args.schema}.{table}"
         df.write.mode("overwrite").option("overwriteSchema", True).saveAsTable(fqn)
+        spark.sql(f"COMMENT ON TABLE {fqn} IS '{comments[table]}'")
         print(f"loaded {df.count():>4} rows -> {fqn}")
 
 
