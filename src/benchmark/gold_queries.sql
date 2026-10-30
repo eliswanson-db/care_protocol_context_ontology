@@ -81,12 +81,14 @@ WHERE predicate = 'has_component' AND part = 'LP-EGFR';
 -- =========================================================================================
 
 -- @id: med_on_statin
--- class: 4_rxnorm_subsumption  min_approach: metric_view  expect: 4741
--- Any statin = any prescription whose rxnorm_code is subsumed by DRUGCLASS-STATIN via the RxNorm closure.
--- All ages (the SPD metric view bakes this closure at build time; a novel slice would need this query).
-SELECT COUNT(DISTINCT m.patient_id) AS on_statin
+-- class: 4_rxnorm_subsumption  min_approach: closure_sql  expect: 1651
+-- "How many DIABETIC patients are on any statin?" = diabetic-cohort patients with a prescription whose
+-- rxnorm_code is subsumed by DRUGCLASS-STATIN via the RxNorm closure. All ages. (Across ALL patients the
+-- count is 4741 -- a different, broader question; the diabetic cohort is the one the benchmark asks.)
+SELECT COUNT(DISTINCT m.patient_id) AS diabetic_on_statin
 FROM {catalog}.{schema}.bronze_order_med m
 JOIN {catalog}.{tschema}.rxnorm_closure c ON m.rxnorm_code = c.descendant_code
+JOIN {catalog}.{schema}.silver_diabetes_cohort d ON m.patient_id = d.patient_id
 WHERE c.ancestor_code = 'DRUGCLASS-STATIN';
 
 -- @id: med_is_statin

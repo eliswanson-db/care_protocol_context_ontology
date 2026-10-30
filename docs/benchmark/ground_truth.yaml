@@ -108,11 +108,11 @@ classes:
     questions:
       - id: med_on_statin
         question: "How many diabetic patients are on any statin?"
-        gold: "distinct patients with a bronze_order_med rxnorm_code subsumed by DRUGCLASS-STATIN via rxnorm_closure"
+        gold: "distinct DIABETIC-cohort patients with a bronze_order_med rxnorm_code subsumed by DRUGCLASS-STATIN via rxnorm_closure"
         gold_value_500: 97
-        gold_value_25k: 4741   # all ages
-        how_asked: "Genie One -> SPD metric view (statin closure BAKED at build time) OR query-time join rxnorm_closure OR MCP"
-        min_approach: metric_view   # because we baked it; a novel statin slice would need closure_sql
+        gold_value_25k: 1651   # diabetic cohort, all ages (reconciled 2026-10-30 to match the question; ALL patients = 4741).
+        how_asked: "Genie One -> query-time join rxnorm_closure + diabetes cohort; OR SPD metric view (statin closure BAKED) OR MCP"
+        min_approach: closure_sql   # the diabetic-cohort slice needs the closure join; SPD bakes only the 40-75 measure
         also_solvable_by: [closure_sql, graph_ontobricks]
         graph_strictly_needed: false
         hypothesis: {rag: insufficient, metric_view: sufficient, closure_sql: sufficient, graph_ontobricks: sufficient}

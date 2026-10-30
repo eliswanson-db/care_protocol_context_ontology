@@ -21,6 +21,16 @@ necessary, and why*. The question set and hand-verified expected answers live in
 The other arms (Genie One A1, metric-view-only M0, Lakebase RAG A4, Ontobricks A5) are scored *against* this
 gold as they come online; their columns in the capability-map matrix fill in per class.
 
+- **`run_capability_map.py`** — runs an arm over `ground_truth.yaml` and scores vs the pinned gold, capturing
+  the assets each answer cited (lineage). Arms today: `--arm A1` (Genie One, headless via `databricks genie
+  ask`) and `--arm M0` (the metric-view-only structural baseline). Auto-score is a first-pass aid; verdicts
+  are hand-verified.
+- **`../../docs/benchmark/capability_map.md`** — the deliverable: the hand-verified matrix (class × approach →
+  reached-gold + how) and the "when does each layer earn its place" write-up. First full run 2026-10-30:
+  closure_sql 13/13; Genie One reached gold on 16/19 scorable (incl. finding the CLINIC-08 drift + PCP-handoff
+  root cause), with the misses landing exactly where the charter predicts — class-6 definitional exactness and
+  the class-8 graph-native/Ontobricks case.
+
 ## Genie GenAI Evals (starting point for P12)
 
 ## What this is
