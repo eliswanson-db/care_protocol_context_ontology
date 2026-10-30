@@ -1,0 +1,15 @@
+# Genie Agent (A2) — bundle-managed via the native genie_spaces resource (DAB).
+# The serialized space body lives in resources/care_protocol.geniespace.json (version-controlled).
+# Scoped to the Gold measure tables + metric views, with instructions that teach MEASURE() usage.
+# NOTE: table/metric-view identifiers in the .geniespace.json are the fixed ECT catalog (ADR-0001);
+# a different catalog requires editing that file (genie_spaces file_path is not variable-substituted).
+resources:
+  genie_spaces:
+    care_protocol_agent:
+      title: Care Protocol — HEDIS Diabetes Quality (${bundle.target})
+      description: >-
+        Curated Genie Agent over the Care Protocol semantic layer: GSD and KED measure results
+        (gold_adherence_*) and their governed metric views. HEDIS-aligned demo, not NCQA-certified.
+      warehouse_id: ${var.warehouse_id}
+      parent_path: /Workspace/Users/eli.swanson@databricks.com/genie_spaces
+      file_path: ./care_protocol.geniespace.json

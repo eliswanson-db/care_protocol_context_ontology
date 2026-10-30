@@ -1,0 +1,21 @@
+[project]
+name = "care-protocol-context-ontology"
+version = "0.0.1"
+description = "HEDIS Context & Evidence Lab — semantics/ontology/context demo on Databricks"
+requires-python = ">=3.10"
+dependencies = [
+  # Pinned to match the vendored Genie GenAI Evals notebook (verify in-workspace)
+  "mlflow[databricks]==3.17.2",
+  "databricks-sdk==0.157.0",
+  "pandas",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "ruff"]
+
+[tool.ruff]
+line-length = 110
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"

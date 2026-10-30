@@ -1,0 +1,209 @@
+# Ground-truth question set for the capability-map benchmark (see ../BENCHMARK_CHARTER.md).
+#
+# The key insight (where semantic resolution happens):
+#   - build-time (baked into a metric view / Gold)  -> Genie Ontology answers from the semantic layer
+#   - query-time (join a materialized closure/edge table) -> the "closure table" approach (Genie SQL or MCP)
+#   - live traversal / inference (Ontobricks)       -> strictly needed only for variable-depth paths / OWL inference
+#   - text facts -> RAG over the Pages / care-protocol PDF
+# Genie One is the front door in all cases; what differs is WHICH it uses.
+#
+# Honest correction to the charter: classes 2-6 are all expressible as fixed-shape SQL over materialized
+# closure/edge tables, so NONE strictly require Ontobricks over a good closure layer. Ontobricks earns its
+# place on class 8 (path/explanation queries + OWL-defined classes). This is itself the "when do we need
+# Ontobricks" finding.
+#
+# fields: question | gold (method) | gold_value_500 (dry run; recompute at 25k) | how_asked | min_approach |
+#         also_solvable_by | graph_strictly_needed | hypothesis(per approach) | note
+# approaches: rag, metric_view (Genie Ontology), closure_sql, graph_ontobricks
+#
+# 25k results (2026-10-30, measurement year 2025; recomputed after the c5d.4xlarge regen + reflow):
+#   diabetes cohort = 3031 patients (~12% of 25k). Measure rates: GSD 80.7% (2442 elig), KED 51.6% (2808),
+#   BPD 71.4% (2442), SPD 21.8% (2301), EED 38.3% (2442). Complication cohorts (via ICD closure):
+#   kidney 1881, retinopathy 393 (was 0 on the 3-entry crosswalk), neuropathy 499, cardiorenal (DM+CKD+HF) 10.
+#   Terminology coverage: A1c-any-method 9709, on-statin 4741, pregnancy dx 4811 (contraindication filter now live).
+#   Drift: eGFR under the 2026 value set = 0 (data uses MDRD 33914-3) -> confirmed at scale.
+#   NOTE: a terminology-CSV change requires `bundle run setup` (reload hier + rebuild closures) BEFORE the reflow.
+
+classes:
+
+  - class: 1_simple_kpi
+    intent: Governed KPI a metric view answers. Control.
+    questions:
+      - id: kpi_gsd_rate
+        question: "What is the overall GSD compliance rate?"
+        gold: "MEASURE(`GSD Compliance Rate`) FROM gsd_compliance_metrics"
+        gold_value_500: 0.8667
+        gold_value_25k: 0.8071   # 2442 eligible
+        how_asked: "Genie One -> metric-view synonym match -> MEASURE() SQL"
+        min_approach: metric_view
+        also_solvable_by: []
+        graph_strictly_needed: false
+        hypothesis: {rag: insufficient, metric_view: sufficient, closure_sql: n/a, graph_ontobricks: n/a}
+      - id: kpi_ked_eligible
+        question: "How many patients are eligible for the KED measure?"
+        gold: "COUNT(*) FROM gold_adherence_ked"
+        gold_value_500: 51
+        gold_value_25k: 2808
+        how_asked: "Genie One -> metric view / COUNT"
+        min_approach: metric_view
+        graph_strictly_needed: false
+        hypothesis: {rag: insufficient, metric_view: sufficient, closure_sql: adds_value, graph_ontobricks: n/a}
+
+  - class: 2_icd_subsumption
+    intent: Single-relation is-a rollup over ICD-10. closure == graph. ICD codes are LEXICALLY hierarchical, so a prefix LIKE partly approximates it (fragile) -> closure is the robust choice, not the only one.
+    questions:
+      - id: sub_kidney
+        question: "How many patients have diabetes WITH kidney complications?"
+        gold: "distinct silver_condition.patient_id joined to icd10_closure WHERE ancestor_code IN ('E11.2','E10.2','E13.2')"
+        gold_value_500: 36
+        gold_value_25k: 1881
+        how_asked: "Genie One -> SQL join icd10_closure (if it discovers the governed table/Page); OR closure MCP; OR a naive LIKE 'E11.2%'; OR Ontobricks subClassOf*"
+        min_approach: closure_sql
+        also_solvable_by: [graph_ontobricks, "fragile: SQL string-prefix"]
+        graph_strictly_needed: false
+        hypothesis: {rag: insufficient, metric_view: insufficient, closure_sql: sufficient, graph_ontobricks: sufficient}
+      - id: sub_retinopathy
+        question: "Count patients with any form of diabetic retinopathy."
+        gold: "distinct patients with dx descendant of E11.3/E10.3/E13.3 via icd10_closure"
+        gold_value_500: 0
+        gold_value_25k: 393   # crosswalk fix worked (0 -> 393)
+        how_asked: "same as sub_kidney"
+        min_approach: closure_sql
+        graph_strictly_needed: false
+        hypothesis: {rag: insufficient, metric_view: insufficient, closure_sql: sufficient, graph_ontobricks: sufficient}
+
+  - class: 3_loinc_multiaxial
+    intent: Identify tests by a LOINC axis (Component) regardless of method. A has_component edge table (closure-style) == graph; beats an enumerated value set (robust to new codes).
+    questions:
+      - id: lab_a1c_any_method
+        question: "How many patients have had an HbA1c test, counting every assay method?"
+        gold: "distinct patients with an observation whose loinc_code shares Component LP-HBA1C in loinc_parts"
+        gold_value_500: 195
+        gold_value_25k: 9709
+        how_asked: "Genie One -> join silver_observation to loinc_parts on Component; OR graph has_component traversal"
+        min_approach: closure_sql   # the loinc_parts edge table
+        also_solvable_by: [graph_ontobricks]
+        graph_strictly_needed: false
+        hypothesis: {rag: insufficient, metric_view: insufficient, closure_sql: sufficient, graph_ontobricks: sufficient}
+        note: "enumerated value set works until a new A1c code appears; the Part edge table derives it."
+      - id: lab_egfr_codes
+        question: "Which LOINC codes count as an eGFR test here?"
+        gold: "loinc codes with Component LP-EGFR"
+        gold_value_500: ["33914-3", "98979-8"]
+        how_asked: "RAG (egfr Page lists them) OR loinc_parts lookup"
+        min_approach: rag
+        graph_strictly_needed: false
+        hypothesis: {rag: sufficient, metric_view: adds_value, closure_sql: sufficient, graph_ontobricks: sufficient}
+
+  - class: 4_rxnorm_subsumption
+    intent: Resolve a drug class from ingredient to the clinical-drug codes prescribed. RxNorm codes are NOT lexical -> no string shortcut -> the closure is NECESSARY (and sufficient; graph adds nothing).
+    questions:
+      - id: med_on_statin
+        question: "How many diabetic patients are on any statin?"
+        gold: "distinct patients with a bronze_order_med rxnorm_code subsumed by DRUGCLASS-STATIN via rxnorm_closure"
+        gold_value_500: 97
+        gold_value_25k: 4741   # all ages
+        how_asked: "Genie One -> SPD metric view (statin closure BAKED at build time) OR query-time join rxnorm_closure OR MCP"
+        min_approach: metric_view   # because we baked it; a novel statin slice would need closure_sql
+        also_solvable_by: [closure_sql, graph_ontobricks]
+        graph_strictly_needed: false
+        hypothesis: {rag: insufficient, metric_view: sufficient, closure_sql: sufficient, graph_ontobricks: sufficient}
+        note: "naive ingredient match of prescription codes = 0 (codes not lexical). Shows closure NECESSARY where ICD's string trick fails."
+      - id: med_is_statin
+        question: "Is a patient prescribed 'Simvastatin 20 MG Oral Tablet' on a statin?"
+        gold: "yes -- 312961 subsumed by simvastatin (36567) -> DRUGCLASS-STATIN"
+        gold_value_500: "yes"
+        how_asked: "closure lookup; an LLM may also guess from the drug name"
+        min_approach: closure_sql
+        graph_strictly_needed: false
+        hypothesis: {rag: adds_value, metric_view: insufficient, closure_sql: sufficient, graph_ontobricks: sufficient}
+
+  - class: 5_value_set_vintage
+    intent: Same measure, different value-set VERSION -> different population. A data-model question (versioned value sets), not a retrieval one.
+    questions:
+      - id: vintage_egfr_2026
+        question: "Under the 2026 KED eGFR definition, how many patients have a qualifying eGFR test?"
+        gold: "distinct patients with an observation in value_set_segment KED_EGFR WHERE measurement_year=2026 (only 98979-8)"
+        gold_value_500: 0
+        gold_value_25k: 0   # drift confirmed at scale (2025 def would be >0)
+        how_asked: "Genie One -> join the versioned value_set_segment filtered to 2026"
+        min_approach: metric_view   # Genie Ontology over the versioned value-set table
+        graph_strictly_needed: false
+        hypothesis: {rag: insufficient, metric_view: sufficient, closure_sql: sufficient, graph_ontobricks: sufficient}
+        note: "RAG over current docs gives a stale/ambiguous answer; the versioned table makes it exact."
+
+  - class: 6_protocol_multihop
+    intent: Compose diagnosis + lab + med-class + protocol rules. FIXED-shape multi-joins -> closure/edge tables + SQL suffice. Graph is more natural/maintainable but NOT strictly necessary.
+    questions:
+      - id: proto_statin_gap_safe
+        question: "Which diabetics 40-75 have a statin care gap AND no contraindication (not pregnant, no active hepatic disease)?"
+        gold: "gold_adherence_spd NOT_MET AND age 40-75 AND patient has NO dx in CONTRA_PREGNANCY/CONTRA_HEPATIC (via icd10_closure)"
+        gold_value_500: 32
+        gold_value_25k: TBD-multijoin   # SPD gaps ~1799; pregnancy dx now resolve (4811) so the contraindication filter is live. Compute with the arm query.
+        how_asked: "Genie One -> multi-join (SPD gold + icd10_closure for contraindication subtrees + protocol_edges); OR Ontobricks MCP"
+        min_approach: closure_sql
+        also_solvable_by: [graph_ontobricks]
+        graph_strictly_needed: false
+        hypothesis: {rag: insufficient, metric_view: insufficient, closure_sql: sufficient, graph_ontobricks: adds_value}
+      - id: proto_albuminuria_aceiarb
+        question: "Patients with albuminuria (uACR >= 30) NOT on an ACE inhibitor or ARB, per protocol?"
+        gold: "patients with a uACR observation value >= 30 AND no med subsumed by DRUGCLASS-ACE/ARB; recommendation from protocol_edges"
+        gold_value_25k: TBD-multijoin   # ACE/ARB closures live; uACR obs present
+        how_asked: "multi-join (silver_observation value + rxnorm_closure ACE/ARB + protocol_edges)"
+        min_approach: closure_sql
+        also_solvable_by: [graph_ontobricks]
+        graph_strictly_needed: false
+        hypothesis: {rag: insufficient, metric_view: insufficient, closure_sql: sufficient, graph_ontobricks: adds_value}
+      - id: proto_cardiorenal
+        question: "Identify cardiorenal patients (diabetes + CKD + heart failure) and whether each is on statin + ACE/ARB + SGLT2."
+        gold: "cohort = dx under E1x AND N18.* AND I50.* (cross-branch, icd10_closure); then med-class coverage via rxnorm_closure"
+        gold_value_25k: 10   # cardiorenal cohort (DM+CKD+HF) = 10 patients; SGLT2 coverage = 0 (Synthea emits none)
+        how_asked: "multi-join across 3 ICD subtrees + 3 drug-class closures"
+        min_approach: closure_sql
+        also_solvable_by: [graph_ontobricks]
+        graph_strictly_needed: false
+        hypothesis: {rag: insufficient, metric_view: insufficient, closure_sql: sufficient, graph_ontobricks: adds_value}
+
+  - class: 7_definition_provenance
+    intent: Explain/define a concept and cite where. Unstructured -> RAG/Pages, not structured data.
+    source: ../care_protocol/pdf_eval_questions.json
+    questions:
+      - id: def_metformin_egfr
+        question: "Below what eGFR is metformin contraindicated, and where is that stated?"
+        gold: "eGFR < 30 mL/min/1.73m2 (care-protocol CP-GLY-2)"
+        gold_value_500: "eGFR < 30"
+        how_asked: "RAG MCP over the PDF; OR Genie Ontology Page (adds the citation/provenance)"
+        min_approach: rag
+        graph_strictly_needed: false
+        hypothesis: {rag: sufficient, metric_view: adds_value, closure_sql: insufficient, graph_ontobricks: adds_value}
+      - id: def_controlled_bp
+        question: "What does 'controlled' blood pressure mean for BPD, and where is it defined?"
+        gold: "systolic < 140 AND diastolic < 90 (care-protocol; BPD spec)"
+        gold_value_500: "systolic < 140 and diastolic < 90"
+        how_asked: "RAG / Page / metric-view comment"
+        min_approach: rag
+        graph_strictly_needed: false
+        hypothesis: {rag: sufficient, metric_view: sufficient, closure_sql: insufficient, graph_ontobricks: adds_value}
+
+  - class: 8_graph_native
+    intent: Where a true graph earns it — path/explanation queries and OWL-defined classes. These are variable-shape or inference-based, awkward-to-impossible as a fixed SQL join. The genuine Ontobricks-necessary cases.
+    questions:
+      - id: infer_rationale_path
+        question: "Explain the clinical rationale connecting a patient's diabetes diagnosis to their statin therapy (show the connecting path)."
+        gold: "property path: Patient -hasDiagnosis-> DiabetesDiagnosis ; Patient -eligibleFor-> SPD <-recommendedFor- DRUGCLASS-STATIN <-inDrugClass- Ingredient <-hasIngredient- Drug <-prescribed- Patient"
+        gold_value_500: "a path/explanation, not a count"
+        how_asked: "Ontobricks MCP -> graph property-path traversal (SPARQL); Genie One orchestrates and renders the path"
+        min_approach: graph_ontobricks
+        also_solvable_by: ["closure_sql only as a bespoke hand-written join per path shape"]
+        graph_strictly_needed: true
+        hypothesis: {rag: insufficient, metric_view: insufficient, closure_sql: insufficient, graph_ontobricks: necessary}
+        note: "ties to lineage/explainability — the 'why was this context needed' thread. Variable-shape path = graph-native."
+      - id: infer_defined_class
+        question: "Which patients qualify as 'high cardiorenal risk' as DEFINED by the protocol ontology (diabetes AND CKD AND on a class flagged for review)?"
+        gold: "OWL defined class: Patient that hasDiagnosis some DiabetesDiagnosis and hasDiagnosis some ChronicKidneyDisease and prescribed some (Drug whose class is contraindicatedWhen low eGFR) -- reasoner classifies"
+        gold_value_500: TBD-reflow
+        how_asked: "Ontobricks reasoner classifies into the defined class; Genie One asks the graph MCP"
+        min_approach: graph_ontobricks
+        also_solvable_by: [closure_sql]   # as a fixed join, re-encoding the definition in SQL (less maintainable)
+        graph_strictly_needed: false
+        note: "the DEFINITION lives in the ontology (maintainable, reasoner-checked) vs re-encoded per-query in SQL. Shows graph VALUE even where a join is possible."

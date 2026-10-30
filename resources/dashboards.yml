@@ -1,0 +1,10 @@
+# AI/BI dashboard over the Gold measures — bundle-managed (DAB dashboards resource).
+# Serialized definition in resources/hedis_quality.lvdash.json (version-controlled). Dataset queries use
+# fully-qualified names (ADR-0001 fixed catalog) because DAB has no --dataset-catalog flag.
+resources:
+  dashboards:
+    hedis_quality_overview:
+      display_name: HEDIS Diabetes Quality — Care Protocol (${bundle.target})
+      file_path: ./hedis_quality.lvdash.json
+      warehouse_id: ${var.warehouse_id}
+      parent_path: /Workspace/Users/eli.swanson@databricks.com/dashboards

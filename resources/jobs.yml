@@ -1,0 +1,261 @@
+# Setup jobs — all bundle-managed. Schemas + volume are declared in schemas.yml / volumes.yml.
+# Fresh-workspace setup order:
+#   1) setup            (serverless)  load_terminology -> build_closure
+#   2) generate_synthea (classic)     stage JAR -> run Synthea -> raw_synthea_* tables
+#   3) epicize          (serverless)  SNOMED->ICD-10 crosswalk -> Clarity-shaped bronze_* tables
+
+resources:
+  jobs:
+
+    setup:
+      name: setup_${bundle.target}
+      description: Load vendored terminology (no Drive; ADR-0007) and build the ICD-10 closure.
+      tasks:
+        - task_key: load_terminology
+          spark_python_task:
+            python_file: ../src/terminology/load_terminology.py
+            parameters:
+              - "--catalog"
+              - "${var.catalog}"
+              - "--schema"
+              - "care_protocol_terminology"
+              - "--src_dir"
+              - "${workspace.file_path}/src/terminology"
+          environment_key: serverless
+        - task_key: build_closure
+          depends_on:
+            - task_key: load_terminology
+          spark_python_task:
+            python_file: ../src/semantic/build_closure.py
+            parameters:
+              - "--catalog"
+              - "${var.catalog}"
+              - "--schema"
+              - "care_protocol_terminology"
+          environment_key: serverless
+        - task_key: build_rxnorm_closure
+          depends_on:
+            - task_key: load_terminology
+          spark_python_task:
+            python_file: ../src/semantic/build_closure.py
+            parameters:
+              - "--catalog"
+              - "${var.catalog}"
+              - "--schema"
+              - "care_protocol_terminology"
+              - "--hier_table"
+              - "rxnorm_hier"
+              - "--closure_table"
+              - "rxnorm_closure"
+              - "--label"
+              - "rxnorm_hier"
+          environment_key: serverless
+      environments:
+        - environment_key: serverless
+          spec:
+            client: "3"
+
+    generate_synthea:
+      name: generate_synthea_${bundle.target}
+      description: Stage the pinned Synthea JAR to the Volume, run Synthea (classic JVM), load raw_synthea_* tables.
+      job_clusters:
+        - job_cluster_key: synthea_classic
+          new_cluster:
+            # Synthea is a single-JVM Java app (not a Spark workload): it multithreads patient generation
+            # across CPU cores on the DRIVER. Workers don't help (they'd sit idle); cores + RAM do. So a big
+            # compute-optimized SINGLE node. 16 vCPU generates ~8x the 2-vCPU m5d.large (25k in ~10-15 min).
+            spark_version: "15.4.x-scala2.12"
+            node_type_id: "c5d.4xlarge"
+            num_workers: 0
+            spark_conf:
+              spark.databricks.cluster.profile: singleNode
+              spark.master: "local[*]"
+            spark_env_vars:
+              JNAME: "zulu17-ca-amd64"
+            custom_tags:
+              ResourceClass: "SingleNode"
+            data_security_mode: "SINGLE_USER"
+      tasks:
+        - task_key: stage_synthea
+          job_cluster_key: synthea_classic
+          spark_python_task:
+            python_file: ../scripts/stage_synthea.py
+            parameters:
+              - "--volume_dir"
+              - "/Volumes/${var.catalog}/care_protocol/synthea"
+        - task_key: generate
+          depends_on:
+            - task_key: stage_synthea
+          job_cluster_key: synthea_classic
+          spark_python_task:
+            python_file: ../src/data_generation/generate_synthea.py
+            parameters:
+              - "--catalog"
+              - "${var.catalog}"
+              - "--schema"
+              - "care_protocol"
+              - "--volume_dir"
+              - "/Volumes/${var.catalog}/care_protocol/synthea"
+              - "--population"
+              - "${var.synthea_population}"
+              - "--seed"
+              - "20261029"
+
+    epicize:
+      name: epicize_${bundle.target}
+      description: Crosswalk SNOMED->ICD-10 and shape raw Synthea into Clarity-like bronze_* tables.
+      tasks:
+        - task_key: epicize
+          spark_python_task:
+            python_file: ../src/data_generation/epicize_map.py
+            parameters:
+              - "--catalog"
+              - "${var.catalog}"
+              - "--schema"
+              - "care_protocol"
+              - "--src_dir"
+              - "${workspace.file_path}/src/terminology"
+          environment_key: serverless
+      environments:
+        - environment_key: serverless
+          spec:
+            client: "3"
+
+    # Semantic layer (ontology fuel). Runs AFTER the `measures` pipeline — reads gold_adherence_*.
+    #   apply_comments:     column-level UC comments on silver/gold/terminology (src/semantic/comments/*.comments.sql)
+    #   apply_metric_views: governed UC metric views from src/semantic/metric_views/*.metric_view.sql
+    semantic:
+      name: semantic_${bundle.target}
+      description: Build the governed semantic layer (UC comments + metric views) over gold_* for Genie Ontology.
+      tasks:
+        - task_key: apply_comments
+          spark_python_task:
+            python_file: ../src/semantic/apply_comments.py
+            parameters:
+              - "--catalog"
+              - "${var.catalog}"
+              - "--src_dir"
+              - "${workspace.file_path}/src/semantic/comments"
+          environment_key: serverless
+        - task_key: apply_metric_views
+          depends_on:
+            - task_key: apply_comments
+          spark_python_task:
+            python_file: ../src/semantic/apply_metric_views.py
+            parameters:
+              - "--catalog"
+              - "${var.catalog}"
+              - "--schema"
+              - "care_protocol"
+              - "--src_dir"
+              - "${workspace.file_path}/src/semantic/metric_views"
+          environment_key: serverless
+      environments:
+        - environment_key: serverless
+          spec:
+            client: "3"
+
+    # Render the care-protocol HTML to PDF in the documents Volume (the unstructured lineage anchor).
+    stage_care_protocol:
+      name: stage_care_protocol_${bundle.target}
+      description: Render docs/care_protocol/html/*.html to PDF in /Volumes/<catalog>/care_protocol/documents/pdf.
+      tasks:
+        - task_key: render
+          spark_python_task:
+            python_file: ../scripts/render_care_protocol.py
+            parameters:
+              - "--src_dir"
+              - "${workspace.file_path}/docs/care_protocol/html"
+              - "--out_dir"
+              - "/Volumes/${var.catalog}/care_protocol/documents/pdf"
+          environment_key: serverless
+      environments:
+        - environment_key: serverless
+          spec:
+            client: "3"
+            dependencies:
+              - xhtml2pdf
+
+    # Stage the Genie Ontology Pages (docs/ontology/pages/*.md) into a UC Volume for Genie Code bulk import.
+    stage_pages:
+      name: stage_pages_${bundle.target}
+      description: Copy the version-controlled Page sources into /Volumes/<catalog>/care_protocol/ontology_pages.
+      tasks:
+        - task_key: stage_pages
+          spark_python_task:
+            python_file: ../scripts/stage_pages.py
+            parameters:
+              - "--src_dir"
+              - "${workspace.file_path}/docs/ontology/pages"
+              - "--volume_dir"
+              - "/Volumes/${var.catalog}/care_protocol/ontology_pages"
+          environment_key: serverless
+      environments:
+        - environment_key: serverless
+          spec:
+            client: "3"
+
+    # Benchmark the Genie Agent (A2) against a ground-truth question set; log accuracy/grounding/latency to MLflow.
+    benchmark:
+      name: benchmark_${bundle.target}
+      description: Benchmark retrieval arms (A2 Genie Agent, A6 supervisor+MCP) to MLflow for comparison (ADR-0004).
+      tasks:
+        - task_key: arm_a2
+          spark_python_task:
+            python_file: ../src/benchmark/run_benchmark.py
+            parameters:
+              - "--arm"
+              - "A2"
+              - "--space_id"
+              - "${resources.genie_spaces.care_protocol_agent.id}"
+              - "--questions"
+              - "${workspace.file_path}/src/benchmark/benchmark_questions.json"
+              - "--experiment"
+              - "/Users/eli.swanson@databricks.com/care_protocol_benchmark"
+          environment_key: serverless
+        - task_key: arm_a6
+          spark_python_task:
+            python_file: ../src/benchmark/run_benchmark.py
+            parameters:
+              - "--arm"
+              - "A6"
+              - "--warehouse_id"
+              - "${var.warehouse_id}"
+              - "--catalog"
+              - "${var.catalog}"
+              - "--repo_src"
+              - "${workspace.file_path}/src"
+              - "--questions"
+              - "${workspace.file_path}/src/benchmark/benchmark_questions.json"
+              - "--experiment"
+              - "/Users/eli.swanson@databricks.com/care_protocol_benchmark"
+          environment_key: serverless
+      environments:
+        - environment_key: serverless
+          spec:
+            client: "3"
+            dependencies:
+              - databricks-sdk
+              - mlflow
+
+    # Query-history seeding (ontology fuel, roadmap S7a). Runs analyst queries on the SQL warehouse so they
+    # land in system.query.history. Run AFTER `semantic` (needs the metric views). Re-runnable (read-only).
+    seed_query_history:
+      name: seed_query_history_${bundle.target}
+      description: Run representative analyst queries on the warehouse to seed query history for Genie Ontology.
+      tasks:
+        - task_key: seed_query_history
+          spark_python_task:
+            python_file: ../src/semantic/seed_query_history.py
+            parameters:
+              - "--warehouse_id"
+              - "${var.warehouse_id}"
+              - "--catalog"
+              - "${var.catalog}"
+          environment_key: serverless
+      environments:
+        - environment_key: serverless
+          spec:
+            client: "3"
+            dependencies:
+              - databricks-sdk

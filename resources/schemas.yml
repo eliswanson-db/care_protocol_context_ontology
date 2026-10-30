@@ -1,0 +1,15 @@
+# Unity Catalog schemas — declared declaratively (not created by ad-hoc SQL).
+# Catalog itself is pre-existing (ECT Default Storage blocks SQL catalog creation; ADR-0001),
+# so we declare schemas within it, not the catalog.
+resources:
+  schemas:
+    care_protocol:
+      catalog_name: ${var.catalog}
+      name: care_protocol
+      comment: Medallion + semantic layer for the care-protocol HEDIS demo (synthetic).
+    care_protocol_terminology:
+      catalog_name: ${var.catalog}
+      name: care_protocol_terminology
+      comment: >-
+        Terminology-as-data: curated LOINC/ICD-10-CM/RxNorm subsets + demo value sets + ICD-10 closure
+        (HEDIS demo, not NCQA-certified).

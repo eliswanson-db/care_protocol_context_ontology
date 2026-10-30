@@ -1,0 +1,38 @@
+segment_id,segment_name,code,code_system,measurement_year,owner
+HEDIS_DIABETES_DENOM,Diabetes denominator (demo),E10,ICD10CM,2025,eli.swanson@databricks.com
+HEDIS_DIABETES_DENOM,Diabetes denominator (demo),E11,ICD10CM,2025,eli.swanson@databricks.com
+HEDIS_DIABETES_DENOM,Diabetes denominator (demo),E13,ICD10CM,2025,eli.swanson@databricks.com
+GSD_A1C_TEST,Glycemic status - A1c test (GSD),4548-4,LOINC,2025,eli.swanson@databricks.com
+GSD_A1C_TEST,Glycemic status - A1c test (GSD),17856-6,LOINC,2025,eli.swanson@databricks.com
+GSD_A1C_TEST,Glycemic status - A1c test (GSD),59261-8,LOINC,2025,eli.swanson@databricks.com
+KED_EGFR,Kidney eval - eGFR (KED),98979-8,LOINC,2025,eli.swanson@databricks.com
+KED_EGFR,Kidney eval - eGFR (KED),33914-3,LOINC,2025,eli.swanson@databricks.com
+KED_UACR,Kidney eval - uACR (KED),9318-7,LOINC,2025,eli.swanson@databricks.com
+KED_UACR,Kidney eval - uACR (KED),14959-1,LOINC,2025,eli.swanson@databricks.com
+BPD_SYSTOLIC,BP control - systolic (BPD),8480-6,LOINC,2025,eli.swanson@databricks.com
+BPD_DIASTOLIC,BP control - diastolic (BPD),8462-4,LOINC,2025,eli.swanson@databricks.com
+SPD_STATIN,Statin therapy (SPD),83367,RXNORM,2025,eli.swanson@databricks.com
+SPD_STATIN,Statin therapy (SPD),36567,RXNORM,2025,eli.swanson@databricks.com
+SPD_STATIN,Statin therapy (SPD),301542,RXNORM,2025,eli.swanson@databricks.com
+SPD_STATIN,Statin therapy (SPD),42463,RXNORM,2025,eli.swanson@databricks.com
+SPD_STATIN,Statin therapy (SPD),6472,RXNORM,2025,eli.swanson@databricks.com
+SPD_STATIN,Statin therapy (SPD),41127,RXNORM,2025,eli.swanson@databricks.com
+EXCL_HOSPICE,Hospice / palliative care exclusion,Z51.5,ICD10CM,2025,eli.swanson@databricks.com
+EXCL_ESRD,ESRD / dialysis exclusion (KED),N18.6,ICD10CM,2025,eli.swanson@databricks.com
+EXCL_ESRD,ESRD / dialysis exclusion (KED),Z99.2,ICD10CM,2025,eli.swanson@databricks.com
+CARDIORENAL_COHORT,Cardiorenal cohort - cross-branch (DM-05): diabetes + CKD + HF,E11,ICD10CM,2025,eli.swanson@databricks.com
+CARDIORENAL_COHORT,Cardiorenal cohort - cross-branch (DM-05): diabetes + CKD + HF,N18.4,ICD10CM,2025,eli.swanson@databricks.com
+CARDIORENAL_COHORT,Cardiorenal cohort - cross-branch (DM-05): diabetes + CKD + HF,N18.5,ICD10CM,2025,eli.swanson@databricks.com
+CARDIORENAL_COHORT,Cardiorenal cohort - cross-branch (DM-05): diabetes + CKD + HF,N18.6,ICD10CM,2025,eli.swanson@databricks.com
+CARDIORENAL_COHORT,Cardiorenal cohort - cross-branch (DM-05): diabetes + CKD + HF,I50.9,ICD10CM,2025,eli.swanson@databricks.com
+EED_EYE_EXAM,Eye exam - diabetic retinal (EED),722161008,SNOMED,2025,eli.swanson@databricks.com
+EED_EYE_EXAM,Eye exam - diabetic retinal (EED),700070005,SNOMED,2025,eli.swanson@databricks.com
+KED_EGFR,Kidney eval - eGFR (KED) [MY2026 modernized: CKD-EPI only],98979-8,LOINC,2026,eli.swanson@databricks.com
+COMORBID_CKD,Chronic kidney disease (any stage),N18,ICD10CM,2025,eli.swanson@databricks.com
+COMORBID_HF,Heart failure,I50,ICD10CM,2025,eli.swanson@databricks.com
+CONTRA_PREGNANCY,Pregnancy (statin/ACE/ARB contraindication),Z34,ICD10CM,2025,eli.swanson@databricks.com
+CONTRA_PREGNANCY,Pregnancy (statin/ACE/ARB contraindication),O26,ICD10CM,2025,eli.swanson@databricks.com
+CONTRA_PREGNANCY,Pregnancy (statin/ACE/ARB contraindication),O15,ICD10CM,2025,eli.swanson@databricks.com
+CONTRA_PREGNANCY,Pregnancy (statin/ACE/ARB contraindication),O00,ICD10CM,2025,eli.swanson@databricks.com
+CONTRA_HEPATIC,Active hepatic disease (statin contraindication),K70,ICD10CM,2025,eli.swanson@databricks.com
+CONTRA_HEPATIC,Active hepatic disease (statin contraindication),K74,ICD10CM,2025,eli.swanson@databricks.com

@@ -1,0 +1,67 @@
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix cp:   <https://care-protocol.example/ontology#> .
+
+# =====================================================================================
+# Care Protocol Ontology (TBox) for the Context & Ontology benchmark (ADR-0010).
+# Import into Ontobricks; map data in via care_protocol.r2rml.ttl. License-clean (LOINC
+# multiaxial Parts + ICD-10 is-a + RxNorm + care-protocol edges; NO SNOMED relationships).
+# The graph's value is the CROSS-vocabulary + protocol edges that a single closure cannot express.
+# =====================================================================================
+
+<https://care-protocol.example/ontology> a owl:Ontology ;
+    rdfs:label "Care Protocol Ontology" ;
+    rdfs:comment "HEDIS diabetes measures + clinical terminology + care-protocol knowledge. Synthetic/demo." .
+
+# ---- Classes ----
+cp:Patient        a owl:Class .
+cp:Condition      a owl:Class .
+cp:DiabetesDiagnosis a owl:Class ; rdfs:subClassOf cp:Condition .
+cp:ChronicKidneyDisease a owl:Class ; rdfs:subClassOf cp:Condition .
+cp:HeartFailure   a owl:Class ; rdfs:subClassOf cp:Condition .
+cp:Pregnancy      a owl:Class ; rdfs:subClassOf cp:Condition .
+cp:HepaticDisease a owl:Class ; rdfs:subClassOf cp:Condition .
+
+cp:LabTest        a owl:Class .          # a LOINC term
+cp:LoincPart      a owl:Class .          # a LOINC Part (Component/System/Method axis value)
+cp:Observation    a owl:Class .          # a patient's lab result
+
+cp:Medication     a owl:Class .          # an RxNorm clinical drug
+cp:Ingredient     a owl:Class .          # an RxNorm ingredient
+cp:DrugClass      a owl:Class .          # e.g. Statin, ACE inhibitor
+
+cp:Measure        a owl:Class .          # a HEDIS measure (GSD/KED/BPD/SPD/EED)
+cp:ValueSet       a owl:Class .
+cp:ProtocolRule   a owl:Class .
+
+# ---- Object properties (the typed edges a closure table cannot all express) ----
+cp:hasDiagnosis       a owl:ObjectProperty ; rdfs:domain cp:Patient ;    rdfs:range cp:Condition .
+cp:hasObservation     a owl:ObjectProperty ; rdfs:domain cp:Patient ;    rdfs:range cp:Observation .
+cp:ofTest             a owl:ObjectProperty ; rdfs:domain cp:Observation ; rdfs:range cp:LabTest .
+cp:prescribed         a owl:ObjectProperty ; rdfs:domain cp:Patient ;    rdfs:range cp:Medication .
+cp:hasComponent       a owl:ObjectProperty ; rdfs:domain cp:LabTest ;    rdfs:range cp:LoincPart .   # LOINC axis
+cp:hasIngredient      a owl:ObjectProperty ; rdfs:domain cp:Medication ; rdfs:range cp:Ingredient .
+cp:inDrugClass        a owl:ObjectProperty ; rdfs:domain cp:Ingredient ; rdfs:range cp:DrugClass .
+cp:eligibleFor        a owl:ObjectProperty ; rdfs:domain cp:Patient ;    rdfs:range cp:Measure .
+cp:hasCareGap         a owl:ObjectProperty ; rdfs:domain cp:Patient ;    rdfs:range cp:Measure .
+# care-protocol knowledge edges (from the PDF) — the cross-domain, multi-hop relationships:
+cp:recommendedFor     a owl:ObjectProperty ; rdfs:domain cp:DrugClass ; rdfs:range cp:Condition .
+cp:contraindicatedWith a owl:ObjectProperty ; rdfs:domain cp:DrugClass ; rdfs:range cp:Condition .
+cp:monitoredBy        a owl:ObjectProperty ; rdfs:domain cp:Measure ;   rdfs:range cp:LoincPart .
+
+# `inDrugClass` is transitive-friendly: Medication -hasIngredient-> Ingredient -inDrugClass-> DrugClass.
+# This 2-hop typed path is what the SQL rxnorm_closure flattens; the graph keeps it explicit + reasonable.
+
+# ---- Data properties ----
+cp:icd10Code        a owl:DatatypeProperty ; rdfs:range xsd:string .
+cp:loincCode        a owl:DatatypeProperty ; rdfs:range xsd:string .
+cp:rxnormCode       a owl:DatatypeProperty ; rdfs:range xsd:string .
+cp:resultValue      a owl:DatatypeProperty ; rdfs:range xsd:double .
+cp:status           a owl:DatatypeProperty ; rdfs:range xsd:string .   # MET / NOT_MET
+cp:ageAtPeriodEnd   a owl:DatatypeProperty ; rdfs:range xsd:integer .
+cp:measurementYear  a owl:DatatypeProperty ; rdfs:range xsd:integer .
+
+# ICD-10 is-a lives on rdfs:subClassOf among Condition individuals/classes (mapped from icd10_hier).
+# NOTE: the closure (icd10_closure) is the SQL materialization of subClassOf*; here a reasoner derives it.

@@ -1,0 +1,46 @@
+# Databricks Asset Bundle (DAB) — HEDIS Context & Evidence Lab
+# Validate:  databricks bundle validate -t dev   --profile ECT
+# Deploy:    databricks bundle deploy   -t ect   --profile ECT
+bundle:
+  name: care_protocol_context_ontology
+
+variables:
+  catalog:
+    description: Unity Catalog holding all demo assets (ADR-0001; ECT Default Storage blocks ad-hoc catalog creation, so we use the workspace's managed catalog)
+    default: eli_test_classic_catalog
+  schema:
+    description: Default schema for pipeline + semantic assets
+    default: care_protocol
+  synthea_population:
+    description: Number of synthetic patients Synthea generates (scaled up for a serious benchmark).
+    default: "25000"
+  warehouse_id:
+    description: SQL warehouse for the Genie agent, resolved by name (FEVM default warehouse). Override via --var if absent.
+    lookup:
+      warehouse: "Serverless Starter Warehouse"
+  embedding_endpoint:
+    description: Foundation Model embedding endpoint (ECT)
+    default: databricks-gte-large-en
+  llm_endpoint:
+    description: Chat/LLM endpoint for agents + judges (ECT)
+    default: databricks-claude-sonnet-5-5
+
+include:
+  - resources/*.yml
+
+targets:
+  # Local/iterative development (isolated, prefixed deployments)
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: https://fevm-eli-test-classic.cloud.databricks.com   # profile: ECT
+
+  # Shared demo environment on ECT
+  ect:
+    mode: production
+    workspace:
+      host: https://fevm-eli-test-classic.cloud.databricks.com   # profile: ECT
+      root_path: /Workspace/Users/eli.swanson@databricks.com/.bundle/${bundle.name}/${bundle.target}
+    run_as:
+      user_name: eli.swanson@databricks.com

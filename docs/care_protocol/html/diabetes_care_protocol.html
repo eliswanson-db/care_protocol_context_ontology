@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Care Protocol — Comprehensive Diabetes Management (v2025.1)</title>
+<style>
+  body { font-family: Georgia, 'Times New Roman', serif; font-size: 11pt; line-height: 1.45; margin: 2.2cm; color: #111; }
+  h1 { font-size: 20pt; border-bottom: 3px solid #333; padding-bottom: 6px; }
+  h2 { font-size: 14pt; margin-top: 1.4em; color: #1a3e5c; border-bottom: 1px solid #ccc; }
+  h3 { font-size: 12pt; margin-top: 1em; color: #1a3e5c; }
+  table { border-collapse: collapse; width: 100%; margin: 0.8em 0; font-size: 10pt; }
+  th, td { border: 1px solid #999; padding: 5px 8px; text-align: left; vertical-align: top; }
+  th { background: #eef2f6; }
+  .note { font-size: 9pt; color: #555; font-style: italic; }
+  .rule { background: #fafafa; border-left: 4px solid #1a3e5c; padding: 6px 10px; margin: 0.6em 0; }
+  code { background: #f0f0f0; padding: 1px 3px; }
+  .pagebreak { page-break-before: always; }
+</style>
+</head>
+<body>
+
+<h1>Comprehensive Diabetes Care Protocol</h1>
+<p class="note">Document CP-DM-2025.1 · Effective measurement year 2025 · SYNTHETIC / DEMO guidance for the
+Care Protocol Context &amp; Ontology project. HEDIS-aligned, not NCQA-certified. Not for clinical use.</p>
+
+<h2>1. Scope and Eligible Population</h2>
+<p>This protocol governs quality measurement and care escalation for adults with <b>diabetes mellitus</b>,
+identified by an ICD-10-CM diagnosis in the <b>E10</b> (type 1), <b>E11</b> (type 2), or <b>E13</b> (other
+specified) families, <b>including all descendant codes</b> (e.g. E11.21 <i>Type 2 diabetes with diabetic
+nephropathy</i>, E11.319 <i>… with unspecified diabetic retinopathy</i>). Membership is by the diagnosis
+hierarchy, not an enumerated code list.</p>
+
+<h2>2. Quality Measure Specifications</h2>
+<table>
+  <tr><th>Measure</th><th>Eligible ages</th><th>Numerator (compliant when…)</th><th>Threshold / definition</th></tr>
+  <tr><td><b>GSD</b> — Glycemic Status Assessment</td><td>18–75</td><td>≥1 HbA1c test in the measurement year</td><td>Good control &lt; 8.0%; poor control &gt; 9.0%; general target &lt; 7.0%</td></tr>
+  <tr><td><b>KED</b> — Kidney Health Evaluation</td><td>18–85</td><td>BOTH an eGFR test AND a uACR test in the year</td><td>Both components required; either alone is a gap</td></tr>
+  <tr><td><b>BPD</b> — Blood Pressure Control</td><td>18–75</td><td>Most recent BP reading controlled</td><td>Controlled = systolic &lt; 140 mmHg AND diastolic &lt; 90 mmHg</td></tr>
+  <tr><td><b>SPD</b> — Statin Therapy</td><td>40–75</td><td>Dispensed a statin during the year</td><td>Moderate-to-high intensity statin</td></tr>
+  <tr><td><b>EED</b> — Eye Exam</td><td>18–75</td><td>Retinal / diabetic eye exam in the year</td><td>Dilated or retinal-imaging exam; biennial if prior exam normal and low risk</td></tr>
+</table>
+<p class="note">A1c is identified by LOINC Component "Hemoglobin A1c" across methods (e.g. 4548-4 default,
+17856-6 HPLC, 59261-8 IFCC). eGFR and uACR are the two required kidney components of KED.</p>
+
+<h2 class="pagebreak">3. Glycemic Management</h2>
+<div class="rule"><b>CP-GLY-1.</b> Target HbA1c is &lt; 7.0% for most adults. A1c between 8.0% and 9.0% warrants
+therapy review; A1c <b>&gt; 9.0%</b> is classified <b>poorly controlled</b> and triggers escalation within 3 months.</div>
+<div class="rule"><b>CP-GLY-2.</b> <b>Metformin</b> is first-line glucose-lowering therapy. Metformin is
+<b>contraindicated when eGFR &lt; 30</b> mL/min/1.73m²; use with caution and do not initiate at eGFR 30–45.</div>
+<div class="rule"><b>CP-GLY-3.</b> For patients with established CKD (eGFR ≥ 20) or heart failure, add an
+<b>SGLT2 inhibitor</b> regardless of A1c, for organ protection.</div>
+
+<h2>4. Pharmacotherapy — Recommended Classes and Contraindications</h2>
+<table>
+  <tr><th>Drug class</th><th>Indicated for</th><th>Example agents (RxNorm ingredient)</th><th>Contraindications / cautions</th></tr>
+  <tr><td><b>Statin</b></td><td>SPD: all diabetics 40–75; cardiovascular risk reduction</td><td>atorvastatin, simvastatin, rosuvastatin, pravastatin, lovastatin, fluvastatin</td><td>Pregnancy; active hepatic disease / unexplained persistent transaminase elevation</td></tr>
+  <tr><td><b>ACE inhibitor or ARB</b></td><td>Albuminuria (uACR ≥ 30 mg/g) or hypertension</td><td>lisinopril, enalapril, losartan, valsartan</td><td>Pregnancy; bilateral renal artery stenosis; hyperkalemia; do NOT combine ACE + ARB</td></tr>
+  <tr><td><b>SGLT2 inhibitor</b></td><td>CKD (eGFR ≥ 20), heart failure</td><td>empagliflozin, dapagliflozin</td><td>Do not initiate if eGFR &lt; 20; risk of genital mycotic infection, DKA</td></tr>
+  <tr><td><b>Metformin</b></td><td>First-line glycemic control</td><td>metformin</td><td>eGFR &lt; 30 (contraindicated); hold around iodinated contrast</td></tr>
+</table>
+
+<h2>5. Monitoring Cadence</h2>
+<table>
+  <tr><th>Assessment</th><th>Codes</th><th>Frequency</th></tr>
+  <tr><td>HbA1c</td><td>LOINC Component "Hemoglobin A1c"</td><td>Every 3 months if uncontrolled (&gt; 9%); every 6 months if at goal</td></tr>
+  <tr><td>Kidney (eGFR + uACR)</td><td>eGFR + uACR LOINC</td><td>At least annually (KED)</td></tr>
+  <tr><td>Blood pressure</td><td>LOINC 8480-6 / 8462-4</td><td>Every clinical encounter</td></tr>
+  <tr><td>Dilated retinal eye exam</td><td>Retinal exam procedure</td><td>Annually; biennially if a prior exam was normal and risk is low</td></tr>
+</table>
+
+<h2>6. Care-Gap Escalation Logic</h2>
+<div class="rule"><b>CP-ESC-1 (statin gap).</b> A patient aged 40–75 with diabetes and <b>no statin dispensed</b>
+in the year (SPD gap) should be started on a moderate-to-high intensity <b>statin</b>, after confirming no
+contraindication (pregnancy, active hepatic disease).</div>
+<div class="rule"><b>CP-ESC-2 (kidney gap).</b> A patient missing eGFR <i>or</i> uACR (KED gap) should have the
+missing component ordered. If uACR ≥ 30 mg/g, start an <b>ACE inhibitor or ARB</b> (not both).</div>
+<div class="rule"><b>CP-ESC-3 (combined cardiorenal).</b> A patient with diabetes <b>and</b> chronic kidney
+disease (N18.*) <b>and</b> heart failure (I50.*) is a <b>cardiorenal</b> priority: ensure statin, ACE/ARB, and
+an SGLT2 inhibitor (if eGFR ≥ 20), and monitor A1c every 3 months.</div>
+<p class="note">Escalation rules reference measures (GSD/KED/SPD), labs (eGFR, uACR, A1c), diagnosis families
+(E10/E11/E13, N18, I50) and drug classes — the relationships this protocol contributes to the knowledge graph.</p>
+
+</body>
+</html>

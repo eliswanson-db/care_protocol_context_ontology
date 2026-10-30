@@ -1,0 +1,21 @@
+# Unity Catalog volumes.
+resources:
+  volumes:
+    synthea:
+      catalog_name: ${var.catalog}
+      schema_name: ${resources.schemas.care_protocol.name}
+      name: synthea
+      volume_type: MANAGED
+      comment: Staged Synthea JAR + raw generator output (binary; not in git).
+    ontology_pages:
+      catalog_name: ${var.catalog}
+      schema_name: ${resources.schemas.care_protocol.name}
+      name: ontology_pages
+      volume_type: MANAGED
+      comment: Genie Ontology Pages source (docs/ontology/pages/*.md), staged for Genie Code bulk import.
+    documents:
+      catalog_name: ${var.catalog}
+      schema_name: ${resources.schemas.care_protocol.name}
+      name: documents
+      volume_type: MANAGED
+      comment: Unstructured clinical documents (the care-protocol PDF) for RAG / ai_parse_document — the lineage anchor.
