@@ -23,6 +23,14 @@
 #   Terminology coverage: A1c-any-method 9709, on-statin 4741, pregnancy dx 4811 (contraindication filter now live).
 #   Drift: eGFR under the 2026 value set = 0 (data uses MDRD 33914-3) -> confirmed at scale.
 #   NOTE: a terminology-CSV change requires `bundle run setup` (reload hier + rebuild closures) BEFORE the reflow.
+#
+# RE-VERIFIED 2026-10-30 after the generative care-behavior regen (ADR-0012), all against the ect target.
+# Classes 1-4 unchanged (GSD 0.8071, KED 2808, kidney 1881, retinopathy 393, A1c-any-method 9709, statin 4741).
+# Class 5: eGFR 2026 = 0, 2025 contrast = 5697. Class 6 multijoins now PINNED (were TBD): statin_gap_safe = 1609
+# (1799 SPD gaps 40-75, 190 removed by contraindication), albuminuria-off-ACE/ARB = 131 (of 238 with uACR>=30),
+# cardiorenal = 10 (statin 10/10, ACE-ARB 8/10, SGLT2 0/10). The hand-verified gold queries are committed in
+# src/benchmark/gold_queries.sql (one per id) -- that file is both the answer key and the closure_sql arm.
+# NEW class 9 (operational/temporal root-cause) exercises the care-behavior hero signal; see below.
 
 classes:
 
@@ -139,7 +147,7 @@ classes:
         question: "Which diabetics 40-75 have a statin care gap AND no contraindication (not pregnant, no active hepatic disease)?"
         gold: "gold_adherence_spd NOT_MET AND age 40-75 AND patient has NO dx in CONTRA_PREGNANCY/CONTRA_HEPATIC (via icd10_closure)"
         gold_value_500: 32
-        gold_value_25k: TBD-multijoin   # SPD gaps ~1799; pregnancy dx now resolve (4811) so the contraindication filter is live. Compute with the arm query.
+        gold_value_25k: 1609   # 1799 SPD gaps age 40-75; contraindication (pregnancy/hepatic) removes 190. PINNED 2026-10-30.
         how_asked: "Genie One -> multi-join (SPD gold + icd10_closure for contraindication subtrees + protocol_edges); OR Ontobricks MCP"
         min_approach: closure_sql
         also_solvable_by: [graph_ontobricks]
@@ -148,7 +156,7 @@ classes:
       - id: proto_albuminuria_aceiarb
         question: "Patients with albuminuria (uACR >= 30) NOT on an ACE inhibitor or ARB, per protocol?"
         gold: "patients with a uACR observation value >= 30 AND no med subsumed by DRUGCLASS-ACE/ARB; recommendation from protocol_edges"
-        gold_value_25k: TBD-multijoin   # ACE/ARB closures live; uACR obs present
+        gold_value_25k: 131   # 238 patients with uACR >= 30; 131 of them not on an ACE/ARB. PINNED 2026-10-30.
         how_asked: "multi-join (silver_observation value + rxnorm_closure ACE/ARB + protocol_edges)"
         min_approach: closure_sql
         also_solvable_by: [graph_ontobricks]
@@ -207,3 +215,62 @@ classes:
         also_solvable_by: [closure_sql]   # as a fixed join, re-encoding the definition in SQL (less maintainable)
         graph_strictly_needed: false
         note: "the DEFINITION lives in the ontology (maintainable, reasoner-checked) vs re-encoded per-query in SQL. Shows graph VALUE even where a join is possible."
+
+  - class: 9_operational_temporal
+    intent: >
+      The "A Monday with Genie" hero signal (ADR-0012 care-behavior model). Protocol-STEP adherence that
+      DRIFTS at one clinic, masked in the annual/global view. The capability point here is TEMPORAL framing,
+      not a new vocabulary: a metric-view ranking answers "who is lowest overall" but that is the WRONG
+      operational question and points at the wrong clinic. Catching the drift needs a self-referential
+      trailing-window comparison (each clinic vs its OWN prior baseline), and explaining it needs a multi-hop
+      join to the panel/PCP-transition dimension. Gold values PINNED 2026-10-30 against ect (25k, MY2025).
+    questions:
+      - id: op_worst_clinic_annual
+        question: "Which clinic has the lowest protocol Step-3 (A1c follow-up) adherence overall this year?"
+        gold: "min annual follow-up rate over gold_protocol_adherence grouped by clinic_id"
+        gold_value_25k: "CLINIC-01 (0.475)"
+        how_asked: "Genie One -> protocol_adherence_metrics with the Clinic dimension, ranked"
+        min_approach: metric_view
+        graph_strictly_needed: false
+        hypothesis: {rag: insufficient, metric_view: sufficient, closure_sql: sufficient, graph_ontobricks: n/a}
+        note: >
+          CONTROL / trap. A metric view answers it correctly -- but the operationally interesting clinic is NOT
+          this one. The annual ranking is where the real problem HIDES (see op_clinic_drift). Sufficient for the
+          question as literally asked; insufficient for the question the business actually cares about.
+      - id: op_clinic_drift
+        question: "Which clinic's protocol Step-3 adherence has recently DROPPED, and by how much versus its own history?"
+        gold: "trailing-3-month rate per clinic vs that clinic's own prior pooled baseline (self-referential), censoring-aware"
+        gold_value_25k: "CLINIC-08 (trailing 0.467 vs own prior 0.778; delta 0.311, HIGH). CLINIC-08 annual rate is 0.511 -- MID-PACK, 3rd-lowest -- so an annual ranking misses it entirely."
+        how_asked: "Genie One -> protocol_watch_findings (precomputed by the watch job); OR recompute the trailing-vs-own-baseline window from gold_protocol_adherence"
+        min_approach: metric_view   # the watch findings table / a window query over the metric-view grain
+        also_solvable_by: [closure_sql]
+        graph_strictly_needed: false
+        hypothesis: {rag: insufficient, metric_view: adds_value, closure_sql: sufficient, graph_ontobricks: n/a}
+        note: >
+          The headline capability finding: a plain annual metric-view ranking gives the WRONG answer (CLINIC-01),
+          because CLINIC-08's drop is masked by its mid-pack annual rate. Correct answer requires a temporal,
+          self-referential comparison. This is why the Weekly Protocol Watch (ADR-0011) exists -- "nobody asked;
+          Genie noticed." Right-censoring and small-N gating matter (an un-gated window flags early-N noise).
+      - id: op_drift_rootcause
+        question: "Why did CLINIC-08's protocol Step-3 adherence slip in Q3?"
+        gold: "a mid-year PCP handoff (panel_pcp_transition) on CLINIC-08 -- the highest-complexity clinic -- dropped the A1c-recheck order set; the effect is confounded with that clinic's higher case-mix"
+        gold_value_25k: "explanation: PCP transition 2025-07-15 on CLINIC-08; recovery ~150d; case-mix confound (complexity ~4.55 vs ~4.12)"
+        how_asked: "Genie One -> join the drift finding to panel_pcp_transition + clinic case-mix + the care-protocol PDF (which step), then reason"
+        min_approach: closure_sql   # multi-join drift x transition x case-mix; RAG adds the protocol-step citation
+        also_solvable_by: [rag, graph_ontobricks]
+        graph_strictly_needed: false
+        hypothesis: {rag: adds_value, metric_view: insufficient, closure_sql: sufficient, graph_ontobricks: adds_value}
+        note: >
+          Multi-hop root-cause: the transition dimension is the hop a KPI view cannot make. The confound (case-mix)
+          is deliberate -- a naive read blames complexity, not the handoff. This is the explanation beat of the story.
+      - id: op_mad_rate
+        question: "What is the Medication Adherence for Diabetes (MAD) rate -- the share of eligible patients with PDC >= 0.80?"
+        gold: "numerator / eligible over gold_adherence_mad"
+        gold_value_25k: "0.4784 (834 eligible)"
+        how_asked: "Genie One -> mad_compliance_metrics MEASURE()"
+        min_approach: metric_view
+        graph_strictly_needed: false
+        hypothesis: {rag: insufficient, metric_view: sufficient, closure_sql: n/a, graph_ontobricks: n/a}
+        note: >
+          Control for the new MAD measure. The care-behavior model makes PDC CONTINUOUS (p10 0.49/p50 0.74/p90 0.90),
+          so 47.8% adherent is a real distribution, not the degenerate 100% raw Synthea produced.

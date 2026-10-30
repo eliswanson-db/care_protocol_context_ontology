@@ -1,4 +1,27 @@
-# benchmark/ — Genie GenAI Evals (starting point for P12)
+# benchmark/ — capability map + Genie GenAI Evals
+
+## Capability-map gold layer (the answer key + closure_sql arm)
+
+The serious benchmark is a **capability map** (ADR-0010, `docs/BENCHMARK_CHARTER.md`), not a leaderboard:
+for each class of hard clinical question, *which context/retrieval approach is sufficient / adds value /
+necessary, and why*. The question set and hand-verified expected answers live in
+`docs/benchmark/ground_truth.yaml` (classes 1–9).
+
+- **`gold_queries.sql`** — one hand-verified query per question id (classes 1–6, SQL-computable), with its
+  `-- expect:` value inline. This file is **two things at once**: the ground-truth *answer key*, and the
+  **`closure_sql` arm** reference (fixed-shape SQL over the materialized closure/edge tables —
+  `icd10_closure`, `loinc_parts`, `rxnorm_closure`, `value_set_segment`, `protocol_edges`). Class 7 (RAG over
+  the PDF/Pages) and class 8 (Ontobricks graph) are not scalar SQL golds and are not here; class 9
+  (operational/temporal root-cause) is the ADR-0012 care-behavior hero signal.
+- **`verify_gold.py`** — runs every `gold_queries.sql` query on a warehouse and asserts each result matches
+  its `-- expect:`. A reproducible **regression gate** (catches a reflow/crosswalk/schema change that moves a
+  gold value) and the runnable closure_sql arm. All 13 pass at 25k on `ect` (verified 2026-10-30, post the
+  ADR-0012 regen): `python src/benchmark/verify_gold.py --warehouse_id <WH> --profile ECT`.
+
+The other arms (Genie One A1, metric-view-only M0, Lakebase RAG A4, Ontobricks A5) are scored *against* this
+gold as they come online; their columns in the capability-map matrix fill in per class.
+
+## Genie GenAI Evals (starting point for P12)
 
 ## What this is
 
