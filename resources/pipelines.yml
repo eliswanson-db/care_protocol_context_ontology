@@ -1,12 +1,15 @@
-# Lakeflow Declarative Pipeline — bronze → silver → gold + deterministic measure engine (P2/P3).
-# Placeholder: resources added when the pipeline source lands in src/pipelines/.
-# resources:
-#   pipelines:
-#     care_protocol_medallion:
-#       name: care_protocol_medallion_${bundle.target}
-#       catalog: ${var.catalog}
-#       schema: ${var.schema}
-#       serverless: true
-#       libraries:
-#         - glob:
-#             include: ../src/pipelines/**
+# Lakeflow Declarative Pipeline — Silver + Gold HEDIS measures (GSD first; KED/BPD/EED/SPD to follow).
+# Reads bronze_* (epicize job) + terminology/closure; writes silver_*/gold_* into catalog.care_protocol.
+resources:
+  pipelines:
+    measures:
+      name: care_protocol_measures_${bundle.target}
+      catalog: ${var.catalog}
+      schema: care_protocol
+      serverless: true
+      configuration:
+        care.catalog: ${var.catalog}
+        care.measurement_year: "2025"
+      libraries:
+        - file:
+            path: ../src/pipelines/measures.py
