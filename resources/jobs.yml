@@ -94,7 +94,7 @@ resources:
               - "--volume_dir"
               - "/Volumes/${var.catalog}/care_protocol/synthea"
               - "--population"
-              - "500"
+              - "${var.synthea_population}"
               - "--seed"
               - "20261029"
 

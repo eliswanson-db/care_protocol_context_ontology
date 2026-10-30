@@ -11,6 +11,9 @@ variables:
   schema:
     description: Default schema for pipeline + semantic assets
     default: care_protocol
+  synthea_population:
+    description: Number of synthetic patients Synthea generates (scaled up for a serious benchmark).
+    default: "25000"
   warehouse_id:
     description: SQL warehouse for the Genie agent, resolved by name (FEVM default warehouse). Override via --var if absent.
     lookup:

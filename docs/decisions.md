@@ -5,6 +5,25 @@ statement in the source plans under `docs/sources/`.
 
 ---
 
+## ADR-0010 — Serious benchmark: capability map, not a leaderboard (see BENCHMARK_CHARTER.md)
+**Date:** 2026-10-30 · **Status:** accepted
+The first-cut benchmark was trivial: single-KPI questions answerable by a metric view, with latency as the
+headline (a hardcoded tool beats an LLM by construction — not a retrieval-quality finding). Replaced by a
+**capability map** (see `docs/BENCHMARK_CHARTER.md`): for realistic hard questions, *which context/retrieval
+approach is sufficient / adds unique value / is necessary*, and **why**. Key corrections (from Eli):
+- **A closure table is NOT an oracle.** It precomputes one relation (is-a): it equals a graph for single-relation
+  rollups (ICD cohort, RxNorm statin) but cannot do typed multi-edge traversal, variable-length mixed paths,
+  inference, or qualifier-constrained traversal. It is a **competing arm**, not the answer key.
+- **No pre-wiring.** Every arm (incl. governed-MCP) must **reason**; ground truth is hand-verified per question,
+  independent of any arm.
+- **Primary metric = accuracy on hard questions**; latency/cost secondary. **Lineage** (bronze patient → care-
+  protocol PDF + encounters + prescriptions → retrieved context → answer) is the spine.
+- **Graph = LOINC (multiaxial Parts) + ICD-10 (is-a, closure-complete) + RxNorm (typed rels) + protocol edges,
+  linked** — license-clean (LOINC license, no SNOMED). LOINC is the "graph > closure within a vocab" exemplar;
+  cross-domain protocol questions are the "graph genuinely necessary" case.
+- **Scale = 25k patients**; add a **care-protocol PDF** as the unstructured anchor. **Genie One** is the front
+  door; components (RAG/closure/graph/Pages) plug in via MCP and are visualized in the app.
+
 ## ADR-0009 — A4 Lakebase = Autoscaling project; hybrid retrieval over the ontology corpus
 **Date:** 2026-10-30 · **Status:** accepted
 A4 (Lakebase hybrid retrieval) uses a **Lakebase Autoscaling** project, not the retired **Provisioned**
