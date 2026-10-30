@@ -13,6 +13,9 @@ Ordered operational steps that are **not** automated by the bundle. Keep this cu
    - `bundle run setup -t ect` → `load_terminology` (vendored CSVs → UC tables, no Drive, ADR-0007) → `build_closure` (iterative BFS → `icd10_closure`).
    - `bundle run generate_synthea -t ect` → classic job: stage pinned Synthea JAR to the Volume → run Synthea → `raw_synthea_*` tables.
    - `bundle run epicize -t ect` → SNOMED→ICD-10 crosswalk → `bronze_*` Clarity-shaped tables.
+   - ⚠️ **Reflow ordering:** if any `src/terminology/*.csv` changed, rerun **`setup` first** (reloads `icd10_hier`
+     etc. and rebuilds the closures) before `epicize → measures → semantic`. A closure built before a new node
+     was added won't subsume it (e.g. neuropathy E11.4 was missed until `setup` reran).
    - `bundle run measures -t ect` → Lakeflow pipeline: `silver_*` + `gold_adherence_gsd`.
    - `bundle run semantic -t ect` → `apply_comments` (column comments) → `apply_metric_views` (GSD/KED/BPD metric views). Ontology fuel; must run after `measures`.
    - `bundle run seed_query_history -t ect` → runs ~27 analyst queries on the warehouse → `system.query.history` (ontology usage signal). After `semantic`; safe to re-run / schedule.

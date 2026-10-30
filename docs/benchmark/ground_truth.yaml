@@ -15,6 +15,14 @@
 # fields: question | gold (method) | gold_value_500 (dry run; recompute at 25k) | how_asked | min_approach |
 #         also_solvable_by | graph_strictly_needed | hypothesis(per approach) | note
 # approaches: rag, metric_view (Genie Ontology), closure_sql, graph_ontobricks
+#
+# 25k results (2026-10-30, measurement year 2025; recomputed after the c5d.4xlarge regen + reflow):
+#   diabetes cohort = 3031 patients (~12% of 25k). Measure rates: GSD 80.7% (2442 elig), KED 51.6% (2808),
+#   BPD 71.4% (2442), SPD 21.8% (2301), EED 38.3% (2442). Complication cohorts (via ICD closure):
+#   kidney 1881, retinopathy 393 (was 0 on the 3-entry crosswalk), neuropathy 499, cardiorenal (DM+CKD+HF) 10.
+#   Terminology coverage: A1c-any-method 9709, on-statin 4741, pregnancy dx 4811 (contraindication filter now live).
+#   Drift: eGFR under the 2026 value set = 0 (data uses MDRD 33914-3) -> confirmed at scale.
+#   NOTE: a terminology-CSV change requires `bundle run setup` (reload hier + rebuild closures) BEFORE the reflow.
 
 classes:
 
@@ -25,6 +33,7 @@ classes:
         question: "What is the overall GSD compliance rate?"
         gold: "MEASURE(`GSD Compliance Rate`) FROM gsd_compliance_metrics"
         gold_value_500: 0.8667
+        gold_value_25k: 0.8071   # 2442 eligible
         how_asked: "Genie One -> metric-view synonym match -> MEASURE() SQL"
         min_approach: metric_view
         also_solvable_by: []
@@ -34,6 +43,7 @@ classes:
         question: "How many patients are eligible for the KED measure?"
         gold: "COUNT(*) FROM gold_adherence_ked"
         gold_value_500: 51
+        gold_value_25k: 2808
         how_asked: "Genie One -> metric view / COUNT"
         min_approach: metric_view
         graph_strictly_needed: false
@@ -45,7 +55,8 @@ classes:
       - id: sub_kidney
         question: "How many patients have diabetes WITH kidney complications?"
         gold: "distinct silver_condition.patient_id joined to icd10_closure WHERE ancestor_code IN ('E11.2','E10.2','E13.2')"
-        gold_value_500: 36   # grows at reflow (crosswalk now maps 127013003->E11.22, 157141000119108->E11.29)
+        gold_value_500: 36
+        gold_value_25k: 1881
         how_asked: "Genie One -> SQL join icd10_closure (if it discovers the governed table/Page); OR closure MCP; OR a naive LIKE 'E11.2%'; OR Ontobricks subClassOf*"
         min_approach: closure_sql
         also_solvable_by: [graph_ontobricks, "fragile: SQL string-prefix"]
@@ -54,7 +65,8 @@ classes:
       - id: sub_retinopathy
         question: "Count patients with any form of diabetic retinopathy."
         gold: "distinct patients with dx descendant of E11.3/E10.3/E13.3 via icd10_closure"
-        gold_value_500: 0    # crosswalk gap FIXED: 1551000119108->E11.319 now maps ~5 pts; recompute at reflow
+        gold_value_500: 0
+        gold_value_25k: 393   # crosswalk fix worked (0 -> 393)
         how_asked: "same as sub_kidney"
         min_approach: closure_sql
         graph_strictly_needed: false
@@ -67,6 +79,7 @@ classes:
         question: "How many patients have had an HbA1c test, counting every assay method?"
         gold: "distinct patients with an observation whose loinc_code shares Component LP-HBA1C in loinc_parts"
         gold_value_500: 195
+        gold_value_25k: 9709
         how_asked: "Genie One -> join silver_observation to loinc_parts on Component; OR graph has_component traversal"
         min_approach: closure_sql   # the loinc_parts edge table
         also_solvable_by: [graph_ontobricks]
@@ -88,7 +101,8 @@ classes:
       - id: med_on_statin
         question: "How many diabetic patients are on any statin?"
         gold: "distinct patients with a bronze_order_med rxnorm_code subsumed by DRUGCLASS-STATIN via rxnorm_closure"
-        gold_value_500: 97   # all ages; SPD numerator (40-75) is a subset
+        gold_value_500: 97
+        gold_value_25k: 4741   # all ages
         how_asked: "Genie One -> SPD metric view (statin closure BAKED at build time) OR query-time join rxnorm_closure OR MCP"
         min_approach: metric_view   # because we baked it; a novel statin slice would need closure_sql
         also_solvable_by: [closure_sql, graph_ontobricks]
@@ -110,7 +124,8 @@ classes:
       - id: vintage_egfr_2026
         question: "Under the 2026 KED eGFR definition, how many patients have a qualifying eGFR test?"
         gold: "distinct patients with an observation in value_set_segment KED_EGFR WHERE measurement_year=2026 (only 98979-8)"
-        gold_value_500: 0    # vs 2025 (adds MDRD 33914-3) -> drift demonstrated
+        gold_value_500: 0
+        gold_value_25k: 0   # drift confirmed at scale (2025 def would be >0)
         how_asked: "Genie One -> join the versioned value_set_segment filtered to 2026"
         min_approach: metric_view   # Genie Ontology over the versioned value-set table
         graph_strictly_needed: false
@@ -123,7 +138,8 @@ classes:
       - id: proto_statin_gap_safe
         question: "Which diabetics 40-75 have a statin care gap AND no contraindication (not pregnant, no active hepatic disease)?"
         gold: "gold_adherence_spd NOT_MET AND age 40-75 AND patient has NO dx in CONTRA_PREGNANCY/CONTRA_HEPATIC (via icd10_closure)"
-        gold_value_500: 32   # SPD NOT_MET; contraindication filter is a no-op until epicize reruns with the comorbidity crosswalk
+        gold_value_500: 32
+        gold_value_25k: TBD-multijoin   # SPD gaps ~1799; pregnancy dx now resolve (4811) so the contraindication filter is live. Compute with the arm query.
         how_asked: "Genie One -> multi-join (SPD gold + icd10_closure for contraindication subtrees + protocol_edges); OR Ontobricks MCP"
         min_approach: closure_sql
         also_solvable_by: [graph_ontobricks]
@@ -132,7 +148,7 @@ classes:
       - id: proto_albuminuria_aceiarb
         question: "Patients with albuminuria (uACR >= 30) NOT on an ACE inhibitor or ARB, per protocol?"
         gold: "patients with a uACR observation value >= 30 AND no med subsumed by DRUGCLASS-ACE/ARB; recommendation from protocol_edges"
-        gold_value_500: TBD-reflow
+        gold_value_25k: TBD-multijoin   # ACE/ARB closures live; uACR obs present
         how_asked: "multi-join (silver_observation value + rxnorm_closure ACE/ARB + protocol_edges)"
         min_approach: closure_sql
         also_solvable_by: [graph_ontobricks]
@@ -141,7 +157,7 @@ classes:
       - id: proto_cardiorenal
         question: "Identify cardiorenal patients (diabetes + CKD + heart failure) and whether each is on statin + ACE/ARB + SGLT2."
         gold: "cohort = dx under E1x AND N18.* AND I50.* (cross-branch, icd10_closure); then med-class coverage via rxnorm_closure"
-        gold_value_500: TBD-reflow   # needs comorbidity crosswalk (added) applied at reflow; SGLT2 = 0 (Synthea emits none)
+        gold_value_25k: 10   # cardiorenal cohort (DM+CKD+HF) = 10 patients; SGLT2 coverage = 0 (Synthea emits none)
         how_asked: "multi-join across 3 ICD subtrees + 3 drug-class closures"
         min_approach: closure_sql
         also_solvable_by: [graph_ontobricks]
