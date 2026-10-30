@@ -77,6 +77,25 @@ COMMENT ON COLUMN {catalog}.care_protocol.silver_procedure.description IS 'Human
 COMMENT ON COLUMN {catalog}.care_protocol_terminology.rxnorm_closure.ancestor_code IS 'RxNorm ingredient rxcui (e.g. 36567 simvastatin). Join a value set of ingredients here to subsume all clinical drugs.';
 COMMENT ON COLUMN {catalog}.care_protocol_terminology.rxnorm_closure.descendant_code IS 'RxNorm clinical-drug rxcui (e.g. 312961 Simvastatin 20 MG) subsumed by the ingredient, matching prescription codes in bronze_order_med.';
 
+-- gold_protocol_adherence: process-adherence (which protocol step slipped), one row per A1c trigger event.
+COMMENT ON COLUMN {catalog}.care_protocol.gold_protocol_adherence.patient_id IS 'Patient the trigger belongs to.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_protocol_adherence.trigger_ts IS 'Timestamp of the A1c result at/above target that created the protocol-step obligation.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_protocol_adherence.trigger_a1c IS 'The A1c value that triggered the step (demo threshold >=7%; story uses >9%).';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_protocol_adherence.followup_ts IS 'Timestamp of the earliest qualifying follow-up (recheck A1c or diabetes-therapy order) within 90 days; null if none.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_protocol_adherence.followup_type IS 'What satisfied the step: recheck (a later A1c) or therapy (a diabetes-med order).';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_protocol_adherence.followup_days IS 'Days from the high A1c to the follow-up.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_protocol_adherence.followup_within_90d IS 'True if a qualifying follow-up occurred within 90 days (the protocol step was met).';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_protocol_adherence.status IS 'MET = step followed in time; NOT_MET = the protocol step slipped (a care gap).';
+
+-- gold_adherence_mad: Medication Adherence for Diabetes Medications (PDC), one row per eligible patient.
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_mad.patient_id IS 'Patient (diabetes cohort, 18+, >=2 diabetes-med fills).';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_mad.fills IS 'Number of diabetes-med (biguanide) fills in the measurement year.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_mad.covered_days IS 'Days covered by medication in the measurement year (overlap-capped).';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_mad.period_days IS 'Treatment-period days (first fill to year end).';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_mad.pdc IS 'Proportion of days covered = covered_days / period_days. Adherent when >= 0.80.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_mad.numerator_flag IS 'True when PDC >= 0.80 (adherent).';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_mad.status IS 'MET = PDC >= 80%; NOT_MET = refill/adherence gap.';
+
 -- silver_condition: conformed diabetes diagnoses, ICD-10-CM mapped from SNOMED.
 COMMENT ON COLUMN {catalog}.care_protocol.silver_condition.patient_id IS 'Patient identifier the diagnosis belongs to.';
 COMMENT ON COLUMN {catalog}.care_protocol.silver_condition.encounter_id IS 'Encounter in which the diagnosis was recorded.';

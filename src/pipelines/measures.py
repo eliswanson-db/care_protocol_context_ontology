@@ -271,3 +271,100 @@ def gold_adherence_eed():
             .select("patient_id", "measure_id", "measurement_year", "period_start", "period_end", "age",
                     "eligible_flag", "numerator_flag", "status",
                     "evidence_datetime", "evidence_code", "evidence_exam"))
+
+
+# ---------------- Protocol-STEP adherence (the "A Monday with Genie" hero: did the due event happen in time?) ----
+# Protocol Step: after an A1c above target, intensify therapy and recheck A1c within 90 days.
+# Story uses A1c >9% (poor control); synthetic Synthea data is well-controlled (max ~10, only 4 results >9),
+# so the demo trigger is A1c >= 7 ("above the <7% target"). The MECHANISM (expected event within a window after
+# a trigger) is identical -- change A1C_TRIGGER to 9.0 on real data. One row per trigger event.
+A1C_TRIGGER = 7.0
+FOLLOWUP_DAYS = 90
+
+
+@dp.materialized_view(
+    comment="Protocol Step 3 adherence: for each A1c result at/above the trigger (demo 7%; story 9%), was there "
+            "a recheck A1c OR a diabetes-therapy order within 90 days? One row per trigger event. This is the "
+            "PROCESS-adherence layer (which protocol step slipped), distinct from the outcome Star measures. "
+            "HEDIS-aligned demo, not NCQA-certified.")
+def gold_protocol_adherence():
+    a1c_codes = (spark.read.table(f"{TERM}.loinc_parts")  # noqa: F821
+                 .where((F.col("part") == "LP-HBA1C") & (F.col("predicate") == "has_component"))
+                 .select("loinc_code").distinct())
+    obs = spark.read.table("silver_observation")  # noqa: F821
+    a1c = (obs.join(a1c_codes, obs["loinc_code"] == a1c_codes["loinc_code"])
+           .where(F.year("result_ts") == MY)
+           .select("patient_id", "result_ts", "value_num"))
+
+    triggers = (a1c.where(F.col("value_num") >= A1C_TRIGGER)
+                .select("patient_id", F.col("result_ts").alias("trigger_ts"), F.col("value_num").alias("trigger_a1c")))
+
+    # Candidate follow-ups: a later A1c recheck, or a diabetes-med (biguanide) order.
+    diab_meds = (spark.read.table(f"{TERM}.rxnorm_closure")  # noqa: F821
+                 .where(F.col("ancestor_code") == "DRUGCLASS-BIGUANIDE").select("descendant_code").distinct())
+    med = spark.read.table(f"{BRONZE}.bronze_order_med")  # noqa: F821
+    therapy = (med.join(diab_meds, med["rxnorm_code"] == diab_meds["descendant_code"])
+               .select("patient_id", F.col("start_ts").alias("fts")).withColumn("ftype", F.lit("therapy")))
+    recheck = a1c.select("patient_id", F.col("result_ts").alias("fts")).withColumn("ftype", F.lit("recheck"))
+    followups = recheck.unionByName(therapy)
+
+    j = (triggers.alias("t").join(followups.alias("f"), "patient_id")
+         .where((F.col("f.fts") > F.col("t.trigger_ts")) &
+                (F.datediff(F.col("f.fts"), F.col("t.trigger_ts")) <= FOLLOWUP_DAYS)))
+    earliest = (j.groupBy("patient_id", "trigger_ts")
+                .agg(F.min("f.fts").alias("followup_ts"),
+                     F.min_by("f.ftype", "f.fts").alias("followup_type")))
+
+    return (triggers.join(earliest, ["patient_id", "trigger_ts"], "left")
+            .withColumn("measure_id", F.lit("PROTO_STEP3"))
+            .withColumn("measurement_year", F.lit(MY))
+            .withColumn("followup_days", F.datediff(F.col("followup_ts"), F.col("trigger_ts")))
+            .withColumn("followup_within_90d", F.col("followup_ts").isNotNull())
+            .withColumn("status", F.when(F.col("followup_ts").isNotNull(), F.lit("MET")).otherwise(F.lit("NOT_MET")))
+            .select("patient_id", "measure_id", "measurement_year", "trigger_ts", "trigger_a1c",
+                    "followup_ts", "followup_type", "followup_days", "followup_within_90d", "status"))
+
+
+# ---------------- Gold: MAD (Medication Adherence for Diabetes Medications) — a story 3x Star measure ----------
+@dp.materialized_view(
+    comment="MAD (Medication Adherence for Diabetes Medications). Denominator: diabetes patients aged 18+ with "
+            ">=2 diabetes-med (biguanide) fills in the measurement year. Numerator: PDC >= 80% (proportion of "
+            "days covered). PDC = covered days / treatment period (overlap-capped). One row per eligible patient. "
+            "HEDIS-aligned demo, not NCQA-certified.")
+def gold_adherence_mad():
+    my_start = F.to_date(F.lit(f"{MY}-01-01"))
+    my_end = F.to_date(F.lit(f"{MY}-12-31"))
+    cohort = spark.read.table("silver_diabetes_cohort")  # noqa: F821
+    patients = spark.read.table(f"{BRONZE}.bronze_patient")  # noqa: F821
+
+    diab_meds = (spark.read.table(f"{TERM}.rxnorm_closure")  # noqa: F821
+                 .where(F.col("ancestor_code") == "DRUGCLASS-BIGUANIDE").select("descendant_code").distinct())
+    med = spark.read.table(f"{BRONZE}.bronze_order_med")  # noqa: F821
+    fills = (med.join(diab_meds, med["rxnorm_code"] == diab_meds["descendant_code"])
+             .withColumn("start_d", F.to_date("start_ts"))
+             .withColumn("stop_d", F.coalesce(F.to_date("stop_ts"), my_end))
+             # clip each fill's coverage to the measurement year
+             .withColumn("cov_start", F.greatest("start_d", F.lit(my_start)))
+             .withColumn("cov_end", F.least("stop_d", F.lit(my_end)))
+             .where(F.col("cov_end") >= F.col("cov_start"))
+             .withColumn("cov_days", F.datediff("cov_end", "cov_start") + F.lit(1)))
+
+    agg = (fills.groupBy("patient_id")
+           .agg(F.count("*").alias("fills"), F.min("cov_start").alias("first_fill"),
+                F.sum("cov_days").alias("covered_raw")))
+    denom = (agg.where(F.col("fills") >= 2).join(cohort, "patient_id").join(patients, "patient_id")
+             .withColumn("age", (F.datediff(my_end, F.col("birth_date")) / 365.25).cast("int"))
+             .where(F.col("age") >= 18)
+             .withColumn("period_days", F.datediff(my_end, F.col("first_fill")) + F.lit(1))
+             .withColumn("covered_days", F.least(F.col("covered_raw"), F.col("period_days")))
+             .withColumn("pdc", F.round(F.col("covered_days") / F.col("period_days"), 3)))
+
+    return (denom
+            .withColumn("measure_id", F.lit("MAD"))
+            .withColumn("measurement_year", F.lit(MY))
+            .withColumn("period_start", my_start).withColumn("period_end", my_end)
+            .withColumn("eligible_flag", F.lit(True))
+            .withColumn("numerator_flag", F.col("pdc") >= F.lit(0.8))
+            .withColumn("status", F.when(F.col("pdc") >= F.lit(0.8), F.lit("MET")).otherwise(F.lit("NOT_MET")))
+            .select("patient_id", "measure_id", "measurement_year", "period_start", "period_end", "age",
+                    "eligible_flag", "fills", "covered_days", "period_days", "pdc", "numerator_flag", "status"))
