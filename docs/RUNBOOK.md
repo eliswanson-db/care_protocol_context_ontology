@@ -62,6 +62,13 @@ Ordered operational steps that are **not** automated by the bundle. Keep this cu
 - ⚙ **Publish the dashboard** (makes the `/published` URL live; redeploy updates only the draft):
   `databricks lakeview publish <dashboard_id> --warehouse-id <wh> --profile ECT`.
 
+## Care-protocol PDF (lineage anchor; BENCHMARK_CHARTER.md)
+- 🤖 Source: `docs/care_protocol/html/diabetes_care_protocol.html` (version-controlled). Ground-truth PDF
+  questions: `docs/care_protocol/pdf_eval_questions.json`.
+- 🤖 `bundle run stage_care_protocol -t ect` renders it to PDF in
+  **`/Volumes/${var.catalog}/care_protocol/documents/pdf/`** (xhtml2pdf, serverless). Feeds RAG / Pages / graph
+  edges and `ai_parse_document`. Re-runnable.
+
 ## A4 — Lakebase hybrid retrieval (ADR-0009)
 - 🤖 **Create the Autoscaling project** (once; Provisioned is retired — use `postgres`, not `database`):
   `databricks postgres create-project care-protocol --json '{"spec": {"display_name": "Care Protocol Retrieval (A4 Lakebase hybrid)"}}' --profile ECT`

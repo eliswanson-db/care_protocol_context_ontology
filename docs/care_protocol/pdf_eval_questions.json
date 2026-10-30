@@ -1,0 +1,12 @@
+{
+  "_about": "Ground-truth questions answerable ONLY by reading the care-protocol PDF (classes 6-7 in BENCHMARK_CHARTER.md). Structured-only arms (metric views, closure) cannot answer these; they need RAG over the PDF or a Page/graph that encodes the protocol. Facts are hand-verified against diabetes_care_protocol.html.",
+  "diabetes_care_protocol.pdf": [
+    {"id": "cp01", "question": "Below what eGFR is metformin contraindicated?", "expected_fact": "eGFR < 30 mL/min/1.73m2", "class": "definition"},
+    {"id": "cp02", "question": "For a diabetic aged 40-75 with no statin dispensed (an SPD gap), what does the protocol recommend?", "expected_fact": "Start a moderate-to-high intensity statin after confirming no contraindication (pregnancy, active hepatic disease)", "class": "protocol_multihop"},
+    {"id": "cp03", "question": "What defines a controlled blood pressure reading for BPD?", "expected_fact": "Systolic < 140 mmHg AND diastolic < 90 mmHg", "class": "definition"},
+    {"id": "cp04", "question": "What is the cardiorenal escalation for diabetes with CKD and heart failure?", "expected_fact": "Ensure statin, ACE inhibitor or ARB, and an SGLT2 inhibitor if eGFR >= 20; monitor A1c every 3 months", "class": "protocol_multihop"},
+    {"id": "cp05", "question": "At what uACR level should an ACE inhibitor or ARB be started?", "expected_fact": "uACR >= 30 mg/g (albuminuria)", "class": "definition"},
+    {"id": "cp06", "question": "How often should HbA1c be checked for a poorly controlled patient?", "expected_fact": "Every 3 months (A1c > 9% is poorly controlled); every 6 months if at goal", "class": "definition"},
+    {"id": "cp07", "question": "Which drug classes are contraindicated in pregnancy per the protocol?", "expected_fact": "Statins and ACE inhibitors/ARBs are contraindicated in pregnancy", "class": "protocol_multihop"}
+  ]
+}

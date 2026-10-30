@@ -152,6 +152,27 @@ resources:
           spec:
             client: "3"
 
+    # Render the care-protocol HTML to PDF in the documents Volume (the unstructured lineage anchor).
+    stage_care_protocol:
+      name: stage_care_protocol_${bundle.target}
+      description: Render docs/care_protocol/html/*.html to PDF in /Volumes/<catalog>/care_protocol/documents/pdf.
+      tasks:
+        - task_key: render
+          spark_python_task:
+            python_file: ../scripts/render_care_protocol.py
+            parameters:
+              - "--src_dir"
+              - "${workspace.file_path}/docs/care_protocol/html"
+              - "--out_dir"
+              - "/Volumes/${var.catalog}/care_protocol/documents/pdf"
+          environment_key: serverless
+      environments:
+        - environment_key: serverless
+          spec:
+            client: "3"
+            dependencies:
+              - xhtml2pdf
+
     # Stage the Genie Ontology Pages (docs/ontology/pages/*.md) into a UC Volume for Genie Code bulk import.
     stage_pages:
       name: stage_pages_${bundle.target}
