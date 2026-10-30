@@ -27,3 +27,4 @@ CARDIORENAL_COHORT,Cardiorenal cohort - cross-branch (DM-05): diabetes + CKD + H
 CARDIORENAL_COHORT,Cardiorenal cohort - cross-branch (DM-05): diabetes + CKD + HF,I50.9,ICD10CM,2025,eli.swanson@databricks.com
 EED_EYE_EXAM,Eye exam - diabetic retinal (EED),722161008,SNOMED,2025,eli.swanson@databricks.com
 EED_EYE_EXAM,Eye exam - diabetic retinal (EED),700070005,SNOMED,2025,eli.swanson@databricks.com
+KED_EGFR,Kidney eval - eGFR (KED) [MY2026 modernized: CKD-EPI only],98979-8,LOINC,2026,eli.swanson@databricks.com
