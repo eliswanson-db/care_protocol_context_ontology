@@ -1,0 +1,39 @@
+{
+  "version": 2,
+  "config": {
+    "sample_questions": [
+      {"id": "a0000000000000000000000000000001", "question": ["What is the overall GSD compliance rate?"]},
+      {"id": "a0000000000000000000000000000002", "question": ["Show the GSD compliance rate by age band."]},
+      {"id": "a0000000000000000000000000000003", "question": ["What is the KED compliance rate, and how do the eGFR and uACR components compare?"]},
+      {"id": "a0000000000000000000000000000004", "question": ["How many diabetic patients have a care gap for kidney evaluation (KED)?"]}
+    ]
+  },
+  "data_sources": {
+    "tables": [
+      {"identifier": "eli_test_classic_catalog.care_protocol.gold_adherence_gsd"},
+      {"identifier": "eli_test_classic_catalog.care_protocol.gold_adherence_ked"}
+    ],
+    "metric_views": [
+      {"identifier": "eli_test_classic_catalog.care_protocol.gsd_compliance_metrics"},
+      {"identifier": "eli_test_classic_catalog.care_protocol.ked_compliance_metrics"}
+    ]
+  },
+  "instructions": {
+    "example_question_sqls": [
+      {"id": "b0000000000000000000000000000001", "question": ["What is the overall GSD compliance rate?"], "sql": ["SELECT MEASURE(`GSD Compliance Rate`) AS gsd_compliance_rate FROM eli_test_classic_catalog.care_protocol.gsd_compliance_metrics"]},
+      {"id": "b0000000000000000000000000000002", "question": ["What is the KED compliance rate and its eGFR and uACR components?"], "sql": ["SELECT MEASURE(`KED Compliance Rate`) AS ked_rate, MEASURE(`eGFR Test Rate`) AS egfr_rate, MEASURE(`uACR Test Rate`) AS uacr_rate FROM eli_test_classic_catalog.care_protocol.ked_compliance_metrics"]},
+      {"id": "b0000000000000000000000000000003", "question": ["How many patients have a KED care gap?"], "sql": ["SELECT COUNT(*) AS ked_care_gaps FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked WHERE status = 'NOT_MET'"]}
+    ],
+    "text_instructions": [
+      {"id": "c0000000000000000000000000000001", "content": [
+        "This agent answers questions about HEDIS diabetes quality measures (HEDIS-aligned demo, not NCQA-certified).",
+        "For measure RATES, query the metric views gsd_compliance_metrics and ked_compliance_metrics using MEASURE(`<measure name>`), e.g. MEASURE(`GSD Compliance Rate`). Never SUM or AVG a rate column.",
+        "GSD = Glycemic Status Assessment: diabetic patients aged 18-75 with at least one A1c (HbA1c) test in the measurement year.",
+        "KED = Kidney Health Evaluation: diabetic patients aged 18-85 who had BOTH an eGFR and a uACR test in the measurement year. uACR is usually the limiting component.",
+        "Available dimensions on both metric views: Measurement Year, Compliance Status, Age Band, Measure.",
+        "For patient-level detail, evidence, or care gaps, use gold_adherence_gsd / gold_adherence_ked. status = 'NOT_MET' means a care gap (eligible but missing the required care); status = 'MET' means compliant.",
+        "The diabetes cohort is defined by subsumption over the ICD-10-CM hierarchy (diagnoses under E10/E11/E13)."
+      ]}
+    ]
+  }
+}

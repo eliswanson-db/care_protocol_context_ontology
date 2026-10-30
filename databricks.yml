@@ -12,8 +12,9 @@ variables:
     description: Default schema for pipeline + semantic assets
     default: care_protocol
   warehouse_id:
-    description: SQL warehouse ID on the target workspace (set per target / via --var)
-    default: ""
+    description: SQL warehouse for the Genie agent, resolved by name (FEVM default warehouse). Override via --var if absent.
+    lookup:
+      warehouse: "Serverless Starter Warehouse"
   embedding_endpoint:
     description: Foundation Model embedding endpoint (ECT)
     default: databricks-gte-large-en
