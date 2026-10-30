@@ -44,7 +44,7 @@ def main() -> None:
     java = find_java()
     subprocess.run([java, "-version"], check=False)
     cmd = [
-        java, "-jar", jar,
+        java, "-Xmx24g", "-jar", jar,   # big heap for 25k on the 32 GB c5d.4xlarge node (JVM flags before -jar)
         "-p", args.population, "-s", args.seed,
         "--exporter.baseDirectory", outdir,
         "--exporter.csv.export", "true",

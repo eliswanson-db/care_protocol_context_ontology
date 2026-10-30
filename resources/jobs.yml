@@ -61,8 +61,11 @@ resources:
       job_clusters:
         - job_cluster_key: synthea_classic
           new_cluster:
+            # Synthea is a single-JVM Java app (not a Spark workload): it multithreads patient generation
+            # across CPU cores on the DRIVER. Workers don't help (they'd sit idle); cores + RAM do. So a big
+            # compute-optimized SINGLE node. 16 vCPU generates ~8x the 2-vCPU m5d.large (25k in ~10-15 min).
             spark_version: "15.4.x-scala2.12"
-            node_type_id: "m5d.large"
+            node_type_id: "c5d.4xlarge"
             num_workers: 0
             spark_conf:
               spark.databricks.cluster.profile: singleNode
