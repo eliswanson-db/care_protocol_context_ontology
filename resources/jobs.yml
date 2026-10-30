@@ -134,3 +134,25 @@ resources:
         - environment_key: serverless
           spec:
             client: "3"
+
+    # Query-history seeding (ontology fuel, roadmap S7a). Runs analyst queries on the SQL warehouse so they
+    # land in system.query.history. Run AFTER `semantic` (needs the metric views). Re-runnable (read-only).
+    seed_query_history:
+      name: seed_query_history_${bundle.target}
+      description: Run representative analyst queries on the warehouse to seed query history for Genie Ontology.
+      tasks:
+        - task_key: seed_query_history
+          spark_python_task:
+            python_file: ../src/semantic/seed_query_history.py
+            parameters:
+              - "--warehouse_id"
+              - "${var.warehouse_id}"
+              - "--catalog"
+              - "${var.catalog}"
+          environment_key: serverless
+      environments:
+        - environment_key: serverless
+          spec:
+            client: "3"
+            dependencies:
+              - databricks-sdk

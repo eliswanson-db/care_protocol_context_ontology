@@ -14,7 +14,8 @@ Ordered operational steps that are **not** automated by the bundle. Keep this cu
    - `bundle run generate_synthea -t ect` → classic job: stage pinned Synthea JAR to the Volume → run Synthea → `raw_synthea_*` tables.
    - `bundle run epicize -t ect` → SNOMED→ICD-10 crosswalk → `bronze_*` Clarity-shaped tables.
    - `bundle run measures -t ect` → Lakeflow pipeline: `silver_*` + `gold_adherence_gsd`.
-   - `bundle run semantic -t ect` → `apply_comments` (42 column comments) → `apply_metric_views` (`gsd_compliance_metrics`). Ontology fuel; must run after `measures`.
+   - `bundle run semantic -t ect` → `apply_comments` (column comments) → `apply_metric_views` (GSD/KED/BPD metric views). Ontology fuel; must run after `measures`.
+   - `bundle run seed_query_history -t ect` → runs ~27 analyst queries on the warehouse → `system.query.history` (ontology usage signal). After `semantic`; safe to re-run / schedule.
 
 ## Terminology — NO license wait (ADR-0002)
 - No SNOMED/UMLS/VSAC. Curated LOINC + ICD-10-CM + RxNorm subsets **vendored in `src/terminology/`** (no Drive) + hand-curated demo value sets.
