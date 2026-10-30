@@ -1,0 +1,127 @@
+# Ground-truth question set for the capability-map benchmark (see ../BENCHMARK_CHARTER.md).
+#
+# Principles:
+#  - No trivial "traps" — realistic clinical questions.
+#  - `gold` is the METHOD (exact deterministic query or hand-verified fact), NOT a pre-wired answer any arm sees.
+#  - Numeric `gold_value`s are "TBD-25k": computed + hand-verified AFTER the 25k Synthea reflow lands.
+#  - `hypothesis` = our prediction per approach, to be confirmed/refuted by the run:
+#       sufficient | adds_value | necessary | insufficient | n/a
+#    approaches: metric_view, semantic_rag, genie_ontology, closure_sql, graph_ontobricks
+#  - `builds` = terminology/graph we must add to support the class (drives the build backlog).
+#
+# The point is the MAP: which approach is sufficient / adds unique value / necessary per class, and WHY.
+
+classes:
+
+  - class: 1_simple_kpi
+    intent: A governed KPI that a metric view answers directly. Control — everything capable should pass.
+    questions:
+      - id: kpi_gsd_rate
+        question: "What is the overall GSD compliance rate?"
+        gold: "MEASURE(`GSD Compliance Rate`) FROM gsd_compliance_metrics"
+        gold_value: TBD-25k
+        hypothesis: {metric_view: sufficient, semantic_rag: insufficient, genie_ontology: sufficient, closure_sql: n/a, graph_ontobricks: n/a}
+      - id: kpi_ked_eligible
+        question: "How many patients are eligible for the KED measure?"
+        gold: "COUNT(*) FROM gold_adherence_ked"
+        gold_value: TBD-25k
+        hypothesis: {metric_view: sufficient, semantic_rag: insufficient, genie_ontology: sufficient, closure_sql: adds_value, graph_ontobricks: n/a}
+
+  - class: 2_icd_subsumption
+    intent: Single-relation is-a rollup over the ICD-10 hierarchy. The honest "closure == graph" case.
+    builds: [icd10_hier/closure already cover E10/E11/E13 subtree — verify complication subtrees E11.2x/3x/4x present at 25k]
+    questions:
+      - id: sub_kidney
+        question: "How many patients have diabetes WITH kidney complications?"
+        gold: "distinct patients with a dx whose icd10_code is a descendant of E11.2/E10.2/E13.2 (diabetic CKD/nephropathy) via icd10_closure"
+        gold_value: TBD-25k
+        hypothesis: {metric_view: insufficient, semantic_rag: insufficient, genie_ontology: adds_value, closure_sql: sufficient, graph_ontobricks: sufficient}
+        note: closure and graph give the SAME set (is-a only). RAG misses specific children; a flat list undercounts.
+      - id: sub_retinopathy
+        question: "Count patients with any form of diabetic retinopathy."
+        gold: "distinct patients with a dx descendant of E11.3/E10.3/E13.3 via icd10_closure"
+        gold_value: TBD-25k
+        hypothesis: {metric_view: insufficient, semantic_rag: insufficient, genie_ontology: adds_value, closure_sql: sufficient, graph_ontobricks: sufficient}
+
+  - class: 3_loinc_multiaxial
+    intent: Identify tests by a LOINC axis (Component) regardless of method/specimen — graph > enumerated set.
+    builds: [loinc_parts done for A1c/eGFR/uACR/BP]
+    questions:
+      - id: lab_a1c_any_method
+        question: "How many patients have had an HbA1c test, counting every assay method?"
+        gold: "distinct patients with an observation whose loinc_code shares Component LP-HBA1C in loinc_parts (derived, not enumerated)"
+        gold_value: TBD-25k
+        hypothesis: {metric_view: insufficient, semantic_rag: insufficient, genie_ontology: adds_value, closure_sql: adds_value, graph_ontobricks: sufficient}
+        note: enumerated value set works until a new A1c LOINC code appears; the Part graph derives it and stays correct.
+      - id: lab_egfr_codes
+        question: "Which LOINC codes count as an eGFR test here?"
+        gold: "loinc codes with Component LP-EGFR in loinc_parts (33914-3 MDRD, 98979-8 CKD-EPI)"
+        gold_value: ["33914-3", "98979-8"]
+        hypothesis: {metric_view: insufficient, semantic_rag: adds_value, genie_ontology: sufficient, closure_sql: adds_value, graph_ontobricks: sufficient}
+
+  - class: 4_rxnorm_subsumption
+    intent: Resolve a drug class from ingredient to the clinical-drug codes actually prescribed.
+    builds: [rxnorm_hier/closure for statins done; ADD ACE/ARB + SGLT2 + metformin ingredient->drug for class-6 questions]
+    questions:
+      - id: med_on_statin
+        question: "How many diabetic patients aged 40-75 are on any statin?"
+        gold: "distinct eligible patients with a bronze_order_med rxnorm_code subsumed by a statin ingredient via rxnorm_closure"
+        gold_value: TBD-25k
+        hypothesis: {metric_view: insufficient, semantic_rag: insufficient, genie_ontology: adds_value, closure_sql: sufficient, graph_ontobricks: sufficient}
+        note: naive ingredient match of prescription codes = 0; needs ingredient->clinical-drug subsumption.
+      - id: med_is_statin
+        question: "Is a patient prescribed 'Simvastatin 20 MG Oral Tablet' on a statin?"
+        gold: "yes — 312961 is subsumed by simvastatin (36567) in rxnorm_closure"
+        gold_value: "yes"
+        hypothesis: {metric_view: insufficient, semantic_rag: adds_value, genie_ontology: adds_value, closure_sql: sufficient, graph_ontobricks: sufficient}
+
+  - class: 5_value_set_vintage
+    intent: Same measure, different value-set VERSION -> different population. Needs versioned value sets.
+    questions:
+      - id: vintage_egfr_2026
+        question: "Under the 2026 KED eGFR definition, how many patients have a qualifying eGFR test?"
+        gold: "distinct patients with an observation whose loinc_code is in value_set_segment KED_EGFR WHERE measurement_year=2026 (only 98979-8)"
+        gold_value: TBD-25k
+        hypothesis: {metric_view: insufficient, semantic_rag: insufficient, genie_ontology: adds_value, closure_sql: sufficient, graph_ontobricks: sufficient}
+        note: contrast with 2025 (adds MDRD 33914-3). RAG over current docs gives a stale/ambiguous answer.
+
+  - class: 6_protocol_multihop
+    intent: Compose diagnosis + lab + med-class + protocol rules across edge types. Where a formal graph earns it.
+    builds:
+      - "ACE/ARB + SGLT2 + metformin ingredient->drug closures (like statins)"
+      - "contraindication dx value sets (pregnancy O/Z33.*, active hepatic disease K7x) + CKD N18.* + HF I50.*"
+      - "protocol edge tables from the care-protocol PDF: recommends(drug_class, condition), contraindicatedWith(drug_class, condition), monitoredBy(condition, lab), hasThreshold(lab, value)"
+    questions:
+      - id: proto_statin_gap_safe
+        question: "Which diabetics 40-75 have a statin care gap AND no contraindication (not pregnant, no active hepatic disease)?"
+        gold: "SPD NOT_MET AND age 40-75 AND no dx in contraindication sets (pregnancy, hepatic) -- join measure + protocol contraindication edges + dx closure"
+        gold_value: TBD-25k
+        hypothesis: {metric_view: insufficient, semantic_rag: insufficient, genie_ontology: adds_value, closure_sql: adds_value, graph_ontobricks: necessary}
+        note: multi-hop across measure, drug-class, contraindication dx. Single closure insufficient; RAG can't join structured patients.
+      - id: proto_albuminuria_aceiarb
+        question: "Patients with albuminuria (uACR >= 30) who are NOT on an ACE inhibitor or ARB, per protocol?"
+        gold: "patients with a uACR observation value >= 30 AND no med subsumed by an ACE/ARB ingredient; recommendation edge from protocol"
+        gold_value: TBD-25k
+        hypothesis: {metric_view: insufficient, semantic_rag: insufficient, genie_ontology: adds_value, closure_sql: adds_value, graph_ontobricks: necessary}
+      - id: proto_cardiorenal
+        question: "Identify cardiorenal patients (diabetes + CKD + heart failure) and whether each is on statin + ACE/ARB + SGLT2."
+        gold: "cohort = dx under E1x AND N18.* AND I50.* (cross-branch); then med-class coverage via rxnorm closures"
+        gold_value: TBD-25k
+        hypothesis: {metric_view: insufficient, semantic_rag: insufficient, genie_ontology: adds_value, closure_sql: adds_value, graph_ontobricks: necessary}
+        note: cross-branch cohort + multi-class med check. The canonical "need the graph" question.
+
+  - class: 7_definition_provenance
+    intent: Explain/define a concept and cite where it's defined. Unstructured — needs RAG/Pages, not structured data.
+    source: ../care_protocol/pdf_eval_questions.json (hand-verified against the care-protocol PDF)
+    questions:
+      - id: def_metformin_egfr
+        question: "Below what eGFR is metformin contraindicated, and where is that stated?"
+        gold: "eGFR < 30 mL/min/1.73m2 (care-protocol CP-GLY-2)"
+        gold_value: "eGFR < 30"
+        hypothesis: {metric_view: insufficient, semantic_rag: sufficient, genie_ontology: adds_value, closure_sql: insufficient, graph_ontobricks: adds_value}
+        note: genie_ontology/Page adds a curated, cited definition; raw RAG retrieves the span; structured can't explain.
+      - id: def_controlled_bp
+        question: "What does 'controlled' blood pressure mean for BPD, and where is it defined?"
+        gold: "systolic < 140 AND diastolic < 90 (care-protocol section 2 / CP; BPD measure spec)"
+        gold_value: "systolic < 140 and diastolic < 90"
+        hypothesis: {metric_view: adds_value, semantic_rag: sufficient, genie_ontology: sufficient, closure_sql: insufficient, graph_ontobricks: adds_value}
