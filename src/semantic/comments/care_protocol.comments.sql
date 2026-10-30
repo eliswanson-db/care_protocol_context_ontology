@@ -34,6 +34,17 @@ COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ked.uacr_datetime IS 'T
 COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ked.uacr_code IS 'LOINC code of the uACR test (e.g. 14959-1 Microalbumin/Creatinine ratio).';
 COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ked.uacr_value IS 'Numeric uACR result of the latest measurement-year test.';
 
+-- gold_adherence_bpd: HEDIS BPD event log, one row per eligible diabetes patient (18-75).
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_bpd.patient_id IS 'Patient identifier (synthetic).';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_bpd.measure_id IS 'HEDIS measure code. BPD = Blood Pressure control for Patients With Diabetes.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_bpd.age IS 'Patient age at the end of the measurement year. BPD eligibility requires 18-75.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_bpd.eligible_flag IS 'True when the patient is in the BPD denominator (diabetes cohort, aged 18-75).';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_bpd.numerator_flag IS 'BPD numerator: true when the most recent measurement-year BP reading is controlled (systolic <140 AND diastolic <90).';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_bpd.status IS 'Adherence status: MET (controlled) or NOT_MET (uncontrolled or no reading = care gap).';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_bpd.bp_datetime IS 'Timestamp of the most recent paired BP reading in the measurement year. Record-level traceability.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_bpd.systolic IS 'Systolic blood pressure (LOINC 8480-6) of the latest measurement-year reading.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_bpd.diastolic IS 'Diastolic blood pressure (LOINC 8462-4) of the latest measurement-year reading.';
+
 -- silver_condition: conformed diabetes diagnoses, ICD-10-CM mapped from SNOMED.
 COMMENT ON COLUMN {catalog}.care_protocol.silver_condition.patient_id IS 'Patient identifier the diagnosis belongs to.';
 COMMENT ON COLUMN {catalog}.care_protocol.silver_condition.encounter_id IS 'Encounter in which the diagnosis was recorded.';

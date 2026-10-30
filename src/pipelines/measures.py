@@ -130,3 +130,49 @@ def gold_adherence_ked():
             .select("patient_id", "measure_id", "measurement_year", "period_start", "period_end", "age",
                     "eligible_flag", "egfr_flag", "uacr_flag", "numerator_flag", "status",
                     "egfr_datetime", "egfr_code", "egfr_value", "uacr_datetime", "uacr_code", "uacr_value"))
+
+
+# ---------------- Gold: BPD (Blood Pressure control for Patients With Diabetes) ----------------
+@dp.materialized_view(
+    comment="BPD adherence event log. Denominator: diabetes patients aged 18-75. Numerator: the most recent "
+            "blood-pressure reading in the measurement year is controlled (<140/90) -- systolic (LOINC 8480-6) "
+            "AND diastolic (8462-4) from the SAME reading. One row per eligible patient. HEDIS-aligned demo, "
+            "not NCQA-certified.")
+def gold_adherence_bpd():
+    patients = spark.read.table(f"{BRONZE}.bronze_patient")  # noqa: F821
+    cohort = spark.read.table("silver_diabetes_cohort")  # noqa: F821
+    my_end = F.to_date(F.lit(f"{MY}-12-31"))
+
+    eligible = (cohort.join(patients, "patient_id")
+                .withColumn("age", (F.datediff(my_end, F.col("birth_date")) / 365.25).cast("int"))
+                .where((F.col("age") >= 18) & (F.col("age") <= 75))
+                .select("patient_id", "age"))
+
+    seg = spark.read.table(f"{TERM}.value_set_segment")  # noqa: F821
+    sys_codes = seg.where(F.col("segment_id") == "BPD_SYSTOLIC").select("code").distinct()
+    dia_codes = seg.where(F.col("segment_id") == "BPD_DIASTOLIC").select("code").distinct()
+    obs = spark.read.table("silver_observation")  # noqa: F821
+
+    sys_obs = (obs.join(sys_codes, obs["loinc_code"] == sys_codes["code"]).where(F.year("result_ts") == MY)
+               .select(F.col("patient_id").alias("sp"), F.col("result_ts").alias("sts"),
+                       F.col("value_num").alias("systolic")))
+    dia_obs = (obs.join(dia_codes, obs["loinc_code"] == dia_codes["code"]).where(F.year("result_ts") == MY)
+               .select(F.col("patient_id").alias("dp"), F.col("result_ts").alias("dts"),
+                       F.col("value_num").alias("diastolic")))
+    # Pair systolic + diastolic from the SAME reading (same patient + timestamp), then take the latest reading.
+    readings = (sys_obs.join(dia_obs, (sys_obs["sp"] == dia_obs["dp"]) & (sys_obs["sts"] == dia_obs["dts"]))
+                .select(F.col("sp").alias("patient_id"), F.col("sts").alias("bp_datetime"), "systolic", "diastolic"))
+    w = Window.partitionBy("patient_id").orderBy(F.col("bp_datetime").desc())
+    latest = readings.withColumn("rn", F.row_number().over(w)).where(F.col("rn") == 1).drop("rn")
+
+    controlled = (F.col("systolic") < 140) & (F.col("diastolic") < 90)
+    return (eligible.join(latest, "patient_id", "left")
+            .withColumn("measure_id", F.lit("BPD"))
+            .withColumn("measurement_year", F.lit(MY))
+            .withColumn("period_start", F.to_date(F.lit(f"{MY}-01-01")))
+            .withColumn("period_end", my_end)
+            .withColumn("eligible_flag", F.lit(True))
+            .withColumn("numerator_flag", controlled)
+            .withColumn("status", F.when(controlled, F.lit("MET")).otherwise(F.lit("NOT_MET")))
+            .select("patient_id", "measure_id", "measurement_year", "period_start", "period_end", "age",
+                    "eligible_flag", "numerator_flag", "status", "bp_datetime", "systolic", "diastolic"))
