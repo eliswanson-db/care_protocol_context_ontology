@@ -1,0 +1,75 @@
+@prefix rr:   <http://www.w3.org/ns/r2rml#> .
+@prefix cp:   <https://care-protocol.example/ontology#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+# =====================================================================================
+# R2RML mappings: Unity Catalog tables -> Care Protocol Ontology (care_protocol.owl.ttl).
+# Representative set covering each pattern; extend the gold_adherence_* maps the same way.
+# Logical tables name UC tables as catalog.schema.table — adjust the connector/quoting to what
+# your Ontobricks deployment expects (standard R2RML rr:tableName vs a Databricks-native mapping).
+# IRIs: patient/{id}, icd/{code}, loinc/{code}, rx/{code}, part/{part}, measure/{id}.
+# =====================================================================================
+
+# ---- Patients ----
+<#PatientMap> a rr:TriplesMap ;
+  rr:logicalTable [ rr:tableName "eli_test_classic_catalog.care_protocol.bronze_patient" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/patient/{patient_id}" ; rr:class cp:Patient ] .
+
+# ---- Diagnoses: patient -hasDiagnosis-> condition(icd), condition has icd10Code ----
+<#DiagnosisMap> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT patient_id, icd10_code FROM eli_test_classic_catalog.care_protocol.silver_condition WHERE icd10_code IS NOT NULL" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/patient/{patient_id}" ] ;
+  rr:predicateObjectMap [ rr:predicate cp:hasDiagnosis ;
+     rr:objectMap [ rr:template "https://care-protocol.example/icd/{icd10_code}" ] ] .
+
+<#ConditionCodeMap> a rr:TriplesMap ;
+  rr:logicalTable [ rr:tableName "eli_test_classic_catalog.care_protocol_terminology.icd10_hier" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/icd/{code}" ; rr:class cp:Condition ] ;
+  rr:predicateObjectMap [ rr:predicate cp:icd10Code ; rr:objectMap [ rr:column "code" ] ] .
+
+# ---- ICD-10 is-a: code rdfs:subClassOf parent_code (what icd10_closure materializes transitively) ----
+<#IcdSubClassMap> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT code, parent_code FROM eli_test_classic_catalog.care_protocol_terminology.icd10_hier WHERE parent_code IS NOT NULL" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/icd/{code}" ] ;
+  rr:predicateObjectMap [ rr:predicate rdfs:subClassOf ;
+     rr:objectMap [ rr:template "https://care-protocol.example/icd/{parent_code}" ] ] .
+
+# ---- Observations: patient -hasObservation-> obs -ofTest-> loinc; result value ----
+<#ObservationMap> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT patient_id, loinc_code, result_ts, value_num FROM eli_test_classic_catalog.care_protocol.silver_observation WHERE loinc_code IS NOT NULL" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/obs/{patient_id}/{result_ts}" ; rr:class cp:Observation ] ;
+  rr:predicateObjectMap [ rr:predicate cp:ofTest ; rr:objectMap [ rr:template "https://care-protocol.example/loinc/{loinc_code}" ] ] ;
+  rr:predicateObjectMap [ rr:predicate cp:resultValue ; rr:objectMap [ rr:column "value_num" ] ] .
+
+# ---- LOINC multiaxial: term -hasComponent-> part (and other axes via predicate template) ----
+<#LoincAxisMap> a rr:TriplesMap ;
+  rr:logicalTable [ rr:tableName "eli_test_classic_catalog.care_protocol_terminology.loinc_parts" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/loinc/{loinc_code}" ; rr:class cp:LabTest ] ;
+  rr:predicateObjectMap [ rr:predicateMap [ rr:template "https://care-protocol.example/ontology#{predicate}" ] ;
+     rr:objectMap [ rr:template "https://care-protocol.example/part/{part}" ] ] .
+
+# ---- Medications: patient -prescribed-> drug; drug -hasIngredient-> ingredient -inDrugClass-> class ----
+<#MedicationMap> a rr:TriplesMap ;
+  rr:logicalTable [ rr:tableName "eli_test_classic_catalog.care_protocol.bronze_order_med" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/patient/{patient_id}" ] ;
+  rr:predicateObjectMap [ rr:predicate cp:prescribed ; rr:objectMap [ rr:template "https://care-protocol.example/rx/{rxnorm_code}" ] ] .
+
+<#RxnormHierMap> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT code, parent_code FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE parent_code IS NOT NULL" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/rx/{code}" ] ;
+  rr:predicateObjectMap [ rr:predicate cp:hasIngredient ;
+     rr:objectMap [ rr:template "https://care-protocol.example/rx/{parent_code}" ] ] .
+
+# ---- Care-protocol knowledge edges: generic (subject predicate object) via predicate template ----
+<#ProtocolEdgeMap> a rr:TriplesMap ;
+  rr:logicalTable [ rr:tableName "eli_test_classic_catalog.care_protocol_terminology.protocol_edges" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/concept/{subject}" ] ;
+  rr:predicateObjectMap [ rr:predicateMap [ rr:template "https://care-protocol.example/ontology#{predicate}" ] ;
+     rr:objectMap [ rr:template "https://care-protocol.example/concept/{object}" ] ] .
+
+# ---- Measure results: patient -eligibleFor/hasCareGap-> measure + status (GSD shown; repeat per measure) ----
+<#GsdMeasureMap> a rr:TriplesMap ;
+  rr:logicalTable [ rr:tableName "eli_test_classic_catalog.care_protocol.gold_adherence_gsd" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/patient/{patient_id}" ] ;
+  rr:predicateObjectMap [ rr:predicate cp:eligibleFor ; rr:objectMap [ rr:constant "https://care-protocol.example/measure/GSD" ] ] ;
+  rr:predicateObjectMap [ rr:predicate cp:measureStatus ; rr:objectMap [ rr:column "status" ] ] .

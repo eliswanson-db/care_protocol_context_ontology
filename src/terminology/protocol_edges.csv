@@ -1,0 +1,22 @@
+subject,predicate,object,value,source
+DRUGCLASS-STATIN,recommendedFor,SPD,,CP-DM-2025.1 sec2/sec6
+DRUGCLASS-ACE,recommendedFor,ALBUMINURIA,,CP sec4
+DRUGCLASS-ARB,recommendedFor,ALBUMINURIA,,CP sec4
+DRUGCLASS-SGLT2,recommendedFor,COMORBID_CKD,,CP sec3
+DRUGCLASS-SGLT2,recommendedFor,COMORBID_HF,,CP sec3
+DRUGCLASS-BIGUANIDE,firstLineFor,GLYCEMIC,,CP-GLY-2
+DRUGCLASS-STATIN,contraindicatedWith,CONTRA_PREGNANCY,,CP sec4
+DRUGCLASS-STATIN,contraindicatedWith,CONTRA_HEPATIC,,CP sec4
+DRUGCLASS-ACE,contraindicatedWith,CONTRA_PREGNANCY,,CP sec4
+DRUGCLASS-ARB,contraindicatedWith,CONTRA_PREGNANCY,,CP sec4
+DRUGCLASS-BIGUANIDE,contraindicatedWhen,eGFR_LT_30,30,CP-GLY-2
+DRUGCLASS-SGLT2,contraindicatedWhen,eGFR_LT_20,20,CP sec4
+GSD,monitoredBy,LP-HBA1C,,CP sec5
+KED,monitoredBy,LP-EGFR,,CP sec5
+KED,monitoredBy,LP-UACR,,CP sec5
+BPD,monitoredBy,BP,,CP sec5
+ALBUMINURIA,definedBy,uACR_GTE_30,30,CP sec4
+BPD,hasThreshold,systolic_lt_140,140,CP sec2
+BPD,hasThreshold,diastolic_lt_90,90,CP sec2
+GSD,hasThreshold,a1c_good_lt_8,8,CP sec2
+GSD,hasThreshold,a1c_poor_gt_9,9,CP sec3

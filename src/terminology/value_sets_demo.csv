@@ -28,3 +28,11 @@ CARDIORENAL_COHORT,Cardiorenal cohort - cross-branch (DM-05): diabetes + CKD + H
 EED_EYE_EXAM,Eye exam - diabetic retinal (EED),722161008,SNOMED,2025,eli.swanson@databricks.com
 EED_EYE_EXAM,Eye exam - diabetic retinal (EED),700070005,SNOMED,2025,eli.swanson@databricks.com
 KED_EGFR,Kidney eval - eGFR (KED) [MY2026 modernized: CKD-EPI only],98979-8,LOINC,2026,eli.swanson@databricks.com
+COMORBID_CKD,Chronic kidney disease (any stage),N18,ICD10CM,2025,eli.swanson@databricks.com
+COMORBID_HF,Heart failure,I50,ICD10CM,2025,eli.swanson@databricks.com
+CONTRA_PREGNANCY,Pregnancy (statin/ACE/ARB contraindication),Z34,ICD10CM,2025,eli.swanson@databricks.com
+CONTRA_PREGNANCY,Pregnancy (statin/ACE/ARB contraindication),O26,ICD10CM,2025,eli.swanson@databricks.com
+CONTRA_PREGNANCY,Pregnancy (statin/ACE/ARB contraindication),O15,ICD10CM,2025,eli.swanson@databricks.com
+CONTRA_PREGNANCY,Pregnancy (statin/ACE/ARB contraindication),O00,ICD10CM,2025,eli.swanson@databricks.com
+CONTRA_HEPATIC,Active hepatic disease (statin contraindication),K70,ICD10CM,2025,eli.swanson@databricks.com
+CONTRA_HEPATIC,Active hepatic disease (statin contraindication),K74,ICD10CM,2025,eli.swanson@databricks.com

@@ -1,10 +1,20 @@
 code,parent_code,name
-83367,,atorvastatin
-36567,,simvastatin
-301542,,rosuvastatin
-42463,,pravastatin
-41127,,fluvastatin
-6472,,lovastatin
+DRUGCLASS-STATIN,,HMG-CoA reductase inhibitor (statin)
+DRUGCLASS-ACE,,ACE inhibitor
+DRUGCLASS-ARB,,Angiotensin II receptor blocker (ARB)
+DRUGCLASS-SGLT2,,SGLT2 inhibitor
+DRUGCLASS-BIGUANIDE,,Biguanide
+83367,DRUGCLASS-STATIN,atorvastatin
+36567,DRUGCLASS-STATIN,simvastatin
+301542,DRUGCLASS-STATIN,rosuvastatin
+42463,DRUGCLASS-STATIN,pravastatin
+41127,DRUGCLASS-STATIN,fluvastatin
+6472,DRUGCLASS-STATIN,lovastatin
+29046,DRUGCLASS-ACE,lisinopril
+52175,DRUGCLASS-ARB,losartan
+6809,DRUGCLASS-BIGUANIDE,metformin
+1545653,DRUGCLASS-SGLT2,empagliflozin
+1488564,DRUGCLASS-SGLT2,dapagliflozin
 314231,36567,Simvastatin 10 MG Oral Tablet
 312961,36567,Simvastatin 20 MG Oral Tablet
 476349,36567,ezetimibe 10 MG / simvastatin 20 MG Oral Tablet
@@ -14,3 +24,13 @@ code,parent_code,name
 259255,83367,atorvastatin 80 MG Oral Tablet
 859747,301542,rosuvastatin calcium 10 MG Oral Tablet
 859424,301542,rosuvastatin calcium 5 MG Oral Tablet
+314076,29046,lisinopril 10 MG Oral Tablet
+314077,29046,lisinopril 20 MG Oral Tablet
+205326,29046,lisinopril 30 MG Oral Tablet
+197885,29046,hydrochlorothiazide 12.5 MG / lisinopril 10 MG Oral Tablet
+197886,29046,hydrochlorothiazide 12.5 MG / lisinopril 20 MG Oral Tablet
+197887,29046,hydrochlorothiazide 25 MG / lisinopril 20 MG Oral Tablet
+979480,52175,losartan potassium 100 MG Oral Tablet
+979485,52175,losartan potassium 25 MG Oral Tablet
+979492,52175,losartan potassium 50 MG Oral Tablet
+860975,6809,24 HR Metformin hydrochloride 500 MG Extended Release Oral Tablet

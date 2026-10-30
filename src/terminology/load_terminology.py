@@ -36,6 +36,7 @@ def main() -> None:
         "rxnorm_statins.csv": "rxnorm_statin",
         "rxnorm_hier.csv": "rxnorm_hier",
         "loinc_parts.csv": "loinc_parts",
+        "protocol_edges.csv": "protocol_edges",
         "value_sets_demo.csv": "value_set_segment",
     }
     comments = {
@@ -44,6 +45,7 @@ def main() -> None:
         "rxnorm_statin": "RxNorm statin ingredients (rxcui, ingredient) for the Statin Therapy (SPD) measure.",
         "rxnorm_hier": "RxNorm adjacency (code, parent_code, name): statin ingredient -> clinical drug. Source tree for rxnorm_closure, so SPD resolves ingredient value sets to the clinical-drug codes actually prescribed (subsumption). Curated demo subset, ADR-0007.",
         "loinc_parts": "LOINC multiaxial Part edges (loinc_code, predicate, part): typed axes has_component/has_system/has_method. A graph (not a tree): 'all A1c regardless of method' = terms sharing Component LP-HBA1C. Curated demo subset (LOINC License), ADR-0010.",
+        "protocol_edges": "Care-protocol knowledge edges (subject, predicate, object, value) from the care-protocol PDF: recommendedFor/contraindicatedWith/monitoredBy/hasThreshold. The clinical, cross-vocabulary relationships for the graph (OWL/Ontobricks) and class-6 multi-hop questions. ADR-0010.",
         "value_set_segment": "Cross-branch demo value sets / cohorts (the segment table; not NCQA/VSAC). Named sets spanning the hierarchy, incl. CARDIORENAL_COHORT (diabetes+CKD+HF).",
     }
     for csv_name, table in loads.items():
