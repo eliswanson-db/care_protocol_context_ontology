@@ -100,3 +100,25 @@ resources:
         - environment_key: serverless
           spec:
             client: "3"
+
+    # Semantic layer (ontology fuel). Runs AFTER the `measures` pipeline — reads gold_adherence_*.
+    #   apply_metric_views: governed UC metric views from src/semantic/metric_views/*.metric_view.sql
+    semantic:
+      name: semantic_${bundle.target}
+      description: Build the governed semantic layer (metric views; comments to follow) over gold_* for Genie Ontology.
+      tasks:
+        - task_key: apply_metric_views
+          spark_python_task:
+            python_file: ../src/semantic/apply_metric_views.py
+            parameters:
+              - "--catalog"
+              - "${var.catalog}"
+              - "--schema"
+              - "care_protocol"
+              - "--src_dir"
+              - "${workspace.file_path}/src/semantic/metric_views"
+          environment_key: serverless
+      environments:
+        - environment_key: serverless
+          spec:
+            client: "3"
