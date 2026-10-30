@@ -1,0 +1,121 @@
+{
+  "datasets": [
+    {
+      "name": "ds_overall",
+      "displayName": "Overall rates (metric views)",
+      "queryLines": [
+        "SELECT ",
+        "  (SELECT MEASURE(`GSD Compliance Rate`) FROM eli_test_classic_catalog.care_protocol.gsd_compliance_metrics) AS gsd_rate, ",
+        "  (SELECT MEASURE(`KED Compliance Rate`) FROM eli_test_classic_catalog.care_protocol.ked_compliance_metrics) AS ked_rate, ",
+        "  (SELECT MEASURE(`BPD Compliance Rate`) FROM eli_test_classic_catalog.care_protocol.bpd_compliance_metrics) AS bpd_rate, ",
+        "  (SELECT MEASURE(`SPD Compliance Rate`) FROM eli_test_classic_catalog.care_protocol.spd_compliance_metrics) AS spd_rate, ",
+        "  (SELECT MEASURE(`EED Compliance Rate`) FROM eli_test_classic_catalog.care_protocol.eed_compliance_metrics) AS eed_rate"
+      ]
+    },
+    {
+      "name": "ds_strat",
+      "displayName": "Compliance by measure and age band",
+      "queryLines": [
+        "SELECT measure, age_band, rate, ROUND(rate*100,1) AS compliance_pct, eligible FROM ( ",
+        "  SELECT 'GSD' AS measure, `Age Band` AS age_band, MEASURE(`GSD Compliance Rate`) AS rate, MEASURE(`Eligible Patients`) AS eligible FROM eli_test_classic_catalog.care_protocol.gsd_compliance_metrics GROUP BY `Age Band` ",
+        "  UNION ALL SELECT 'KED', `Age Band`, MEASURE(`KED Compliance Rate`), MEASURE(`Eligible Patients`) FROM eli_test_classic_catalog.care_protocol.ked_compliance_metrics GROUP BY `Age Band` ",
+        "  UNION ALL SELECT 'BPD', `Age Band`, MEASURE(`BPD Compliance Rate`), MEASURE(`Eligible Patients`) FROM eli_test_classic_catalog.care_protocol.bpd_compliance_metrics GROUP BY `Age Band` ",
+        "  UNION ALL SELECT 'SPD', `Age Band`, MEASURE(`SPD Compliance Rate`), MEASURE(`Eligible Patients`) FROM eli_test_classic_catalog.care_protocol.spd_compliance_metrics GROUP BY `Age Band` ",
+        "  UNION ALL SELECT 'EED', `Age Band`, MEASURE(`EED Compliance Rate`), MEASURE(`Eligible Patients`) FROM eli_test_classic_catalog.care_protocol.eed_compliance_metrics GROUP BY `Age Band` ",
+        ") t ORDER BY measure, age_band"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "overview",
+      "displayName": "Quality by Age Band",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {"name": "title", "textbox_spec": "# HEDIS Diabetes Quality by Age Band — Governed Metric Views"},
+          "position": {"x": 0, "y": 0, "width": 12, "height": 1}
+        },
+        {
+          "widget": {"name": "subtitle", "textbox_spec": "Every number here comes from the same Unity Catalog **metric views** that power the Genie agent — one governed definition, consumed by BI and natural language alike. Rates are stratified by each measure's eligible age band. _Synthetic · HEDIS-aligned · Not NCQA-certified · Not for clinical use._"},
+          "position": {"x": 0, "y": 1, "width": 12, "height": 1}
+        },
+        {
+          "widget": {
+            "name": "kpi_gsd",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_overall", "fields": [{"name": "gsd_rate", "expression": "`gsd_rate`"}], "disaggregated": true}}],
+            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "gsd_rate", "displayName": "Compliance rate", "format": {"type": "number-percent", "decimalPlaces": {"type": "max", "places": 1}}}}, "frame": {"title": "GSD · Glycemic status (A1c testing)", "showTitle": true}}
+          },
+          "position": {"x": 0, "y": 2, "width": 4, "height": 3}
+        },
+        {
+          "widget": {
+            "name": "kpi_ked",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_overall", "fields": [{"name": "ked_rate", "expression": "`ked_rate`"}], "disaggregated": true}}],
+            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "ked_rate", "displayName": "Compliance rate", "format": {"type": "number-percent", "decimalPlaces": {"type": "max", "places": 1}}}}, "frame": {"title": "KED · Kidney health evaluation", "showTitle": true}}
+          },
+          "position": {"x": 4, "y": 2, "width": 4, "height": 3}
+        },
+        {
+          "widget": {
+            "name": "kpi_bpd",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_overall", "fields": [{"name": "bpd_rate", "expression": "`bpd_rate`"}], "disaggregated": true}}],
+            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "bpd_rate", "displayName": "Compliance rate", "format": {"type": "number-percent", "decimalPlaces": {"type": "max", "places": 1}}}}, "frame": {"title": "BPD · Blood-pressure control", "showTitle": true}}
+          },
+          "position": {"x": 8, "y": 2, "width": 4, "height": 3}
+        },
+        {
+          "widget": {
+            "name": "kpi_spd",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_overall", "fields": [{"name": "spd_rate", "expression": "`spd_rate`"}], "disaggregated": true}}],
+            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "spd_rate", "displayName": "Compliance rate", "format": {"type": "number-percent", "decimalPlaces": {"type": "max", "places": 1}}}}, "frame": {"title": "SPD · Statin therapy", "showTitle": true}}
+          },
+          "position": {"x": 0, "y": 5, "width": 6, "height": 3}
+        },
+        {
+          "widget": {
+            "name": "kpi_eed",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_overall", "fields": [{"name": "eed_rate", "expression": "`eed_rate`"}], "disaggregated": true}}],
+            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "eed_rate", "displayName": "Compliance rate", "format": {"type": "number-percent", "decimalPlaces": {"type": "max", "places": 1}}}}, "frame": {"title": "EED · Diabetic eye exam", "showTitle": true}}
+          },
+          "position": {"x": 6, "y": 5, "width": 6, "height": 3}
+        },
+        {
+          "widget": {"name": "hdr_strat", "textbox_spec": "## Compliance by age band\nStratified straight off the governed metric views (`MEASURE()` grouped by the `Age Band` dimension)."},
+          "position": {"x": 0, "y": 8, "width": 12, "height": 1}
+        },
+        {
+          "widget": {
+            "name": "bar_strat",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_strat", "fields": [{"name": "measure", "expression": "`measure`"}, {"name": "age_band", "expression": "`age_band`"}, {"name": "sum(rate)", "expression": "SUM(`rate`)"}], "disaggregated": false}}],
+            "spec": {"version": 3, "widgetType": "bar", "encodings": {"x": {"fieldName": "measure", "scale": {"type": "categorical"}, "displayName": "HEDIS measure"}, "y": {"fieldName": "sum(rate)", "scale": {"type": "quantitative"}, "format": {"type": "number-percent", "decimalPlaces": {"type": "max", "places": 0}}, "displayName": "Compliance rate"}, "color": {"fieldName": "age_band", "scale": {"type": "categorical"}, "displayName": "Age band"}}, "frame": {"title": "Compliance rate by measure and age band", "showTitle": true}}
+          },
+          "position": {"x": 0, "y": 9, "width": 12, "height": 6}
+        },
+        {
+          "widget": {"name": "hdr_table", "textbox_spec": "## Stratification detail"},
+          "position": {"x": 0, "y": 15, "width": 12, "height": 1}
+        },
+        {
+          "widget": {
+            "name": "tbl_strat",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_strat", "fields": [{"name": "measure", "expression": "`measure`"}, {"name": "age_band", "expression": "`age_band`"}, {"name": "compliance_pct", "expression": "`compliance_pct`"}, {"name": "eligible", "expression": "`eligible`"}], "disaggregated": true}}],
+            "spec": {"version": 2, "widgetType": "table", "encodings": {"columns": [{"fieldName": "measure", "displayName": "Measure"}, {"fieldName": "age_band", "displayName": "Age band"}, {"fieldName": "compliance_pct", "displayName": "Compliance rate (%)"}, {"fieldName": "eligible", "displayName": "Eligible patients"}]}, "frame": {"title": "Compliance rate and denominator by measure and age band", "showTitle": true}}
+          },
+          "position": {"x": 0, "y": 16, "width": 12, "height": 7}
+        }
+      ]
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "canvasBackgroundColor": {"light": "#FCFCFC", "dark": "#1F272D"},
+      "widgetBackgroundColor": {"light": "#FFFFFF", "dark": "#11171C"},
+      "fontColor": {"light": "#11171C", "dark": "#E8ECF0"},
+      "selectionColor": {"light": "#2272B4", "dark": "#8ACAFF"},
+      "visualizationColors": ["#4E79A7", "#F28E2C", "#E15759", "#76B7B2", "#59A14F", "#9F1853"],
+      "widgetHeaderAlignment": "LEFT"
+    }
+  }
+}

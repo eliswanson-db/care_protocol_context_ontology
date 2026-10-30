@@ -35,8 +35,21 @@
       ]
     },
     {
+      "name": "ds_gap_summary",
+      "displayName": "Care gaps by reason",
+      "queryLines": [
+        "SELECT measure, gap_reason, COUNT(*) AS patients FROM ( ",
+        "  SELECT 'GSD' AS measure, 'No A1c test in year' AS gap_reason FROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd WHERE status='NOT_MET' ",
+        "  UNION ALL SELECT 'KED', CASE WHEN NOT egfr_flag AND NOT uacr_flag THEN 'No eGFR and no uACR' WHEN NOT uacr_flag THEN 'No uACR test' ELSE 'No eGFR test' END FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked WHERE status='NOT_MET' ",
+        "  UNION ALL SELECT 'BPD', 'BP not controlled / no reading' FROM eli_test_classic_catalog.care_protocol.gold_adherence_bpd WHERE status='NOT_MET' ",
+        "  UNION ALL SELECT 'SPD', 'No statin dispensed' FROM eli_test_classic_catalog.care_protocol.gold_adherence_spd WHERE status='NOT_MET' ",
+        "  UNION ALL SELECT 'EED', 'No diabetic eye exam' FROM eli_test_classic_catalog.care_protocol.gold_adherence_eed WHERE status='NOT_MET' ",
+        ") GROUP BY measure, gap_reason ORDER BY patients DESC"
+      ]
+    },
+    {
       "name": "ds_gaps",
-      "displayName": "Care gaps",
+      "displayName": "Care gap worklist (patient-level)",
       "queryLines": [
         "SELECT 'GSD' AS measure, patient_id, age, 'No A1c test in year' AS gap_reason FROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd WHERE status='NOT_MET' ",
         "UNION ALL SELECT 'KED', patient_id, age, CASE WHEN NOT egfr_flag AND NOT uacr_flag THEN 'No eGFR and no uACR' WHEN NOT uacr_flag THEN 'No uACR test' ELSE 'No eGFR test' END FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked WHERE status='NOT_MET' ",
@@ -57,80 +70,117 @@
         {
           "widget": {
             "name": "title",
-            "textbox_spec": "# HEDIS Diabetes Quality — Care Protocol\nFive HEDIS diabetes measures from synthetic Epic-shaped data, computed deterministically. HEDIS-aligned demo, not NCQA-certified."
+            "textbox_spec": "# HEDIS Diabetes Quality — Care Protocol"
           },
           "position": {"x": 0, "y": 0, "width": 12, "height": 1}
         },
         {
           "widget": {
-            "name": "kpi_gsd",
-            "queries": [{"name": "q", "query": {"datasetName": "ds_kpi", "fields": [{"name": "gsd_rate", "expression": "`gsd_rate`"}], "disaggregated": true}}],
-            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "gsd_rate", "displayName": "GSD — A1c testing", "format": {"type": "number-percent", "decimalPlaces": {"type": "max", "places": 1}}}}}
+            "name": "subtitle",
+            "textbox_spec": "Five HEDIS diabetes measures computed deterministically from synthetic, Epic-shaped data (25,000-patient population). Each tile is the share of *eligible* diabetes patients who met the measure. _Synthetic · HEDIS-aligned · Not NCQA-certified · Not for clinical use._"
           },
-          "position": {"x": 0, "y": 1, "width": 4, "height": 3}
+          "position": {"x": 0, "y": 1, "width": 12, "height": 1}
+        },
+        {
+          "widget": {
+            "name": "kpi_gsd",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_kpi", "fields": [{"name": "gsd_rate", "expression": "`gsd_rate`"}], "disaggregated": true}}],
+            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "gsd_rate", "displayName": "Compliance rate", "format": {"type": "number-percent", "decimalPlaces": {"type": "max", "places": 1}}}}, "frame": {"title": "GSD · Glycemic status (A1c testing)", "showTitle": true}}
+          },
+          "position": {"x": 0, "y": 2, "width": 4, "height": 3}
         },
         {
           "widget": {
             "name": "kpi_ked",
-            "queries": [{"name": "q", "query": {"datasetName": "ds_kpi", "fields": [{"name": "ked_rate", "expression": "`ked_rate`"}], "disaggregated": true}}],
-            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "ked_rate", "displayName": "KED — kidney eval", "format": {"type": "number-percent", "decimalPlaces": {"type": "max", "places": 1}}}}}
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_kpi", "fields": [{"name": "ked_rate", "expression": "`ked_rate`"}], "disaggregated": true}}],
+            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "ked_rate", "displayName": "Compliance rate", "format": {"type": "number-percent", "decimalPlaces": {"type": "max", "places": 1}}}}, "frame": {"title": "KED · Kidney health evaluation", "showTitle": true}}
           },
-          "position": {"x": 4, "y": 1, "width": 4, "height": 3}
+          "position": {"x": 4, "y": 2, "width": 4, "height": 3}
         },
         {
           "widget": {
             "name": "kpi_bpd",
-            "queries": [{"name": "q", "query": {"datasetName": "ds_kpi", "fields": [{"name": "bpd_rate", "expression": "`bpd_rate`"}], "disaggregated": true}}],
-            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "bpd_rate", "displayName": "BPD — BP control", "format": {"type": "number-percent", "decimalPlaces": {"type": "max", "places": 1}}}}}
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_kpi", "fields": [{"name": "bpd_rate", "expression": "`bpd_rate`"}], "disaggregated": true}}],
+            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "bpd_rate", "displayName": "Compliance rate", "format": {"type": "number-percent", "decimalPlaces": {"type": "max", "places": 1}}}}, "frame": {"title": "BPD · Blood-pressure control", "showTitle": true}}
           },
-          "position": {"x": 8, "y": 1, "width": 4, "height": 3}
+          "position": {"x": 8, "y": 2, "width": 4, "height": 3}
         },
         {
           "widget": {
             "name": "kpi_spd",
-            "queries": [{"name": "q", "query": {"datasetName": "ds_kpi", "fields": [{"name": "spd_rate", "expression": "`spd_rate`"}], "disaggregated": true}}],
-            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "spd_rate", "displayName": "SPD — statin therapy", "format": {"type": "number-percent", "decimalPlaces": {"type": "max", "places": 1}}}}}
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_kpi", "fields": [{"name": "spd_rate", "expression": "`spd_rate`"}], "disaggregated": true}}],
+            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "spd_rate", "displayName": "Compliance rate", "format": {"type": "number-percent", "decimalPlaces": {"type": "max", "places": 1}}}}, "frame": {"title": "SPD · Statin therapy", "showTitle": true}}
           },
-          "position": {"x": 0, "y": 4, "width": 6, "height": 3}
+          "position": {"x": 0, "y": 5, "width": 6, "height": 3}
         },
         {
           "widget": {
             "name": "kpi_eed",
-            "queries": [{"name": "q", "query": {"datasetName": "ds_kpi", "fields": [{"name": "eed_rate", "expression": "`eed_rate`"}], "disaggregated": true}}],
-            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "eed_rate", "displayName": "EED — eye exam", "format": {"type": "number-percent", "decimalPlaces": {"type": "max", "places": 1}}}}}
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_kpi", "fields": [{"name": "eed_rate", "expression": "`eed_rate`"}], "disaggregated": true}}],
+            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "eed_rate", "displayName": "Compliance rate", "format": {"type": "number-percent", "decimalPlaces": {"type": "max", "places": 1}}}}, "frame": {"title": "EED · Diabetic eye exam", "showTitle": true}}
           },
-          "position": {"x": 6, "y": 4, "width": 6, "height": 3}
+          "position": {"x": 6, "y": 5, "width": 6, "height": 3}
+        },
+        {
+          "widget": {
+            "name": "compliance_header",
+            "textbox_spec": "## Compliance by measure"
+          },
+          "position": {"x": 0, "y": 8, "width": 12, "height": 1}
         },
         {
           "widget": {
             "name": "rate_by_measure",
-            "queries": [{"name": "q", "query": {"datasetName": "ds_rates", "fields": [{"name": "measure", "expression": "`measure`"}, {"name": "sum(rate)", "expression": "SUM(`rate`)"}], "disaggregated": false}}],
-            "spec": {"version": 3, "widgetType": "bar", "encodings": {"x": {"fieldName": "measure", "scale": {"type": "categorical"}, "displayName": "Measure"}, "y": {"fieldName": "sum(rate)", "scale": {"type": "quantitative"}, "format": {"type": "number-percent", "decimalPlaces": {"type": "max", "places": 0}}, "displayName": "Compliance Rate"}}, "frame": {"title": "Compliance rate by measure", "showTitle": true}}
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_rates", "fields": [{"name": "measure", "expression": "`measure`"}, {"name": "sum(rate)", "expression": "SUM(`rate`)"}], "disaggregated": false}}],
+            "spec": {"version": 3, "widgetType": "bar", "encodings": {"x": {"fieldName": "measure", "scale": {"type": "categorical"}, "displayName": "HEDIS measure"}, "y": {"fieldName": "sum(rate)", "scale": {"type": "quantitative"}, "format": {"type": "number-percent", "decimalPlaces": {"type": "max", "places": 0}}, "displayName": "Compliance rate"}}, "frame": {"title": "Compliance rate by measure", "showTitle": true}}
           },
-          "position": {"x": 0, "y": 7, "width": 6, "height": 5}
+          "position": {"x": 0, "y": 9, "width": 6, "height": 5}
         },
         {
           "widget": {
             "name": "status_by_measure",
-            "queries": [{"name": "q", "query": {"datasetName": "ds_status", "fields": [{"name": "measure", "expression": "`measure`"}, {"name": "status", "expression": "`status`"}, {"name": "sum(n)", "expression": "SUM(`n`)"}], "disaggregated": false}}],
-            "spec": {"version": 3, "widgetType": "bar", "encodings": {"x": {"fieldName": "measure", "scale": {"type": "categorical"}, "displayName": "Measure"}, "y": {"fieldName": "sum(n)", "scale": {"type": "quantitative"}, "displayName": "Patients"}, "color": {"fieldName": "status", "scale": {"type": "categorical", "mappings": [{"value": "MET", "color": "#4E79A7"}, {"value": "NOT_MET", "color": "#FF7054"}]}, "displayName": "Status"}}, "frame": {"title": "Patients MET vs care gap, by measure", "showTitle": true}}
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_status", "fields": [{"name": "measure", "expression": "`measure`"}, {"name": "status", "expression": "`status`"}, {"name": "sum(n)", "expression": "SUM(`n`)"}], "disaggregated": false}}],
+            "spec": {"version": 3, "widgetType": "bar", "encodings": {"x": {"fieldName": "measure", "scale": {"type": "categorical"}, "displayName": "HEDIS measure"}, "y": {"fieldName": "sum(n)", "scale": {"type": "quantitative"}, "displayName": "Patients"}, "color": {"fieldName": "status", "scale": {"type": "categorical", "mappings": [{"value": "MET", "color": "#4E79A7"}, {"value": "NOT_MET", "color": "#FF7054"}]}, "displayName": "Status"}}, "frame": {"title": "Patients met vs. care gap, by measure", "showTitle": true}}
           },
-          "position": {"x": 6, "y": 7, "width": 6, "height": 5}
+          "position": {"x": 6, "y": 9, "width": 6, "height": 5}
         },
         {
           "widget": {
-            "name": "gaps_header",
-            "textbox_spec": "## Care gaps — patients eligible but missing required care"
+            "name": "gaps_reason_header",
+            "textbox_spec": "## Care gaps — where eligible patients are falling through\nEligible diabetes patients who did **not** meet a measure, grouped by the reason for the gap."
           },
-          "position": {"x": 0, "y": 12, "width": 12, "height": 1}
+          "position": {"x": 0, "y": 14, "width": 12, "height": 1}
+        },
+        {
+          "widget": {
+            "name": "gap_summary_bar",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_gap_summary", "fields": [{"name": "gap_reason", "expression": "`gap_reason`"}, {"name": "sum(patients)", "expression": "SUM(`patients`)"}, {"name": "measure", "expression": "`measure`"}], "disaggregated": false}}],
+            "spec": {"version": 3, "widgetType": "bar", "encodings": {"x": {"fieldName": "sum(patients)", "scale": {"type": "quantitative"}, "displayName": "Patients with care gap"}, "y": {"fieldName": "gap_reason", "scale": {"type": "categorical"}, "displayName": "Gap reason"}, "color": {"fieldName": "measure", "scale": {"type": "categorical"}, "displayName": "Measure"}}, "frame": {"title": "Care gaps by reason", "showTitle": true}}
+          },
+          "position": {"x": 0, "y": 15, "width": 7, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "gap_summary_table",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_gap_summary", "fields": [{"name": "measure", "expression": "`measure`"}, {"name": "gap_reason", "expression": "`gap_reason`"}, {"name": "patients", "expression": "`patients`"}], "disaggregated": true}}],
+            "spec": {"version": 2, "widgetType": "table", "encodings": {"columns": [{"fieldName": "measure", "displayName": "Measure"}, {"fieldName": "gap_reason", "displayName": "Gap reason"}, {"fieldName": "patients", "displayName": "Patients"}]}, "frame": {"title": "Gap counts", "showTitle": true}}
+          },
+          "position": {"x": 7, "y": 15, "width": 5, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "worklist_header",
+            "textbox_spec": "## Care gap worklist — patient-level detail\nRecord-level traceability: each eligible patient with an open care gap (synthetic patient identifiers)."
+          },
+          "position": {"x": 0, "y": 21, "width": 12, "height": 1}
         },
         {
           "widget": {
             "name": "gaps_table",
-            "queries": [{"name": "q", "query": {"datasetName": "ds_gaps", "fields": [{"name": "measure", "expression": "`measure`"}, {"name": "patient_id", "expression": "`patient_id`"}, {"name": "age", "expression": "`age`"}, {"name": "gap_reason", "expression": "`gap_reason`"}], "disaggregated": true}}],
-            "spec": {"version": 2, "widgetType": "table", "encodings": {"columns": [{"fieldName": "measure", "displayName": "Measure"}, {"fieldName": "patient_id", "displayName": "Patient"}, {"fieldName": "age", "displayName": "Age"}, {"fieldName": "gap_reason", "displayName": "Gap reason"}]}}
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_gaps", "fields": [{"name": "measure", "expression": "`measure`"}, {"name": "patient_id", "expression": "`patient_id`"}, {"name": "age", "expression": "`age`"}, {"name": "gap_reason", "expression": "`gap_reason`"}], "disaggregated": true}}],
+            "spec": {"version": 2, "widgetType": "table", "encodings": {"columns": [{"fieldName": "measure", "displayName": "Measure"}, {"fieldName": "patient_id", "displayName": "Patient ID (synthetic)"}, {"fieldName": "age", "displayName": "Age"}, {"fieldName": "gap_reason", "displayName": "Gap reason"}]}, "frame": {"title": "Open care gaps by patient", "showTitle": true}}
           },
-          "position": {"x": 0, "y": 13, "width": 12, "height": 6}
+          "position": {"x": 0, "y": 22, "width": 12, "height": 7}
         }
       ]
     }

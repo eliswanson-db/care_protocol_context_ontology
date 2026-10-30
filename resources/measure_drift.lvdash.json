@@ -1,0 +1,184 @@
+{
+  "datasets": [
+    {
+      "name": "ds_drift",
+      "displayName": "eGFR coverage by value-set version",
+      "queryLines": [
+        "SELECT v.vs_year AS value_set_version, COUNT(DISTINCT o.patient_id) AS patients_with_egfr ",
+        "FROM (SELECT DISTINCT measurement_year AS vs_year FROM eli_test_classic_catalog.care_protocol_terminology.value_set_segment WHERE segment_id='KED_EGFR') v ",
+        "LEFT JOIN (SELECT measurement_year AS vs_year, code FROM eli_test_classic_catalog.care_protocol_terminology.value_set_segment WHERE segment_id='KED_EGFR') vs ON vs.vs_year = v.vs_year ",
+        "LEFT JOIN (SELECT patient_id, loinc_code FROM eli_test_classic_catalog.care_protocol.silver_observation WHERE year(result_ts)=2025) o ON o.loinc_code = vs.code ",
+        "GROUP BY v.vs_year ORDER BY v.vs_year"
+      ]
+    },
+    {
+      "name": "ds_drift_kpi",
+      "displayName": "Drift headline",
+      "queryLines": [
+        "WITH d AS ( ",
+        "  SELECT v.vs_year AS value_set_version, COUNT(DISTINCT o.patient_id) AS patients_with_egfr ",
+        "  FROM (SELECT DISTINCT measurement_year AS vs_year FROM eli_test_classic_catalog.care_protocol_terminology.value_set_segment WHERE segment_id='KED_EGFR') v ",
+        "  LEFT JOIN (SELECT measurement_year AS vs_year, code FROM eli_test_classic_catalog.care_protocol_terminology.value_set_segment WHERE segment_id='KED_EGFR') vs ON vs.vs_year = v.vs_year ",
+        "  LEFT JOIN (SELECT patient_id, loinc_code FROM eli_test_classic_catalog.care_protocol.silver_observation WHERE year(result_ts)=2025) o ON o.loinc_code = vs.code ",
+        "  GROUP BY v.vs_year ",
+        ") ",
+        "SELECT MAX(CASE WHEN value_set_version='2025' THEN patients_with_egfr END) AS coverage_2025, ",
+        "       MAX(CASE WHEN value_set_version='2026' THEN patients_with_egfr END) AS coverage_2026, ",
+        "       MAX(CASE WHEN value_set_version='2025' THEN patients_with_egfr END) - MAX(CASE WHEN value_set_version='2026' THEN patients_with_egfr END) AS patients_lost ",
+        "FROM d"
+      ]
+    },
+    {
+      "name": "ds_drift_codes",
+      "displayName": "KED_EGFR codes by version",
+      "queryLines": [
+        "SELECT measurement_year AS value_set_version, concat_ws(', ', sort_array(collect_set(code))) AS egfr_codes ",
+        "FROM eli_test_classic_catalog.care_protocol_terminology.value_set_segment WHERE segment_id='KED_EGFR' ",
+        "GROUP BY measurement_year ORDER BY value_set_version"
+      ]
+    },
+    {
+      "name": "ds_closure",
+      "displayName": "ICD-10 descendants per diabetes root",
+      "queryLines": [
+        "SELECT ancestor_code AS diabetes_root, COUNT(DISTINCT descendant_code) AS descendant_codes ",
+        "FROM eli_test_classic_catalog.care_protocol_terminology.icd10_closure ",
+        "WHERE ancestor_code IN ('E10','E11','E13') GROUP BY ancestor_code ORDER BY ancestor_code"
+      ]
+    },
+    {
+      "name": "ds_subsumption",
+      "displayName": "Subsumption headline",
+      "queryLines": [
+        "SELECT ",
+        "  (SELECT COUNT(DISTINCT descendant_code) FROM eli_test_classic_catalog.care_protocol_terminology.icd10_closure WHERE ancestor_code IN ('E10','E11','E13')) AS cohort_codes, ",
+        "  (SELECT COUNT(DISTINCT c.descendant_code) FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_closure c JOIN eli_test_classic_catalog.care_protocol_terminology.rxnorm_statin s ON c.ancestor_code = s.rxcui) AS statin_drugs, ",
+        "  (SELECT COUNT(*) FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_statin) AS statin_ingredients"
+      ]
+    },
+    {
+      "name": "ds_graph",
+      "displayName": "Care-protocol graph edges",
+      "queryLines": [
+        "SELECT predicate, COUNT(*) AS edges FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges ",
+        "GROUP BY predicate ORDER BY edges DESC"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "overview",
+      "displayName": "Measure Drift & Ontology Impact",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {"name": "title", "textbox_spec": "# Measure Drift & Ontology Impact — Care Protocol"},
+          "position": {"x": 0, "y": 0, "width": 12, "height": 1}
+        },
+        {
+          "widget": {"name": "subtitle", "textbox_spec": "What the semantic/ontology layer buys you: measures that are **reproducible** and **auditable**, and terminology subsumption that does the heavy lifting. _Synthetic · HEDIS-aligned · Not NCQA-certified · Not for clinical use._"},
+          "position": {"x": 0, "y": 1, "width": 12, "height": 1}
+        },
+        {
+          "widget": {"name": "hdr_drift", "textbox_spec": "## Measure drift from terminology — same patients, same lab data, a newer value-set version\nKED's eGFR value set was \"modernized\" for MY2026 (CKD-EPI 98979-8 only), dropping the MDRD code (33914-3) the data actually uses. The measure silently collapses — with a governed, year-versioned value set, that change is explicit instead of invisible."},
+          "position": {"x": 0, "y": 2, "width": 12, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "kpi_cov2025",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_drift_kpi", "fields": [{"name": "coverage_2025", "expression": "`coverage_2025`"}], "disaggregated": true}}],
+            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "coverage_2025", "displayName": "Patients", "format": {"type": "number", "decimalPlaces": {"type": "exact", "places": 0}}}}, "frame": {"title": "eGFR coverage · MY2025 value set", "showTitle": true}}
+          },
+          "position": {"x": 0, "y": 4, "width": 4, "height": 3}
+        },
+        {
+          "widget": {
+            "name": "kpi_cov2026",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_drift_kpi", "fields": [{"name": "coverage_2026", "expression": "`coverage_2026`"}], "disaggregated": true}}],
+            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "coverage_2026", "displayName": "Patients", "format": {"type": "number", "decimalPlaces": {"type": "exact", "places": 0}}}}, "frame": {"title": "eGFR coverage · MY2026 value set", "showTitle": true}}
+          },
+          "position": {"x": 4, "y": 4, "width": 4, "height": 3}
+        },
+        {
+          "widget": {
+            "name": "kpi_lost",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_drift_kpi", "fields": [{"name": "patients_lost", "expression": "`patients_lost`"}], "disaggregated": true}}],
+            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "patients_lost", "displayName": "Patients", "format": {"type": "number", "decimalPlaces": {"type": "exact", "places": 0}}}}, "frame": {"title": "Patients dropped by the value-set change", "showTitle": true}}
+          },
+          "position": {"x": 8, "y": 4, "width": 4, "height": 3}
+        },
+        {
+          "widget": {
+            "name": "bar_drift",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_drift", "fields": [{"name": "value_set_version", "expression": "`value_set_version`"}, {"name": "sum(patients_with_egfr)", "expression": "SUM(`patients_with_egfr`)"}], "disaggregated": false}}],
+            "spec": {"version": 3, "widgetType": "bar", "encodings": {"x": {"fieldName": "value_set_version", "scale": {"type": "categorical"}, "displayName": "Value-set version (measurement year)"}, "y": {"fieldName": "sum(patients_with_egfr)", "scale": {"type": "quantitative"}, "displayName": "Patients with a matching eGFR test"}}, "frame": {"title": "eGFR coverage under each value-set version (2025 lab data held constant)", "showTitle": true}}
+          },
+          "position": {"x": 0, "y": 7, "width": 6, "height": 5}
+        },
+        {
+          "widget": {
+            "name": "tbl_codes",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_drift_codes", "fields": [{"name": "value_set_version", "expression": "`value_set_version`"}, {"name": "egfr_codes", "expression": "`egfr_codes`"}], "disaggregated": true}}],
+            "spec": {"version": 2, "widgetType": "table", "encodings": {"columns": [{"fieldName": "value_set_version", "displayName": "Value-set version"}, {"fieldName": "egfr_codes", "displayName": "KED_EGFR LOINC codes in the set"}]}, "frame": {"title": "What changed in the value set", "showTitle": true}}
+          },
+          "position": {"x": 6, "y": 7, "width": 6, "height": 5}
+        },
+        {
+          "widget": {"name": "hdr_subsume", "textbox_spec": "## Subsumption does the work — one join resolves a whole subtree\nCohort membership and the statin numerator are resolved by transitive closures, not hand-maintained code lists."},
+          "position": {"x": 0, "y": 12, "width": 12, "height": 1}
+        },
+        {
+          "widget": {
+            "name": "kpi_cohort",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_subsumption", "fields": [{"name": "cohort_codes", "expression": "`cohort_codes`"}], "disaggregated": true}}],
+            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "cohort_codes", "displayName": "ICD-10 codes", "format": {"type": "number", "decimalPlaces": {"type": "exact", "places": 0}}}}, "frame": {"title": "Diabetes-cohort codes subsumed (E10/E11/E13 ⊇)", "showTitle": true}}
+          },
+          "position": {"x": 0, "y": 13, "width": 4, "height": 3}
+        },
+        {
+          "widget": {
+            "name": "kpi_statin_drugs",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_subsumption", "fields": [{"name": "statin_drugs", "expression": "`statin_drugs`"}], "disaggregated": true}}],
+            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "statin_drugs", "displayName": "Clinical drugs", "format": {"type": "number", "decimalPlaces": {"type": "exact", "places": 0}}}}, "frame": {"title": "Statin clinical drugs subsumed (SPD numerator)", "showTitle": true}}
+          },
+          "position": {"x": 4, "y": 13, "width": 4, "height": 3}
+        },
+        {
+          "widget": {
+            "name": "kpi_statin_ing",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_subsumption", "fields": [{"name": "statin_ingredients", "expression": "`statin_ingredients`"}], "disaggregated": true}}],
+            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "statin_ingredients", "displayName": "Ingredients", "format": {"type": "number", "decimalPlaces": {"type": "exact", "places": 0}}}}, "frame": {"title": "Statin ingredients (the seed set maintained)", "showTitle": true}}
+          },
+          "position": {"x": 8, "y": 13, "width": 4, "height": 3}
+        },
+        {
+          "widget": {
+            "name": "bar_closure",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_closure", "fields": [{"name": "diabetes_root", "expression": "`diabetes_root`"}, {"name": "sum(descendant_codes)", "expression": "SUM(`descendant_codes`)"}], "disaggregated": false}}],
+            "spec": {"version": 3, "widgetType": "bar", "encodings": {"x": {"fieldName": "diabetes_root", "scale": {"type": "categorical"}, "displayName": "ICD-10 root"}, "y": {"fieldName": "sum(descendant_codes)", "scale": {"type": "quantitative"}, "displayName": "Descendant codes subsumed"}}, "frame": {"title": "ICD-10 descendant codes per diabetes root", "showTitle": true}}
+          },
+          "position": {"x": 0, "y": 16, "width": 6, "height": 5}
+        },
+        {
+          "widget": {
+            "name": "bar_graph",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_graph", "fields": [{"name": "predicate", "expression": "`predicate`"}, {"name": "sum(edges)", "expression": "SUM(`edges`)"}], "disaggregated": false}}],
+            "spec": {"version": 3, "widgetType": "bar", "encodings": {"x": {"fieldName": "sum(edges)", "scale": {"type": "quantitative"}, "displayName": "Edges"}, "y": {"fieldName": "predicate", "scale": {"type": "categorical"}, "displayName": "Relationship"}}, "frame": {"title": "Care-protocol knowledge graph — edges by relationship", "showTitle": true}}
+          },
+          "position": {"x": 6, "y": 16, "width": 6, "height": 5}
+        }
+      ]
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "canvasBackgroundColor": {"light": "#FCFCFC", "dark": "#1F272D"},
+      "widgetBackgroundColor": {"light": "#FFFFFF", "dark": "#11171C"},
+      "fontColor": {"light": "#11171C", "dark": "#E8ECF0"},
+      "selectionColor": {"light": "#2272B4", "dark": "#8ACAFF"},
+      "visualizationColors": ["#4E79A7", "#F28E2C", "#E15759", "#76B7B2", "#59A14F", "#9F1853"],
+      "widgetHeaderAlignment": "LEFT"
+    }
+  }
+}

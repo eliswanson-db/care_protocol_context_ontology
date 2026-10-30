@@ -8,3 +8,25 @@ resources:
       file_path: ./hedis_quality.lvdash.json
       warehouse_id: ${var.warehouse_id}
       parent_path: /Workspace/Users/eli.swanson@databricks.com/dashboards
+      # Publish with the deployer's credentials embedded so viewers of the /published link
+      # don't each need SELECT on care_protocol.* + CAN_USE on the warehouse. The DAB default
+      # is false, which published the dashboard broken for everyone but the owner.
+      embed_credentials: true
+
+    # Why the semantic/ontology layer matters: terminology drift (year-versioned value sets) and
+    # subsumption closures (ICD-10 cohort, RxNorm statins) + the care-protocol knowledge graph.
+    measure_drift_ontology:
+      display_name: Measure Drift & Ontology Impact — Care Protocol (${bundle.target})
+      file_path: ./measure_drift.lvdash.json
+      warehouse_id: ${var.warehouse_id}
+      parent_path: /Workspace/Users/eli.swanson@databricks.com/dashboards
+      embed_credentials: true
+
+    # Governed metrics, many consumers: the same UC metric views that power Genie, driving stratified
+    # BI (compliance rate by measure x age band via MEASURE()).
+    quality_by_age_band:
+      display_name: HEDIS Diabetes Quality by Age Band — Care Protocol (${bundle.target})
+      file_path: ./quality_by_age.lvdash.json
+      warehouse_id: ${var.warehouse_id}
+      parent_path: /Workspace/Users/eli.swanson@databricks.com/dashboards
+      embed_credentials: true
