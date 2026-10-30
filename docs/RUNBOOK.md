@@ -13,6 +13,8 @@ Ordered operational steps that are **not** automated by the bundle. Keep this cu
    - `bundle run setup -t ect` → `load_terminology` (vendored CSVs → UC tables, no Drive, ADR-0007) → `build_closure` (iterative BFS → `icd10_closure`).
    - `bundle run generate_synthea -t ect` → classic job: stage pinned Synthea JAR to the Volume → run Synthea → `raw_synthea_*` tables.
    - `bundle run epicize -t ect` → SNOMED→ICD-10 crosswalk → `bronze_*` Clarity-shaped tables.
+   - `bundle run measures -t ect` → Lakeflow pipeline: `silver_*` + `gold_adherence_gsd`.
+   - `bundle run semantic -t ect` → `apply_comments` (42 column comments) → `apply_metric_views` (`gsd_compliance_metrics`). Ontology fuel; must run after `measures`.
 
 ## Terminology — NO license wait (ADR-0002)
 - No SNOMED/UMLS/VSAC. Curated LOINC + ICD-10-CM + RxNorm subsets **vendored in `src/terminology/`** (no Drive) + hand-curated demo value sets.
@@ -29,6 +31,17 @@ Ordered operational steps that are **not** automated by the bundle. Keep this cu
 | DLT pipeline first run | P2/P3 | run success; row counts |
 | **Genie Ontology extraction** | P7 | Genie One answers **cite** Pages/metric views ("Ontology References") |
 | Lakebase BM25 index build | P8 | index status; test query |
+
+## Domains + subdomains (ADR-0008) — scripted, not DAB
+- 🤖 `python scripts/create_domains.py --profile ECT` (idempotent) — creates the governed tag policies and the
+  Care Protocol domain + subdomains via `databricks tag-policies` + `databricks domains` (Beta). Re-runnable.
+- ⚙ Section polish (rich domain sections) is **UI-only** — optional, after the script.
+
+## Pages (ADR-0008) — content-as-code + manual bulk-import (no API)
+- 🤖 Page source lives in `docs/ontology/pages/*.md` (one per term: domain, synonyms, description, body).
+- ⚙ **Genie Code bulk import** (the one irreducible manual step): Discover → Pages → Bulk import → point Genie
+  Code at the `docs/ontology/pages/` files (or an MCP source) → review the proposed Pages → publish. Pages
+  require a domain to exist first (run the domains script above). Pages are Beta.
 
 ## Genie Ontology seeding (P7 / §7a)
 - Build Pages + metric views + Genie Agents + dashboards (over-build — see roadmap §7a), assign Domains,

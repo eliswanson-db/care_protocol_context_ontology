@@ -5,6 +5,24 @@ statement in the source plans under `docs/sources/`.
 
 ---
 
+## ADR-0008 — Persistence mechanism per ontology artifact (metric views, comments, domains, Pages)
+**Date:** 2026-10-29 · **Status:** accepted
+Verified against the DAB schema (CLI 1.17.0), the live ECT API, and the docs how each Genie-Ontology
+artifact can be created, and chose the most code-reproducible mechanism for each:
+
+| Artifact | DAB resource? | API/CLI | **Mechanism chosen** |
+|---|---|---|---|
+| **Metric views** | no dedicated type | DDL runs on SQL warehouse **or** DBR 17.3+ compute | **Serverless task** `apply_metric_views.py` runs committed `src/semantic/metric_views/*.metric_view.sql` (`{catalog}`/`{schema}` substituted). Confirmed working on serverless — no warehouse dependency; consistent with load_terminology/epicize. |
+| **UC comments** | n/a | SQL `COMMENT ON` | **Serverless task** `apply_comments.py` runs committed `src/semantic/comments/*.comments.sql`. Works on materialized views too. |
+| **Business domains / subdomains** | ❌ none (only Terraform `databricks_domain`) | ✅ `databricks domains` (Beta) + `databricks tag-policies` | **Committed idempotent script** `scripts/create_domains.py` + RUNBOOK run step. A domain is **built on a governed tag** (`create-domain TAG_KEY` is required/positional); subdomain = governed tag `Parent/Child` + `--parent-domain-id`. Section polish is UI-only. |
+| **Pages** | ❌ none | ❌ no public API/CLI/Terraform (internal `createPage` audit events only) | **Content-as-code** (`docs/ontology/pages/*.md`, one per term: domain, synonyms, body) + **RUNBOOK** Genie Code bulk-import step. Pages require a domain to exist first. |
+| **Genie Agents (A2)** | ✅ `genie_spaces` | — | **DAB resource** `resources/genie_spaces.yml`. |
+
+Governing rule (ADR precedent / memory `persist-everything-as-code`): everything is code where an API
+exists, step-by-step RUNBOOK only for the one irreducible manual action (Pages bulk-import). Of the ~1000
+ontology snippets (roadmap §7a), the fully-codeable sources (metric views, comments, dashboards,
+query-history seeding, Genie agents) carry the bulk; Pages are content-as-code + a manual import click.
+
 ## ADR-0007 — Vendor curated terminology subsets in-repo (no Drive/runtime dependency)
 **Date:** 2026-10-29 · **Status:** accepted
 Terminology the demo references is **vendored in the repo** at `src/terminology/` as small **curated
