@@ -78,3 +78,55 @@ def gold_adherence_gsd():
             .select("patient_id", "measure_id", "measurement_year", "period_start", "period_end",
                     "age", "eligible_flag", "numerator_flag", "status",
                     "evidence_datetime", "evidence_code", "evidence_value", "a1c_lt8", "a1c_gt9"))
+
+
+# ---------------- Gold: KED (Kidney Health Evaluation) ----------------
+def _latest_in_my(obs, codes_df, prefix):
+    """Latest measurement-year observation per patient for a value set; columns prefixed."""
+    hits = obs.join(codes_df, obs["loinc_code"] == codes_df["code"]).where(F.year("result_ts") == MY)
+    w = Window.partitionBy("patient_id").orderBy(F.col("result_ts").desc())
+    return (hits.withColumn("rn", F.row_number().over(w)).where(F.col("rn") == 1)
+            .select("patient_id",
+                    F.col("result_ts").alias(f"{prefix}_datetime"),
+                    F.col("loinc_code").alias(f"{prefix}_code"),
+                    F.col("value_num").alias(f"{prefix}_value")))
+
+
+@dp.materialized_view(
+    comment="KED (Kidney Health Evaluation) adherence event log. Denominator: diabetes patients aged 18-85. "
+            "Numerator is COMPOUND: >=1 eGFR test (KED_EGFR value set) AND >=1 uACR test (KED_UACR value set) "
+            "in the measurement year. One row per eligible patient. HEDIS-aligned demo, not NCQA-certified. "
+            "Exercises two value sets at once; eGFR spans multiple LOINC vintages (98979-8, 33914-3).")
+def gold_adherence_ked():
+    patients = spark.read.table(f"{BRONZE}.bronze_patient")  # noqa: F821
+    cohort = spark.read.table("silver_diabetes_cohort")  # noqa: F821
+    my_end = F.to_date(F.lit(f"{MY}-12-31"))
+
+    eligible = (cohort.join(patients, "patient_id")
+                .withColumn("age", (F.datediff(my_end, F.col("birth_date")) / 365.25).cast("int"))
+                .where((F.col("age") >= 18) & (F.col("age") <= 85))
+                .select("patient_id", "age"))
+
+    seg = spark.read.table(f"{TERM}.value_set_segment")  # noqa: F821
+    egfr_codes = seg.where(F.col("segment_id") == "KED_EGFR").select("code").distinct()
+    uacr_codes = seg.where(F.col("segment_id") == "KED_UACR").select("code").distinct()
+    obs = spark.read.table("silver_observation")  # noqa: F821
+
+    egfr = _latest_in_my(obs, egfr_codes, "egfr")
+    uacr = _latest_in_my(obs, uacr_codes, "uacr")
+
+    return (eligible.join(egfr, "patient_id", "left").join(uacr, "patient_id", "left")
+            .withColumn("measure_id", F.lit("KED"))
+            .withColumn("measurement_year", F.lit(MY))
+            .withColumn("period_start", F.to_date(F.lit(f"{MY}-01-01")))
+            .withColumn("period_end", my_end)
+            .withColumn("eligible_flag", F.lit(True))
+            .withColumn("egfr_flag", F.col("egfr_datetime").isNotNull())
+            .withColumn("uacr_flag", F.col("uacr_datetime").isNotNull())
+            # KED numerator requires BOTH components in the measurement year.
+            .withColumn("numerator_flag", F.col("egfr_datetime").isNotNull() & F.col("uacr_datetime").isNotNull())
+            .withColumn("status", F.when(F.col("egfr_datetime").isNotNull() & F.col("uacr_datetime").isNotNull(),
+                                         F.lit("MET")).otherwise(F.lit("NOT_MET")))
+            .select("patient_id", "measure_id", "measurement_year", "period_start", "period_end", "age",
+                    "eligible_flag", "egfr_flag", "uacr_flag", "numerator_flag", "status",
+                    "egfr_datetime", "egfr_code", "egfr_value", "uacr_datetime", "uacr_code", "uacr_value"))

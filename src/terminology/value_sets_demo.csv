@@ -6,6 +6,7 @@ GSD_A1C_TEST,Glycemic status - A1c test (GSD),4548-4,LOINC,2025,eli.swanson@data
 GSD_A1C_TEST,Glycemic status - A1c test (GSD),17856-6,LOINC,2025,eli.swanson@databricks.com
 GSD_A1C_TEST,Glycemic status - A1c test (GSD),59261-8,LOINC,2025,eli.swanson@databricks.com
 KED_EGFR,Kidney eval - eGFR (KED),98979-8,LOINC,2025,eli.swanson@databricks.com
+KED_EGFR,Kidney eval - eGFR (KED),33914-3,LOINC,2025,eli.swanson@databricks.com
 KED_UACR,Kidney eval - uACR (KED),9318-7,LOINC,2025,eli.swanson@databricks.com
 KED_UACR,Kidney eval - uACR (KED),14959-1,LOINC,2025,eli.swanson@databricks.com
 BPD_SYSTOLIC,BP control - systolic (BPD),8480-6,LOINC,2025,eli.swanson@databricks.com
