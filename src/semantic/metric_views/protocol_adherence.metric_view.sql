@@ -13,6 +13,16 @@ dimensions:
     expr: measurement_year
     synonyms: [year, reporting year, MY]
     display_name: Measurement Year
+  - name: Clinic
+    expr: clinic_id
+    comment: "Clinic (site) the patient belongs to. Protocol-step drift is a CLINIC-level signal (masked in the global/annual view), so slice by this to find which site slipped."
+    synonyms: [clinic, site, location, facility]
+    display_name: Clinic
+  - name: Panel
+    expr: panel_id
+    comment: "PCP panel the patient belongs to."
+    synonyms: [panel, pcp panel, provider panel, care team]
+    display_name: Panel
   - name: Adherence Status
     expr: status
     comment: "MET = a recheck or therapy change occurred within 90 days of the high A1c; NOT_MET = the step was missed."

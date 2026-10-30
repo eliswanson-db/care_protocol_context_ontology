@@ -14,6 +14,11 @@ TERM = f"{CATALOG}.care_protocol_terminology"
 MY = int(spark.conf.get("care.measurement_year", "2025"))  # noqa: F821
 
 
+def _roster():
+    """clinic_id / panel_id from the care-behavior model (ADR-0012) so measures are sliceable by site/PCP."""
+    return spark.read.table(f"{BRONZE}.panel_roster").select("patient_id", "clinic_id", "panel_id")  # noqa: F821
+
+
 # ---------------- Silver ----------------
 @dp.materialized_view(comment="Conformed diabetes diagnoses (ICD-10-CM mapped) from bronze.")
 def silver_condition():
@@ -24,7 +29,9 @@ def silver_condition():
 
 @dp.materialized_view(comment="Conformed lab observations (LOINC) with numeric value.")
 def silver_observation():
-    return (spark.read.table(f"{BRONZE}.bronze_order_results")  # noqa: F821
+    # Effective observation layer (ADR-0012): pristine bronze + care-behavior model overlay (modeled A1c
+    # rechecks, raised latest A1c for the poor-control subset). Drives GSD / KED / BPD / protocol.
+    return (spark.read.table(f"{BRONZE}.care_order_results")  # noqa: F821
             .where(F.col("loinc_code").isNotNull())
             .withColumn("value_num", F.col("value").cast("double"))
             .select("patient_id", "encounter_id", "result_ts", "loinc_code", "description", "value_num", "units"))
@@ -72,7 +79,13 @@ def gold_adherence_gsd():
                       F.col("loinc_code").alias("evidence_code"),
                       F.col("value_num").alias("evidence_value")))
 
-    return (eligible.join(latest, "patient_id", "left")
+    # Poor glycemic control is a modeled patient attribute (ADR-0012): override the latest A1c with the modeled
+    # value for poor patients so a1c_gt9 reflects it, without the care-behavior model ever editing observations.
+    glyc = spark.read.table(f"{BRONZE}.panel_roster").select("patient_id", "glycemic_poor", "modeled_a1c")  # noqa: F821
+    return (eligible.join(latest, "patient_id", "left").join(glyc, "patient_id", "left")
+            .withColumn("evidence_value", F.when(F.col("glycemic_poor") & F.col("modeled_a1c").isNotNull()
+                                                 & F.col("evidence_datetime").isNotNull(), F.col("modeled_a1c"))
+                        .otherwise(F.col("evidence_value")))
             .withColumn("measure_id", F.lit("GSD"))
             .withColumn("measurement_year", F.lit(MY))
             .withColumn("period_start", F.to_date(F.lit(f"{MY}-01-01")))
@@ -84,7 +97,8 @@ def gold_adherence_gsd():
             .withColumn("a1c_gt9", F.col("evidence_value") > F.lit(9.0))
             .select("patient_id", "measure_id", "measurement_year", "period_start", "period_end",
                     "age", "eligible_flag", "numerator_flag", "status",
-                    "evidence_datetime", "evidence_code", "evidence_value", "a1c_lt8", "a1c_gt9"))
+                    "evidence_datetime", "evidence_code", "evidence_value", "a1c_lt8", "a1c_gt9")
+            .join(_roster(), "patient_id", "left"))
 
 
 # ---------------- Gold: KED (Kidney Health Evaluation) ----------------
@@ -209,7 +223,7 @@ def gold_adherence_spd():
     statin_codes = (closure.join(ingredients, closure["ancestor_code"] == ingredients["ing"])
                     .select(F.col("descendant_code").alias("code")).distinct())
 
-    meds = spark.read.table(f"{BRONZE}.bronze_order_med").where(F.year("start_ts") == MY)  # noqa: F821
+    meds = spark.read.table(f"{BRONZE}.care_order_med").where(F.year("start_ts") == MY)  # noqa: F821
     orders = meds.join(statin_codes, meds["rxnorm_code"] == statin_codes["code"])
     latest = (orders.withColumn("rn", F.row_number().over(
                   Window.partitionBy("patient_id").orderBy(F.col("start_ts").desc())))
@@ -294,19 +308,19 @@ def gold_protocol_adherence():
     obs = spark.read.table("silver_observation")  # noqa: F821
     a1c = (obs.join(a1c_codes, obs["loinc_code"] == a1c_codes["loinc_code"])
            .where(F.year("result_ts") == MY)
-           .select("patient_id", "result_ts", "value_num"))
+           .select("patient_id", "result_ts", "value_num", "description"))
 
-    triggers = (a1c.where(F.col("value_num") >= A1C_TRIGGER)
+    # Triggers exclude model-generated rechecks (marked in the description) so a recheck never recurses into a
+    # trigger; rechecks still count as follow-ups below. Matches the care-behavior model's trigger set (ADR-0012).
+    triggers = (a1c.where((F.col("value_num") >= A1C_TRIGGER) & (~F.col("description").rlike("(?i)recheck")))
                 .select("patient_id", F.col("result_ts").alias("trigger_ts"), F.col("value_num").alias("trigger_a1c")))
 
-    # Candidate follow-ups: a later A1c recheck, or a diabetes-med (biguanide) order.
-    diab_meds = (spark.read.table(f"{TERM}.rxnorm_closure")  # noqa: F821
-                 .where(F.col("ancestor_code") == "DRUGCLASS-BIGUANIDE").select("descendant_code").distinct())
-    med = spark.read.table(f"{BRONZE}.bronze_order_med")  # noqa: F821
-    therapy = (med.join(diab_meds, med["rxnorm_code"] == diab_meds["descendant_code"])
-               .select("patient_id", F.col("start_ts").alias("fts")).withColumn("ftype", F.lit("therapy")))
-    recheck = a1c.select("patient_id", F.col("result_ts").alias("fts")).withColumn("ftype", F.lit("recheck"))
-    followups = recheck.unionByName(therapy)
+    # Candidate follow-up: a MARKED recheck A1c (the care-behavior model emits one when the care system responds
+    # to a high A1c -- ADR-0012). We count ONLY these modeled rechecks: a patient's pre-scheduled routine A1c
+    # that merely lands within 90d is not the protocol-driven response, and a routine metformin refill is not a
+    # follow-up either (both would otherwise fire for nearly every trigger and wash out the signal).
+    followups = (a1c.where(F.col("description").rlike("(?i)recheck"))
+                 .select("patient_id", F.col("result_ts").alias("fts")).withColumn("ftype", F.lit("recheck")))
 
     j = (triggers.alias("t").join(followups.alias("f"), "patient_id")
          .where((F.col("f.fts") > F.col("t.trigger_ts")) &
@@ -322,7 +336,8 @@ def gold_protocol_adherence():
             .withColumn("followup_within_90d", F.col("followup_ts").isNotNull())
             .withColumn("status", F.when(F.col("followup_ts").isNotNull(), F.lit("MET")).otherwise(F.lit("NOT_MET")))
             .select("patient_id", "measure_id", "measurement_year", "trigger_ts", "trigger_a1c",
-                    "followup_ts", "followup_type", "followup_days", "followup_within_90d", "status"))
+                    "followup_ts", "followup_type", "followup_days", "followup_within_90d", "status")
+            .join(_roster(), "patient_id", "left"))
 
 
 # ---------------- Gold: MAD (Medication Adherence for Diabetes Medications) — a story 3x Star measure ----------
@@ -339,7 +354,7 @@ def gold_adherence_mad():
 
     diab_meds = (spark.read.table(f"{TERM}.rxnorm_closure")  # noqa: F821
                  .where(F.col("ancestor_code") == "DRUGCLASS-BIGUANIDE").select("descendant_code").distinct())
-    med = spark.read.table(f"{BRONZE}.bronze_order_med")  # noqa: F821
+    med = spark.read.table(f"{BRONZE}.care_order_med")  # noqa: F821 (effective layer: modeled fills w/ gaps)
     fills = (med.join(diab_meds, med["rxnorm_code"] == diab_meds["descendant_code"])
              .withColumn("start_d", F.to_date("start_ts"))
              .withColumn("stop_d", F.coalesce(F.to_date("stop_ts"), my_end))
@@ -367,4 +382,5 @@ def gold_adherence_mad():
             .withColumn("numerator_flag", F.col("pdc") >= F.lit(0.8))
             .withColumn("status", F.when(F.col("pdc") >= F.lit(0.8), F.lit("MET")).otherwise(F.lit("NOT_MET")))
             .select("patient_id", "measure_id", "measurement_year", "period_start", "period_end", "age",
-                    "eligible_flag", "fills", "covered_days", "period_days", "pdc", "numerator_flag", "status"))
+                    "eligible_flag", "fills", "covered_days", "period_days", "pdc", "numerator_flag", "status")
+            .join(_roster(), "patient_id", "left"))

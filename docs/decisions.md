@@ -5,6 +5,50 @@ statement in the source plans under `docs/sources/`.
 
 ---
 
+## ADR-0012 — Realistic variation via a generative care-behavior model (not point injection)
+**Date:** 2026-10-30 · **Status:** accepted
+Raw Synthea is stationary and uniform: protocol follow-up, MAD and glycemic control are all flat, so the watch
+has nothing to detect, MAD saturates at PDC=1.0, and nobody is in poor control. The **rejected** fix is
+"tracers" — slamming a few patients to extremes or cliff-dropping one unit in Q3; an analyst spots that as
+fake and it pre-wires the answer. Instead, `src/data_generation/care_behavior.py` is a **seeded generative
+behavioral model** (runs AFTER `epicize`, BEFORE `measures`): every cohort patient gets latent engagement, a
+**real** complexity measure (distinct ICD-10 codes), a provider/panel random effect, mild seasonality, and a
+patient→panel(PCP)→clinic structure; follow-up, medication fills, and glycemic control then **emerge** from
+thousands of deterministic (seeded xxhash) Bernoulli draws. One clinic (**CLINIC-08**, the highest-complexity
+site) gets a **mid-year PCP handoff** that adds a gradual, decaying coverage-gap term — not a cliff — and is
+**confounded** with that clinic's higher case-mix (so a naive read blames complexity, not the handoff).
+- Outputs: `panel_roster`, `panel_pcp_transition`, and an **effective event layer** `care_order_results` /
+  `care_order_med` that `measures.py` reads. Deterministic → reproducible golds. `--intensity` scales the
+  disruption; the bronze layer stays pristine.
+- **Clean separation so recomputed golds == model truth:** protocol triggers are the RECORDED bronze highs
+  (values untouched); a followed trigger emits a MARKED recheck (excluded from triggers); glycemic control is a
+  patient ATTRIBUTE (`glycemic_poor`/`modeled_a1c`) GSD reads — it never edits the observation stream.
+- **Nothing is wired to an answer.** `clinic_id`/`panel_id`/`glycemic_poor`/the transition are plain
+  dimensions; the cause of any drift is recoverable only by joining drift × clinic × transition × case-mix ×
+  time — exactly the multi-hop reasoning the capability-map benchmark compares.
+- Validated distributions (25k, seed 20261029): overall follow-up 57%, CLINIC-08 Q3 47% vs its own 78% prior;
+  MAD 47.8% adherent (continuous PDC); poor control 24%; confound complexity 4.55 vs 4.12. The `protocol_watch`
+  (ADR-0011) scans CLINIC × trailing-3-month vs each clinic's own prior baseline and fires **HIGH on CLINIC-08**.
+This also upgrades gap #6 ("planted tracers") to a serious, reproducible substrate and is a down-payment on
+gap #4 (panel/PCP/transition dimensions).
+
+## ADR-0011 — Weekly Protocol Watch = Genie One scheduled task (front door) + a pre-computed findings job
+**Date:** 2026-10-30 · **Status:** accepted
+The story's hook ("nobody asked; Genie noticed") is a **proactive, scheduled** drift-watch. Built two
+mutually-reinforcing pieces (corrected after I wrongly claimed Genie One can't be scheduled — it can):
+- **Genie One scheduled task** is the demo front door — the actual "A Monday with Genie" watch. Set up in
+  the UI (Genie One → Schedules → Create manually, or natural language); **no API**, so it lives in the
+  RUNBOOK as a manual step like Pages bulk import / Ontobricks. Runs on a schedule, posts to a chat thread,
+  emails the owner results + PDF.
+- **`protocol_watch` job** (`src/watch/protocol_watch.py`, bundle-managed, serverless) pre-computes an
+  auditable **`protocol_watch_findings`** table so the scheduled task answers fast and grounded, and leaves a
+  lineage record Genie One reasons over. Drift detection is **serious**: right-censoring aware (score a
+  trigger month only once its 90-day follow-up window is fully observed), small-N gated, pooled baseline
+  across fully-observed months — not a toy threshold. **Append-only** (each run = an as-of snapshot).
+- The job's **schedule is PAUSED** and **no external notification** recipient is wired — notifications are an
+  external write (confirm a destination first; then add a SQL Alert or job notification). This is *not* the
+  value-set-vintage drift demo (that stays); this is operational process-adherence monitoring.
+
 ## ADR-0010 — Serious benchmark: capability map, not a leaderboard (see BENCHMARK_CHARTER.md)
 **Date:** 2026-10-30 · **Status:** accepted
 The first-cut benchmark was trivial: single-KPI questions answerable by a metric view, with latency as the

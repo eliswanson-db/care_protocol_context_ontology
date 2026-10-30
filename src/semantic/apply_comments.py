@@ -35,8 +35,13 @@ def main():
             stmts.append(s.rstrip(";").strip())
         print(f"{os.path.basename(path)}: {len(stmts)} statement(s)")
         for stmt in stmts:
-            spark.sql(stmt)  # noqa: F821 (spark provided by the serverless runtime)
-        total += len(stmts)
+            # Best-effort: a COMMENT whose target table/column does not exist yet (e.g. protocol_watch_findings
+            # before the watch has run) should warn, not fail the whole job. Comments are idempotent fuel.
+            try:
+                spark.sql(stmt)  # noqa: F821 (spark provided by the serverless runtime)
+                total += 1
+            except Exception as e:  # noqa: BLE001
+                print(f"  SKIP ({type(e).__name__}): {stmt[:100]}")
 
     print(f"Applied {total} comment statement(s) across {len(files)} file(s).")
 

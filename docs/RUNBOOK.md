@@ -13,6 +13,10 @@ Ordered operational steps that are **not** automated by the bundle. Keep this cu
    - `bundle run setup -t ect` → `load_terminology` (vendored CSVs → UC tables, no Drive, ADR-0007) → `build_closure` (iterative BFS → `icd10_closure`).
    - `bundle run generate_synthea -t ect` → classic job: stage pinned Synthea JAR to the Volume → run Synthea → `raw_synthea_*` tables.
    - `bundle run epicize -t ect` → SNOMED→ICD-10 crosswalk → `bronze_*` Clarity-shaped tables.
+   - `bundle run care_behavior -t ect` → seeded generative care-behavior model (ADR-0012): patient→panel(PCP)→clinic
+     structure + a mid-year clinic PCP handoff; writes `panel_roster`, `panel_pcp_transition`, and the **effective
+     event layer** `care_order_results`/`care_order_med` that `measures` reads. Runs AFTER `epicize`, BEFORE `measures`.
+     Deterministic (seed) + idempotent. Without it, `measures` won't find `care_order_*`.
    - ⚠️ **Reflow ordering:** if any `src/terminology/*.csv` changed, rerun **`setup` first** (reloads `icd10_hier`
      etc. and rebuilds the closures) before `epicize → measures → semantic`. A closure built before a new node
      was added won't subsume it (e.g. neuropathy E11.4 was missed until `setup` reran).
@@ -88,6 +92,35 @@ Ordered operational steps that are **not** automated by the bundle. Keep this cu
   `python scripts/lakebase_embed.py --src_dir docs/ontology/pages --profile ECT | PGPASSWORD="$TOKEN" psql "..."`
 - 🤖 **Retrieve:** `src/retrieval/a4_lakebase.py` — `search` (lexical ts_rank), `search_semantic` (pgvector
   cosine), `search_hybrid` (RRF fusion). 14 docs embedded (gte-large-en, HNSW cosine index). Needs `psycopg`.
+
+## Weekly Protocol Watch (story hook: "nobody asked; Genie noticed")
+Two mutually-reinforcing pieces. The **Genie One scheduled task** is the demo front door (the actual
+"A Monday with Genie" watch); the **job** pre-computes an auditable findings table so the scheduled task
+answers fast and grounded, and leaves a lineage record Genie One can reason over.
+
+- 🤖 **Findings job (code path, bundle-managed):** `bundle run protocol_watch -t ect` →
+  `src/watch/protocol_watch.py` scans `gold_protocol_adherence` by **CLINIC × trailing-3-month window vs each
+  clinic's OWN prior baseline** (detects a *change*, not merely a low performer) and appends to
+  **`${var.catalog}.care_protocol.protocol_watch_findings`**. Serious, not a toy threshold: right-censoring
+  aware (a window is scored only once its 90-day follow-up is fully observed), small-N gated. On the current
+  data it fires **HIGH on CLINIC-08 (2025-09)** — the clinic with the mid-year PCP handoff (own prior 78% →
+  47%), which is **masked in the global/annual view**. Append-only — each run is an as-of snapshot (the watch
+  log). Re-runnable. Schedule is **PAUSED** in `resources/jobs.yml` (weekly, Mon 07:00 PT); unpause to run unattended.
+  - ⚠️ No external notification recipient is wired. If you want the job itself to email/Slack, that is an
+    external write — tell me the destination and I'll add a SQL Alert or job notification (DAB), confirmed first.
+- ⚙ **Genie One scheduled task (the irreducible manual step — no API, like Pages bulk import):**
+  1. Open **Genie One → New chat**. In the sidebar click **Schedules → the drop-down next to `+ Create in chat` → Create manually** (or just type the request in natural language and let chat create it).
+  2. Fill the dialog:
+     - **Title:** `Weekly Protocol Watch`
+     - **Instructions:** *"Check `eli_test_classic_catalog.care_protocol.protocol_watch_findings` for the latest run (max `as_of`). If there are `STEP_DRIFT` rows, summarize each: the month, the adherence rate vs baseline, the severity, and the narrative — ranked by `delta` (worst first). If the only row is `NO_DRIFT`, say the protocol step held steady this week. Then, for the worst drift month, use `protocol_adherence_metrics` and the diabetes care-protocol PDF to explain which step likely slipped and cite your sources."*
+     - **Connections:** none required (all data is in UC). Add the care-protocol document source if you want the PDF cited.
+     - **Schedule:** Weekly, **Monday 07:00**; **Timezone:** your local.
+  3. Click **Create**, then **Run now** to preview the exact email. Each run posts to a chat thread and
+     emails the task owner (you) the results + a PDF attachment. Pause/resume/edit/delete from **Schedules**.
+  - Note: delivery to recipients beyond the owner needs a workspace **notification destination** (admin
+    setup) or the email tool/connector — same gating as dashboard subscriptions.
+- The two line up: the job writes `protocol_watch_findings`; the scheduled task reads it. Faster + auditable
+  than asking Genie One to recompute drift from raw rows every Monday.
 
 ## Genie Ontology seeding (P7 / §7a)
 - Build Pages + metric views + Genie Agents + dashboards (over-build — see roadmap §7a), assign Domains,

@@ -96,25 +96,51 @@ COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_mad.pdc IS 'Proportion 
 COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_mad.numerator_flag IS 'True when PDC >= 0.80 (adherent).';
 COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_mad.status IS 'MET = PDC >= 80%; NOT_MET = refill/adherence gap.';
 
--- protocol_watch_findings: Weekly Protocol Watch output — one row per detected drift (or a NO_DRIFT row), appended each run.
-COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.finding_type IS 'STEP_DRIFT = a trigger month whose Step-3 adherence dropped below baseline; NO_DRIFT = the watch ran and found nothing.';
-COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.severity IS 'HIGH (>=25 pts below baseline), MEDIUM (>=15), LOW (>=drift threshold), or NONE (no drift).';
-COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.measure_id IS 'Measure the finding concerns (PROTO_STEP3 = the protocol Step-3 recheck/therapy follow-up).';
+-- protocol_watch_findings: Weekly Protocol Watch output — one row per CLINIC-month drift (or a NO_DRIFT row), appended each run.
+COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.finding_type IS 'CLINIC_STEP_DRIFT = a clinic whose trailing-3-month Step-3 adherence fell below the peer baseline; NO_DRIFT = the watch ran and found nothing.';
+COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.severity IS 'HIGH (>=30 pts below baseline), MEDIUM (>=20), LOW (>=drift threshold), or NONE.';
+COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.clinic_id IS 'Clinic the finding concerns — the unit the watch scans. Clinic-level drift is masked in the global/annual view, so the watch scans per clinic.';
+COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.measure_id IS 'PROTO_STEP3 = the protocol Step-3 A1c-recheck follow-up.';
 COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.measurement_year IS 'HEDIS measurement year the watch scanned.';
-COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.window_start IS 'First day of the trigger month this finding covers (drift is detected per calendar month of the A1c trigger).';
-COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.window_end IS 'Last day of the trigger month.';
-COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.triggers IS 'Number of above-target A1c trigger events in the window (the denominator).';
-COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.followed IS 'Triggers that got a recheck/therapy change within 90 days (the numerator).';
-COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.rate IS 'Step-3 adherence in the window = followed / triggers.';
-COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.baseline IS 'Pooled Step-3 adherence across all FULLY-OBSERVED months (the comparison baseline).';
-COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.baseline_n IS 'Trigger events pooled into the baseline (fully-observed months only).';
-COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.delta IS 'Baseline minus window rate (how far below baseline this month fell); the drift magnitude.';
-COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.censored IS 'True if the window is right-censored (its 90-day follow-up window is not fully inside the observed data); such months are excluded from drift detection.';
-COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.narrative IS 'Human-readable finding, phrased for the weekly summary (what slipped, how far below baseline, what to investigate).';
+COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.month IS 'Last month of the trailing 3-month window this finding covers.';
+COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.t_trig IS 'Trigger events in the clinic''s trailing 3-month window (the denominator).';
+COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.t_follow IS 'Trailing-window triggers that got an A1c recheck within 90 days (the numerator).';
+COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.t_rate IS 'Trailing Step-3 adherence for the clinic = t_follow / t_trig.';
+COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.baseline IS 'The clinic''s OWN prior-period Step-3 adherence (the change reference). Drift means falling vs this, not merely being below peers; the peer baseline is cited in the narrative.';
+COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.baseline_n IS 'Trigger events in the clinic''s prior history (the baseline denominator).';
+COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.delta IS 'The clinic''s own prior baseline minus its trailing rate (the drift magnitude).';
+COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.censored IS 'True if the window is right-censored (its 90-day follow-up window is not fully inside the observed data); censored windows are excluded from detection.';
+COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.narrative IS 'Human-readable finding for the weekly summary (which clinic, how far below the peer baseline, what to investigate).';
 COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.as_of IS 'Timestamp this watch run executed. Append-only: each run is an as-of snapshot (the watch log).';
 COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.horizon_date IS 'Observation horizon used this run (latest trigger/follow-up date); drives the censoring cutoff.';
-COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.drift_threshold_pp IS 'Points-below-baseline threshold that defined a drift this run (demo default 0.10).';
-COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.min_triggers IS 'Small-N gate: windows with fewer triggers than this were not scored this run.';
+COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.drift_threshold_pp IS 'Points-below-baseline threshold that defined a drift this run (demo default 0.15).';
+COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.min_triggers IS 'Small-N gate: clinic trailing windows with fewer triggers than this were not scored this run.';
+
+-- Care-behavior model (ADR-0012): organizational dimensions + effective event layer + modeled attributes.
+COMMENT ON COLUMN {catalog}.care_protocol.panel_roster.patient_id IS 'Cohort patient. One row per diabetes-cohort patient.';
+COMMENT ON COLUMN {catalog}.care_protocol.panel_roster.clinic_id IS 'Clinic (site) the patient''s PCP belongs to. Clinics are ordered along a patient-complexity gradient; one clinic has a mid-year PCP handoff (see panel_pcp_transition).';
+COMMENT ON COLUMN {catalog}.care_protocol.panel_roster.panel_id IS 'PCP panel the patient is attributed to (a PCP''s patient list).';
+COMMENT ON COLUMN {catalog}.care_protocol.panel_roster.pcp_id IS 'Primary care provider for the panel.';
+COMMENT ON COLUMN {catalog}.care_protocol.panel_roster.complexity IS 'Case-mix complexity = distinct ICD-10 codes the patient carries (a real confounder: the disrupted clinic is also the higher-complexity one).';
+COMMENT ON COLUMN {catalog}.care_protocol.panel_roster.engagement IS 'Latent care-engagement propensity [0,1] (drives follow-up and adherence).';
+COMMENT ON COLUMN {catalog}.care_protocol.panel_roster.provider_effect IS 'Panel/provider random effect (smooth spread of follow-up performance across panels).';
+COMMENT ON COLUMN {catalog}.care_protocol.panel_roster.adherence_propensity IS 'Modeled medication-adherence propensity a_p (drives the PDC distribution).';
+COMMENT ON COLUMN {catalog}.care_protocol.panel_roster.glycemic_poor IS 'Modeled poor-glycemic-control flag; GSD reads it as a1c_gt9 (keeps poor control decoupled from the observation stream).';
+COMMENT ON COLUMN {catalog}.care_protocol.panel_roster.modeled_a1c IS 'Modeled latest A1c (%) for poor-control patients; GSD uses it as the evidence value for the control bands.';
+COMMENT ON COLUMN {catalog}.care_protocol.panel_roster.is_handoff IS 'True if the patient''s clinic is the one with the mid-year PCP handoff (the drift source).';
+COMMENT ON COLUMN {catalog}.care_protocol.panel_pcp_transition.clinic_id IS 'Clinic that experienced the mid-year PCP change.';
+COMMENT ON COLUMN {catalog}.care_protocol.panel_pcp_transition.change_type IS 'Nature of the change (e.g. departure + locum coverage).';
+COMMENT ON COLUMN {catalog}.care_protocol.panel_pcp_transition.transition_date IS 'Date the PCP change took effect (the drift onset).';
+COMMENT ON COLUMN {catalog}.care_protocol.panel_pcp_transition.recovery_days IS 'Days over which the coverage gap recovers (the drift is gradual, not a cliff).';
+COMMENT ON COLUMN {catalog}.care_protocol.panel_pcp_transition.narrative IS 'Plain-language account of the disruption — the root cause the watch / Genie can cite.';
+COMMENT ON COLUMN {catalog}.care_protocol.care_order_results.loinc_code IS 'Effective observation layer = pristine bronze observations + model-generated MARKED A1c rechecks (ADR-0012). Feeds the silver/gold measures.';
+COMMENT ON COLUMN {catalog}.care_protocol.care_order_med.rxnorm_code IS 'Effective medication layer = bronze meds with cohort diabetes-med orders replaced by modeled 30-day fills (realistic refill gaps -> continuous PDC).';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_protocol_adherence.clinic_id IS 'Clinic the patient belongs to (join from panel_roster). The watch scans drift per clinic.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_protocol_adherence.panel_id IS 'PCP panel the patient belongs to.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_gsd.clinic_id IS 'Clinic the patient belongs to.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_gsd.panel_id IS 'PCP panel the patient belongs to.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_mad.clinic_id IS 'Clinic the patient belongs to.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_mad.panel_id IS 'PCP panel the patient belongs to.';
 
 -- silver_condition: conformed diabetes diagnoses, ICD-10-CM mapped from SNOMED.
 COMMENT ON COLUMN {catalog}.care_protocol.silver_condition.patient_id IS 'Patient identifier the diagnosis belongs to.';

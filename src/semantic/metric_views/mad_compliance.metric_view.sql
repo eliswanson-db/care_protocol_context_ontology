@@ -12,6 +12,16 @@ dimensions:
     expr: measurement_year
     synonyms: [year, reporting year, MY]
     display_name: Measurement Year
+  - name: Clinic
+    expr: clinic_id
+    comment: "Clinic (site) the patient belongs to."
+    synonyms: [clinic, site, location, facility]
+    display_name: Clinic
+  - name: Panel
+    expr: panel_id
+    comment: "PCP panel the patient belongs to."
+    synonyms: [panel, pcp panel, provider panel, care team]
+    display_name: Panel
   - name: Adherence Status
     expr: status
     comment: "MET = PDC >= 80%; NOT_MET = PDC < 80% (a refill-gap / adherence gap)."
