@@ -50,6 +50,13 @@ Ordered operational steps that are **not** automated by the bundle. Keep this cu
   Code at the `docs/ontology/pages/` files (or an MCP source) → review the proposed Pages → publish. Pages
   require a domain to exist first (run the domains script above). Pages are Beta.
 
+## AI/BI dashboard + Genie Agent (bundle-managed)
+- 🤖 `resources/dashboards.yml` + `hedis_quality.lvdash.json` and `resources/genie_spaces.yml` +
+  `care_protocol.geniespace.json` deploy with `bundle deploy` (no separate run). The Genie agent resolves its
+  warehouse via the `warehouse_id` name lookup.
+- ⚙ **Publish the dashboard** (makes the `/published` URL live; redeploy updates only the draft):
+  `databricks lakeview publish <dashboard_id> --warehouse-id <wh> --profile ECT`.
+
 ## Genie Ontology seeding (P7 / §7a)
 - Build Pages + metric views + Genie Agents + dashboards (over-build — see roadmap §7a), assign Domains,
   certify. Run the query-history seeding job on a schedule. Trigger early; build other arms while it extracts.
