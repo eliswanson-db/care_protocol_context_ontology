@@ -174,14 +174,33 @@ resources:
     # Benchmark the Genie Agent (A2) against a ground-truth question set; log accuracy/grounding/latency to MLflow.
     benchmark:
       name: benchmark_${bundle.target}
-      description: Evaluate the Care Protocol Genie Agent (A2) and log results to MLflow (ADR-0004).
+      description: Benchmark retrieval arms (A2 Genie Agent, A6 supervisor+MCP) to MLflow for comparison (ADR-0004).
       tasks:
-        - task_key: run_benchmark
+        - task_key: arm_a2
           spark_python_task:
             python_file: ../src/benchmark/run_benchmark.py
             parameters:
+              - "--arm"
+              - "A2"
               - "--space_id"
               - "${resources.genie_spaces.care_protocol_agent.id}"
+              - "--questions"
+              - "${workspace.file_path}/src/benchmark/benchmark_questions.json"
+              - "--experiment"
+              - "/Users/eli.swanson@databricks.com/care_protocol_benchmark"
+          environment_key: serverless
+        - task_key: arm_a6
+          spark_python_task:
+            python_file: ../src/benchmark/run_benchmark.py
+            parameters:
+              - "--arm"
+              - "A6"
+              - "--warehouse_id"
+              - "${var.warehouse_id}"
+              - "--catalog"
+              - "${var.catalog}"
+              - "--repo_src"
+              - "${workspace.file_path}/src"
               - "--questions"
               - "${workspace.file_path}/src/benchmark/benchmark_questions.json"
               - "--experiment"

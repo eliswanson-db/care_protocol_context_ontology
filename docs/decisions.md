@@ -11,9 +11,11 @@ A4 (Lakebase hybrid retrieval) uses a **Lakebase Autoscaling** project, not the 
 tier (`databricks database` is legacy; use `databricks postgres`). Project **`care-protocol`** (production
 branch, primary endpoint, db `databricks_postgres`, PG 17, scale-to-zero). The retrieval **corpus** is one
 row per Genie Ontology Page, derived from `docs/ontology/pages/*.md` by `scripts/lakebase_corpus.py`
-(reproducible-by-code), with a `tsvector` GIN index. Retrieval = Postgres full-text **lexical** ranking with
-an OR-of-terms tsquery (`src/retrieval/a4_lakebase.py`); **pgvector** cosine is the planned semantic half of
-the hybrid (the `blood pressure` query showed the lexical-only limit that semantic fixes).
+(reproducible-by-code), with a `tsvector` GIN index. Retrieval is **hybrid**: Postgres full-text **lexical** ranking (OR-of-terms tsquery) + **pgvector** (0.8.0)
+**semantic** cosine over gte-large-en (1024-dim) embeddings, fused with **Reciprocal Rank Fusion**
+(`src/retrieval/a4_lakebase.py`: `search` / `search_semantic` / `search_hybrid`). Embeddings loaded by
+`scripts/lakebase_embed.py` (governed endpoint, HNSW cosine index). Verified: semantic retrieves gsd/hba1c
+for "poorly managed sugar levels" with no exact lexical match.
 **Not a DAB resource:** the DAB `synced_database_tables` resource is deprecated and `postgres_*` DAB support
 is not yet usable (per the databricks-lakebase skill), so the project is created via CLI and captured as a
 RUNBOOK step; the corpus build + retrieval are committed code. Connectivity: OAuth token via

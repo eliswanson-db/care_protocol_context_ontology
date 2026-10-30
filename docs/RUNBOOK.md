@@ -74,8 +74,10 @@ Ordered operational steps that are **not** automated by the bundle. Keep this cu
   python scripts/lakebase_corpus.py --src_dir docs/ontology/pages | \
     PGPASSWORD="$TOKEN" psql "host=<endpoint-host> user=eli.swanson@databricks.com dbname=databricks_postgres sslmode=require"
   ```
-- 🤖 **Retrieve:** `src/retrieval/a4_lakebase.py` (`A4Retriever.search(question, k)`), lexical ts_rank now;
-  pgvector cosine is the planned semantic half. 15 Pages in the corpus.
+- 🤖 **Add the semantic half** (pgvector embeddings; after the corpus load):
+  `python scripts/lakebase_embed.py --src_dir docs/ontology/pages --profile ECT | PGPASSWORD="$TOKEN" psql "..."`
+- 🤖 **Retrieve:** `src/retrieval/a4_lakebase.py` — `search` (lexical ts_rank), `search_semantic` (pgvector
+  cosine), `search_hybrid` (RRF fusion). 14 docs embedded (gte-large-en, HNSW cosine index). Needs `psycopg`.
 
 ## Genie Ontology seeding (P7 / §7a)
 - Build Pages + metric views + Genie Agents + dashboards (over-build — see roadmap §7a), assign Domains,
