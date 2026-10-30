@@ -152,6 +152,25 @@ resources:
           spec:
             client: "3"
 
+    # Stage the Genie Ontology Pages (docs/ontology/pages/*.md) into a UC Volume for Genie Code bulk import.
+    stage_pages:
+      name: stage_pages_${bundle.target}
+      description: Copy the version-controlled Page sources into /Volumes/<catalog>/care_protocol/ontology_pages.
+      tasks:
+        - task_key: stage_pages
+          spark_python_task:
+            python_file: ../scripts/stage_pages.py
+            parameters:
+              - "--src_dir"
+              - "${workspace.file_path}/docs/ontology/pages"
+              - "--volume_dir"
+              - "/Volumes/${var.catalog}/care_protocol/ontology_pages"
+          environment_key: serverless
+      environments:
+        - environment_key: serverless
+          spec:
+            client: "3"
+
     # Query-history seeding (ontology fuel, roadmap S7a). Runs analyst queries on the SQL warehouse so they
     # land in system.query.history. Run AFTER `semantic` (needs the metric views). Re-runnable (read-only).
     seed_query_history:

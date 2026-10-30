@@ -47,9 +47,13 @@ Ordered operational steps that are **not** automated by the bundle. Keep this cu
 
 ## Pages (ADR-0008) — content-as-code + manual bulk-import (no API)
 - 🤖 Page source lives in `docs/ontology/pages/*.md` (one per term: domain, synonyms, description, body).
+- 🤖 `bundle run stage_pages -t ect` copies the Page sources into the UC Volume
+  **`/Volumes/${var.catalog}/care_protocol/ontology_pages`** (14 files) so Genie Code can read them from a
+  governed Volume. Re-runnable.
 - ⚙ **Genie Code bulk import** (the one irreducible manual step): Discover → Pages → Bulk import → point Genie
-  Code at the `docs/ontology/pages/` files (or an MCP source) → review the proposed Pages → publish. Pages
-  require a domain to exist first (run the domains script above). Pages are Beta.
+  Code at the Volume `/Volumes/<catalog>/care_protocol/ontology_pages` (or the `docs/ontology/pages/` files) →
+  review the proposed Pages → assign to the **Clinical Domain** domain → publish. Pages require a domain
+  first (run the domains script above). Pages are Beta.
 
 ## AI/BI dashboard + Genie Agent (bundle-managed)
 - 🤖 `resources/dashboards.yml` + `hedis_quality.lvdash.json` and `resources/genie_spaces.yml` +
