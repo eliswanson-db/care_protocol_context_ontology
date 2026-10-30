@@ -19,8 +19,12 @@ approach is sufficient / adds unique value / is necessary*, and **why**. Key cor
 - **Primary metric = accuracy on hard questions**; latency/cost secondary. **Lineage** (bronze patient → care-
   protocol PDF + encounters + prescriptions → retrieved context → answer) is the spine.
 - **Graph = LOINC (multiaxial Parts) + ICD-10 (is-a, closure-complete) + RxNorm (typed rels) + protocol edges,
-  linked** — license-clean (LOINC license, no SNOMED). LOINC is the "graph > closure within a vocab" exemplar;
-  cross-domain protocol questions are the "graph genuinely necessary" case.
+  linked** — license-clean (LOINC license, no SNOMED). LOINC is the "graph > closure within a vocab" exemplar.
+  **Correction (refined in ground_truth.yaml):** classes 2-6 (incl. cross-domain protocol multi-hop) are
+  fixed-shape SQL over materialized closure/edge tables, so **none strictly require Ontobricks**. Ontobricks is
+  genuinely necessary only for **class 8** (path/explanation queries + OWL-defined classes; variable-shape /
+  inference). Resolution placement (build-time metric view -> Genie Ontology; query-time closure; live graph)
+  is the real variable.
 - **Scale = 25k patients**; add a **care-protocol PDF** as the unstructured anchor. **Genie One** is the front
   door; components (RAG/closure/graph/Pages) plug in via MCP and are visualized in the app.
 

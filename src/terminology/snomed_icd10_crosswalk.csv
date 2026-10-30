@@ -13,3 +13,8 @@ snomed_code,icd10_code,description
 609496007,O26.9,Complication occurring during pregnancy (disorder)
 198992004,O15.9,Eclampsia in pregnancy (disorder)
 79586000,O00.1,Tubal pregnancy (disorder)
+127013003,E11.22,Disorder of kidney due to diabetes mellitus (disorder)
+157141000119108,E11.29,Proteinuria due to type 2 diabetes mellitus (disorder)
+80394007,E11.65,Hyperglycemia (disorder)
+368581000119106,E11.40,Neuropathy due to type 2 diabetes mellitus (disorder)
+1551000119108,E11.319,Nonproliferative diabetic retinopathy due to type II diabetes mellitus (disorder)

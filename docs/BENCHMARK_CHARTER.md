@@ -86,11 +86,27 @@ Each class has hand-verified ground truth. "Sufficient / adds value / necessary"
 4. **Med subsumption (RxNorm)** — "patients on any statin" → ingredient→drug closure; naive enumeration misses.
 5. **Value-set vintage** — "KED eGFR coverage under the 2026 spec" → versioned value sets; RAG on current docs
    gives a stale/ambiguous answer.
-6. **Cross-domain protocol multi-hop** — "patients overdue for statin therapy whom the protocol flags given
-   their eGFR, excluding contraindications" → **needs the linked graph**; closure alone, RAG alone, metric view
-   all insufficient. (the Ontobricks-necessary case)
-7. **Definition / provenance** — "what does 'controlled' mean for BPD and where is it defined?" → Genie Ontology
-   Page / protocol RAG; structured-only can't explain. (shows where curated semantics add unique value)
+6. **Cross-domain protocol multi-hop** — "statin gap with no contraindication", "cardiorenal on 3 drug
+   classes" → **fixed-shape multi-joins** over the closure/edge tables + `protocol_edges`; **closure_sql
+   suffices**, graph is more natural/maintainable but NOT strictly necessary. (correction to an earlier
+   overclaim — see below)
+7. **Definition / provenance** — "what does 'controlled' mean for BPD and where is it defined?" → RAG over the
+   PDF; Genie Ontology **Page adds the citation/provenance**; structured-only can't explain.
+8. **Graph-native** — path/explanation queries ("the rationale connecting this patient's diabetes to their
+   statin") and **OWL-defined classes** (reasoner-classified). Variable-shape / inference → **the genuine
+   Ontobricks-necessary case**, and it ties to the lineage/explainability thread.
+
+### Where semantic resolution happens (the real variable) + honest correction
+The same answer can be produced by doing the terminology work at a different stage, and that — not "rival
+engines" — is what the arms vary:
+- **build-time** (baked into a metric view / Gold) → **Genie Ontology** answers from the semantic layer;
+- **query-time** (join a materialized closure/edge table) → the **closure_sql** approach (Genie SQL or MCP);
+- **live traversal / inference** (Ontobricks) → classes that are variable-shape or inference-based (class 8);
+- **text** → RAG.
+Correction: classes 2–6 are all expressible as fixed-shape SQL over materialized closure/edge tables, so
+**none strictly require Ontobricks** over a good closure layer. Ontobricks earns its place on **class 8**.
+Full per-question mapping (how each is asked, min approach, graph-strictly-needed) is in
+`docs/benchmark/ground_truth.yaml`.
 
 ## Metrics
 
