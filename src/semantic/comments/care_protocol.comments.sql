@@ -96,6 +96,26 @@ COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_mad.pdc IS 'Proportion 
 COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_mad.numerator_flag IS 'True when PDC >= 0.80 (adherent).';
 COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_mad.status IS 'MET = PDC >= 80%; NOT_MET = refill/adherence gap.';
 
+-- protocol_watch_findings: Weekly Protocol Watch output — one row per detected drift (or a NO_DRIFT row), appended each run.
+COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.finding_type IS 'STEP_DRIFT = a trigger month whose Step-3 adherence dropped below baseline; NO_DRIFT = the watch ran and found nothing.';
+COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.severity IS 'HIGH (>=25 pts below baseline), MEDIUM (>=15), LOW (>=drift threshold), or NONE (no drift).';
+COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.measure_id IS 'Measure the finding concerns (PROTO_STEP3 = the protocol Step-3 recheck/therapy follow-up).';
+COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.measurement_year IS 'HEDIS measurement year the watch scanned.';
+COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.window_start IS 'First day of the trigger month this finding covers (drift is detected per calendar month of the A1c trigger).';
+COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.window_end IS 'Last day of the trigger month.';
+COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.triggers IS 'Number of above-target A1c trigger events in the window (the denominator).';
+COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.followed IS 'Triggers that got a recheck/therapy change within 90 days (the numerator).';
+COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.rate IS 'Step-3 adherence in the window = followed / triggers.';
+COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.baseline IS 'Pooled Step-3 adherence across all FULLY-OBSERVED months (the comparison baseline).';
+COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.baseline_n IS 'Trigger events pooled into the baseline (fully-observed months only).';
+COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.delta IS 'Baseline minus window rate (how far below baseline this month fell); the drift magnitude.';
+COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.censored IS 'True if the window is right-censored (its 90-day follow-up window is not fully inside the observed data); such months are excluded from drift detection.';
+COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.narrative IS 'Human-readable finding, phrased for the weekly summary (what slipped, how far below baseline, what to investigate).';
+COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.as_of IS 'Timestamp this watch run executed. Append-only: each run is an as-of snapshot (the watch log).';
+COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.horizon_date IS 'Observation horizon used this run (latest trigger/follow-up date); drives the censoring cutoff.';
+COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.drift_threshold_pp IS 'Points-below-baseline threshold that defined a drift this run (demo default 0.10).';
+COMMENT ON COLUMN {catalog}.care_protocol.protocol_watch_findings.min_triggers IS 'Small-N gate: windows with fewer triggers than this were not scored this run.';
+
 -- silver_condition: conformed diabetes diagnoses, ICD-10-CM mapped from SNOMED.
 COMMENT ON COLUMN {catalog}.care_protocol.silver_condition.patient_id IS 'Patient identifier the diagnosis belongs to.';
 COMMENT ON COLUMN {catalog}.care_protocol.silver_condition.encounter_id IS 'Encounter in which the diagnosis was recorded.';
@@ -115,3 +135,17 @@ COMMENT ON COLUMN {catalog}.care_protocol.silver_observation.units IS 'Result un
 
 -- silver_diabetes_cohort: patients with a diabetes diagnosis under E10/E11/E13 via the ICD-10 closure.
 COMMENT ON COLUMN {catalog}.care_protocol.silver_diabetes_cohort.patient_id IS 'Distinct patients in the diabetes cohort, resolved by subsumption over the ICD-10-CM hierarchy (E10/E11/E13 and all descendants).';
+
+-- Shared reporting-window columns on the remaining gold measures (GSD already documented above). Same
+-- semantics across every HEDIS measure; kept identical so Genie reads one consistent definition.
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ked.period_start IS 'Start of the measurement-year reporting window (January 1).';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ked.period_end IS 'End of the measurement-year reporting window (December 31). Age is evaluated at this date.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_bpd.measurement_year IS 'HEDIS measurement year the row is computed for (e.g. 2025).';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_bpd.period_start IS 'Start of the measurement-year reporting window (January 1).';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_bpd.period_end IS 'End of the measurement-year reporting window (December 31). Age is evaluated at this date.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_spd.measurement_year IS 'HEDIS measurement year the row is computed for (e.g. 2025).';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_spd.period_start IS 'Start of the measurement-year reporting window (January 1).';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_spd.period_end IS 'End of the measurement-year reporting window (December 31). Age is evaluated at this date.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_eed.measurement_year IS 'HEDIS measurement year the row is computed for (e.g. 2025).';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_eed.period_start IS 'Start of the measurement-year reporting window (January 1).';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_eed.period_end IS 'End of the measurement-year reporting window (December 31). Age is evaluated at this date.';

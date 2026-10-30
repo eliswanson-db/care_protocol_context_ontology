@@ -332,3 +332,48 @@ larger HLS platform — the "how much broader utility there is in Databricks" me
 4. Who owns the ⚙ clinical/spec sign-off (measure interpretation, mapping approvals)?
 5. Where/when is this shown (shapes the 15- vs 45-min script)?
 ```
+
+---
+
+## 11. Session log
+
+### 2026-10-30 — dashboards + semantic metadata (post-M28)
+
+**Did (committed, live on ECT):**
+- **Fixed the flagship HEDIS dashboard** (`hedis_quality.lvdash.json`), which was broken on three counts:
+  1. published with `embed_credentials: false` → broken for every viewer without direct grants; now
+     `embed_credentials: true`, set **declaratively in `resources/dashboards.yml`** (the DAB default is false).
+  2. widget query bindings were named `q` → renderer errored "Missing query `main_query`"; renamed all to `main_query`.
+  3. redesign — labeled KPI tiles (frame titles), split title/subtitle, aggregated **care-gaps-by-reason**
+     leading the gaps section, raw patient list demoted to a labeled worklist.
+- **Two new dashboards** (DAB-managed, `embed_credentials: true`, SQL tested on ECT before deploy):
+  - **Measure Drift & Ontology Impact** (`measure_drift.lvdash.json`) — terminology drift (KED_EGFR value
+    set modernized for MY2026 drops the MDRD code the data uses → eGFR coverage collapses 4,419 → 0 on
+    identical data), subsumption closures (ICD-10 cohort, RxNorm statins), and the care-protocol graph.
+  - **HEDIS Diabetes Quality by Age Band** (`quality_by_age.lvdash.json`) — **first consumer of the governed
+    metric views** (`MEASURE()` grouped by `Age Band`): one definition, shared by BI and Genie.
+  - Both committed in `2a4318f` alongside the flagship fixes.
+
+**Did (committed as source, NOT yet applied to ECT):**
+- Semantic metadata polish (fills comment/synonym gaps found in review):
+  - +12 gold temporal-column comments (`measurement_year`/`period_start`/`period_end` on bpd/eed/spd/ked).
+  - +5 ontology tables fully commented in `terminology.comments.sql` (icd10_hier, rxnorm_hier,
+    rxnorm_statin, loinc_parts, protocol_edges).
+  - `Measurement Year` + `Measure` dimension comments on all 5 `*_compliance.metric_view.sql`.
+
+**Didn't (deferred / open):**
+- **Semantic metadata not applied to ECT** — the `semantic` job (apply_comments + apply_metric_views) was
+  intentionally held. Live UC still has pre-edit comments/metric-view YAML. Apply with
+  `databricks bundle run semantic -t ect --profile ECT`.
+- **Benchmark leaderboard dashboard not built** — no results table exists (the `benchmark` job logs to
+  MLflow only). Trivial to add once benchmark output is persisted to a UC table.
+- **M28 assets not covered** — `gold_adherence_mad` and `gold_protocol_adherence` (+ their metric views)
+  were left to the M28 owner; their tables still have ~0 column comments and are absent from dashboards/Genie.
+- `protocol_watch` job was created on ECT as a side effect of `bundle deploy` (it is defined in the
+  working tree's `jobs.yml`); schedule is **PAUSED** — no runs or notifications.
+
+**Gotchas captured (for next time):**
+- AI/BI widget query bindings must be named `main_query`, or widgets error "Missing query `main_query`".
+- The DAB `dashboards` resource **does** manage publish state via `embed_credentials` (default false) — set
+  it in `resources/dashboards.yml`; never `lakeview publish` out of band (a redeploy would revert it).
+- `bundle deploy` ships the **entire** working tree (all resources + file sync), not just the changed one.

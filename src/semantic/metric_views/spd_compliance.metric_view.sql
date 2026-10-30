@@ -11,6 +11,7 @@ comment: "HEDIS SPD (Statin Therapy) compliance for the diabetes population aged
 dimensions:
   - name: Measurement Year
     expr: measurement_year
+    comment: "HEDIS measurement year the metrics are computed for (e.g. 2025)."
     synonyms: [year, reporting year, MY]
     display_name: Measurement Year
   - name: Compliance Status
@@ -29,6 +30,7 @@ dimensions:
     display_name: Age Band
   - name: Measure
     expr: measure_id
+    comment: "HEDIS measure code; this view reports SPD (Statin Therapy)."
     synonyms: [measure id, hedis measure, quality measure]
     display_name: HEDIS Measure
 measures:
