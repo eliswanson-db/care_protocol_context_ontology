@@ -67,6 +67,13 @@ def main() -> None:
         F.col("CODE").cast("string").alias("rxnorm_code"), F.col("DESCRIPTION").alias("description"),
     ).write.mode("overwrite").option("overwriteSchema", True).saveAsTable(f"{t}.bronze_order_med")
 
+    # bronze_procedure  (procedures; SNOMED in CODE) -- feeds EED (eye exam)
+    raw("procedures").select(
+        F.col("PATIENT").alias("patient_id"), F.col("ENCOUNTER").alias("encounter_id"),
+        F.to_timestamp("START").alias("proc_ts"), F.col("CODE").cast("string").alias("snomed_code"),
+        F.col("DESCRIPTION").alias("description"),
+    ).write.mode("overwrite").option("overwriteSchema", True).saveAsTable(f"{t}.bronze_procedure")
+
     # tracer_registry (stub; populated with planted-tracer expectations in P2)
     spark.sql(
         f"CREATE TABLE IF NOT EXISTS {t}.tracer_registry "

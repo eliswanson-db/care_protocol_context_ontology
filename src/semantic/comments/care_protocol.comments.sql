@@ -56,6 +56,23 @@ COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_spd.evidence_datetime I
 COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_spd.evidence_code IS 'RxNorm clinical-drug code of the statin dispensed (e.g. 312961). Subsumed by a statin ingredient in rxnorm_closure.';
 COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_spd.evidence_drug IS 'Human-readable statin drug name of the latest order.';
 
+-- gold_adherence_eed: HEDIS EED event log, one row per eligible diabetes patient (18-75).
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_eed.patient_id IS 'Patient identifier (synthetic).';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_eed.measure_id IS 'HEDIS measure code. EED = Eye Exam for Patients With Diabetes.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_eed.age IS 'Patient age at the end of the measurement year. EED eligibility requires 18-75.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_eed.eligible_flag IS 'True when the patient is in the EED denominator (diabetes cohort, aged 18-75).';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_eed.numerator_flag IS 'EED numerator: true when a retinal/diabetic eye exam (SNOMED procedure) is found in the measurement year.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_eed.status IS 'Adherence status: MET (eye exam found) or NOT_MET (no exam = care gap).';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_eed.evidence_datetime IS 'Timestamp of the latest qualifying eye exam in the measurement year. Record-level traceability.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_eed.evidence_code IS 'SNOMED procedure code of the eye exam (e.g. 722161008 diabetic retinal eye exam).';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_eed.evidence_exam IS 'Human-readable eye-exam procedure name of the latest exam.';
+
+-- silver_procedure: conformed procedures (SNOMED) feeding EED.
+COMMENT ON COLUMN {catalog}.care_protocol.silver_procedure.patient_id IS 'Patient the procedure belongs to.';
+COMMENT ON COLUMN {catalog}.care_protocol.silver_procedure.proc_ts IS 'Timestamp the procedure was performed.';
+COMMENT ON COLUMN {catalog}.care_protocol.silver_procedure.snomed_code IS 'SNOMED CT procedure code (e.g. 722161008 diabetic retinal eye exam). Code values only; no licensed SNOMED hierarchy shipped.';
+COMMENT ON COLUMN {catalog}.care_protocol.silver_procedure.description IS 'Human-readable procedure description.';
+
 -- icd10_closure comment also applies to rxnorm_closure (parallel subsumption structure).
 COMMENT ON COLUMN {catalog}.care_protocol_terminology.rxnorm_closure.ancestor_code IS 'RxNorm ingredient rxcui (e.g. 36567 simvastatin). Join a value set of ingredients here to subsume all clinical drugs.';
 COMMENT ON COLUMN {catalog}.care_protocol_terminology.rxnorm_closure.descendant_code IS 'RxNorm clinical-drug rxcui (e.g. 312961 Simvastatin 20 MG) subsumed by the ingredient, matching prescription codes in bronze_order_med.';

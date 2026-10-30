@@ -30,6 +30,13 @@ def silver_observation():
             .select("patient_id", "encounter_id", "result_ts", "loinc_code", "description", "value_num", "units"))
 
 
+@dp.materialized_view(comment="Conformed procedures (SNOMED) from bronze. Feeds the EED eye-exam measure.")
+def silver_procedure():
+    return (spark.read.table(f"{BRONZE}.bronze_procedure")  # noqa: F821
+            .where(F.col("snomed_code").isNotNull())
+            .select("patient_id", "encounter_id", "proc_ts", "snomed_code", "description"))
+
+
 @dp.materialized_view(comment="Diabetes cohort: patients with an ICD-10 dx under E10/E11/E13 (via the closure).")
 def silver_diabetes_cohort():
     closure = (spark.read.table(f"{TERM}.icd10_closure")  # noqa: F821
@@ -223,3 +230,44 @@ def gold_adherence_spd():
             .select("patient_id", "measure_id", "measurement_year", "period_start", "period_end", "age",
                     "eligible_flag", "numerator_flag", "status",
                     "evidence_datetime", "evidence_code", "evidence_drug"))
+
+
+# ---------------- Gold: EED (Eye Exam for Patients With Diabetes) ----------------
+@dp.materialized_view(
+    comment="EED adherence event log. Denominator: diabetes patients aged 18-75. Numerator: a retinal / diabetic "
+            "eye exam (EED_EYE_EXAM value set, SNOMED procedure codes) in the measurement year. One row per "
+            "eligible patient. HEDIS-aligned demo, not NCQA-certified. (Full HEDIS also allows a negative screen "
+            "in the prior year; this demo uses the measurement year.)")
+def gold_adherence_eed():
+    patients = spark.read.table(f"{BRONZE}.bronze_patient")  # noqa: F821
+    cohort = spark.read.table("silver_diabetes_cohort")  # noqa: F821
+    my_end = F.to_date(F.lit(f"{MY}-12-31"))
+
+    eligible = (cohort.join(patients, "patient_id")
+                .withColumn("age", (F.datediff(my_end, F.col("birth_date")) / 365.25).cast("int"))
+                .where((F.col("age") >= 18) & (F.col("age") <= 75))
+                .select("patient_id", "age"))
+
+    eye_codes = (spark.read.table(f"{TERM}.value_set_segment")  # noqa: F821
+                 .where(F.col("segment_id") == "EED_EYE_EXAM").select("code").distinct())
+    proc = spark.read.table("silver_procedure")  # noqa: F821
+    exams = proc.join(eye_codes, proc["snomed_code"] == eye_codes["code"]).where(F.year("proc_ts") == MY)
+    latest = (exams.withColumn("rn", F.row_number().over(
+                  Window.partitionBy("patient_id").orderBy(F.col("proc_ts").desc())))
+              .where(F.col("rn") == 1)
+              .select("patient_id",
+                      F.col("proc_ts").alias("evidence_datetime"),
+                      F.col("snomed_code").alias("evidence_code"),
+                      F.col("description").alias("evidence_exam")))
+
+    return (eligible.join(latest, "patient_id", "left")
+            .withColumn("measure_id", F.lit("EED"))
+            .withColumn("measurement_year", F.lit(MY))
+            .withColumn("period_start", F.to_date(F.lit(f"{MY}-01-01")))
+            .withColumn("period_end", my_end)
+            .withColumn("eligible_flag", F.lit(True))
+            .withColumn("numerator_flag", F.col("evidence_datetime").isNotNull())
+            .withColumn("status", F.when(F.col("evidence_datetime").isNotNull(), F.lit("MET")).otherwise(F.lit("NOT_MET")))
+            .select("patient_id", "measure_id", "measurement_year", "period_start", "period_end", "age",
+                    "eligible_flag", "numerator_flag", "status",
+                    "evidence_datetime", "evidence_code", "evidence_exam"))
