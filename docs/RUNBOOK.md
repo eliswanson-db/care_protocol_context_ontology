@@ -36,6 +36,13 @@ Ordered operational steps that are **not** automated by the bundle. Keep this cu
 - 🤖 `python scripts/create_domains.py --profile ECT` (idempotent) — creates the governed tag policies and the
   Care Protocol domain + subdomains via `databricks tag-policies` + `databricks domains` (Beta). Re-runnable.
 - ⚙ Section polish (rich domain sections) is **UI-only** — optional, after the script.
+- ⛔ **BLOCKER on ECT (2026-10-29):** the account is at its **governed tag-policy cap** (`The maximum number of
+  tag policies allowed is reached for the account` — ~3074 exist, shared across many demos). A domain requires
+  a governed tag, and `create-domain` fails if the tag policy doesn't exist, so the script cannot create new
+  tags here. Unblock options (Eli to choose): (a) free slots by deleting stale tag policies **he owns**;
+  (b) raise the account cap via support/admin; (c) use a workspace/account not at the cap; (d) map our domains
+  to an **existing** governed tag (semantically impure — the existing ones belong to other demos). Until then,
+  **Pages are also blocked** (Pages require a domain). Analogous to the Default-Storage blocker in ADR-0001.
 
 ## Pages (ADR-0008) — content-as-code + manual bulk-import (no API)
 - 🤖 Page source lives in `docs/ontology/pages/*.md` (one per term: domain, synonyms, description, body).
