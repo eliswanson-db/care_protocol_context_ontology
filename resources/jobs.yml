@@ -102,12 +102,24 @@ resources:
             client: "3"
 
     # Semantic layer (ontology fuel). Runs AFTER the `measures` pipeline — reads gold_adherence_*.
+    #   apply_comments:     column-level UC comments on silver/gold/terminology (src/semantic/comments/*.comments.sql)
     #   apply_metric_views: governed UC metric views from src/semantic/metric_views/*.metric_view.sql
     semantic:
       name: semantic_${bundle.target}
-      description: Build the governed semantic layer (metric views; comments to follow) over gold_* for Genie Ontology.
+      description: Build the governed semantic layer (UC comments + metric views) over gold_* for Genie Ontology.
       tasks:
+        - task_key: apply_comments
+          spark_python_task:
+            python_file: ../src/semantic/apply_comments.py
+            parameters:
+              - "--catalog"
+              - "${var.catalog}"
+              - "--src_dir"
+              - "${workspace.file_path}/src/semantic/comments"
+          environment_key: serverless
         - task_key: apply_metric_views
+          depends_on:
+            - task_key: apply_comments
           spark_python_task:
             python_file: ../src/semantic/apply_metric_views.py
             parameters:
