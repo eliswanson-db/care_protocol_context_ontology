@@ -33,6 +33,23 @@ resources:
               - "--schema"
               - "care_protocol_terminology"
           environment_key: serverless
+        - task_key: build_rxnorm_closure
+          depends_on:
+            - task_key: load_terminology
+          spark_python_task:
+            python_file: ../src/semantic/build_closure.py
+            parameters:
+              - "--catalog"
+              - "${var.catalog}"
+              - "--schema"
+              - "care_protocol_terminology"
+              - "--hier_table"
+              - "rxnorm_hier"
+              - "--closure_table"
+              - "rxnorm_closure"
+              - "--label"
+              - "rxnorm_hier"
+          environment_key: serverless
       environments:
         - environment_key: serverless
           spec:

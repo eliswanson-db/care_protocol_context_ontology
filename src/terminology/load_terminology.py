@@ -34,12 +34,14 @@ def main() -> None:
         "icd10cm_subset.csv": "icd10_hier",
         "loinc_subset.csv": "loinc",
         "rxnorm_statins.csv": "rxnorm_statin",
+        "rxnorm_hier.csv": "rxnorm_hier",
         "value_sets_demo.csv": "value_set_segment",
     }
     comments = {
         "icd10_hier": "ICD-10-CM adjacency list (code, parent_code, name). Source tree for icd10_closure. Curated demo subset (diabetes), ADR-0007.",
         "loinc": "LOINC code subset (loinc_code, long_common_name, concept) for demo measures: A1c, eGFR, uACR, BP, BMI, PHQ. LOINC (c) Regenstrief, used under LOINC License.",
         "rxnorm_statin": "RxNorm statin ingredients (rxcui, ingredient) for the Statin Therapy (SPD) measure.",
+        "rxnorm_hier": "RxNorm adjacency (code, parent_code, name): statin ingredient -> clinical drug. Source tree for rxnorm_closure, so SPD resolves ingredient value sets to the clinical-drug codes actually prescribed (subsumption). Curated demo subset, ADR-0007.",
         "value_set_segment": "Cross-branch demo value sets / cohorts (the segment table; not NCQA/VSAC). Named sets spanning the hierarchy, incl. CARDIORENAL_COHORT (diabetes+CKD+HF).",
     }
     for csv_name, table in loads.items():

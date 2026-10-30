@@ -176,3 +176,50 @@ def gold_adherence_bpd():
             .withColumn("status", F.when(controlled, F.lit("MET")).otherwise(F.lit("NOT_MET")))
             .select("patient_id", "measure_id", "measurement_year", "period_start", "period_end", "age",
                     "eligible_flag", "numerator_flag", "status", "bp_datetime", "systolic", "diastolic"))
+
+
+# ---------------- Gold: SPD (Statin Therapy for Patients With Diabetes) ----------------
+@dp.materialized_view(
+    comment="SPD adherence event log. Denominator: diabetes patients aged 40-75. Numerator: dispensed a statin "
+            "in the measurement year. The SPD_STATIN value set lists RxNorm INGREDIENTS, but prescriptions use "
+            "clinical-drug codes -- so statins are resolved by SUBSUMPTION over rxnorm_closure (ingredient -> "
+            "clinical drugs), exactly like the ICD-10 cohort. A flat ingredient match would find zero orders. "
+            "One row per eligible patient. HEDIS-aligned demo, not NCQA-certified.")
+def gold_adherence_spd():
+    patients = spark.read.table(f"{BRONZE}.bronze_patient")  # noqa: F821
+    cohort = spark.read.table("silver_diabetes_cohort")  # noqa: F821
+    my_end = F.to_date(F.lit(f"{MY}-12-31"))
+
+    eligible = (cohort.join(patients, "patient_id")
+                .withColumn("age", (F.datediff(my_end, F.col("birth_date")) / 365.25).cast("int"))
+                .where((F.col("age") >= 40) & (F.col("age") <= 75))
+                .select("patient_id", "age"))
+
+    # Resolve statin INGREDIENTS (value set) to the clinical-drug codes actually prescribed, via the closure.
+    ingredients = (spark.read.table(f"{TERM}.value_set_segment")  # noqa: F821
+                   .where(F.col("segment_id") == "SPD_STATIN").select(F.col("code").alias("ing")).distinct())
+    closure = spark.read.table(f"{TERM}.rxnorm_closure")  # noqa: F821
+    statin_codes = (closure.join(ingredients, closure["ancestor_code"] == ingredients["ing"])
+                    .select(F.col("descendant_code").alias("code")).distinct())
+
+    meds = spark.read.table(f"{BRONZE}.bronze_order_med").where(F.year("start_ts") == MY)  # noqa: F821
+    orders = meds.join(statin_codes, meds["rxnorm_code"] == statin_codes["code"])
+    latest = (orders.withColumn("rn", F.row_number().over(
+                  Window.partitionBy("patient_id").orderBy(F.col("start_ts").desc())))
+              .where(F.col("rn") == 1)
+              .select("patient_id",
+                      F.col("start_ts").alias("evidence_datetime"),
+                      F.col("rxnorm_code").alias("evidence_code"),
+                      F.col("description").alias("evidence_drug")))
+
+    return (eligible.join(latest, "patient_id", "left")
+            .withColumn("measure_id", F.lit("SPD"))
+            .withColumn("measurement_year", F.lit(MY))
+            .withColumn("period_start", F.to_date(F.lit(f"{MY}-01-01")))
+            .withColumn("period_end", my_end)
+            .withColumn("eligible_flag", F.lit(True))
+            .withColumn("numerator_flag", F.col("evidence_datetime").isNotNull())
+            .withColumn("status", F.when(F.col("evidence_datetime").isNotNull(), F.lit("MET")).otherwise(F.lit("NOT_MET")))
+            .select("patient_id", "measure_id", "measurement_year", "period_start", "period_end", "age",
+                    "eligible_flag", "numerator_flag", "status",
+                    "evidence_datetime", "evidence_code", "evidence_drug"))

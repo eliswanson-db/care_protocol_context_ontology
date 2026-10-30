@@ -45,6 +45,21 @@ COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_bpd.bp_datetime IS 'Tim
 COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_bpd.systolic IS 'Systolic blood pressure (LOINC 8480-6) of the latest measurement-year reading.';
 COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_bpd.diastolic IS 'Diastolic blood pressure (LOINC 8462-4) of the latest measurement-year reading.';
 
+-- gold_adherence_spd: HEDIS SPD event log, one row per eligible diabetes patient (40-75).
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_spd.patient_id IS 'Patient identifier (synthetic).';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_spd.measure_id IS 'HEDIS measure code. SPD = Statin Therapy for Patients With Diabetes.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_spd.age IS 'Patient age at the end of the measurement year. SPD eligibility requires 40-75.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_spd.eligible_flag IS 'True when the patient is in the SPD denominator (diabetes cohort, aged 40-75).';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_spd.numerator_flag IS 'SPD numerator: true when a statin was dispensed in the measurement year (statins resolved via rxnorm_closure subsumption).';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_spd.status IS 'Adherence status: MET (statin dispensed) or NOT_MET (no statin = care gap).';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_spd.evidence_datetime IS 'Timestamp of the latest statin order in the measurement year. Record-level traceability.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_spd.evidence_code IS 'RxNorm clinical-drug code of the statin dispensed (e.g. 312961). Subsumed by a statin ingredient in rxnorm_closure.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_spd.evidence_drug IS 'Human-readable statin drug name of the latest order.';
+
+-- icd10_closure comment also applies to rxnorm_closure (parallel subsumption structure).
+COMMENT ON COLUMN {catalog}.care_protocol_terminology.rxnorm_closure.ancestor_code IS 'RxNorm ingredient rxcui (e.g. 36567 simvastatin). Join a value set of ingredients here to subsume all clinical drugs.';
+COMMENT ON COLUMN {catalog}.care_protocol_terminology.rxnorm_closure.descendant_code IS 'RxNorm clinical-drug rxcui (e.g. 312961 Simvastatin 20 MG) subsumed by the ingredient, matching prescription codes in bronze_order_med.';
+
 -- silver_condition: conformed diabetes diagnoses, ICD-10-CM mapped from SNOMED.
 COMMENT ON COLUMN {catalog}.care_protocol.silver_condition.patient_id IS 'Patient identifier the diagnosis belongs to.';
 COMMENT ON COLUMN {catalog}.care_protocol.silver_condition.encounter_id IS 'Encounter in which the diagnosis was recorded.';

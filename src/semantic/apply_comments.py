@@ -25,9 +25,14 @@ def main():
     for path in files:
         with open(path) as f:
             text = f.read().replace("{catalog}", args.catalog)
-        # Strip full-line '--' comments FIRST (they may contain ';' or quotes), THEN split on ';'.
-        code = "\n".join(ln for ln in text.splitlines() if ln.strip() and not ln.strip().startswith("--"))
-        stmts = [s.strip() for s in code.split(";") if s.strip()]
+        # One COMMENT statement per line. Drop blanks + '--' comment lines; strip a trailing ';'.
+        # Line-based (not split-on-';') so a ';' inside comment text can't break statements.
+        stmts = []
+        for ln in text.splitlines():
+            s = ln.strip()
+            if not s or s.startswith("--"):
+                continue
+            stmts.append(s.rstrip(";").strip())
         print(f"{os.path.basename(path)}: {len(stmts)} statement(s)")
         for stmt in stmts:
             spark.sql(stmt)  # noqa: F821 (spark provided by the serverless runtime)
