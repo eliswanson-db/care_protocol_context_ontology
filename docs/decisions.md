@@ -5,6 +5,20 @@ statement in the source plans under `docs/sources/`.
 
 ---
 
+## ADR-0009 — A4 Lakebase = Autoscaling project; hybrid retrieval over the ontology corpus
+**Date:** 2026-10-30 · **Status:** accepted
+A4 (Lakebase hybrid retrieval) uses a **Lakebase Autoscaling** project, not the retired **Provisioned**
+tier (`databricks database` is legacy; use `databricks postgres`). Project **`care-protocol`** (production
+branch, primary endpoint, db `databricks_postgres`, PG 17, scale-to-zero). The retrieval **corpus** is one
+row per Genie Ontology Page, derived from `docs/ontology/pages/*.md` by `scripts/lakebase_corpus.py`
+(reproducible-by-code), with a `tsvector` GIN index. Retrieval = Postgres full-text **lexical** ranking with
+an OR-of-terms tsquery (`src/retrieval/a4_lakebase.py`); **pgvector** cosine is the planned semantic half of
+the hybrid (the `blood pressure` query showed the lexical-only limit that semantic fixes).
+**Not a DAB resource:** the DAB `synced_database_tables` resource is deprecated and `postgres_*` DAB support
+is not yet usable (per the databricks-lakebase skill), so the project is created via CLI and captured as a
+RUNBOOK step; the corpus build + retrieval are committed code. Connectivity: OAuth token via
+`databricks postgres generate-database-credential` (SDK `w.postgres.generate_database_credential`), ~1h TTL.
+
 ## ADR-0008 — Persistence mechanism per ontology artifact (metric views, comments, domains, Pages)
 **Date:** 2026-10-29 · **Status:** accepted
 Verified against the DAB schema (CLI 1.17.0), the live ECT API, and the docs how each Genie-Ontology

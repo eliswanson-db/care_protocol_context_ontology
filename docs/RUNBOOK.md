@@ -62,6 +62,21 @@ Ordered operational steps that are **not** automated by the bundle. Keep this cu
 - ⚙ **Publish the dashboard** (makes the `/published` URL live; redeploy updates only the draft):
   `databricks lakeview publish <dashboard_id> --warehouse-id <wh> --profile ECT`.
 
+## A4 — Lakebase hybrid retrieval (ADR-0009)
+- 🤖 **Create the Autoscaling project** (once; Provisioned is retired — use `postgres`, not `database`):
+  `databricks postgres create-project care-protocol --json '{"spec": {"display_name": "Care Protocol Retrieval (A4 Lakebase hybrid)"}}' --profile ECT`
+  → production branch, primary endpoint, db `databricks_postgres`. Current endpoint host:
+  `ep-spring-paper-d2objaly.database.us-east-1.cloud.databricks.com`.
+- 🤖 **Load the retrieval corpus** (one row per Page, tsvector index):
+  ```
+  EP=projects/care-protocol/branches/production/endpoints/primary
+  TOKEN=$(databricks postgres generate-database-credential $EP --profile ECT -o json | python3 -c "import json,sys;print(json.load(sys.stdin)['token'])")
+  python scripts/lakebase_corpus.py --src_dir docs/ontology/pages | \
+    PGPASSWORD="$TOKEN" psql "host=<endpoint-host> user=eli.swanson@databricks.com dbname=databricks_postgres sslmode=require"
+  ```
+- 🤖 **Retrieve:** `src/retrieval/a4_lakebase.py` (`A4Retriever.search(question, k)`), lexical ts_rank now;
+  pgvector cosine is the planned semantic half. 15 Pages in the corpus.
+
 ## Genie Ontology seeding (P7 / §7a)
 - Build Pages + metric views + Genie Agents + dashboards (over-build — see roadmap §7a), assign Domains,
   certify. Run the query-history seeding job on a schedule. Trigger early; build other arms while it extracts.
