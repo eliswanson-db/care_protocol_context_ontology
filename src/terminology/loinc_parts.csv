@@ -1,0 +1,24 @@
+loinc_code,loinc_name,predicate,part,part_name
+4548-4,Hemoglobin A1c/Hemoglobin.total in Blood,has_component,LP-HBA1C,Hemoglobin A1c/Hemoglobin.total
+4548-4,Hemoglobin A1c/Hemoglobin.total in Blood,has_system,LP-SYS-BLD,Blood
+4548-4,Hemoglobin A1c/Hemoglobin.total in Blood,has_method,LP-METH-ANY,(no method specified)
+17856-6,Hemoglobin A1c/Hemoglobin.total in Blood by HPLC,has_component,LP-HBA1C,Hemoglobin A1c/Hemoglobin.total
+17856-6,Hemoglobin A1c/Hemoglobin.total in Blood by HPLC,has_system,LP-SYS-BLD,Blood
+17856-6,Hemoglobin A1c/Hemoglobin.total in Blood by HPLC,has_method,LP-METH-HPLC,HPLC
+59261-8,Hemoglobin A1c/Hemoglobin.total in Blood by IFCC protocol,has_component,LP-HBA1C,Hemoglobin A1c/Hemoglobin.total
+59261-8,Hemoglobin A1c/Hemoglobin.total in Blood by IFCC protocol,has_system,LP-SYS-BLD,Blood
+59261-8,Hemoglobin A1c/Hemoglobin.total in Blood by IFCC protocol,has_method,LP-METH-IFCC,IFCC
+33914-3,Glomerular filtration rate predicted among non-black (MDRD),has_component,LP-EGFR,Glomerular filtration rate.predicted
+33914-3,Glomerular filtration rate predicted among non-black (MDRD),has_system,LP-SYS-SERPL,Serum or Plasma
+33914-3,Glomerular filtration rate predicted among non-black (MDRD),has_method,LP-METH-MDRD,MDRD
+98979-8,Glomerular filtration rate predicted (CKD-EPI 2021),has_component,LP-EGFR,Glomerular filtration rate.predicted
+98979-8,Glomerular filtration rate predicted (CKD-EPI 2021),has_system,LP-SYS-SERPL,Serum or Plasma
+98979-8,Glomerular filtration rate predicted (CKD-EPI 2021),has_method,LP-METH-CKDEPI,CKD-EPI
+9318-7,Albumin/Creatinine [Mass Ratio] in Urine,has_component,LP-UACR,Albumin/Creatinine
+9318-7,Albumin/Creatinine [Mass Ratio] in Urine,has_system,LP-SYS-URINE,Urine
+14959-1,Microalbumin/Creatinine [Mass Ratio] in Urine,has_component,LP-UACR,Albumin/Creatinine
+14959-1,Microalbumin/Creatinine [Mass Ratio] in Urine,has_system,LP-SYS-URINE,Urine
+8480-6,Systolic blood pressure,has_component,LP-SBP,Systolic blood pressure
+8480-6,Systolic blood pressure,has_system,LP-SYS-ARTERIAL,Arterial system
+8462-4,Diastolic blood pressure,has_component,LP-DBP,Diastolic blood pressure
+8462-4,Diastolic blood pressure,has_system,LP-SYS-ARTERIAL,Arterial system

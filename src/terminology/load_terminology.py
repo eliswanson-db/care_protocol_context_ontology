@@ -35,6 +35,7 @@ def main() -> None:
         "loinc_subset.csv": "loinc",
         "rxnorm_statins.csv": "rxnorm_statin",
         "rxnorm_hier.csv": "rxnorm_hier",
+        "loinc_parts.csv": "loinc_parts",
         "value_sets_demo.csv": "value_set_segment",
     }
     comments = {
@@ -42,6 +43,7 @@ def main() -> None:
         "loinc": "LOINC code subset (loinc_code, long_common_name, concept) for demo measures: A1c, eGFR, uACR, BP, BMI, PHQ. LOINC (c) Regenstrief, used under LOINC License.",
         "rxnorm_statin": "RxNorm statin ingredients (rxcui, ingredient) for the Statin Therapy (SPD) measure.",
         "rxnorm_hier": "RxNorm adjacency (code, parent_code, name): statin ingredient -> clinical drug. Source tree for rxnorm_closure, so SPD resolves ingredient value sets to the clinical-drug codes actually prescribed (subsumption). Curated demo subset, ADR-0007.",
+        "loinc_parts": "LOINC multiaxial Part edges (loinc_code, predicate, part): typed axes has_component/has_system/has_method. A graph (not a tree): 'all A1c regardless of method' = terms sharing Component LP-HBA1C. Curated demo subset (LOINC License), ADR-0010.",
         "value_set_segment": "Cross-branch demo value sets / cohorts (the segment table; not NCQA/VSAC). Named sets spanning the hierarchy, incl. CARDIORENAL_COHORT (diabetes+CKD+HF).",
     }
     for csv_name, table in loads.items():
@@ -49,7 +51,8 @@ def main() -> None:
         df = spark.createDataFrame(pd.read_csv(path, dtype=str))
         fqn = f"{args.catalog}.{args.schema}.{table}"
         df.write.mode("overwrite").option("overwriteSchema", True).saveAsTable(fqn)
-        spark.sql(f"COMMENT ON TABLE {fqn} IS '{comments[table]}'")
+        safe_comment = comments[table].replace("'", "''")  # escape single quotes for the SQL string literal
+        spark.sql(f"COMMENT ON TABLE {fqn} IS '{safe_comment}'")
         print(f"loaded {df.count():>4} rows -> {fqn}")
 
 
