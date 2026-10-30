@@ -17,6 +17,23 @@ COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_gsd.evidence_value IS '
 COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_gsd.a1c_lt8 IS 'Good glycemic control: latest measurement-year A1c is below 8.0%.';
 COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_gsd.a1c_gt9 IS 'Poor glycemic control: latest measurement-year A1c is above 9.0%.';
 
+-- gold_adherence_ked: HEDIS KED event log, one row per eligible diabetes patient (18-85). Compound numerator.
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ked.patient_id IS 'Patient identifier (synthetic). Joins to bronze_patient and the silver layer.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ked.measure_id IS 'HEDIS measure code. KED = Kidney Health Evaluation for Patients With Diabetes.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ked.measurement_year IS 'HEDIS measurement year the row is computed for.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ked.age IS 'Patient age at the end of the measurement year. KED eligibility requires 18-85.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ked.eligible_flag IS 'True when the patient is in the KED denominator (diabetes cohort, aged 18-85).';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ked.egfr_flag IS 'True when the patient has an eGFR (estimated glomerular filtration rate) test in the measurement year.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ked.uacr_flag IS 'True when the patient has a uACR (urine albumin-creatinine ratio) test in the measurement year.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ked.numerator_flag IS 'KED numerator: true only when BOTH egfr_flag AND uacr_flag are true (complete kidney health evaluation).';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ked.status IS 'Adherence status: MET (both eGFR and uACR found) or NOT_MET (one or both missing = care gap).';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ked.egfr_datetime IS 'Timestamp of the latest eGFR result in the measurement year. Record-level traceability.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ked.egfr_code IS 'LOINC code of the eGFR test (e.g. 33914-3 MDRD, or 98979-8). The value set spans code vintages.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ked.egfr_value IS 'Numeric eGFR result (mL/min/1.73m2) of the latest measurement-year test.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ked.uacr_datetime IS 'Timestamp of the latest uACR result in the measurement year. Record-level traceability.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ked.uacr_code IS 'LOINC code of the uACR test (e.g. 14959-1 Microalbumin/Creatinine ratio).';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ked.uacr_value IS 'Numeric uACR result of the latest measurement-year test.';
+
 -- silver_condition: conformed diabetes diagnoses, ICD-10-CM mapped from SNOMED.
 COMMENT ON COLUMN {catalog}.care_protocol.silver_condition.patient_id IS 'Patient identifier the diagnosis belongs to.';
 COMMENT ON COLUMN {catalog}.care_protocol.silver_condition.encounter_id IS 'Encounter in which the diagnosis was recorded.';
