@@ -171,6 +171,30 @@ resources:
           spec:
             client: "3"
 
+    # Benchmark the Genie Agent (A2) against a ground-truth question set; log accuracy/grounding/latency to MLflow.
+    benchmark:
+      name: benchmark_${bundle.target}
+      description: Evaluate the Care Protocol Genie Agent (A2) and log results to MLflow (ADR-0004).
+      tasks:
+        - task_key: run_benchmark
+          spark_python_task:
+            python_file: ../src/benchmark/run_benchmark.py
+            parameters:
+              - "--space_id"
+              - "${resources.genie_spaces.care_protocol_agent.id}"
+              - "--questions"
+              - "${workspace.file_path}/src/benchmark/benchmark_questions.json"
+              - "--experiment"
+              - "/Users/eli.swanson@databricks.com/care_protocol_benchmark"
+          environment_key: serverless
+      environments:
+        - environment_key: serverless
+          spec:
+            client: "3"
+            dependencies:
+              - databricks-sdk
+              - mlflow
+
     # Query-history seeding (ontology fuel, roadmap S7a). Runs analyst queries on the SQL warehouse so they
     # land in system.query.history. Run AFTER `semantic` (needs the metric views). Re-runnable (read-only).
     seed_query_history:

@@ -1,0 +1,12 @@
+[
+  {"id": "q01", "question": "What is the overall GSD compliance rate?", "expect_contains": "86.7", "expect_asset": "gsd_compliance_metrics"},
+  {"id": "q02", "question": "What is the KED compliance rate?", "expect_contains": "51", "expect_asset": "ked_compliance_metrics"},
+  {"id": "q03", "question": "What is the blood pressure control (BPD) rate for diabetic patients?", "expect_contains": "66.7", "expect_asset": "bpd_compliance_metrics"},
+  {"id": "q04", "question": "What share of eligible diabetic patients are on statin therapy (SPD)?", "expect_contains": "25.6", "expect_asset": "spd_compliance_metrics"},
+  {"id": "q05", "question": "What is the diabetic eye exam (EED) rate?", "expect_contains": "40", "expect_asset": "eed_compliance_metrics"},
+  {"id": "q06", "question": "How many patients are in the diabetes cohort?", "expect_contains": "56", "expect_asset": "silver_diabetes_cohort"},
+  {"id": "q07", "question": "How many patients have a KED care gap?", "expect_contains": "25", "expect_asset": "gold_adherence_ked"},
+  {"id": "q08", "question": "For KED, compare the eGFR test rate and the uACR test rate.", "expect_contains": "92", "expect_asset": "ked_compliance_metrics"},
+  {"id": "q09", "question": "How many eligible patients are there for GSD?", "expect_contains": "45", "expect_asset": "gold_adherence_gsd"},
+  {"id": "q10", "question": "Which diabetes measure has the lowest compliance rate?", "expect_contains": "SPD", "expect_asset": ""}
+]

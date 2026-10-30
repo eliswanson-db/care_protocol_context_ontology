@@ -47,3 +47,24 @@ This is the **seed for P12** (see `../UNIFIED_BUILD_ROADMAP.md` §0a① and P12)
 
 > Provenance: exported from a Databricks workspace by Eli. No SLA — treat as a reusable internal asset,
 > pin versions, verify before relying on it.
+
+## `run_benchmark.py` — the committed, bundle-run A2 harness (live now)
+
+A lightweight, fully code-reproducible benchmark that complements the `.dbc` notebook (which stays the
+richer MLflow-3 / LLM-judge harness). Run it with the bundle:
+
+```bash
+databricks bundle run benchmark -t ect --profile ECT
+```
+
+- **Question set:** `benchmark_questions.json` — ground-truth Q&A for all 5 measures (expected value +
+  expected governed asset).
+- **What it does:** starts a Genie **Agent** conversation per question (`w.genie.start_conversation_and_wait`
+  on the `genie_spaces.care_protocol_agent` space id, wired via `${resources...id}` in `resources/jobs.yml`),
+  then scores two things:
+  - **`answer_accuracy`** — the expected value appears in the agent's text answer.
+  - **`asset_grounding`** — the agent's generated SQL references the expected metric view / gold table.
+- **Logs to MLflow** (experiment `/Users/eli.swanson@databricks.com/care_protocol_benchmark`): `answer_accuracy`,
+  `asset_grounding`, `avg_latency_s`, and a per-question results table, in a run tagged by `approach`.
+- **Adding arms:** run again with a different `--approach` (and a different caller for A1/A4/A6) to get a
+  second MLflow run in the same experiment for side-by-side comparison. A2 is wired today.
