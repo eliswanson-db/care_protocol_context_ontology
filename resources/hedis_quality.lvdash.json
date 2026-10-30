@@ -7,17 +7,20 @@
         "SELECT ",
         "  (SELECT AVG(CAST(numerator_flag AS INT)) FROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd) AS gsd_rate, ",
         "  (SELECT AVG(CAST(numerator_flag AS INT)) FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked) AS ked_rate, ",
-        "  (SELECT AVG(CAST(uacr_flag AS INT))      FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked) AS uacr_rate"
+        "  (SELECT AVG(CAST(numerator_flag AS INT)) FROM eli_test_classic_catalog.care_protocol.gold_adherence_bpd) AS bpd_rate, ",
+        "  (SELECT AVG(CAST(numerator_flag AS INT)) FROM eli_test_classic_catalog.care_protocol.gold_adherence_spd) AS spd_rate, ",
+        "  (SELECT AVG(CAST(numerator_flag AS INT)) FROM eli_test_classic_catalog.care_protocol.gold_adherence_eed) AS eed_rate"
       ]
     },
     {
-      "name": "ds_gsd",
-      "displayName": "GSD detail",
+      "name": "ds_rates",
+      "displayName": "Compliance by measure",
       "queryLines": [
-        "SELECT patient_id, ",
-        "  CASE WHEN age < 45 THEN '18-44' WHEN age < 65 THEN '45-64' ELSE '65-75' END AS age_band, ",
-        "  CAST(numerator_flag AS INT) AS compliant ",
-        "FROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd"
+        "SELECT 'GSD' AS measure, AVG(CAST(numerator_flag AS INT)) AS rate, COUNT(*) AS eligible FROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd ",
+        "UNION ALL SELECT 'KED', AVG(CAST(numerator_flag AS INT)), COUNT(*) FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked ",
+        "UNION ALL SELECT 'BPD', AVG(CAST(numerator_flag AS INT)), COUNT(*) FROM eli_test_classic_catalog.care_protocol.gold_adherence_bpd ",
+        "UNION ALL SELECT 'SPD', AVG(CAST(numerator_flag AS INT)), COUNT(*) FROM eli_test_classic_catalog.care_protocol.gold_adherence_spd ",
+        "UNION ALL SELECT 'EED', AVG(CAST(numerator_flag AS INT)), COUNT(*) FROM eli_test_classic_catalog.care_protocol.gold_adherence_eed"
       ]
     },
     {
@@ -25,17 +28,21 @@
       "displayName": "Status by measure",
       "queryLines": [
         "SELECT 'GSD' AS measure, status, COUNT(*) AS n FROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd GROUP BY status ",
-        "UNION ALL ",
-        "SELECT 'KED' AS measure, status, COUNT(*) AS n FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked GROUP BY status"
+        "UNION ALL SELECT 'KED', status, COUNT(*) FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked GROUP BY status ",
+        "UNION ALL SELECT 'BPD', status, COUNT(*) FROM eli_test_classic_catalog.care_protocol.gold_adherence_bpd GROUP BY status ",
+        "UNION ALL SELECT 'SPD', status, COUNT(*) FROM eli_test_classic_catalog.care_protocol.gold_adherence_spd GROUP BY status ",
+        "UNION ALL SELECT 'EED', status, COUNT(*) FROM eli_test_classic_catalog.care_protocol.gold_adherence_eed GROUP BY status"
       ]
     },
     {
       "name": "ds_gaps",
       "displayName": "Care gaps",
       "queryLines": [
-        "SELECT 'GSD' AS measure, patient_id, age, 'No A1c test in year' AS gap_reason FROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd WHERE status = 'NOT_MET' ",
-        "UNION ALL ",
-        "SELECT 'KED' AS measure, patient_id, age, CASE WHEN NOT egfr_flag AND NOT uacr_flag THEN 'No eGFR and no uACR' WHEN NOT uacr_flag THEN 'No uACR test' ELSE 'No eGFR test' END AS gap_reason FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked WHERE status = 'NOT_MET' ",
+        "SELECT 'GSD' AS measure, patient_id, age, 'No A1c test in year' AS gap_reason FROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd WHERE status='NOT_MET' ",
+        "UNION ALL SELECT 'KED', patient_id, age, CASE WHEN NOT egfr_flag AND NOT uacr_flag THEN 'No eGFR and no uACR' WHEN NOT uacr_flag THEN 'No uACR test' ELSE 'No eGFR test' END FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked WHERE status='NOT_MET' ",
+        "UNION ALL SELECT 'BPD', patient_id, age, 'BP not controlled / no reading' FROM eli_test_classic_catalog.care_protocol.gold_adherence_bpd WHERE status='NOT_MET' ",
+        "UNION ALL SELECT 'SPD', patient_id, age, 'No statin dispensed' FROM eli_test_classic_catalog.care_protocol.gold_adherence_spd WHERE status='NOT_MET' ",
+        "UNION ALL SELECT 'EED', patient_id, age, 'No diabetic eye exam' FROM eli_test_classic_catalog.care_protocol.gold_adherence_eed WHERE status='NOT_MET' ",
         "ORDER BY measure, age DESC"
       ]
     }
@@ -50,7 +57,7 @@
         {
           "widget": {
             "name": "title",
-            "textbox_spec": "# HEDIS Diabetes Quality — Care Protocol\nGSD & KED compliance from synthetic Epic-shaped data. HEDIS-aligned demo, not NCQA-certified."
+            "textbox_spec": "# HEDIS Diabetes Quality — Care Protocol\nFive HEDIS diabetes measures from synthetic Epic-shaped data, computed deterministically. HEDIS-aligned demo, not NCQA-certified."
           },
           "position": {"x": 0, "y": 0, "width": 12, "height": 1}
         },
@@ -58,7 +65,7 @@
           "widget": {
             "name": "kpi_gsd",
             "queries": [{"name": "q", "query": {"datasetName": "ds_kpi", "fields": [{"name": "gsd_rate", "expression": "`gsd_rate`"}], "disaggregated": true}}],
-            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "gsd_rate", "displayName": "GSD Compliance Rate", "format": {"type": "number-percent", "decimalPlaces": {"type": "max", "places": 1}}}}}
+            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "gsd_rate", "displayName": "GSD — A1c testing", "format": {"type": "number-percent", "decimalPlaces": {"type": "max", "places": 1}}}}}
           },
           "position": {"x": 0, "y": 1, "width": 4, "height": 3}
         },
@@ -66,25 +73,41 @@
           "widget": {
             "name": "kpi_ked",
             "queries": [{"name": "q", "query": {"datasetName": "ds_kpi", "fields": [{"name": "ked_rate", "expression": "`ked_rate`"}], "disaggregated": true}}],
-            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "ked_rate", "displayName": "KED Compliance Rate", "format": {"type": "number-percent", "decimalPlaces": {"type": "max", "places": 1}}}}}
+            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "ked_rate", "displayName": "KED — kidney eval", "format": {"type": "number-percent", "decimalPlaces": {"type": "max", "places": 1}}}}}
           },
           "position": {"x": 4, "y": 1, "width": 4, "height": 3}
         },
         {
           "widget": {
-            "name": "kpi_uacr",
-            "queries": [{"name": "q", "query": {"datasetName": "ds_kpi", "fields": [{"name": "uacr_rate", "expression": "`uacr_rate`"}], "disaggregated": true}}],
-            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "uacr_rate", "displayName": "uACR Test Rate (KED gap driver)", "format": {"type": "number-percent", "decimalPlaces": {"type": "max", "places": 1}}}}}
+            "name": "kpi_bpd",
+            "queries": [{"name": "q", "query": {"datasetName": "ds_kpi", "fields": [{"name": "bpd_rate", "expression": "`bpd_rate`"}], "disaggregated": true}}],
+            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "bpd_rate", "displayName": "BPD — BP control", "format": {"type": "number-percent", "decimalPlaces": {"type": "max", "places": 1}}}}}
           },
           "position": {"x": 8, "y": 1, "width": 4, "height": 3}
         },
         {
           "widget": {
-            "name": "gsd_by_age",
-            "queries": [{"name": "q", "query": {"datasetName": "ds_gsd", "fields": [{"name": "age_band", "expression": "`age_band`"}, {"name": "avg(compliant)", "expression": "AVG(`compliant`)"}], "disaggregated": false}}],
-            "spec": {"version": 3, "widgetType": "bar", "encodings": {"x": {"fieldName": "age_band", "scale": {"type": "categorical"}, "displayName": "Age Band"}, "y": {"fieldName": "avg(compliant)", "scale": {"type": "quantitative"}, "format": {"type": "number-percent", "decimalPlaces": {"type": "max", "places": 0}}, "displayName": "GSD Compliance Rate"}}, "frame": {"title": "GSD compliance by age band", "showTitle": true}}
+            "name": "kpi_spd",
+            "queries": [{"name": "q", "query": {"datasetName": "ds_kpi", "fields": [{"name": "spd_rate", "expression": "`spd_rate`"}], "disaggregated": true}}],
+            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "spd_rate", "displayName": "SPD — statin therapy", "format": {"type": "number-percent", "decimalPlaces": {"type": "max", "places": 1}}}}}
           },
-          "position": {"x": 0, "y": 4, "width": 6, "height": 5}
+          "position": {"x": 0, "y": 4, "width": 6, "height": 3}
+        },
+        {
+          "widget": {
+            "name": "kpi_eed",
+            "queries": [{"name": "q", "query": {"datasetName": "ds_kpi", "fields": [{"name": "eed_rate", "expression": "`eed_rate`"}], "disaggregated": true}}],
+            "spec": {"version": 2, "widgetType": "counter", "encodings": {"value": {"fieldName": "eed_rate", "displayName": "EED — eye exam", "format": {"type": "number-percent", "decimalPlaces": {"type": "max", "places": 1}}}}}
+          },
+          "position": {"x": 6, "y": 4, "width": 6, "height": 3}
+        },
+        {
+          "widget": {
+            "name": "rate_by_measure",
+            "queries": [{"name": "q", "query": {"datasetName": "ds_rates", "fields": [{"name": "measure", "expression": "`measure`"}, {"name": "sum(rate)", "expression": "SUM(`rate`)"}], "disaggregated": false}}],
+            "spec": {"version": 3, "widgetType": "bar", "encodings": {"x": {"fieldName": "measure", "scale": {"type": "categorical"}, "displayName": "Measure"}, "y": {"fieldName": "sum(rate)", "scale": {"type": "quantitative"}, "format": {"type": "number-percent", "decimalPlaces": {"type": "max", "places": 0}}, "displayName": "Compliance Rate"}}, "frame": {"title": "Compliance rate by measure", "showTitle": true}}
+          },
+          "position": {"x": 0, "y": 7, "width": 6, "height": 5}
         },
         {
           "widget": {
@@ -92,14 +115,14 @@
             "queries": [{"name": "q", "query": {"datasetName": "ds_status", "fields": [{"name": "measure", "expression": "`measure`"}, {"name": "status", "expression": "`status`"}, {"name": "sum(n)", "expression": "SUM(`n`)"}], "disaggregated": false}}],
             "spec": {"version": 3, "widgetType": "bar", "encodings": {"x": {"fieldName": "measure", "scale": {"type": "categorical"}, "displayName": "Measure"}, "y": {"fieldName": "sum(n)", "scale": {"type": "quantitative"}, "displayName": "Patients"}, "color": {"fieldName": "status", "scale": {"type": "categorical", "mappings": [{"value": "MET", "color": "#4E79A7"}, {"value": "NOT_MET", "color": "#FF7054"}]}, "displayName": "Status"}}, "frame": {"title": "Patients MET vs care gap, by measure", "showTitle": true}}
           },
-          "position": {"x": 6, "y": 4, "width": 6, "height": 5}
+          "position": {"x": 6, "y": 7, "width": 6, "height": 5}
         },
         {
           "widget": {
             "name": "gaps_header",
             "textbox_spec": "## Care gaps — patients eligible but missing required care"
           },
-          "position": {"x": 0, "y": 9, "width": 12, "height": 1}
+          "position": {"x": 0, "y": 12, "width": 12, "height": 1}
         },
         {
           "widget": {
@@ -107,7 +130,7 @@
             "queries": [{"name": "q", "query": {"datasetName": "ds_gaps", "fields": [{"name": "measure", "expression": "`measure`"}, {"name": "patient_id", "expression": "`patient_id`"}, {"name": "age", "expression": "`age`"}, {"name": "gap_reason", "expression": "`gap_reason`"}], "disaggregated": true}}],
             "spec": {"version": 2, "widgetType": "table", "encodings": {"columns": [{"fieldName": "measure", "displayName": "Measure"}, {"fieldName": "patient_id", "displayName": "Patient"}, {"fieldName": "age", "displayName": "Age"}, {"fieldName": "gap_reason", "displayName": "Gap reason"}]}}
           },
-          "position": {"x": 0, "y": 10, "width": 12, "height": 6}
+          "position": {"x": 0, "y": 13, "width": 12, "height": 6}
         }
       ]
     }
