@@ -231,6 +231,29 @@ resources:
               - xhtml2pdf
 
     # Stage the Genie Ontology Pages (docs/ontology/pages/*.md) into a UC Volume for Genie Code bulk import.
+    # Stage the Pages-ready SOURCE material (facts-only extracts + synthesized corpus) into the second volume
+    # `source_documents` for Genie Code Pages bulk import. Facts-only Markdown only (licensing: ADR-0002/0015);
+    # raw proprietary PDFs are a documented manual step. Re-runnable.
+    stage_source_documents:
+      name: stage_source_documents_${bundle.target}
+      description: Copy facts-only source Markdown (corpus + source_extracts) into /Volumes/<catalog>/care_protocol/source_documents.
+      tasks:
+        - task_key: stage_source_documents
+          spark_python_task:
+            python_file: ../scripts/stage_source_documents.py
+            parameters:
+              - "--src_dir"
+              - "${workspace.file_path}/docs/care_protocol/source_extracts"
+              - "--src_dir"
+              - "${workspace.file_path}/docs/care_protocol/corpus"
+              - "--volume_dir"
+              - "/Volumes/${var.catalog}/care_protocol/source_documents"
+          environment_key: serverless
+      environments:
+        - environment_key: serverless
+          spec:
+            client: "3"
+
     stage_pages:
       name: stage_pages_${bundle.target}
       description: Copy the version-controlled Page sources into /Volumes/<catalog>/care_protocol/ontology_pages.

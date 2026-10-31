@@ -337,6 +337,49 @@ larger HLS platform — the "how much broader utility there is in Databricks" me
 
 ## 11. Session log
 
+### 2026-10-31 (latest+1) — Genie One review actioned: HEDIS view dimensions + snippet density + source volume
+
+Evaluated Genie One's metric-view / agent recommendations against our goals (serious capability map; snippet
+density is demo-critical; persist-everything-as-code). **Status of each rec:**
+
+| # | Recommendation | Verdict | Status |
+|---|---|---|---|
+| MV-1 | Clinic/Panel/**Gap Reason** on the 5 HEDIS views (KED/BPD need a roster join) | High value — unlocks clinic breakdowns + care-gaps-by-reason | **DONE, live** |
+| MV-2 | Lab-results metric view (silver_observation × loinc_parts): patients tested, result count, avg value; by concept/method/code/year | Good — enables the LOINC agent + many lab snippets | **Roadmapped (next)** — needs a backing silver/gold view |
+| MV-3 | Measure-drift metric view (qualifying patients × code-list year × matched code) | Good — formalizes `measure_drift_demo.sql` + the drift dashboard | **Roadmapped** |
+| MV-4 | Protocol-safety metric view (drug class × has-lab × past-threshold × protocol section) | Good — cardiorenal (metformin↔eGFR) safety story | **Roadmapped** — needs design |
+| MV-5 | Metric views in the **dev** schema | Valid gap, but **risky now**: the `dev` target is `mode:development` yet the pipeline writes to the *same* `care_protocol` schema as `ect` (pipelines.yml hardcodes schema), so "dev metric views" without schema isolation would collide with ect | **Roadmapped — needs dev-schema isolation design first; do NOT rush** |
+| AG-1 | **Protocol Process & Medication Adherence** agent (Step-3 + MAD + panel + protocol-watch) — the biggest gap; answers "which clinic has the lowest Step-3 adherence?" | Highest agent-coverage gap | **DONE, live** (`protocol_adherence_agent`) |
+| AG-2 | LOINC Lab Measures agent | Good | **Roadmapped** — depends on MV-2 |
+| AG-3 | Cohort & Terminology agent (ICD-10 hierarchy, cohort, SNOMED eye procs, RxNorm hier, exclusion lists) | Good — self-contained over terminology tables | **Roadmapped (next; buildable as code now)** |
+| AG-4 | HEDIS agent certified/clone drift | Our Genie spaces are **DAB-managed from version-controlled `*.geniespace.json`** — that IS the reconciliation: one source of truth, no hand-edited clones. Certify from the DAB-deployed space | **Addressed by design; documented** |
+| — | GSD exclusions "later iteration" (hospice/ESRD/frailty) | Known honesty gap | **Roadmapped** |
+
+**Did (committed + live on ECT):**
+- **MV-1:** added `.join(_roster())` to `gold_adherence_{ked,bpd,spd,eed}` (gsd/mad/protocol/ssd already had it) and a
+  per-measure **`gap_reason`** column to all 5 HEDIS golds (KED is compound: "No eGFR" / "No uACR" / "No eGFR or uACR").
+  Added **Clinic / Panel / Gap Reason** dimensions to the 5 compliance metric views + gold column comments. Ran
+  measures → semantic. Verified: KED now sliceable by Clinic (was impossible — no clinic col), and care-gaps-by-reason
+  works (KED "No uACR test" = 1,135 is the dominant gap; BPD "not controlled" 685 vs "no reading" 49).
+- **Snippet density (demo-critical), all as code in the `*.geniespace.json` bodies:**
+  - Expanded `care_protocol_agent`: 5→6 measures (added SSD), **6→19** example-SQL snippets (clinic/panel/gap-reason/
+    age-band/worst-clinic/compare-all-six), 8→10 sample questions, instructions teach the new dimensions.
+  - New `protocol_adherence_agent` (AG-1): protocol_adherence + mad metric views + gold_protocol_adherence +
+    gold_adherence_mad + panel_roster + panel_pcp_transition + protocol_watch_findings; **14** example SQLs incl.
+    "which clinic has the lowest Step-3 adherence", pre/post-handoff comparison, and the latest protocol-watch drift.
+  - Net: curated snippets **6 → 33** across two scoped agents (kept separate for Genie accuracy, per the review).
+- **Source-document volume (your PDF question):** the 7 Oct-30 Downloads PDFs had their *facts* mined into
+  `source_extracts/` on 10-31, but the raw PDFs were never volume-synced. Added a **second** volume
+  `source_documents` + `stage_source_documents` job staging the 9 facts-only Markdown files (extracts + corpus) for
+  Genie Code Pages **bulk import**. Licensing guardrail: raw proprietary PDFs (NCQA SSD, HEDIS Toolkit, Johns Hopkins
+  GSD) are **not** volume-synced; public-domain PDFs (VA/DoD CPG, CMS QRS) are a documented manual step. See RUNBOOK.
+
+**Gotcha:** Genie `data_sources.tables`/`metric_views` must be **sorted by identifier** in the `.geniespace.json`
+or the space API rejects it (`must be sorted by identifier`).
+
+**Deferred / did NOT do (with reasons):** MV-2/3/4, AG-2/3, dev-schema metric views (MV-5) — see the table.
+Bulk import itself + raw-PDF upload are manual (RUNBOOK). Nothing destructive done.
+
 ### 2026-10-31 (latest) — SSD measure built, deployed, and run on ECT (ADR-0017); live
 
 **Did (committed + applied to ECT — deploy/run authorized by Eli):**

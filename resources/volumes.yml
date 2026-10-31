@@ -19,3 +19,12 @@ resources:
       name: documents
       volume_type: MANAGED
       comment: Unstructured clinical documents (the care-protocol PDF) for RAG / ai_parse_document — the lineage anchor.
+    source_documents:
+      catalog_name: ${var.catalog}
+      schema_name: ${resources.schemas.care_protocol.name}
+      name: source_documents
+      volume_type: MANAGED
+      comment: >-
+        Pages-ready SOURCE material (facts-only mined extracts + synthesized corpus Markdown) for Genie Code
+        Pages bulk import — a second volume so source docs stay separate from the finished ontology_pages.
+        Staged by scripts/stage_source_documents.py. Raw proprietary PDFs are NOT stored here (see RUNBOOK).

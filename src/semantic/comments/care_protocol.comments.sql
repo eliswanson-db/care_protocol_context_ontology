@@ -192,3 +192,14 @@ COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ssd.smi_dx_code IS 'ICD
 COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ssd.antipsychotic_rxnorm IS 'RxNorm clinical-drug (SCD) code of the dispensed antipsychotic; subsumes to an antipsychotic ingredient via rxnorm_closure.';
 COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ssd.clinic_id IS 'Clinic (site) the SSD patient is seen at. Enables slicing the screening rate by site.';
 COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ssd.panel_id IS 'Care panel the SSD patient belongs to.';
+
+-- gap_reason + site dimensions added to the 5 HEDIS measures (clinic breakdowns + care-gaps-by-reason).
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_gsd.gap_reason IS 'Reason the patient is a care gap (NULL when MET). GSD: "No A1c test in measurement year".';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ked.gap_reason IS 'Reason the patient is a care gap (NULL when MET). KED is compound: "No eGFR test" / "No uACR test" / "No eGFR or uACR test".';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_bpd.gap_reason IS 'Reason the patient is a care gap (NULL when MET). BPD: "No BP reading in measurement year" or "BP not controlled (>=140/90)".';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_spd.gap_reason IS 'Reason the patient is a care gap (NULL when MET). SPD: "No statin dispensed in measurement year".';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_eed.gap_reason IS 'Reason the patient is a care gap (NULL when MET). EED: "No diabetic eye exam in measurement year".';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ked.clinic_id IS 'Clinic (site) the patient panel belongs to (joined from panel_roster). Enables KED care-gap rates by site.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_bpd.clinic_id IS 'Clinic (site) the patient panel belongs to (joined from panel_roster). Enables BPD control rates by site.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_spd.clinic_id IS 'Clinic (site) the patient panel belongs to (joined from panel_roster). Enables SPD care-gap rates by site.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_eed.clinic_id IS 'Clinic (site) the patient panel belongs to (joined from panel_roster). Enables EED care-gap rates by site.';

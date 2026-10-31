@@ -95,8 +95,10 @@ def gold_adherence_gsd():
             .withColumn("status", F.when(F.col("evidence_datetime").isNotNull(), F.lit("MET")).otherwise(F.lit("NOT_MET")))
             .withColumn("a1c_lt8", F.col("evidence_value") < F.lit(8.0))
             .withColumn("a1c_gt9", F.col("evidence_value") > F.lit(9.0))
+            .withColumn("gap_reason", F.when(F.col("evidence_datetime").isNotNull(), F.lit(None).cast("string"))
+                        .otherwise(F.lit("No A1c test in measurement year")))
             .select("patient_id", "measure_id", "measurement_year", "period_start", "period_end",
-                    "age", "eligible_flag", "numerator_flag", "status",
+                    "age", "eligible_flag", "numerator_flag", "status", "gap_reason",
                     "evidence_datetime", "evidence_code", "evidence_value", "a1c_lt8", "a1c_gt9")
             .join(_roster(), "patient_id", "left"))
 
@@ -148,9 +150,15 @@ def gold_adherence_ked():
             .withColumn("numerator_flag", F.col("egfr_datetime").isNotNull() & F.col("uacr_datetime").isNotNull())
             .withColumn("status", F.when(F.col("egfr_datetime").isNotNull() & F.col("uacr_datetime").isNotNull(),
                                          F.lit("MET")).otherwise(F.lit("NOT_MET")))
+            .withColumn("gap_reason",
+                        F.when(F.col("egfr_datetime").isNotNull() & F.col("uacr_datetime").isNotNull(), F.lit(None).cast("string"))
+                        .when(F.col("egfr_datetime").isNull() & F.col("uacr_datetime").isNull(), F.lit("No eGFR or uACR test"))
+                        .when(F.col("egfr_datetime").isNull(), F.lit("No eGFR test"))
+                        .otherwise(F.lit("No uACR test")))
             .select("patient_id", "measure_id", "measurement_year", "period_start", "period_end", "age",
-                    "eligible_flag", "egfr_flag", "uacr_flag", "numerator_flag", "status",
-                    "egfr_datetime", "egfr_code", "egfr_value", "uacr_datetime", "uacr_code", "uacr_value"))
+                    "eligible_flag", "egfr_flag", "uacr_flag", "numerator_flag", "status", "gap_reason",
+                    "egfr_datetime", "egfr_code", "egfr_value", "uacr_datetime", "uacr_code", "uacr_value")
+            .join(_roster(), "patient_id", "left"))
 
 
 # ---------------- Gold: BPD (Blood Pressure control for Patients With Diabetes) ----------------
@@ -195,8 +203,12 @@ def gold_adherence_bpd():
             .withColumn("eligible_flag", F.lit(True))
             .withColumn("numerator_flag", controlled)
             .withColumn("status", F.when(controlled, F.lit("MET")).otherwise(F.lit("NOT_MET")))
+            .withColumn("gap_reason", F.when(controlled, F.lit(None).cast("string"))
+                        .when(F.col("bp_datetime").isNull(), F.lit("No BP reading in measurement year"))
+                        .otherwise(F.lit("BP not controlled (>=140/90)")))
             .select("patient_id", "measure_id", "measurement_year", "period_start", "period_end", "age",
-                    "eligible_flag", "numerator_flag", "status", "bp_datetime", "systolic", "diastolic"))
+                    "eligible_flag", "numerator_flag", "status", "gap_reason", "bp_datetime", "systolic", "diastolic")
+            .join(_roster(), "patient_id", "left"))
 
 
 # ---------------- Gold: SPD (Statin Therapy for Patients With Diabetes) ----------------
@@ -241,9 +253,12 @@ def gold_adherence_spd():
             .withColumn("eligible_flag", F.lit(True))
             .withColumn("numerator_flag", F.col("evidence_datetime").isNotNull())
             .withColumn("status", F.when(F.col("evidence_datetime").isNotNull(), F.lit("MET")).otherwise(F.lit("NOT_MET")))
+            .withColumn("gap_reason", F.when(F.col("evidence_datetime").isNotNull(), F.lit(None).cast("string"))
+                        .otherwise(F.lit("No statin dispensed in measurement year")))
             .select("patient_id", "measure_id", "measurement_year", "period_start", "period_end", "age",
-                    "eligible_flag", "numerator_flag", "status",
-                    "evidence_datetime", "evidence_code", "evidence_drug"))
+                    "eligible_flag", "numerator_flag", "status", "gap_reason",
+                    "evidence_datetime", "evidence_code", "evidence_drug")
+            .join(_roster(), "patient_id", "left"))
 
 
 # ---------------- Gold: EED (Eye Exam for Patients With Diabetes) ----------------
@@ -282,9 +297,12 @@ def gold_adherence_eed():
             .withColumn("eligible_flag", F.lit(True))
             .withColumn("numerator_flag", F.col("evidence_datetime").isNotNull())
             .withColumn("status", F.when(F.col("evidence_datetime").isNotNull(), F.lit("MET")).otherwise(F.lit("NOT_MET")))
+            .withColumn("gap_reason", F.when(F.col("evidence_datetime").isNotNull(), F.lit(None).cast("string"))
+                        .otherwise(F.lit("No diabetic eye exam in measurement year")))
             .select("patient_id", "measure_id", "measurement_year", "period_start", "period_end", "age",
-                    "eligible_flag", "numerator_flag", "status",
-                    "evidence_datetime", "evidence_code", "evidence_exam"))
+                    "eligible_flag", "numerator_flag", "status", "gap_reason",
+                    "evidence_datetime", "evidence_code", "evidence_exam")
+            .join(_roster(), "patient_id", "left"))
 
 
 # ---------------- Protocol-STEP adherence (the "A Monday with Genie" hero: did the due event happen in time?) ----

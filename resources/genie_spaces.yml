@@ -13,3 +13,17 @@ resources:
       warehouse_id: ${var.warehouse_id}
       parent_path: /Workspace/Users/eli.swanson@databricks.com/genie_spaces
       file_path: ./care_protocol.geniespace.json
+
+    # Protocol Process & Medication Adherence agent (the biggest coverage gap per the Genie One review):
+    # care-PROCESS adherence (Step-3 follow-up) + MAD, with panel / handoff / protocol-watch context — the
+    # agent that answers "which clinic has the lowest Step-3 adherence?". Scoped separately from the HEDIS
+    # outcome agent on purpose (keeps each space's examples dense and on-topic). Body: protocol_adherence.geniespace.json.
+    protocol_adherence_agent:
+      title: Care Protocol — Protocol Process & Medication Adherence (${bundle.target})
+      description: >-
+        Curated Genie Agent over diabetes care-PROCESS adherence: Protocol Step-3 follow-up and Medication
+        Adherence (MAD), with panel, PCP-handoff, and weekly protocol-watch context. Answers clinic/panel
+        drift questions. HEDIS-aligned demo, not NCQA-certified.
+      warehouse_id: ${var.warehouse_id}
+      parent_path: /Workspace/Users/eli.swanson@databricks.com/genie_spaces
+      file_path: ./protocol_adherence.geniespace.json

@@ -20,6 +20,21 @@ dimensions:
     comment: "MET = both an eGFR and a uACR test were found in the measurement year; NOT_MET = at least one is missing."
     synonyms: [status, met status, adherence status, gap status]
     display_name: Compliance Status
+  - name: Clinic
+    expr: clinic_id
+    comment: "Clinic (site) the patient's panel belongs to. Enables care-gap and compliance rates by site."
+    synonyms: [clinic, site, location, facility]
+    display_name: Clinic
+  - name: Panel
+    expr: panel_id
+    comment: "PCP panel the patient belongs to."
+    synonyms: [panel, pcp panel, provider panel, care team]
+    display_name: Panel
+  - name: Gap Reason
+    expr: COALESCE(gap_reason, 'Met')
+    comment: "Why the patient is a care gap (NOT_MET); 'Met' when compliant. Group care gaps by reason."
+    synonyms: [gap reason, reason, care gap reason, why gap]
+    display_name: Gap Reason
   - name: Age Band
     expr: CASE
       WHEN age < 45 THEN '18-44'

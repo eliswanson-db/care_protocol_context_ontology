@@ -1,0 +1,226 @@
+{
+  "version": 2,
+  "config": {
+    "sample_questions": [
+      {
+        "id": "00000000000000000000000000000001",
+        "question": [
+          "What is the overall protocol Step-3 follow-up adherence rate?"
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000002",
+        "question": [
+          "Which clinic has the lowest Step-3 adherence?"
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000003",
+        "question": [
+          "Show Step-3 adherence by clinic over the measurement year."
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000004",
+        "question": [
+          "What is the medication adherence (MAD) rate, and the average PDC?"
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000005",
+        "question": [
+          "Which clinic has the lowest diabetes medication adherence?"
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000006",
+        "question": [
+          "Are there any protocol-drift findings from the weekly watch?"
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000007",
+        "question": [
+          "Which clinic had a mid-year PCP handoff, and what happened?"
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000008",
+        "question": [
+          "How many high-A1c triggers were not followed up within 90 days?"
+        ]
+      }
+    ]
+  },
+  "data_sources": {
+    "tables": [
+      {
+        "identifier": "eli_test_classic_catalog.care_protocol.gold_adherence_mad"
+      },
+      {
+        "identifier": "eli_test_classic_catalog.care_protocol.gold_protocol_adherence"
+      },
+      {
+        "identifier": "eli_test_classic_catalog.care_protocol.panel_pcp_transition"
+      },
+      {
+        "identifier": "eli_test_classic_catalog.care_protocol.panel_roster"
+      },
+      {
+        "identifier": "eli_test_classic_catalog.care_protocol.protocol_watch_findings"
+      }
+    ],
+    "metric_views": [
+      {
+        "identifier": "eli_test_classic_catalog.care_protocol_semantic.mad_compliance_metrics"
+      },
+      {
+        "identifier": "eli_test_classic_catalog.care_protocol_semantic.protocol_adherence_metrics"
+      }
+    ]
+  },
+  "instructions": {
+    "example_question_sqls": [
+      {
+        "id": "00000000000000000000000000000001",
+        "question": [
+          "What is the overall protocol Step-3 follow-up adherence rate?"
+        ],
+        "sql": [
+          "SELECT MEASURE(`Protocol Step 3 Adherence Rate`) AS step3_rate, MEASURE(`Trigger Events`) AS triggers FROM eli_test_classic_catalog.care_protocol_semantic.protocol_adherence_metrics"
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000002",
+        "question": [
+          "Which clinic has the lowest Step-3 adherence?"
+        ],
+        "sql": [
+          "SELECT `Clinic`, MEASURE(`Trigger Events`) AS triggers, MEASURE(`Protocol Step 3 Adherence Rate`) AS rate FROM eli_test_classic_catalog.care_protocol_semantic.protocol_adherence_metrics GROUP BY `Clinic` ORDER BY rate ASC LIMIT 1"
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000003",
+        "question": [
+          "Show Step-3 adherence by clinic, worst first."
+        ],
+        "sql": [
+          "SELECT `Clinic`, MEASURE(`Trigger Events`) AS triggers, MEASURE(`Protocol Step 3 Adherence Rate`) AS rate FROM eli_test_classic_catalog.care_protocol_semantic.protocol_adherence_metrics GROUP BY `Clinic` ORDER BY rate ASC"
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000004",
+        "question": [
+          "What is the average days-to-follow-up after a high A1c?"
+        ],
+        "sql": [
+          "SELECT MEASURE(`Avg Days To Follow-up`) AS avg_days FROM eli_test_classic_catalog.care_protocol_semantic.protocol_adherence_metrics"
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000005",
+        "question": [
+          "Show Step-3 adherence by panel for the worst five panels."
+        ],
+        "sql": [
+          "SELECT `Panel`, MEASURE(`Trigger Events`) AS triggers, MEASURE(`Protocol Step 3 Adherence Rate`) AS rate FROM eli_test_classic_catalog.care_protocol_semantic.protocol_adherence_metrics GROUP BY `Panel` ORDER BY rate ASC LIMIT 5"
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000006",
+        "question": [
+          "What is the diabetes medication adherence (MAD) rate and the average PDC?"
+        ],
+        "sql": [
+          "SELECT MEASURE(`MAD Adherence Rate`) AS mad_rate, MEASURE(`Avg PDC`) AS avg_pdc FROM eli_test_classic_catalog.care_protocol_semantic.mad_compliance_metrics"
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000007",
+        "question": [
+          "Which clinic has the lowest medication adherence (MAD)?"
+        ],
+        "sql": [
+          "SELECT `Clinic`, MEASURE(`Eligible Patients`) AS eligible, MEASURE(`MAD Adherence Rate`) AS rate FROM eli_test_classic_catalog.care_protocol_semantic.mad_compliance_metrics GROUP BY `Clinic` ORDER BY rate ASC LIMIT 1"
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000008",
+        "question": [
+          "Show the MAD adherence rate by age band."
+        ],
+        "sql": [
+          "SELECT `Age Band`, MEASURE(`MAD Adherence Rate`) AS rate FROM eli_test_classic_catalog.care_protocol_semantic.mad_compliance_metrics GROUP BY `Age Band` ORDER BY `Age Band`"
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000009",
+        "question": [
+          "Break Step-3 adherence down by follow-up type."
+        ],
+        "sql": [
+          "SELECT `Follow-up Type`, MEASURE(`Trigger Events`) AS triggers, MEASURE(`Protocol Step 3 Adherence Rate`) AS rate FROM eli_test_classic_catalog.care_protocol_semantic.protocol_adherence_metrics GROUP BY `Follow-up Type` ORDER BY triggers DESC"
+        ]
+      },
+      {
+        "id": "0000000000000000000000000000000a",
+        "question": [
+          "Are there any protocol-drift findings from the weekly watch?"
+        ],
+        "sql": [
+          "SELECT clinic_id, month, measure_id, severity, ROUND(t_rate,3) AS window_rate, ROUND(baseline,3) AS baseline_rate, ROUND(delta,3) AS delta, narrative FROM eli_test_classic_catalog.care_protocol.protocol_watch_findings WHERE finding_type = 'STEP_DRIFT' AND as_of = (SELECT MAX(as_of) FROM eli_test_classic_catalog.care_protocol.protocol_watch_findings) ORDER BY delta ASC"
+        ]
+      },
+      {
+        "id": "0000000000000000000000000000000b",
+        "question": [
+          "Which clinic had a mid-year PCP handoff, and what happened?"
+        ],
+        "sql": [
+          "SELECT clinic_id, change_type, transition_date, narrative FROM eli_test_classic_catalog.care_protocol.panel_pcp_transition"
+        ]
+      },
+      {
+        "id": "0000000000000000000000000000000c",
+        "question": [
+          "How many high-A1c triggers were not followed up within 90 days?"
+        ],
+        "sql": [
+          "SELECT COUNT(*) AS missed_followups FROM eli_test_classic_catalog.care_protocol.gold_protocol_adherence WHERE status = 'NOT_MET'"
+        ]
+      },
+      {
+        "id": "0000000000000000000000000000000d",
+        "question": [
+          "How many patients are on the disrupted (handoff) clinic's panels?"
+        ],
+        "sql": [
+          "SELECT clinic_id, COUNT(*) AS patients FROM eli_test_classic_catalog.care_protocol.panel_roster WHERE is_handoff = true GROUP BY clinic_id"
+        ]
+      },
+      {
+        "id": "0000000000000000000000000000000e",
+        "question": [
+          "Compare Step-3 follow-up before vs after the mid-year transition, disrupted clinic vs rest."
+        ],
+        "sql": [
+          "SELECT CASE WHEN r.is_handoff THEN 'disrupted clinic' ELSE 'rest' END AS cohort, CASE WHEN p.trigger_ts < DATE'2025-07-15' THEN '1_pre' ELSE '2_post' END AS period, COUNT(*) AS triggers, ROUND(AVG(CAST(p.followup_within_90d AS INT)),3) AS followup_rate FROM eli_test_classic_catalog.care_protocol.gold_protocol_adherence p JOIN eli_test_classic_catalog.care_protocol.panel_roster r USING (patient_id) GROUP BY 1,2 ORDER BY 1,2"
+        ]
+      }
+    ],
+    "text_instructions": [
+      {
+        "id": "c0000000000000000000000000000001",
+        "content": [
+          "This agent answers questions about diabetes care-PROCESS adherence (did the right follow-up happen in time?), distinct from the outcome HEDIS measures. HEDIS-aligned demo, not NCQA-certified.",
+          "Two governed metric views: protocol_adherence_metrics (Protocol Step 3) and mad_compliance_metrics (Medication Adherence for Diabetes). Query rates with MEASURE(`<name>`); never SUM/AVG a rate.",
+          "Protocol Step 3: after an A1c at/above target, the protocol expects a recheck A1c or a therapy change within 90 days. `Protocol Step 3 Adherence Rate` = followed-up triggers / all triggers. Dimensions: Measurement Year, Clinic, Panel, Adherence Status, Follow-up Type. To answer 'which clinic has the lowest Step-3 adherence', GROUP BY `Clinic` and ORDER BY the rate ascending.",
+          "MAD: diabetes patients 18+ with >=2 med fills; adherent = PDC >= 80%. `MAD Adherence Rate` and `Avg PDC`. Dimensions: Measurement Year, Clinic, Panel, Adherence Status, Age Band.",
+          "One clinic (CLINIC-08) had a mid-year PCP handoff (panel_pcp_transition) that degraded timely follow-up for a few months then recovered; the effect is confounded with that clinic's higher patient complexity. Use panel_roster.is_handoff to identify the disrupted clinic.",
+          "protocol_watch_findings is the weekly protocol-watch log (append-only; filter to the latest as_of). finding_type='STEP_DRIFT' rows flag a clinic-month where Step-3 adherence dropped vs that clinic's own prior baseline (delta < 0, worst = most negative); NO_DRIFT means it held steady.",
+          "For patient-level detail use gold_protocol_adherence (one row per high-A1c trigger; status NOT_MET = no timely follow-up) and gold_adherence_mad (one row per eligible patient, with pdc). clinic_id / panel_id are on both."
+        ]
+      }
+    ]
+  }
+}

@@ -2,54 +2,301 @@
   "version": 2,
   "config": {
     "sample_questions": [
-      {"id": "a0000000000000000000000000000001", "question": ["What is the overall GSD compliance rate?"]},
-      {"id": "a0000000000000000000000000000002", "question": ["Show the GSD compliance rate by age band."]},
-      {"id": "a0000000000000000000000000000003", "question": ["What is the KED compliance rate, and how do the eGFR and uACR components compare?"]},
-      {"id": "a0000000000000000000000000000004", "question": ["How many diabetic patients have a care gap for kidney evaluation (KED)?"]},
-      {"id": "a0000000000000000000000000000005", "question": ["What is the blood pressure control (BPD) rate for diabetic patients?"]},
-      {"id": "a0000000000000000000000000000006", "question": ["What share of eligible diabetic patients are on statin therapy (SPD)?"]},
-      {"id": "a0000000000000000000000000000007", "question": ["What is the diabetic eye exam (EED) rate?"]},
-      {"id": "a0000000000000000000000000000008", "question": ["Compare all five diabetes measure compliance rates."]}
+      {
+        "id": "00000000000000000000000000000001",
+        "question": [
+          "What is the overall GSD compliance rate?"
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000002",
+        "question": [
+          "Show the GSD compliance rate by age band."
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000003",
+        "question": [
+          "Which clinic has the lowest KED compliance rate?"
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000004",
+        "question": [
+          "Break down KED care gaps by reason."
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000005",
+        "question": [
+          "What is the blood pressure control (BPD) rate by clinic?"
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000006",
+        "question": [
+          "What share of eligible diabetic patients are on statin therapy (SPD)?"
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000007",
+        "question": [
+          "What is the diabetic eye exam (EED) rate, and which clinic is worst?"
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000008",
+        "question": [
+          "What is the SSD diabetes-screening rate for patients on antipsychotics?"
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000009",
+        "question": [
+          "Compare all six diabetes quality measure compliance rates."
+        ]
+      },
+      {
+        "id": "0000000000000000000000000000000a",
+        "question": [
+          "Show care gaps by reason for the BPD measure."
+        ]
+      }
     ]
   },
   "data_sources": {
     "tables": [
-      {"identifier": "eli_test_classic_catalog.care_protocol.gold_adherence_bpd"},
-      {"identifier": "eli_test_classic_catalog.care_protocol.gold_adherence_eed"},
-      {"identifier": "eli_test_classic_catalog.care_protocol.gold_adherence_gsd"},
-      {"identifier": "eli_test_classic_catalog.care_protocol.gold_adherence_ked"},
-      {"identifier": "eli_test_classic_catalog.care_protocol.gold_adherence_spd"}
+      {
+        "identifier": "eli_test_classic_catalog.care_protocol.gold_adherence_bpd"
+      },
+      {
+        "identifier": "eli_test_classic_catalog.care_protocol.gold_adherence_eed"
+      },
+      {
+        "identifier": "eli_test_classic_catalog.care_protocol.gold_adherence_gsd"
+      },
+      {
+        "identifier": "eli_test_classic_catalog.care_protocol.gold_adherence_ked"
+      },
+      {
+        "identifier": "eli_test_classic_catalog.care_protocol.gold_adherence_spd"
+      },
+      {
+        "identifier": "eli_test_classic_catalog.care_protocol.gold_adherence_ssd"
+      }
     ],
     "metric_views": [
-      {"identifier": "eli_test_classic_catalog.care_protocol_semantic.bpd_compliance_metrics"},
-      {"identifier": "eli_test_classic_catalog.care_protocol_semantic.eed_compliance_metrics"},
-      {"identifier": "eli_test_classic_catalog.care_protocol_semantic.gsd_compliance_metrics"},
-      {"identifier": "eli_test_classic_catalog.care_protocol_semantic.ked_compliance_metrics"},
-      {"identifier": "eli_test_classic_catalog.care_protocol_semantic.spd_compliance_metrics"}
+      {
+        "identifier": "eli_test_classic_catalog.care_protocol_semantic.bpd_compliance_metrics"
+      },
+      {
+        "identifier": "eli_test_classic_catalog.care_protocol_semantic.eed_compliance_metrics"
+      },
+      {
+        "identifier": "eli_test_classic_catalog.care_protocol_semantic.gsd_compliance_metrics"
+      },
+      {
+        "identifier": "eli_test_classic_catalog.care_protocol_semantic.ked_compliance_metrics"
+      },
+      {
+        "identifier": "eli_test_classic_catalog.care_protocol_semantic.spd_compliance_metrics"
+      },
+      {
+        "identifier": "eli_test_classic_catalog.care_protocol_semantic.ssd_compliance_metrics"
+      }
     ]
   },
   "instructions": {
     "example_question_sqls": [
-      {"id": "b0000000000000000000000000000001", "question": ["What is the overall GSD compliance rate?"], "sql": ["SELECT MEASURE(`GSD Compliance Rate`) AS gsd_compliance_rate FROM eli_test_classic_catalog.care_protocol_semantic.gsd_compliance_metrics"]},
-      {"id": "b0000000000000000000000000000002", "question": ["What is the KED compliance rate and its eGFR and uACR components?"], "sql": ["SELECT MEASURE(`KED Compliance Rate`) AS ked_rate, MEASURE(`eGFR Test Rate`) AS egfr_rate, MEASURE(`uACR Test Rate`) AS uacr_rate FROM eli_test_classic_catalog.care_protocol_semantic.ked_compliance_metrics"]},
-      {"id": "b0000000000000000000000000000003", "question": ["How many patients have a KED care gap?"], "sql": ["SELECT COUNT(*) AS ked_care_gaps FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked WHERE status = 'NOT_MET'"]},
-      {"id": "b0000000000000000000000000000004", "question": ["What is the blood pressure control (BPD) rate?"], "sql": ["SELECT MEASURE(`BPD Compliance Rate`) AS bpd_rate FROM eli_test_classic_catalog.care_protocol_semantic.bpd_compliance_metrics"]},
-      {"id": "b0000000000000000000000000000005", "question": ["What is the statin therapy (SPD) rate?"], "sql": ["SELECT MEASURE(`SPD Compliance Rate`) AS spd_rate FROM eli_test_classic_catalog.care_protocol_semantic.spd_compliance_metrics"]},
-      {"id": "b0000000000000000000000000000006", "question": ["What is the diabetic eye exam (EED) rate?"], "sql": ["SELECT MEASURE(`EED Compliance Rate`) AS eed_rate FROM eli_test_classic_catalog.care_protocol_semantic.eed_compliance_metrics"]}
+      {
+        "id": "00000000000000000000000000000001",
+        "question": [
+          "What is the overall GSD compliance rate?"
+        ],
+        "sql": [
+          "SELECT MEASURE(`GSD Compliance Rate`) AS gsd_rate FROM eli_test_classic_catalog.care_protocol_semantic.gsd_compliance_metrics"
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000002",
+        "question": [
+          "Show the GSD compliance rate by age band."
+        ],
+        "sql": [
+          "SELECT `Age Band`, MEASURE(`GSD Compliance Rate`) AS rate FROM eli_test_classic_catalog.care_protocol_semantic.gsd_compliance_metrics GROUP BY `Age Band` ORDER BY `Age Band`"
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000003",
+        "question": [
+          "Show the GSD compliance rate by clinic, worst first."
+        ],
+        "sql": [
+          "SELECT `Clinic`, MEASURE(`Eligible Patients`) AS eligible, MEASURE(`GSD Compliance Rate`) AS rate FROM eli_test_classic_catalog.care_protocol_semantic.gsd_compliance_metrics GROUP BY `Clinic` ORDER BY rate ASC"
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000004",
+        "question": [
+          "What is the GSD poor glycemic control rate (A1c > 9)?"
+        ],
+        "sql": [
+          "SELECT MEASURE(`Poor Control Rate`) AS poor_control_rate FROM eli_test_classic_catalog.care_protocol_semantic.gsd_compliance_metrics"
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000005",
+        "question": [
+          "What is the KED compliance rate and its eGFR and uACR components?"
+        ],
+        "sql": [
+          "SELECT MEASURE(`KED Compliance Rate`) AS ked_rate, MEASURE(`eGFR Test Rate`) AS egfr_rate, MEASURE(`uACR Test Rate`) AS uacr_rate FROM eli_test_classic_catalog.care_protocol_semantic.ked_compliance_metrics"
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000006",
+        "question": [
+          "Which clinic has the lowest KED compliance rate?"
+        ],
+        "sql": [
+          "SELECT `Clinic`, MEASURE(`Eligible Patients`) AS eligible, MEASURE(`KED Compliance Rate`) AS rate FROM eli_test_classic_catalog.care_protocol_semantic.ked_compliance_metrics GROUP BY `Clinic` ORDER BY rate ASC LIMIT 1"
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000007",
+        "question": [
+          "Break down KED care gaps by reason."
+        ],
+        "sql": [
+          "SELECT `Gap Reason`, MEASURE(`Eligible Patients`) AS patients FROM eli_test_classic_catalog.care_protocol_semantic.ked_compliance_metrics GROUP BY `Gap Reason` ORDER BY patients DESC"
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000008",
+        "question": [
+          "What is the blood pressure control (BPD) rate by clinic?"
+        ],
+        "sql": [
+          "SELECT `Clinic`, MEASURE(`BPD Compliance Rate`) AS rate, MEASURE(`Avg Systolic`) AS avg_sys, MEASURE(`Avg Diastolic`) AS avg_dia FROM eli_test_classic_catalog.care_protocol_semantic.bpd_compliance_metrics GROUP BY `Clinic` ORDER BY rate ASC"
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000009",
+        "question": [
+          "Show BPD care gaps by reason."
+        ],
+        "sql": [
+          "SELECT `Gap Reason`, MEASURE(`Eligible Patients`) AS patients FROM eli_test_classic_catalog.care_protocol_semantic.bpd_compliance_metrics GROUP BY `Gap Reason` ORDER BY patients DESC"
+        ]
+      },
+      {
+        "id": "0000000000000000000000000000000a",
+        "question": [
+          "What share of eligible diabetic patients are on statin therapy (SPD)?"
+        ],
+        "sql": [
+          "SELECT MEASURE(`SPD Compliance Rate`) AS spd_rate FROM eli_test_classic_catalog.care_protocol_semantic.spd_compliance_metrics"
+        ]
+      },
+      {
+        "id": "0000000000000000000000000000000b",
+        "question": [
+          "Show the SPD statin-therapy rate by clinic."
+        ],
+        "sql": [
+          "SELECT `Clinic`, MEASURE(`SPD Compliance Rate`) AS rate FROM eli_test_classic_catalog.care_protocol_semantic.spd_compliance_metrics GROUP BY `Clinic` ORDER BY rate ASC"
+        ]
+      },
+      {
+        "id": "0000000000000000000000000000000c",
+        "question": [
+          "What is the diabetic eye exam (EED) rate?"
+        ],
+        "sql": [
+          "SELECT MEASURE(`EED Compliance Rate`) AS eed_rate FROM eli_test_classic_catalog.care_protocol_semantic.eed_compliance_metrics"
+        ]
+      },
+      {
+        "id": "0000000000000000000000000000000d",
+        "question": [
+          "Which clinic has the lowest EED eye-exam rate?"
+        ],
+        "sql": [
+          "SELECT `Clinic`, MEASURE(`EED Compliance Rate`) AS rate FROM eli_test_classic_catalog.care_protocol_semantic.eed_compliance_metrics GROUP BY `Clinic` ORDER BY rate ASC LIMIT 1"
+        ]
+      },
+      {
+        "id": "0000000000000000000000000000000e",
+        "question": [
+          "What is the SSD diabetes-screening rate for patients on antipsychotics?"
+        ],
+        "sql": [
+          "SELECT MEASURE(`SSD Compliance Rate`) AS ssd_rate, MEASURE(`Eligible Patients`) AS eligible FROM eli_test_classic_catalog.care_protocol_semantic.ssd_compliance_metrics"
+        ]
+      },
+      {
+        "id": "0000000000000000000000000000000f",
+        "question": [
+          "Show the SSD screening rate by clinic, worst first."
+        ],
+        "sql": [
+          "SELECT `Clinic`, MEASURE(`Eligible Patients`) AS eligible, MEASURE(`SSD Compliance Rate`) AS rate FROM eli_test_classic_catalog.care_protocol_semantic.ssd_compliance_metrics GROUP BY `Clinic` ORDER BY rate ASC"
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000010",
+        "question": [
+          "Show the SSD screening rate by age band."
+        ],
+        "sql": [
+          "SELECT `Age Band`, MEASURE(`SSD Compliance Rate`) AS rate FROM eli_test_classic_catalog.care_protocol_semantic.ssd_compliance_metrics GROUP BY `Age Band` ORDER BY `Age Band`"
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000011",
+        "question": [
+          "How many patients have a KED care gap?"
+        ],
+        "sql": [
+          "SELECT COUNT(*) AS ked_care_gaps FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked WHERE status = 'NOT_MET'"
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000012",
+        "question": [
+          "List the clinics ranked by EED care-gap count."
+        ],
+        "sql": [
+          "SELECT clinic_id, COUNT(*) AS care_gaps FROM eli_test_classic_catalog.care_protocol.gold_adherence_eed WHERE status = 'NOT_MET' GROUP BY clinic_id ORDER BY care_gaps DESC"
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000013",
+        "question": [
+          "Compare all six diabetes quality measure compliance rates."
+        ],
+        "sql": [
+          "SELECT 'GSD' AS measure, MEASURE(`GSD Compliance Rate`) AS rate FROM eli_test_classic_catalog.care_protocol_semantic.gsd_compliance_metrics UNION ALL SELECT 'KED', MEASURE(`KED Compliance Rate`) FROM eli_test_classic_catalog.care_protocol_semantic.ked_compliance_metrics UNION ALL SELECT 'BPD', MEASURE(`BPD Compliance Rate`) FROM eli_test_classic_catalog.care_protocol_semantic.bpd_compliance_metrics UNION ALL SELECT 'SPD', MEASURE(`SPD Compliance Rate`) FROM eli_test_classic_catalog.care_protocol_semantic.spd_compliance_metrics UNION ALL SELECT 'EED', MEASURE(`EED Compliance Rate`) FROM eli_test_classic_catalog.care_protocol_semantic.eed_compliance_metrics UNION ALL SELECT 'SSD', MEASURE(`SSD Compliance Rate`) FROM eli_test_classic_catalog.care_protocol_semantic.ssd_compliance_metrics ORDER BY measure"
+        ]
+      }
     ],
     "text_instructions": [
-      {"id": "c0000000000000000000000000000001", "content": [
-        "This agent answers questions about five HEDIS diabetes quality measures (HEDIS-aligned demo, not NCQA-certified): GSD, KED, BPD, SPD, EED.",
-        "For measure RATES, query the matching metric view (gsd/ked/bpd/spd/eed_compliance_metrics) using MEASURE(`<measure name>`), e.g. MEASURE(`GSD Compliance Rate`). Never SUM or AVG a rate column.",
-        "GSD = Glycemic Status Assessment: diabetics aged 18-75 with an A1c test in the measurement year.",
-        "KED = Kidney Health Evaluation: diabetics aged 18-85 with BOTH an eGFR and a uACR test; uACR is usually the limiting component.",
-        "BPD = Blood Pressure control: diabetics aged 18-75 whose most recent BP reading is <140/90.",
-        "SPD = Statin Therapy: diabetics aged 40-75 dispensed a statin in the measurement year.",
-        "EED = Eye Exam: diabetics aged 18-75 with a retinal/diabetic eye exam in the measurement year.",
-        "Each measure has a metric view (rates, with dimensions Measurement Year, Compliance Status, Age Band, Measure) and a gold_adherence_<measure> table (patient-level detail + evidence).",
-        "For patient-level detail or care gaps, use gold_adherence_<measure>. status = 'NOT_MET' means a care gap; 'MET' means compliant.",
-        "The diabetes cohort is defined by subsumption over the ICD-10-CM hierarchy (diagnoses under E10/E11/E13)."
-      ]}
+      {
+        "id": "c0000000000000000000000000000001",
+        "content": [
+          "This agent answers questions about six HEDIS diabetes quality measures (HEDIS-aligned demo, not NCQA-certified): GSD, KED, BPD, SPD, EED, and SSD.",
+          "For measure RATES, query the matching metric view (gsd/ked/bpd/spd/eed/ssd_compliance_metrics) using MEASURE(`<measure name>`), e.g. MEASURE(`GSD Compliance Rate`). Never SUM or AVG a rate column.",
+          "Every compliance metric view has dimensions Measurement Year, Compliance Status, Clinic, Panel, Gap Reason, Age Band, Measure. To break a rate down by site, GROUP BY `Clinic`; to explain care gaps, GROUP BY `Gap Reason` (it shows 'Met' for compliant patients).",
+          "GSD = Glycemic Status Assessment: diabetics aged 18-75 with an A1c test in the measurement year. Also exposes Poor Control Rate (A1c > 9).",
+          "KED = Kidney Health Evaluation: diabetics aged 18-85 with BOTH an eGFR and a uACR test; uACR is usually the limiting component (see Gap Reason).",
+          "BPD = Blood Pressure control: diabetics aged 18-75 whose most recent BP reading is <140/90. Gap Reason distinguishes 'no reading' from 'not controlled'.",
+          "SPD = Statin Therapy: diabetics aged 40-75 dispensed a statin in the measurement year.",
+          "EED = Eye Exam: diabetics aged 18-75 with a retinal/diabetic eye exam in the measurement year.",
+          "SSD = Diabetes Screening for People on Antipsychotics: this is a SEPARATE cohort (serious mental illness + antipsychotic dispensing, ages 18-64), NOT the diabetes cohort. Numerator is a glucose or HbA1c screen.",
+          "For patient-level detail or care gaps, use gold_adherence_<measure>. status = 'NOT_MET' means a care gap; 'MET' means compliant. clinic_id / panel_id are on every gold table.",
+          "The diabetes cohort is defined by subsumption over the ICD-10-CM hierarchy (diagnoses under E10/E11/E13)."
+        ]
+      }
     ]
   }
 }

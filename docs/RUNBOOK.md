@@ -70,10 +70,42 @@ Ordered operational steps that are **not** automated by the bundle. Keep this cu
   review the proposed Pages → assign to the **Clinical Domain** domain → publish. Pages require a domain
   first (run the domains script above). Pages are Beta.
 
-## AI/BI dashboard + Genie Agent (bundle-managed)
+## Source-document volume — build MORE Pages via bulk import (second volume)
+Purpose: a staging ground of **Pages-ready SOURCE material** (facts-only mined extracts + the synthesized
+corpus), kept separate from the finished `ontology_pages`, so you can generate additional Pages with Genie
+Code without mixing sources and outputs.
+- 🤖 `bundle run stage_source_documents -t ect` copies the 9 version-controlled facts-only Markdown files
+  (`docs/care_protocol/source_extracts/*.md` + `docs/care_protocol/corpus/*.md`) into the second volume
+  **`/Volumes/${var.catalog}/care_protocol/source_documents`** (flat, named `<group>__<file>.md`). Re-runnable.
+- ⚙ **Genie Code bulk import** (manual, same as Pages above): Discover → Pages → Bulk import → point at
+  `/Volumes/<catalog>/care_protocol/source_documents` → review → assign to the **Clinical Domain** → publish.
+- ⚙ **Raw source PDFs (the Oct-30 Downloads) — manual, licensing-gated.** Only their *facts* are in the repo
+  (paraphrased, synthetic; ADR-0002/0015). Do **NOT** bulk-upload the proprietary PDFs to a Volume:
+    - ❌ Proprietary — do not redistribute: `Diabetes Screening ... Antipsychotic Medications.pdf` (NCQA SSD),
+      `HEDIS Quality Measure Toolkit.pdf` (NCQA), `GSD ... Johns Hopkins Medicine.pdf`, and treat
+      `coding-spot-diabetes.pdf` / `Diabetes CPM - Adult.pdf` as unknown-license → do not upload.
+    - ✅ Public domain — OK to upload if you want the raw lineage anchor:
+      `VADOD-Diabetes-CPG_Final_508.pdf`, `2027qrsmeasuretechnicalspecifications508.pdf`. If you choose to:
+      `databricks fs cp "<local.pdf>" dbfs:/Volumes/${var.catalog}/care_protocol/source_documents/<name>.pdf --profile ECT`
+      (the stage job only clears `*.md`, so uploaded PDFs survive re-runs). Then parse with `ai_parse_document`
+      if you want them chunked for RAG (see the A4 sections).
+
+## AI/BI dashboard + Genie Agents (bundle-managed)
 - 🤖 `resources/dashboards.yml` + `hedis_quality.lvdash.json` and `resources/genie_spaces.yml` +
-  `care_protocol.geniespace.json` deploy with `bundle deploy` (no separate run). The Genie agent resolves its
-  warehouse via the `warehouse_id` name lookup.
+  the two space bodies (`care_protocol.geniespace.json` = HEDIS outcomes incl. SSD; `protocol_adherence.geniespace.json`
+  = Protocol Step-3 + MAD + protocol-watch) deploy with `bundle deploy` (no separate run). Each Genie agent
+  resolves its warehouse via the `warehouse_id` name lookup.
+- ✅ **These `*.geniespace.json` bodies are the single source of truth** — edit snippets/examples here and
+  `bundle deploy`; do not hand-edit a space in the UI (a redeploy would overwrite it). This is how we keep the
+  "certified vs clone" drift Genie One flagged from recurring. To certify, certify the DAB-deployed space.
+- ⚠️ **Genie export rule:** `data_sources.tables` and `data_sources.metric_views` in each `.geniespace.json`
+  must be **sorted by identifier**, or the deploy fails with `must be sorted by identifier`.
+- ⚠️ **DMVM-pivot note (identifiers are hardcoded):** the `.geniespace.json` table/metric-view identifiers are
+  the fixed ECT catalog `eli_test_classic_catalog` (ADR-0001; `genie_spaces` file_path is NOT var-substituted).
+  To move the agents to the **DMVM** workspace, find/replace `eli_test_classic_catalog` → the DMVM catalog in
+  both `.geniespace.json` files (and re-point the `warehouse_id` lookup name), then `bundle deploy` to DMVM.
+- ⚙ **Publish the dashboard** (makes the `/published` URL live; redeploy updates only the draft):
+  `databricks lakeview publish <dashboard_id> --warehouse-id <wh> --profile ECT`.
 - ⚙ **Publish the dashboard** (makes the `/published` URL live; redeploy updates only the draft):
   `databricks lakeview publish <dashboard_id> --warehouse-id <wh> --profile ECT`.
 
