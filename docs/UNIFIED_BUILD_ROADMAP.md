@@ -337,6 +337,34 @@ larger HLS platform — the "how much broader utility there is in Databricks" me
 
 ## 11. Session log
 
+### 2026-10-31 (latest) — SSD measure built, deployed, and run on ECT (ADR-0017); live
+
+**Did (committed + applied to ECT — deploy/run authorized by Eli):**
+- **Confirmed Synthea has no behavioral-health signal** (25k patients: 0 SMI dx, 0 antipsychotic orders) —
+  so SSD's cross-domain cohort is synthesized, not derived.
+- **`src/data_generation/ssd_cohort.py`** (new job `ssd_cohort`): seeded/deterministic SSD cohort — SMI dx
+  (F20/F25/F31) + antipsychotic dispensing + modeled screening. Screening rate is EMERGENT (per-patient
+  logistic of engagement + smooth per-clinic effect), not injected. Antipsychotic dispensing carries a RxNorm
+  SCD that subsumes to an ingredient via `rxnorm_closure` (7 SCD children added to `rxnorm_hier.csv`); the
+  pre-existing-DM exclusion is real diabetes-cohort overlap. Writes `care_ssd_cohort`.
+- **`gold_adherence_ssd`** added to the measures pipeline (computed from the cohort via value sets + closure);
+  **`ssd_compliance` metric view activated** (moved out of `pending/`) + gold column comments.
+- **Ran the full reflow on ECT:** `setup` (rxnorm_closure 116 rows w/ antipsychotic SCDs; value_set_segment
+  54) → `ssd_cohort` → `measures` → `semantic`. Result live: **cohort 846, excluded (pre-existing DM) 96,
+  eligible 750, screened 521 → 69.5% SSD rate**; recomputed gold == model truth. Emergent clinic spread
+  CLINIC-05 51.5% … CLINIC-08 81.9% (no hard drift). The governed `care_protocol_semantic.ssd_compliance_metrics`
+  view re-aggregates correctly via `MEASURE()` by Clinic and Age Band.
+- **Fix (ADR-0017 follow-up):** the SSD metric view was `version: 0.1` (only name/expr/window/partition) but
+  used 1.1 fields → invalid-definition on apply; bumped to `1.1` to match the other 7 views.
+
+**Gotchas captured:**
+- `bundle deploy` updates the Genie space, which validates that every referenced
+  `care_protocol_semantic.*_compliance_metrics` view EXISTS — so the first deploy after creating that schema
+  fails on the Genie space until `semantic` has created the views. Order: deploy (Genie errors, files still
+  upload) → run `semantic` → deploy again (Genie resolves). The ADR-0013 relocation is now effectively applied;
+  the old `care_protocol.*_compliance_metrics` views still exist (the confirm-gated drop is still pending).
+- Metric-view YAML: `version: 1.1` is required for `comment`/`synonyms`/`display_name` on dimensions/measures.
+
 ### 2026-10-31 (later) — A4 Lakebase RAG **applied to ECT**; doc-RLS verified live; RLS grant bug found + fixed (ADR-0016)
 
 **Did (external writes to ECT — confirmed with Eli; preferred Lakebase Search path):**

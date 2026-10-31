@@ -17,11 +17,19 @@ Ordered operational steps that are **not** automated by the bundle. Keep this cu
      structure + a mid-year clinic PCP handoff; writes `panel_roster`, `panel_pcp_transition`, and the **effective
      event layer** `care_order_results`/`care_order_med` that `measures` reads. Runs AFTER `epicize`, BEFORE `measures`.
      Deterministic (seed) + idempotent. Without it, `measures` won't find `care_order_*`.
+   - `bundle run ssd_cohort -t ect` → seeded synthesis of the SSD behavioral-health cohort (ADR-0017): SMI dx
+     (F20/F25/F31) + antipsychotic dispensing (RxNorm SCD that subsumes to an ingredient via `rxnorm_closure`,
+     like SPD) + emergent glucose/HbA1c screening; pre-existing-DM exclusion is real diabetes-cohort overlap.
+     Writes `care_ssd_cohort`, which `measures` reads to build `gold_adherence_ssd`. Runs AFTER `epicize`,
+     BEFORE `measures`; independent of `care_behavior` (reads bronze only). Needs `setup` first (antipsychotic
+     SCDs live in `rxnorm_hier.csv` → `rxnorm_closure`). Deterministic (seed) + idempotent.
    - ⚠️ **Reflow ordering:** if any `src/terminology/*.csv` changed, rerun **`setup` first** (reloads `icd10_hier`
      etc. and rebuilds the closures) before `epicize → measures → semantic`. A closure built before a new node
      was added won't subsume it (e.g. neuropathy E11.4 was missed until `setup` reran).
-   - `bundle run measures -t ect` → Lakeflow pipeline: `silver_*` + `gold_adherence_gsd`.
-   - `bundle run semantic -t ect` → `apply_comments` (column comments) → `apply_metric_views` (GSD/KED/BPD metric views). Ontology fuel; must run after `measures`.
+   - `bundle run measures -t ect` → Lakeflow pipeline: `silver_*` + `gold_adherence_{gsd,ked,bpd,spd,eed,mad,ssd}` + `gold_protocol_adherence`.
+   - `bundle run semantic -t ect` → `apply_comments` (column comments) → `apply_metric_views` (8 metric views, incl. `ssd_compliance`). Ontology fuel; must run after `measures`.
+     ⚠️ After this schema (`care_protocol_semantic`) is first created, the next `bundle deploy` validates the Genie
+     space against these views, so deploy once to upload, run `semantic` to create the views, then deploy again.
    - `bundle run seed_query_history -t ect` → runs ~27 analyst queries on the warehouse → `system.query.history` (ontology usage signal). After `semantic`; safe to re-run / schedule.
 
 ## Terminology — NO license wait (ADR-0002)
