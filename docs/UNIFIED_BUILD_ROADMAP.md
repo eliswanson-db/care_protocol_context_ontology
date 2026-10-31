@@ -337,6 +337,95 @@ larger HLS platform — the "how much broader utility there is in Databricks" me
 
 ## 11. Session log
 
+### 2026-10-31 (later) — A4 Lakebase RAG **applied to ECT**; doc-RLS verified live; RLS grant bug found + fixed (ADR-0016)
+
+**Did (external writes to ECT — confirmed with Eli; preferred Lakebase Search path):**
+- **Lakebase Search enabled** on the `care-protocol` project (Eli clicked the irreversible Settings toggle;
+  `lakebase_vector` + `lakebase_text` now load — the CLI exposes no flag for this, UI-only, confirmed by probe).
+- **Applied `src/retrieval/lakebase/schema.sql`** to `projects/care-protocol/branches/production/endpoints/primary`
+  (`databricks_postgres`): `rag` schema, 4 tables, the **`lakebase_bm25` + `lakebase_ann`** indexes (preferred,
+  not the pgvector/GIN fallback), roles, RLS. **Loaded the corpus** (`lakebase_rag_corpus.py --emit_demo_roles`):
+  **7 docs → 36 chunks**, 13 ACL rows, 3 group memberships; `REINDEX` of the BM25 index. Idempotent, re-runnable.
+- **🔒 Live doc-level RLS verified** (`tests/test_rag_rls.py`, +perm tracer): all **4 negative-security tests pass** —
+  analyst is denied the care-team-only patient letter `LETTER-EYE-TRC-0003`, clinician gets it, both see the
+  population protocol, and RLS holds even when the query doesn't join the ACL tables. Confirmed on **both** the
+  BM25 (`search_ext=True`) and lexical-fallback paths; the analyst's eye-exam query returns the letter filtered out.
+
+**Fixed (committed source — bug the live test caught, invisible to the local structure test):**
+- **RLS grant contradiction (ADR-0016).** `schema.sql` §8 revoked the reader's SELECT on `document_acl` /
+  `group_membership` (so a reader can't enumerate org ACLs/memberships), but the policy `USING` clauses read
+  exactly those tables — and Postgres evaluates policy predicates **as the invoking role**, so every read died
+  `permission denied for table group_membership`. Fixed by encapsulating the ACL decision in a **`SECURITY
+  DEFINER` function `rag.acl_allows(document_id, caller)`** (runs as the owner, reads the control tables, returns
+  only a boolean; `EXECUTE` granted to `rag_reader`, direct SELECT still revoked). `current_user` is captured in
+  the policy/invoker context and passed in as an argument (inside a definer body it would resolve to the owner).
+  Both policies now share the function, so `documents` also honors DENY-precedence (no behavior change on the
+  allow-only corpus). Re-applied + re-tested green.
+- **`psycopg` dependency was undeclared** — `a4_lakebase.py` imports it but `pyproject.toml` didn't list it.
+  Added a `lakebase = ["psycopg[binary]>=3.1"]` optional extra.
+
+**Didn't (held for Eli):**
+- **Embeddings not loaded** — `rag.chunks.embedding` is 0/36, so **semantic + hybrid modes return nothing yet**;
+  lexical/BM25 (the security story) is complete. Loading them is the optional showcase step (`lakebase_embed.py`
+  → gte-large-en model-serving calls + DB writes) — confirm to run.
+- **Not committed yet** — the whole 2026-10-31 batch (prior entry) + this session's fixes are still uncommitted.
+
+### 2026-10-31 — A4 Lakebase RAG re-aligned to a document corpus + doc-level RLS; care-protocol PDFs mined; SSD + GSD-GMI drift (ADR-0014, ADR-0015)
+
+**Context:** reviewed Eli's "Lakebase Search Document Level Authorization" design doc and 7 public care-protocol
+PDFs; re-aligned the A4 arm and allocated the PDF facts across RAG / Pages / metric views.
+
+**Did (committed as source; NOT yet applied to ECT — external writes are confirm-gated):**
+- **Mined 7 public PDFs** → `docs/care_protocol/source_extracts/{hedis_measure_specs,vadod_diabetes_cpg,provider_coding_docs}.md`
+  (facts only; public-domain sources attributed; no proprietary text reproduced).
+- **RAG corpus (ADR-0014):** new multi-doc corpus `docs/care_protocol/corpus/*.md` (glycemic targets &
+  deprescribing, cardiorenal pharmacotherapy, retinal cadence, SSD behavioral-health screening, MY2026 payer
+  memo, patient-specific eye-exam letter) with two access scopes.
+- **Lakebase RAG component:** `src/retrieval/lakebase/schema.sql` (rag.documents/chunks/document_acl/
+  group_membership + Lakebase Search indexes + RLS + roles, pgvector/full-text fallback);
+  `scripts/lakebase_rag_corpus.py` (deterministic chunker → load SQL: 7 docs → 36 chunks);
+  `A4RagRetriever` in `src/retrieval/a4_lakebase.py` (`search_documents` lexical/semantic/hybrid, cited
+  passages, end-user identity / `SET ROLE`); access manifest `context/value_set_manifests/rag_access_manifest.yaml`.
+- **Tests:** `tests/test_rag_corpus_build.py` (7 deterministic tests — **pass locally**);
+  `tests/test_rag_rls.py` (design-doc §13 negative-security / `+perm`; skips without a live Lakebase).
+- **Allocation (ADR-0015):** **SSD** added — `docs/ontology/pages/ssd.md`, value sets in `value_sets_demo.csv`
+  (SSD_SMI_COHORT, SSD_ANTIPSYCHOTIC, SSD_GLUCOSE_HBA1C, EXCL_PREEXISTING_DM), `DRUGCLASS-ANTIPSYCHOTIC` +
+  ingredients in `rxnorm_hier.csv`, and a **pending** metric view `src/semantic/metric_views/pending/ssd_compliance.metric_view.sql`.
+  **GSD-GMI MY2026 drift** encoded as MY2026 rows in `value_sets_demo.csv` (adds LOINC 97506-0).
+  New Page `document-access-scope.md`. Benchmark set expanded to 17 questions (`pdf_eval_questions.json`:
+  +classes 6-7 RAG, +drift, +security) with per-question expected capability-map winners.
+
+**Didn't (deferred to Eli — confirm-gated external writes / larger work):**
+- **Not applied to ECT.** Pending (RUNBOOK "A4 Lakebase RAG"): verify Lakebase Search capability → **enable
+  Lakebase Search** (irreversible, restarts computes) → apply `schema.sql` → load corpus → embed `rag.chunks`
+  → run the live RLS test. Terminology CSV edits (SSD value sets, antipsychotic class) take effect on the next
+  `bundle run setup -t ect` (reflow: setup → epicize → measures → semantic).
+- **`gold_adherence_ssd` not built** — SSD needs a behavioral-health cohort (SMI dx + antipsychotic dispensing
+  + glucose/HbA1c) in the data-gen + measures pipeline. The pending metric view activates once it lands. (Next.)
+- **ai_parse_document/ai_prep_search ingestion** of the real PDFs (design doc §6) scaffolded in docs only — the
+  deterministic local chunker is the committed reproducible path; the AI-functions path is a showcase next step.
+- **Ontobricks** untouched (Eli-owned, ADR-0005).
+
+### 2026-10-30 — metric views relocated to `care_protocol_semantic` (ADR-0013)
+
+**Did (committed as source, NOT yet applied to ECT):**
+- Chose option **B** (relocate as code, over the UI-exclude) to stop the Ontobricks entity scan choking on the
+  `*_compliance_metrics` metric views: the 7 metric views now target a new **`care_protocol_semantic`** schema
+  (`source:` still `care_protocol.gold_adherence_*`). Reproducible, survives a fresh FEVM rebuild. See ADR-0013.
+- Touched: `resources/schemas.yml` (declare schema), `src/semantic/metric_views/*.sql` (view → `{semantic_schema}`),
+  `apply_metric_views.py` (+`--semantic_schema`), `resources/jobs.yml` (semantic + seed_query_history params),
+  `seed_query_history.py` (metric-view queries → `{sch_sem}`), `care_protocol.geniespace.json`,
+  `quality_by_age.lvdash.json`, and the five `docs/ontology/pages/*.md` `related_assets`. `benchmark_questions.json`
+  unchanged (scorer substring-matches the unqualified view name). `bundle validate -t ect` passes.
+
+**Didn't (deferred to Eli — external ECT writes, confirm-writes policy):**
+- **Not applied to ECT.** Two writes pending approval: (1) `databricks bundle deploy -t ect --profile ECT`
+  (creates `care_protocol_semantic` + redeploys Genie space/dashboards), then `bundle run semantic -t ect`
+  (creates the views in the new schema); (2) **drop the 7 old metric views** in `care_protocol` after verifying
+  the new ones resolve. Until the drop, the stale views remain in the scanned base schema.
+- **Ontobricks scope** (Eli-owned, ADR-0005): keep the scan source at `care_protocol.{bronze_*,silver_*,gold_*}`
+  + `care_protocol_terminology.*`; do **not** add `care_protocol_semantic`.
+
 ### 2026-10-30 — dashboards + semantic metadata (post-M28)
 
 **Did (committed, live on ECT):**

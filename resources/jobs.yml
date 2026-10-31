@@ -148,6 +148,31 @@ resources:
           spec:
             client: "3"
 
+    # Synthesized SSD behavioral-health cohort (ADR-0017). Runs AFTER epicize, BEFORE the `measures` pipeline.
+    # Synthea produces no SMI/antipsychotic signal, so SSD's cross-domain cohort (SMI dx F20/F25/F31 +
+    # antipsychotic dispensing + glucose/HbA1c screen) is synthesized deterministically (seeded, emergent
+    # screening rate — not point injection), analogous to care_behavior. Writes care_ssd_cohort, which the
+    # measures pipeline reads to build gold_adherence_ssd. Independent of care_behavior (reads bronze only).
+    ssd_cohort:
+      name: ssd_cohort_${bundle.target}
+      description: Synthesize the SSD behavioral-health cohort (SMI + antipsychotics + screening); emergent + seeded.
+      tasks:
+        - task_key: ssd_cohort
+          spark_python_task:
+            python_file: ../src/data_generation/ssd_cohort.py
+            parameters:
+              - "--catalog"
+              - "${var.catalog}"
+              - "--schema"
+              - "care_protocol"
+              - "--seed"
+              - "20261029"
+          environment_key: serverless
+      environments:
+        - environment_key: serverless
+          spec:
+            client: "3"
+
     # Semantic layer (ontology fuel). Runs AFTER the `measures` pipeline — reads gold_adherence_*.
     #   apply_comments:     column-level UC comments on silver/gold/terminology (src/semantic/comments/*.comments.sql)
     #   apply_metric_views: governed UC metric views from src/semantic/metric_views/*.metric_view.sql
@@ -174,6 +199,8 @@ resources:
               - "${var.catalog}"
               - "--schema"
               - "care_protocol"
+              - "--semantic_schema"
+              - "care_protocol_semantic"
               - "--src_dir"
               - "${workspace.file_path}/src/semantic/metric_views"
           environment_key: serverless
@@ -306,6 +333,8 @@ resources:
               - "${var.warehouse_id}"
               - "--catalog"
               - "${var.catalog}"
+              - "--schema_semantic"
+              - "care_protocol_semantic"
           environment_key: serverless
       environments:
         - environment_key: serverless

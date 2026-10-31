@@ -1,0 +1,79 @@
+flowchart LR
+
+  %% ── Care Protocol Ontology — the cross-vocabulary graph ──────────────────
+  %% Three code systems (ICD-10 · LOINC · RxNorm) + HEDIS measures, linked by
+  %% care-protocol knowledge edges, centered on the patient.
+  %% Edge styles:  --> structural / is-a   ==> cross-vocab protocol knowledge   -.-> patient instance link
+
+  P["🧑 Patient<br/><i>bronze_patient</i>"]
+
+  subgraph ICD["ICD-10-CM — diagnoses (what's wrong)"]
+    direction TB
+    E11["E11 · Type 2 diabetes<br/><i>Condition</i>"]
+    E1121["E11.21 · T2DM w/ diabetic nephropathy<br/><i>Condition</i>"]
+    E1121 -->|"rdfs:subClassOf (is-a)"| E11
+  end
+
+  subgraph LOINC["LOINC — labs (what we measured)"]
+    direction TB
+    L4548["4548-4 · Hemoglobin A1c<br/><i>LabTest</i>"]
+    LPHBA["LP-HbA1c · Component<br/><i>LoincPart</i>"]
+    L4548 -->|hasComponent| LPHBA
+  end
+
+  subgraph RX["RxNorm — drugs (what we prescribed)"]
+    direction TB
+    D617["617312 · atorvastatin 20mg tab<br/><i>Medication</i>"]
+    ING["atorvastatin<br/><i>Ingredient</i>"]
+    STAT["Statin<br/><i>DrugClass</i>"]
+    D617 -->|hasIngredient| ING
+    ING -->|inDrugClass| STAT
+  end
+
+  subgraph HEDIS["HEDIS measures (the quality goal)"]
+    direction TB
+    GSD["GSD · Glycemic Status<br/><i>Measure</i>"]
+    SPD["SPD · Statin Therapy<br/><i>Measure</i>"]
+  end
+
+  %% ── Patient instance links (what the data says about this patient) ──
+  P -.->|hasDiagnosis| E1121
+  P -.->|"prescribed"| D617
+  P -.->|"hasObservation ∘ ofTest"| L4548
+  P -.->|eligibleFor| GSD
+  P -.->|eligibleFor| SPD
+  P -.->|"hasCareGap (if NOT_MET)"| GSD
+
+  %% ── Care-protocol knowledge edges — the arrows BETWEEN the dictionaries ──
+  STAT ==>|recommendedFor| E11
+  GSD  ==>|monitoredBy| LPHBA
+  SPD  ==>|monitoredBy| STAT
+
+  subgraph LEGEND["Legend"]
+    direction TB
+    LG1["--&gt;  structural / is-a (within a vocabulary)"]
+    LG2["==&gt;  care-protocol knowledge (crosses vocabularies)"]
+    LG3["-.-&gt;  patient instance link (from the data)"]
+  end
+
+  %% ── Styling ──
+  classDef icd    fill:#E3EEFB,stroke:#3B6FB0,color:#13263B;
+  classDef loinc  fill:#E4F3E8,stroke:#3C8A54,color:#143321;
+  classDef rx     fill:#FBEEDD,stroke:#C07E2E,color:#3B2910;
+  classDef meas   fill:#EEE6F7,stroke:#7A52A8,color:#2B1A3E;
+  classDef pat    fill:#1B2024,stroke:#1B2024,color:#FFFFFF;
+  classDef legend fill:#F7F9FC,stroke:#A0ADB8,color:#1B2024;
+
+  class E11,E1121 icd;
+  class L4548,LPHBA loinc;
+  class D617,ING,STAT rx;
+  class GSD,SPD meas;
+  class P pat;
+  class LG1,LG2,LG3 legend;
+
+  %% edge order (0-based): 0-3 structural · 4-9 patient links · 10-12 knowledge
+  linkStyle 0 stroke:#3B6FB0,stroke-width:1.5px;
+  linkStyle 1 stroke:#3C8A54,stroke-width:1.5px;
+  linkStyle 2,3 stroke:#C07E2E,stroke-width:1.5px;
+  linkStyle 4,5,6,7,8,9 stroke:#6E7783,stroke-width:1.3px,stroke-dasharray:4 3;
+  linkStyle 10,11,12 stroke:#C0392B,stroke-width:2.5px;

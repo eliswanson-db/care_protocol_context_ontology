@@ -1,7 +1,7 @@
 -- Unity Catalog metric view: Protocol Step 3 adherence (the "A Monday with Genie" hero metric).
 -- Process adherence: of A1c results above target (trigger), what share got a recheck/therapy change within 90 days?
--- This is the Metric View a scheduled Protocol Watch would monitor for drift. {catalog}/{schema} substituted.
-CREATE OR REPLACE VIEW {catalog}.{schema}.protocol_adherence_metrics
+-- This is the Metric View a scheduled Protocol Watch would monitor for drift. {catalog}/{schema}/{semantic_schema} substituted.
+CREATE OR REPLACE VIEW {catalog}.{semantic_schema}.protocol_adherence_metrics
 WITH METRICS
 LANGUAGE YAML
 AS $$

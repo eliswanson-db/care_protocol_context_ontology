@@ -6,7 +6,14 @@ resources:
     care_protocol:
       catalog_name: ${var.catalog}
       name: care_protocol
-      comment: Medallion + semantic layer for the care-protocol HEDIS demo (synthetic).
+      comment: Medallion (raw→bronze→silver→gold) + base tables for the care-protocol HEDIS demo (synthetic).
+    care_protocol_semantic:
+      catalog_name: ${var.catalog}
+      name: care_protocol_semantic
+      comment: >-
+        Governed UC metric views (the BI/Genie semantic layer) over gold_adherence_*. Kept in a schema
+        separate from care_protocol so an ontology/graph scan scoped to the base schema never ingests the
+        metric views — they are a consumption layer, not base data (ADR-0013). HEDIS demo, not NCQA-certified.
     care_protocol_terminology:
       catalog_name: ${var.catalog}
       name: care_protocol_terminology

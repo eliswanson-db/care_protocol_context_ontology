@@ -1,7 +1,7 @@
 -- Unity Catalog metric view: EED (Eye Exam for Patients With Diabetes).
--- Governed KPI layer over gold_adherence_eed. {catalog}/{schema} substituted by apply_metric_views.py.
+-- Governed KPI layer over gold_adherence_eed. {catalog}/{schema}/{semantic_schema} substituted by apply_metric_views.py.
 -- Rich comment/synonyms/display_name are intentional ontology fuel for Genie. HEDIS-aligned demo, not NCQA-certified.
-CREATE OR REPLACE VIEW {catalog}.{schema}.eed_compliance_metrics
+CREATE OR REPLACE VIEW {catalog}.{semantic_schema}.eed_compliance_metrics
 WITH METRICS
 LANGUAGE YAML
 AS $$

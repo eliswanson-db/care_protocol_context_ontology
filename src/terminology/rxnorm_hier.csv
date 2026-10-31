@@ -4,6 +4,12 @@ DRUGCLASS-ACE,,ACE inhibitor
 DRUGCLASS-ARB,,Angiotensin II receptor blocker (ARB)
 DRUGCLASS-SGLT2,,SGLT2 inhibitor
 DRUGCLASS-BIGUANIDE,,Biguanide
+DRUGCLASS-ANTIPSYCHOTIC,,Antipsychotic (SSD cohort; diabetogenic drug class)
+5093,DRUGCLASS-ANTIPSYCHOTIC,haloperidol
+2626,DRUGCLASS-ANTIPSYCHOTIC,clozapine
+61381,DRUGCLASS-ANTIPSYCHOTIC,olanzapine
+35636,DRUGCLASS-ANTIPSYCHOTIC,risperidone
+89013,DRUGCLASS-ANTIPSYCHOTIC,aripiprazole
 83367,DRUGCLASS-STATIN,atorvastatin
 36567,DRUGCLASS-STATIN,simvastatin
 301542,DRUGCLASS-STATIN,rosuvastatin
@@ -34,3 +40,10 @@ DRUGCLASS-BIGUANIDE,,Biguanide
 979485,52175,losartan potassium 25 MG Oral Tablet
 979492,52175,losartan potassium 50 MG Oral Tablet
 860975,6809,24 HR Metformin hydrochloride 500 MG Extended Release Oral Tablet
+197536,5093,Haloperidol 1 MG Oral Tablet (demo SCD)
+198363,5093,Haloperidol 5 MG Oral Tablet (demo SCD)
+309438,2626,Clozapine 100 MG Oral Tablet (demo SCD)
+312077,61381,Olanzapine 5 MG Oral Tablet (demo SCD)
+312078,61381,Olanzapine 10 MG Oral Tablet (demo SCD)
+312406,35636,Risperidone 1 MG Oral Tablet (demo SCD)
+757688,89013,Aripiprazole 10 MG Oral Tablet (demo SCD)

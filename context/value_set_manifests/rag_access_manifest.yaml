@@ -1,0 +1,35 @@
+# Document-level access control for the A4 Lakebase RAG corpus (committed, reproducible).
+#
+# Realizes, at demo scale, the document-authorization design in the "Lakebase Search Document Level
+# Authorization" design doc: Postgres RLS over a document_acl + group_membership model, enforced by
+# lakebase_ann.prefilter so unauthorized rows are never scored by the vector/BM25 index.
+#
+# Per-document ACLs are declared in each corpus file's front-matter `access:` list (group names).
+# This file declares the DEMO group roles and their member identities so the whole RLS demo rebuilds
+# deterministically on a fresh workspace. The RLS policy itself lives in src/retrieval/lakebase/schema.sql.
+#
+# Two clinical access scopes drive the "+perm" security tracer (roadmap §7):
+#   - quality_analytics : population/spec/protocol documents only (no patient-specific records)
+#   - care_team         : everything quality_analytics sees PLUS patient-specific clinical correspondence
+#
+# Identities are synthetic/demo placeholders; replace with real workspace-group-backed Postgres roles on
+# deploy (group membership in Lakebase is validated at authentication time — see the design doc §5).
+
+groups:
+  quality_analytics:
+    description: "Population quality analysts. May read protocol, measure-spec, and payer-policy documents; may NOT read patient-specific clinical records."
+  care_team:
+    description: "Clinical care team. May read everything quality_analytics reads, plus patient-specific clinical correspondence (e.g. outside consult letters)."
+
+# Demo member mapping (user_id -> groups). On deploy these become GRANT <group> TO "<oauth-identity>".
+group_membership:
+  "analyst@example.org":
+    - quality_analytics
+  "clinician@example.org":
+    - quality_analytics
+    - care_team
+
+# Expected result of the negative-security test (schema.sql policy + these memberships):
+#   analyst@example.org   querying "dilated retinal exam for TRC-0003" -> MUST NOT return LETTER-EYE-TRC-0003
+#   clinician@example.org querying the same                            -> MUST return LETTER-EYE-TRC-0003
+#   both identities querying "metformin eGFR contraindication"          -> return the population protocol docs

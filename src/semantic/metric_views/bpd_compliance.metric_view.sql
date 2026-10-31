@@ -1,7 +1,7 @@
 -- Unity Catalog metric view: BPD (Blood Pressure control for Patients With Diabetes).
--- Governed KPI layer over gold_adherence_bpd. {catalog}/{schema} substituted by apply_metric_views.py.
+-- Governed KPI layer over gold_adherence_bpd. {catalog}/{schema}/{semantic_schema} substituted by apply_metric_views.py.
 -- Rich comment/synonyms/display_name are intentional ontology fuel for Genie. HEDIS-aligned demo, not NCQA-certified.
-CREATE OR REPLACE VIEW {catalog}.{schema}.bpd_compliance_metrics
+CREATE OR REPLACE VIEW {catalog}.{semantic_schema}.bpd_compliance_metrics
 WITH METRICS
 LANGUAGE YAML
 AS $$

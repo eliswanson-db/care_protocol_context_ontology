@@ -36,3 +36,20 @@ CONTRA_PREGNANCY,Pregnancy (statin/ACE/ARB contraindication),O15,ICD10CM,2025,el
 CONTRA_PREGNANCY,Pregnancy (statin/ACE/ARB contraindication),O00,ICD10CM,2025,eli.swanson@databricks.com
 CONTRA_HEPATIC,Active hepatic disease (statin contraindication),K70,ICD10CM,2025,eli.swanson@databricks.com
 CONTRA_HEPATIC,Active hepatic disease (statin contraindication),K74,ICD10CM,2025,eli.swanson@databricks.com
+GSD_A1C_TEST,Glycemic status - A1c test (GSD) [MY2026: adds CGM-derived GMI],4548-4,LOINC,2026,eli.swanson@databricks.com
+GSD_A1C_TEST,Glycemic status - A1c test (GSD) [MY2026: adds CGM-derived GMI],17856-6,LOINC,2026,eli.swanson@databricks.com
+GSD_A1C_TEST,Glycemic status - A1c test (GSD) [MY2026: adds CGM-derived GMI],59261-8,LOINC,2026,eli.swanson@databricks.com
+GSD_A1C_TEST,Glycemic status - A1c test (GSD) [MY2026: adds CGM-derived GMI],97506-0,LOINC,2026,eli.swanson@databricks.com
+SSD_SMI_COHORT,Serious mental illness cohort (SSD): schizophrenia / schizoaffective / bipolar,F20,ICD10CM,2025,eli.swanson@databricks.com
+SSD_SMI_COHORT,Serious mental illness cohort (SSD): schizophrenia / schizoaffective / bipolar,F25,ICD10CM,2025,eli.swanson@databricks.com
+SSD_SMI_COHORT,Serious mental illness cohort (SSD): schizophrenia / schizoaffective / bipolar,F31,ICD10CM,2025,eli.swanson@databricks.com
+SSD_ANTIPSYCHOTIC,Antipsychotic dispensing (SSD) [demo RxNorm ingredient subset],5093,RXNORM,2025,eli.swanson@databricks.com
+SSD_ANTIPSYCHOTIC,Antipsychotic dispensing (SSD) [demo RxNorm ingredient subset],2626,RXNORM,2025,eli.swanson@databricks.com
+SSD_ANTIPSYCHOTIC,Antipsychotic dispensing (SSD) [demo RxNorm ingredient subset],61381,RXNORM,2025,eli.swanson@databricks.com
+SSD_ANTIPSYCHOTIC,Antipsychotic dispensing (SSD) [demo RxNorm ingredient subset],35636,RXNORM,2025,eli.swanson@databricks.com
+SSD_ANTIPSYCHOTIC,Antipsychotic dispensing (SSD) [demo RxNorm ingredient subset],89013,RXNORM,2025,eli.swanson@databricks.com
+SSD_GLUCOSE_HBA1C,Diabetes screening numerator (SSD): glucose or HbA1c,2345-7,LOINC,2025,eli.swanson@databricks.com
+SSD_GLUCOSE_HBA1C,Diabetes screening numerator (SSD): glucose or HbA1c,4548-4,LOINC,2025,eli.swanson@databricks.com
+EXCL_PREEXISTING_DM,Pre-existing diabetes exclusion (SSD),E10,ICD10CM,2025,eli.swanson@databricks.com
+EXCL_PREEXISTING_DM,Pre-existing diabetes exclusion (SSD),E11,ICD10CM,2025,eli.swanson@databricks.com
+EXCL_PREEXISTING_DM,Pre-existing diabetes exclusion (SSD),E13,ICD10CM,2025,eli.swanson@databricks.com

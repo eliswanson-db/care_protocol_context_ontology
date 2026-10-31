@@ -175,3 +175,20 @@ COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_spd.period_end IS 'End 
 COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_eed.measurement_year IS 'HEDIS measurement year the row is computed for (e.g. 2025).';
 COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_eed.period_start IS 'Start of the measurement-year reporting window (January 1).';
 COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_eed.period_end IS 'End of the measurement-year reporting window (December 31). Age is evaluated at this date.';
+
+-- SSD: cross-domain behavioral-health measure (ADR-0017). care_ssd_cohort is synthesized; gold_adherence_ssd is the event log.
+COMMENT ON TABLE {catalog}.care_protocol.care_ssd_cohort IS 'Synthesized SSD behavioral-health cohort (ADR-0017): SMI patients (F20/F25/F31) aged 18-64 on antipsychotics. Seeded/deterministic; screening is emergent, not injected. Synthetic; HEDIS-aligned (SSD-proxied); not NCQA-certified.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ssd.patient_id IS 'Patient identifier (synthetic). Member of the synthesized SSD behavioral-health cohort, not the diabetes cohort.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ssd.measure_id IS 'HEDIS measure code. SSD = Diabetes Screening for People With Schizophrenia or Bipolar Disorder Who Are Using Antipsychotic Medications.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ssd.measurement_year IS 'HEDIS measurement year the row is computed for (e.g. 2025).';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ssd.age IS 'Patient age at the end of the measurement year. SSD eligibility requires 18-64.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ssd.eligible_flag IS 'True when the patient is in the SSD denominator: SMI diagnosis, antipsychotic dispensed, aged 18-64, and NOT excluded for pre-existing diabetes.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ssd.smi_dx IS 'True when the patient carries a serious-mental-illness diagnosis (schizophrenia F20 / schizoaffective F25 / bipolar F31). See smi_dx_code.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ssd.antipsychotic_dispensed IS 'True when an antipsychotic was dispensed in the measurement year. Re-derived through the RxNorm closure (ingredient -> clinical drug), like SPD resolves statins.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ssd.excluded_preexisting_dm IS 'HEDIS SSD exclusion flag. False on every eligible row (patients with pre-existing diabetes are already removed from the denominator). The exclusion is real diabetes-cohort (E10/E11/E13) overlap.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ssd.numerator_flag IS 'True when the patient meets the SSD numerator: a glucose or HbA1c screen (SSD_GLUCOSE_HBA1C) in the measurement year.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ssd.status IS 'Screening status: MET (glucose or HbA1c screen found in the measurement year) or NOT_MET (screening gap).';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ssd.smi_dx_code IS 'ICD-10-CM SMI diagnosis code (F20.9 schizophrenia / F25.0 schizoaffective / F31.9 bipolar).';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ssd.antipsychotic_rxnorm IS 'RxNorm clinical-drug (SCD) code of the dispensed antipsychotic; subsumes to an antipsychotic ingredient via rxnorm_closure.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ssd.clinic_id IS 'Clinic (site) the SSD patient is seen at. Enables slicing the screening rate by site.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ssd.panel_id IS 'Care panel the SSD patient belongs to.';

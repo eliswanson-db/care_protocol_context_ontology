@@ -13,19 +13,21 @@ import argparse
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.sql import StatementState
 
-# {cat}/{sch} are substituted at runtime. Each entry is one analyst question -> SQL recorded in query history.
+# {cat}/{sch}/{sch_sem}/{sch_term} are substituted at runtime. Each entry is one analyst question -> SQL
+# recorded in query history. Metric views live in {sch_sem} (semantic schema, ADR-0013); gold/silver base
+# tables in {sch}; terminology in {sch_term}.
 QUERIES = [
     # --- headline rates via the governed metric views (MEASURE) ---
-    "SELECT MEASURE(`GSD Compliance Rate`) AS gsd_rate FROM {cat}.{sch}.gsd_compliance_metrics",
-    "SELECT MEASURE(`KED Compliance Rate`) AS ked_rate FROM {cat}.{sch}.ked_compliance_metrics",
-    "SELECT MEASURE(`BPD Compliance Rate`) AS bpd_rate FROM {cat}.{sch}.bpd_compliance_metrics",
-    "SELECT `Age Band`, MEASURE(`GSD Compliance Rate`) AS rate FROM {cat}.{sch}.gsd_compliance_metrics GROUP BY `Age Band` ORDER BY `Age Band`",
-    "SELECT `Age Band`, MEASURE(`KED Compliance Rate`) AS rate FROM {cat}.{sch}.ked_compliance_metrics GROUP BY `Age Band` ORDER BY `Age Band`",
-    "SELECT `Age Band`, MEASURE(`BPD Compliance Rate`) AS rate FROM {cat}.{sch}.bpd_compliance_metrics GROUP BY `Age Band` ORDER BY `Age Band`",
-    "SELECT MEASURE(`eGFR Test Rate`) AS egfr_rate, MEASURE(`uACR Test Rate`) AS uacr_rate FROM {cat}.{sch}.ked_compliance_metrics",
-    "SELECT `Compliance Status`, MEASURE(`Eligible Patients`) AS patients FROM {cat}.{sch}.gsd_compliance_metrics GROUP BY `Compliance Status`",
-    "SELECT MEASURE(`Avg Systolic`) AS avg_systolic, MEASURE(`Avg Diastolic`) AS avg_diastolic FROM {cat}.{sch}.bpd_compliance_metrics",
-    "SELECT MEASURE(`Poor Control Patients`) AS poorly_controlled FROM {cat}.{sch}.gsd_compliance_metrics",
+    "SELECT MEASURE(`GSD Compliance Rate`) AS gsd_rate FROM {cat}.{sch_sem}.gsd_compliance_metrics",
+    "SELECT MEASURE(`KED Compliance Rate`) AS ked_rate FROM {cat}.{sch_sem}.ked_compliance_metrics",
+    "SELECT MEASURE(`BPD Compliance Rate`) AS bpd_rate FROM {cat}.{sch_sem}.bpd_compliance_metrics",
+    "SELECT `Age Band`, MEASURE(`GSD Compliance Rate`) AS rate FROM {cat}.{sch_sem}.gsd_compliance_metrics GROUP BY `Age Band` ORDER BY `Age Band`",
+    "SELECT `Age Band`, MEASURE(`KED Compliance Rate`) AS rate FROM {cat}.{sch_sem}.ked_compliance_metrics GROUP BY `Age Band` ORDER BY `Age Band`",
+    "SELECT `Age Band`, MEASURE(`BPD Compliance Rate`) AS rate FROM {cat}.{sch_sem}.bpd_compliance_metrics GROUP BY `Age Band` ORDER BY `Age Band`",
+    "SELECT MEASURE(`eGFR Test Rate`) AS egfr_rate, MEASURE(`uACR Test Rate`) AS uacr_rate FROM {cat}.{sch_sem}.ked_compliance_metrics",
+    "SELECT `Compliance Status`, MEASURE(`Eligible Patients`) AS patients FROM {cat}.{sch_sem}.gsd_compliance_metrics GROUP BY `Compliance Status`",
+    "SELECT MEASURE(`Avg Systolic`) AS avg_systolic, MEASURE(`Avg Diastolic`) AS avg_diastolic FROM {cat}.{sch_sem}.bpd_compliance_metrics",
+    "SELECT MEASURE(`Poor Control Patients`) AS poorly_controlled FROM {cat}.{sch_sem}.gsd_compliance_metrics",
     # --- how many patients are eligible / compliant / in a care gap ---
     "SELECT COUNT(*) AS gsd_eligible FROM {cat}.{sch}.gold_adherence_gsd",
     "SELECT COUNT(*) AS gsd_care_gaps FROM {cat}.{sch}.gold_adherence_gsd WHERE status = 'NOT_MET'",
@@ -55,13 +57,16 @@ def main():
     ap.add_argument("--warehouse_id", required=True)
     ap.add_argument("--catalog", required=True)
     ap.add_argument("--schema", default="care_protocol")
+    ap.add_argument("--schema_semantic", default="care_protocol_semantic",
+                    help="Schema holding the governed metric views (ADR-0013).")
     ap.add_argument("--schema_term", default="care_protocol_terminology")
     args = ap.parse_args()
 
     w = WorkspaceClient()
     ok = fail = 0
     for q in QUERIES:
-        sql = q.format(cat=args.catalog, sch=args.schema, sch_term=args.schema_term)
+        sql = q.format(cat=args.catalog, sch=args.schema, sch_sem=args.schema_semantic,
+                       sch_term=args.schema_term)
         try:
             r = w.statement_execution.execute_statement(warehouse_id=args.warehouse_id, statement=sql,
                                                          wait_timeout="30s")

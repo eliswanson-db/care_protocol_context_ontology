@@ -384,3 +384,59 @@ def gold_adherence_mad():
             .select("patient_id", "measure_id", "measurement_year", "period_start", "period_end", "age",
                     "eligible_flag", "fills", "covered_days", "period_days", "pdc", "numerator_flag", "status")
             .join(_roster(), "patient_id", "left"))
+
+
+# ---------------- Gold: SSD (Diabetes Screening for People on Antipsychotics) — cross-domain ----------------
+@dp.materialized_view(
+    comment="SSD adherence event log (Diabetes Screening for People With Schizophrenia or Bipolar Disorder Who "
+            "Are Using Antipsychotic Medications). CROSS-DOMAIN: the denominator is NOT the diabetes cohort but "
+            "SMI patients (F20/F25/F31) aged 18-64 on antipsychotics, built by ssd_cohort.py (Synthea has no "
+            "behavioral-health signal, so this cohort is synthesized). Antipsychotic eligibility is re-derived "
+            "here through the RxNorm closure (SSD_ANTIPSYCHOTIC ingredients -> clinical drugs), exactly like SPD "
+            "resolves statins; pre-existing-diabetes patients are EXCLUDED (real diabetes-cohort overlap). "
+            "Numerator: a glucose or HbA1c screen (SSD_GLUCOSE_HBA1C) in the measurement year. One row per "
+            "eligible patient. HEDIS-aligned demo, not NCQA-certified.")
+def gold_adherence_ssd():
+    cohort = spark.read.table(f"{BRONZE}.care_ssd_cohort")  # noqa: F821 (synthesized by ssd_cohort.py)
+    my_end = F.to_date(F.lit(f"{MY}-12-31"))
+
+    # Re-derive antipsychotic eligibility through the graph: resolve the SSD_ANTIPSYCHOTIC ingredient value set
+    # to clinical drugs via the closure, then confirm the dispensed code subsumes to an antipsychotic ingredient.
+    ingredients = (spark.read.table(f"{TERM}.value_set_segment")  # noqa: F821
+                   .where(F.col("segment_id") == "SSD_ANTIPSYCHOTIC").select(F.col("code").alias("ing")).distinct())
+    closure = spark.read.table(f"{TERM}.rxnorm_closure")  # noqa: F821
+    antipsychotic_codes = (closure.join(ingredients, closure["ancestor_code"] == ingredients["ing"])
+                           .select(F.col("descendant_code").alias("code")).distinct())
+
+    # Numerator value set: glucose or HbA1c (SSD screen).
+    screen_codes = (spark.read.table(f"{TERM}.value_set_segment")  # noqa: F821
+                    .where(F.col("segment_id") == "SSD_GLUCOSE_HBA1C").select(F.col("code").alias("scode")).distinct())
+
+    on_antipsychotic = (cohort.join(antipsychotic_codes, cohort["antipsychotic_rxnorm"] == antipsychotic_codes["code"])
+                        .select(cohort["*"]))
+
+    # Numerator holds iff the recorded screen is in the SSD screen value set and falls in the measurement year.
+    screened_valid = (F.col("screened")
+                      & F.col("screen_loinc").isin([r["scode"] for r in screen_codes.collect()])
+                      & (F.year("screen_ts") == MY))
+
+    eligible = (on_antipsychotic
+                .where((F.col("age") >= 18) & (F.col("age") <= 64) & (~F.col("has_preexisting_dm"))))
+
+    return (eligible
+            .withColumn("measure_id", F.lit("SSD"))
+            .withColumn("measurement_year", F.lit(MY))
+            .withColumn("period_start", F.to_date(F.lit(f"{MY}-01-01")))
+            .withColumn("period_end", my_end)
+            .withColumn("eligible_flag", F.lit(True))
+            .withColumn("smi_dx", F.lit(True))
+            .withColumn("antipsychotic_dispensed", F.lit(True))
+            .withColumn("excluded_preexisting_dm", F.lit(False))   # eligible rows have already passed the exclusion
+            .withColumn("numerator_flag", screened_valid)
+            .withColumn("status", F.when(screened_valid, F.lit("MET")).otherwise(F.lit("NOT_MET")))
+            .withColumn("evidence_datetime", F.when(screened_valid, F.col("screen_ts")))
+            .withColumn("evidence_code", F.when(screened_valid, F.col("screen_loinc")))
+            .select("patient_id", "measure_id", "measurement_year", "period_start", "period_end", "age",
+                    "eligible_flag", "smi_dx", "antipsychotic_dispensed", "excluded_preexisting_dm",
+                    "numerator_flag", "status", "smi_dx_code", "antipsychotic_rxnorm", "antipsychotic_desc",
+                    "evidence_datetime", "evidence_code", "clinic_id", "panel_id"))

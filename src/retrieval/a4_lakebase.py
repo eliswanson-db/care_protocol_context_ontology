@@ -84,3 +84,81 @@ class A4Retriever:
                              dbname=self.dbname, sslmode="require") as conn, conn.cursor() as cur:
             cur.execute(sql, (tsq, tsq, qvec, rrf_k, rrf_k, k))
             return self._rows(cur)
+
+
+# Columns returned by every document-RAG query — real passages with citation provenance (never a bare score).
+_CITE = ("c.chunk_id, c.document_id, d.title, c.section_path, c.page_start, "
+         "d.source, d.measurement_year, c.content")
+
+
+class A4RagRetriever(A4Retriever):
+    """A4 document-RAG over the care-protocol corpus in rag.chunks (ADR-0014).
+
+    Realizes the Lakebase-Search document-authorization design: retrieval runs against RLS-protected
+    rag.chunks, so the querying identity (current_user) sees only authorized documents — no application-side
+    ACL filter. Returns real passages with document/section/page provenance for citation.
+
+    `search_ext=True` uses the Lakebase Search operators (lakebase_bm25 `to_bm25query`, lakebase_ann with
+    `prefilter=on` so RLS is evaluated inside the index scan); `search_ext=False` uses the pgvector + Postgres
+    full-text fallback (ADR-0009) for workspaces where Lakebase Search is not enabled.
+
+    `as_user` SET ROLEs to a seeded identity so the negative-security test can simulate OBO identities without
+    two real OAuth logins; in production the connection itself carries the end-user OAuth/OBO identity.
+    """
+
+    def __init__(self, *args, search_ext: bool = True, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.search_ext = search_ext
+
+    def _run(self, sql: str, params: tuple, as_user: str | None, prefilter: bool = False) -> list[dict]:
+        with psycopg.connect(host=self.host, user=self.user, password=self._token(),
+                             dbname=self.dbname, sslmode="require") as conn, conn.cursor() as cur:
+            if as_user:
+                cur.execute('SET ROLE "%s"' % as_user.replace('"', ""))
+            if prefilter and self.search_ext:
+                cur.execute("SET lakebase_ann.prefilter TO on")
+            cur.execute(sql, params)
+            return self._rows(cur)
+
+    def search_documents(self, question: str, k: int = 5, mode: str = "hybrid",
+                         as_user: str | None = None) -> list[dict]:
+        """Retrieve authorized care-protocol passages. mode = lexical | semantic | hybrid."""
+        if mode == "lexical":
+            return self.search_doc_lexical(question, k, as_user)
+        if mode == "semantic":
+            return self.search_doc_semantic(question, k, as_user)
+        return self.search_doc_hybrid(question, k, as_user=as_user)
+
+    def search_doc_lexical(self, question: str, k: int = 5, as_user: str | None = None) -> list[dict]:
+        if self.search_ext:  # Lakebase Search BM25
+            sql = (f"SELECT {_CITE}, (c.body_tsv <@> to_bm25query(to_tsvector('english', %s), "
+                   "'rag.chunks_body_bm25')) AS score FROM rag.chunks c JOIN rag.documents d "
+                   "USING (document_id) ORDER BY score LIMIT %s")
+            return self._run(sql, (question, k), as_user)
+        tsq = _tsquery(question)  # fallback: Postgres full-text
+        sql = (f"SELECT {_CITE}, round(ts_rank(c.body_tsv, to_tsquery('english', %s))::numeric,4) AS score "
+               "FROM rag.chunks c JOIN rag.documents d USING (document_id) "
+               "WHERE c.body_tsv @@ to_tsquery('english', %s) ORDER BY score DESC LIMIT %s")
+        return self._run(sql, (tsq, tsq, k), as_user)
+
+    def search_doc_semantic(self, question: str, k: int = 5, as_user: str | None = None) -> list[dict]:
+        qvec = self._embed(question)
+        sql = (f"SELECT {_CITE}, round((1 - (c.embedding <=> %s::vector))::numeric,4) AS score "
+               "FROM rag.chunks c JOIN rag.documents d USING (document_id) "
+               "WHERE c.embedding IS NOT NULL ORDER BY c.embedding <=> %s::vector LIMIT %s")
+        return self._run(sql, (qvec, qvec, k), as_user, prefilter=True)
+
+    def search_doc_hybrid(self, question: str, k: int = 5, rrf_k: int = 60,
+                         as_user: str | None = None) -> list[dict]:
+        tsq, qvec = _tsquery(question), self._embed(question)
+        sql = (
+            "WITH lex AS (SELECT chunk_id, row_number() OVER (ORDER BY ts_rank(body_tsv, "
+            "               to_tsquery('english', %s)) DESC) rk FROM rag.chunks "
+            "             WHERE body_tsv @@ to_tsquery('english', %s)), "
+            "sem AS (SELECT chunk_id, row_number() OVER (ORDER BY embedding <=> %s::vector) rk "
+            "        FROM rag.chunks WHERE embedding IS NOT NULL) "
+            f"SELECT {_CITE}, round((coalesce(1.0/(%s+lex.rk),0)+coalesce(1.0/(%s+sem.rk),0))::numeric,5) AS score "
+            "FROM rag.chunks c JOIN rag.documents d USING (document_id) "
+            "LEFT JOIN lex USING (chunk_id) LEFT JOIN sem USING (chunk_id) "
+            "ORDER BY score DESC LIMIT %s")
+        return self._run(sql, (tsq, tsq, qvec, rrf_k, rrf_k, k), as_user, prefilter=True)

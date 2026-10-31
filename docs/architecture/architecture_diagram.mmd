@@ -5,7 +5,7 @@ flowchart LR
   subgraph SRC["① Sources — UC Volumes"]
     SYN["Synthea<br/>fixed seed → FHIR/CSV"]
     DOCS["Synthetic unstructured docs<br/>eye-exam PDFs · policies · MY2025/26 specs"]
-    TERM["⚙ Terminology (licensed)<br/>LOINC · SNOMED US · VSAC value sets"]
+    TERM["Terminology (vendored subsets · ADR-0002/0007)<br/>ICD-10-CM (public) · LOINC · RxNorm · demo value sets"]
   end
 
   subgraph PIPE["② Lakeflow Declarative Pipeline (medallion)"]
@@ -13,12 +13,12 @@ flowchart LR
     BRZ["Bronze<br/>Clarity-shaped tables + raw docs (immutable)"]
     SLV["Silver<br/>normalized events · code mapping<br/>doc assertions (ai_parse / ai_extract)"]
     ENG["Deterministic versioned<br/>Measure Engine"]
-    GLD["Gold<br/>adherence_event_log · hedis_member_measure<br/>recon · provenance · tracer_registry"]
+    GLD["Gold<br/>gold_adherence_{gsd,bpd,ked,eed,spd}<br/>recon · provenance · tracer_registry"]
     BRZ --> SLV --> ENG --> GLD
   end
 
-  subgraph TERMD["Terminology-as-data"]
-    TD["snomed_concept · snomed_isa_closure<br/>loinc_parts · value_set_version"]
+  subgraph TERMD["Terminology-as-data (+ hierarchy encodings · ADR-0006)"]
+    TD["icd10_hier · icd10_closure · loinc_parts<br/>rxnorm_hier · protocol_edges · value_set_segment"]
   end
 
   subgraph SEM["③ Semantic layer — Unity Catalog"]
@@ -67,6 +67,7 @@ flowchart LR
   GLD  --> SEM
   GLD  --> LB
   GLD  --> OB
+  TD   --> OB
   GLD  --> MCPT
   SEM  --> GA
   GA   --> G1
@@ -99,7 +100,7 @@ flowchart LR
   class G1          accent
   class SUP         supacc
   class BRZ,SLV,ENG,GLD pipeline
-  class TERM,PG,DM,CERT manual
+  class PG,DM,CERT manual
   class OB          asyncwait
   class ORAC,ML,RES evalnode
   class T           appnode

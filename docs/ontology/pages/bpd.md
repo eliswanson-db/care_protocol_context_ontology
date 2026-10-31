@@ -5,7 +5,7 @@ domain: Clinical Domain
 owner: eli.swanson@databricks.com
 related_assets:
   - eli_test_classic_catalog.care_protocol.gold_adherence_bpd
-  - eli_test_classic_catalog.care_protocol.bpd_compliance_metrics
+  - eli_test_classic_catalog.care_protocol_semantic.bpd_compliance_metrics
 ---
 
 **BPD (Blood Pressure Control for Patients With Diabetes)** is a HEDIS measure for blood-pressure control in

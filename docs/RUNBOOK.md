@@ -93,6 +93,44 @@ Ordered operational steps that are **not** automated by the bundle. Keep this cu
 - 🤖 **Retrieve:** `src/retrieval/a4_lakebase.py` — `search` (lexical ts_rank), `search_semantic` (pgvector
   cosine), `search_hybrid` (RRF fusion). 14 docs embedded (gte-large-en, HNSW cosine index). Needs `psycopg`.
 
+## A4 Lakebase RAG — document corpus + Lakebase Search + document-level RLS (ADR-0014)
+Upgrades A4 from a Pages-row corpus to a real care-protocol **document** corpus with document-level
+authorization. Everything below is **committed code**; the external applies are confirm-gated (sync-in /
+confirm-writes). All steps re-run on a fresh workspace.
+
+- ⚙ **Capability gate (verify first, don't assume):** confirm the `care-protocol` Lakebase project supports
+  **Lakebase Search**. If yes, continue with the preferred path; if not, use the pgvector + full-text
+  **fallback** (uncomment the fallback lines in `src/retrieval/lakebase/schema.sql`, set `search_ext=False`
+  on `A4RagRetriever`).
+- ⚙⏳ **Enable Lakebase Search (IRREVERSIBLE; restarts all computes, drops active connections):** Lakebase
+  project → **Settings → Enable Lakebase Search**. One-time, confirmed. (No-op if already enabled.)
+- 🤖 **Apply the serving schema** (extensions, tables, indexes, roles, RLS policies):
+  ```
+  EP=projects/care-protocol/branches/production/endpoints/primary
+  TOKEN=$(databricks postgres generate-database-credential $EP --profile ECT -o json | python3 -c "import json,sys;print(json.load(sys.stdin)['token'])")
+  PGPASSWORD="$TOKEN" psql "host=<host> user=<you> dbname=databricks_postgres sslmode=require" -f src/retrieval/lakebase/schema.sql
+  ```
+- 🤖 **Build + load the corpus** (deterministic; `--emit_demo_roles` seeds the two demo identities so the RLS
+  test can `SET ROLE`):
+  ```
+  python3 -I scripts/lakebase_rag_corpus.py --emit_demo_roles | \
+    PGPASSWORD="$TOKEN" psql "host=<host> user=<you> dbname=databricks_postgres sslmode=require"
+  ```
+- 🤖 **Embed** the chunks (gte-large-en, 1024-dim) and build the ANN index — reuse the `scripts/lakebase_embed.py`
+  pattern pointed at `rag.chunks` (semantic/hybrid retrieval and `lakebase_ann.prefilter` need embeddings;
+  lexical/BM25 works without). ⏳ Build the **BM25** index *after* load (corpus stats at build time); after a
+  large reload, `REINDEX INDEX CONCURRENTLY rag.chunks_body_bm25`.
+- 🔒 **Verify authorization** (the `+perm` tracer, design doc §13). Needs the Postgres client:
+  `pip install -e '.[lakebase]'` (psycopg). Host is the `primary` endpoint
+  (`ep-...database.us-east-1.cloud.databricks.com` from `databricks postgres list-endpoints`):
+  ```
+  export LAKEBASE_HOST=<host> LAKEBASE_USER="<you>" DATABRICKS_CONFIG_PROFILE=ECT
+  python3 -I tests/test_rag_rls.py    # analyst cannot see LETTER-EYE-TRC-0003; clinician can
+  ```
+  The RLS policy consults the ACL/membership tables through the `SECURITY DEFINER` function
+  `rag.acl_allows()` (ADR-0016) — the reader has `EXECUTE` on it but no direct SELECT on those tables.
+- Deterministic structure test (no workspace): `python3 -I tests/test_rag_corpus_build.py`.
+
 ## Weekly Protocol Watch (story hook: "nobody asked; Genie noticed")
 Two mutually-reinforcing pieces. The **Genie One scheduled task** is the demo front door (the actual
 "A Monday with Genie" watch); the **job** pre-computes an auditable findings table so the scheduled task

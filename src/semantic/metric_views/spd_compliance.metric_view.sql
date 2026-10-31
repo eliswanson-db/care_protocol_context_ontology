@@ -1,7 +1,7 @@
 -- Unity Catalog metric view: SPD (Statin Therapy for Patients With Diabetes).
--- Governed KPI layer over gold_adherence_spd. {catalog}/{schema} substituted by apply_metric_views.py.
+-- Governed KPI layer over gold_adherence_spd. {catalog}/{schema}/{semantic_schema} substituted by apply_metric_views.py.
 -- Statins are resolved by subsumption over rxnorm_closure (ingredient -> clinical drug). HEDIS-aligned demo, not NCQA-certified.
-CREATE OR REPLACE VIEW {catalog}.{schema}.spd_compliance_metrics
+CREATE OR REPLACE VIEW {catalog}.{semantic_schema}.spd_compliance_metrics
 WITH METRICS
 LANGUAGE YAML
 AS $$

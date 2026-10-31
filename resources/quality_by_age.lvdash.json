@@ -5,11 +5,11 @@
       "displayName": "Overall rates (metric views)",
       "queryLines": [
         "SELECT ",
-        "  (SELECT MEASURE(`GSD Compliance Rate`) FROM eli_test_classic_catalog.care_protocol.gsd_compliance_metrics) AS gsd_rate, ",
-        "  (SELECT MEASURE(`KED Compliance Rate`) FROM eli_test_classic_catalog.care_protocol.ked_compliance_metrics) AS ked_rate, ",
-        "  (SELECT MEASURE(`BPD Compliance Rate`) FROM eli_test_classic_catalog.care_protocol.bpd_compliance_metrics) AS bpd_rate, ",
-        "  (SELECT MEASURE(`SPD Compliance Rate`) FROM eli_test_classic_catalog.care_protocol.spd_compliance_metrics) AS spd_rate, ",
-        "  (SELECT MEASURE(`EED Compliance Rate`) FROM eli_test_classic_catalog.care_protocol.eed_compliance_metrics) AS eed_rate"
+        "  (SELECT MEASURE(`GSD Compliance Rate`) FROM eli_test_classic_catalog.care_protocol_semantic.gsd_compliance_metrics) AS gsd_rate, ",
+        "  (SELECT MEASURE(`KED Compliance Rate`) FROM eli_test_classic_catalog.care_protocol_semantic.ked_compliance_metrics) AS ked_rate, ",
+        "  (SELECT MEASURE(`BPD Compliance Rate`) FROM eli_test_classic_catalog.care_protocol_semantic.bpd_compliance_metrics) AS bpd_rate, ",
+        "  (SELECT MEASURE(`SPD Compliance Rate`) FROM eli_test_classic_catalog.care_protocol_semantic.spd_compliance_metrics) AS spd_rate, ",
+        "  (SELECT MEASURE(`EED Compliance Rate`) FROM eli_test_classic_catalog.care_protocol_semantic.eed_compliance_metrics) AS eed_rate"
       ]
     },
     {
@@ -17,11 +17,11 @@
       "displayName": "Compliance by measure and age band",
       "queryLines": [
         "SELECT measure, age_band, rate, ROUND(rate*100,1) AS compliance_pct, eligible FROM ( ",
-        "  SELECT 'GSD' AS measure, `Age Band` AS age_band, MEASURE(`GSD Compliance Rate`) AS rate, MEASURE(`Eligible Patients`) AS eligible FROM eli_test_classic_catalog.care_protocol.gsd_compliance_metrics GROUP BY `Age Band` ",
-        "  UNION ALL SELECT 'KED', `Age Band`, MEASURE(`KED Compliance Rate`), MEASURE(`Eligible Patients`) FROM eli_test_classic_catalog.care_protocol.ked_compliance_metrics GROUP BY `Age Band` ",
-        "  UNION ALL SELECT 'BPD', `Age Band`, MEASURE(`BPD Compliance Rate`), MEASURE(`Eligible Patients`) FROM eli_test_classic_catalog.care_protocol.bpd_compliance_metrics GROUP BY `Age Band` ",
-        "  UNION ALL SELECT 'SPD', `Age Band`, MEASURE(`SPD Compliance Rate`), MEASURE(`Eligible Patients`) FROM eli_test_classic_catalog.care_protocol.spd_compliance_metrics GROUP BY `Age Band` ",
-        "  UNION ALL SELECT 'EED', `Age Band`, MEASURE(`EED Compliance Rate`), MEASURE(`Eligible Patients`) FROM eli_test_classic_catalog.care_protocol.eed_compliance_metrics GROUP BY `Age Band` ",
+        "  SELECT 'GSD' AS measure, `Age Band` AS age_band, MEASURE(`GSD Compliance Rate`) AS rate, MEASURE(`Eligible Patients`) AS eligible FROM eli_test_classic_catalog.care_protocol_semantic.gsd_compliance_metrics GROUP BY `Age Band` ",
+        "  UNION ALL SELECT 'KED', `Age Band`, MEASURE(`KED Compliance Rate`), MEASURE(`Eligible Patients`) FROM eli_test_classic_catalog.care_protocol_semantic.ked_compliance_metrics GROUP BY `Age Band` ",
+        "  UNION ALL SELECT 'BPD', `Age Band`, MEASURE(`BPD Compliance Rate`), MEASURE(`Eligible Patients`) FROM eli_test_classic_catalog.care_protocol_semantic.bpd_compliance_metrics GROUP BY `Age Band` ",
+        "  UNION ALL SELECT 'SPD', `Age Band`, MEASURE(`SPD Compliance Rate`), MEASURE(`Eligible Patients`) FROM eli_test_classic_catalog.care_protocol_semantic.spd_compliance_metrics GROUP BY `Age Band` ",
+        "  UNION ALL SELECT 'EED', `Age Band`, MEASURE(`EED Compliance Rate`), MEASURE(`Eligible Patients`) FROM eli_test_classic_catalog.care_protocol_semantic.eed_compliance_metrics GROUP BY `Age Band` ",
         ") t ORDER BY measure, age_band"
       ]
     }

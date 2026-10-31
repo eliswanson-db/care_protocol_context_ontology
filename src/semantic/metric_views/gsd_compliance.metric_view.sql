@@ -1,8 +1,8 @@
 -- Unity Catalog metric view: GSD (Glycemic Status Assessment for Patients With Diabetes).
 -- Governed, reusable KPI layer over gold_adherence_gsd. Consumed by dashboards, Genie, and SQL.
--- {catalog}/{schema} are substituted by apply_metric_views.py (serverless task). HEDIS-aligned demo, not NCQA-certified.
+-- {catalog}/{schema}/{semantic_schema} are substituted by apply_metric_views.py (serverless task). HEDIS-aligned demo, not NCQA-certified.
 -- Rich comment/synonyms/display_name are intentional: they are the human-modeled fuel the Genie Ontology indexes.
-CREATE OR REPLACE VIEW {catalog}.{schema}.gsd_compliance_metrics
+CREATE OR REPLACE VIEW {catalog}.{semantic_schema}.gsd_compliance_metrics
 WITH METRICS
 LANGUAGE YAML
 AS $$

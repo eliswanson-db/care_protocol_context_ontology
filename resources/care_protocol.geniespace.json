@@ -21,21 +21,21 @@
       {"identifier": "eli_test_classic_catalog.care_protocol.gold_adherence_spd"}
     ],
     "metric_views": [
-      {"identifier": "eli_test_classic_catalog.care_protocol.bpd_compliance_metrics"},
-      {"identifier": "eli_test_classic_catalog.care_protocol.eed_compliance_metrics"},
-      {"identifier": "eli_test_classic_catalog.care_protocol.gsd_compliance_metrics"},
-      {"identifier": "eli_test_classic_catalog.care_protocol.ked_compliance_metrics"},
-      {"identifier": "eli_test_classic_catalog.care_protocol.spd_compliance_metrics"}
+      {"identifier": "eli_test_classic_catalog.care_protocol_semantic.bpd_compliance_metrics"},
+      {"identifier": "eli_test_classic_catalog.care_protocol_semantic.eed_compliance_metrics"},
+      {"identifier": "eli_test_classic_catalog.care_protocol_semantic.gsd_compliance_metrics"},
+      {"identifier": "eli_test_classic_catalog.care_protocol_semantic.ked_compliance_metrics"},
+      {"identifier": "eli_test_classic_catalog.care_protocol_semantic.spd_compliance_metrics"}
     ]
   },
   "instructions": {
     "example_question_sqls": [
-      {"id": "b0000000000000000000000000000001", "question": ["What is the overall GSD compliance rate?"], "sql": ["SELECT MEASURE(`GSD Compliance Rate`) AS gsd_compliance_rate FROM eli_test_classic_catalog.care_protocol.gsd_compliance_metrics"]},
-      {"id": "b0000000000000000000000000000002", "question": ["What is the KED compliance rate and its eGFR and uACR components?"], "sql": ["SELECT MEASURE(`KED Compliance Rate`) AS ked_rate, MEASURE(`eGFR Test Rate`) AS egfr_rate, MEASURE(`uACR Test Rate`) AS uacr_rate FROM eli_test_classic_catalog.care_protocol.ked_compliance_metrics"]},
+      {"id": "b0000000000000000000000000000001", "question": ["What is the overall GSD compliance rate?"], "sql": ["SELECT MEASURE(`GSD Compliance Rate`) AS gsd_compliance_rate FROM eli_test_classic_catalog.care_protocol_semantic.gsd_compliance_metrics"]},
+      {"id": "b0000000000000000000000000000002", "question": ["What is the KED compliance rate and its eGFR and uACR components?"], "sql": ["SELECT MEASURE(`KED Compliance Rate`) AS ked_rate, MEASURE(`eGFR Test Rate`) AS egfr_rate, MEASURE(`uACR Test Rate`) AS uacr_rate FROM eli_test_classic_catalog.care_protocol_semantic.ked_compliance_metrics"]},
       {"id": "b0000000000000000000000000000003", "question": ["How many patients have a KED care gap?"], "sql": ["SELECT COUNT(*) AS ked_care_gaps FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked WHERE status = 'NOT_MET'"]},
-      {"id": "b0000000000000000000000000000004", "question": ["What is the blood pressure control (BPD) rate?"], "sql": ["SELECT MEASURE(`BPD Compliance Rate`) AS bpd_rate FROM eli_test_classic_catalog.care_protocol.bpd_compliance_metrics"]},
-      {"id": "b0000000000000000000000000000005", "question": ["What is the statin therapy (SPD) rate?"], "sql": ["SELECT MEASURE(`SPD Compliance Rate`) AS spd_rate FROM eli_test_classic_catalog.care_protocol.spd_compliance_metrics"]},
-      {"id": "b0000000000000000000000000000006", "question": ["What is the diabetic eye exam (EED) rate?"], "sql": ["SELECT MEASURE(`EED Compliance Rate`) AS eed_rate FROM eli_test_classic_catalog.care_protocol.eed_compliance_metrics"]}
+      {"id": "b0000000000000000000000000000004", "question": ["What is the blood pressure control (BPD) rate?"], "sql": ["SELECT MEASURE(`BPD Compliance Rate`) AS bpd_rate FROM eli_test_classic_catalog.care_protocol_semantic.bpd_compliance_metrics"]},
+      {"id": "b0000000000000000000000000000005", "question": ["What is the statin therapy (SPD) rate?"], "sql": ["SELECT MEASURE(`SPD Compliance Rate`) AS spd_rate FROM eli_test_classic_catalog.care_protocol_semantic.spd_compliance_metrics"]},
+      {"id": "b0000000000000000000000000000006", "question": ["What is the diabetic eye exam (EED) rate?"], "sql": ["SELECT MEASURE(`EED Compliance Rate`) AS eed_rate FROM eli_test_classic_catalog.care_protocol_semantic.eed_compliance_metrics"]}
     ],
     "text_instructions": [
       {"id": "c0000000000000000000000000000001", "content": [

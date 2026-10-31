@@ -5,7 +5,7 @@ domain: Clinical Domain
 owner: eli.swanson@databricks.com
 related_assets:
   - eli_test_classic_catalog.care_protocol.gold_adherence_gsd
-  - eli_test_classic_catalog.care_protocol.gsd_compliance_metrics
+  - eli_test_classic_catalog.care_protocol_semantic.gsd_compliance_metrics
 ---
 
 **GSD (Glycemic Status Assessment for Patients With Diabetes)** is a HEDIS quality measure. It assesses

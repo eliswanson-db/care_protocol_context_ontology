@@ -1,8 +1,8 @@
 -- Unity Catalog metric view: KED (Kidney Health Evaluation for Patients With Diabetes).
 -- Governed KPI layer over gold_adherence_ked. The numerator is COMPOUND (eGFR AND uACR), so this view
--- exposes each component rate plus the combined rate. {catalog}/{schema} substituted by apply_metric_views.py.
+-- exposes each component rate plus the combined rate. {catalog}/{schema}/{semantic_schema} substituted by apply_metric_views.py.
 -- Rich comment/synonyms/display_name are intentional ontology fuel for Genie. HEDIS-aligned demo, not NCQA-certified.
-CREATE OR REPLACE VIEW {catalog}.{schema}.ked_compliance_metrics
+CREATE OR REPLACE VIEW {catalog}.{semantic_schema}.ked_compliance_metrics
 WITH METRICS
 LANGUAGE YAML
 AS $$

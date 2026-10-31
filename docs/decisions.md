@@ -5,6 +5,131 @@ statement in the source plans under `docs/sources/`.
 
 ---
 
+## ADR-0017 — SSD behavioral-health cohort is synthesized (Synthea has no SMI/antipsychotic signal)
+**Date:** 2026-10-31 · **Status:** accepted
+SSD is cross-domain: it needs serious mental illness (F20/F25/F31) + antipsychotic dispensing + a metabolic
+screen. The generated Synthea population (25,000 patients) contains **none** of that — zero F20/F25/F31
+diagnoses and zero antipsychotic orders (verified by query). So unlike GSD/KED/BPD/SPD/EED, SSD **cannot** be
+derived from bronze; its cohort must be synthesized.
+**Decision:** a dedicated generative step `src/data_generation/ssd_cohort.py` (job `ssd_cohort`, after epicize,
+before the measures pipeline) — the behavioral-health analogue of `care_behavior.py` (ADR-0012). It is seeded
+and deterministic (xxhash), and the screening rate is **emergent** (a per-patient logistic of a latent
+engagement factor + a smooth per-clinic effect), never a fixed injected rate. Cross-domain links are kept
+*real* so the graph does the work in `measures.py`, not a flag: (1) antipsychotic dispensing carries a RxNorm
+clinical-drug (SCD) code that subsumes to an antipsychotic **ingredient** through `rxnorm_closure` — the same
+ingredient→drug resolution SPD uses for statins (SCD children added to `rxnorm_hier.csv`); (2) the pre-existing
+diabetes **exclusion** is actual overlap with the diabetes cohort (ICD-10 E10/E11/E13 via `icd10_closure`), not
+an arbitrary flag. It writes one effective-layer table `care_ssd_cohort`; `measures.py` builds
+`gold_adherence_ssd` from it via the value sets + closure, and the previously-pending `ssd_compliance` metric
+view is activated. Everything is labeled synthetic / HEDIS-aligned (SSD-proxied) / not NCQA-certified. Honesty
+note: the added SCD codes are representative demo clinical drugs (names tagged "demo SCD"), consistent with the
+hand-curated demo value sets (ADR-0002) — not an authoritative RxNorm release.
+
+---
+
+## ADR-0016 — Document-RLS ACL check goes through a SECURITY DEFINER function
+**Date:** 2026-10-31 · **Status:** accepted
+Design doc §8 wants two things that collide under Postgres RLS: (a) the reader role must **not** be able to
+directly `SELECT` `rag.document_acl` / `rag.group_membership` (so it cannot enumerate the org's ACLs or
+memberships), yet (b) the row-visibility policy must consult exactly those tables. Postgres evaluates a policy
+`USING` predicate **as the invoking role**, so a plain inline predicate requires the reader to hold SELECT on
+the control tables — directly contradicting (a). (The committed inline-predicate version passed the offline
+structure test but failed the first live read with `permission denied for table group_membership`; caught only
+by running `tests/test_rag_rls.py` against a live Lakebase.)
+**Decision:** encapsulate the allow-with-deny-precedence decision in **`rag.acl_allows(document_id, caller)`**,
+a `SECURITY DEFINER` SQL function owned by the schema owner. It runs with the owner's privileges (can read the
+control tables) and returns only a boolean; `rag_reader` is granted `EXECUTE` but keeps **no** direct SELECT on
+the control tables. The caller identity is captured as `current_user` in the policy (invoker) context and passed
+as an argument, because inside a `SECURITY DEFINER` body `current_user` resolves to the function owner, not the
+caller. `search_path` is pinned (`SET search_path = rag, pg_temp`) against search-path injection. Both the
+`chunks` and `documents` policies share the one function, so `documents` now also honors DENY-precedence (no
+behavior change on an allow-only corpus). This is the standard Postgres pattern for RLS that must consult
+tables the querying role cannot see. Verified live on ECT: 4/4 negative-security tests pass on both the
+Lakebase Search (BM25) and pgvector/full-text fallback paths.
+
+---
+
+## ADR-0015 — Allocation of care-protocol source material across RAG / Pages / metric views; add SSD + a GSD-GMI drift
+**Date:** 2026-10-31 · **Status:** accepted
+Seven public reference PDFs (VA/DoD Diabetes CPG, CMS QRS 2027 technical specs, HEDIS toolkit, an adult
+diabetes clinical practice model, a provider GSD page, the HEDIS SSD measure, and ICD-10 diabetes coding
+guidance) were mined for facts (extracts in `docs/care_protocol/source_extracts/`). **No proprietary text is
+reproduced** — facts are paraphrased into synthetic documents; public-domain sources (VA/DoD, CMS QRS) are
+attributed. Content was allocated by the rule *"which surface is the right home for this kind of fact?"*:
+
+| Fact type | Home | Why |
+|---|---|---|
+| Prose clinical guidance a structured arm should *refuse* (A1c targets by comorbidity, metformin eGFR 45/30, SGLT2/GLP-1 cardiorenal even at A1c goal, ACE/ARB uACR gate, retinal 6-mo/biennial cadence, elderly de-intensification, pregnancy contraindications) | **RAG corpus** (`docs/care_protocol/corpus/*.md`) | Narrative, not computable from coded data; this is exactly what the A4 document-RAG arm should win on in the capability map (classes 6-7). |
+| Short authoritative *definitions* (measure defs incl. new SSD, ICD-10 diabetes subsumption, document access scope) | **Genie Pages** (`docs/ontology/pages/*.md`) | Highest-authority ontology snippets; a Page states "KED = eGFR AND uACR", the corpus explains the clinical *why*. |
+| Computable numerator/denominator/rate over gold tables | **Metric views** | Governed KPI layer shared by BI + Genie. |
+
+**HEDIS measures added/changed for metric views:**
+- **SSD** (Diabetes Screening for People With Schizophrenia/Bipolar on Antipsychotics) — a cross-domain
+  measure (SMI dx + antipsychotic RxNorm + glucose/HbA1c LOINC). Page + value sets + a **pending** metric view
+  (`src/semantic/metric_views/pending/ssd_compliance.metric_view.sql`) are committed; it activates once the
+  data pipeline produces `gold_adherence_ssd` (a behavioral-health cohort — the flagged data-gen next step).
+- **GSD + GMI (MY2026)** — a *second* controlled drift scenario alongside the existing race-based-eGFR KED
+  drift: MY2026 GSD accepts a CGM-derived Glucose Management Indicator (LOINC `97506-0`) as equivalent to a
+  lab HbA1c. Encoded as MY2026 rows in `value_sets_demo.csv`; a CGM-only patient flips from gap→compliant on
+  identical data purely from the value-set version.
+
+## ADR-0014 — A4 Lakebase re-aligned to a document-RAG corpus with Lakebase Search + document-level RLS
+**Date:** 2026-10-31 · **Status:** accepted (code committed; external apply confirm-gated)
+A4 previously retrieved over a thin corpus of one row per Genie Ontology Page (ADR-0009). That is not a
+document-RAG story and under-sells the arm in the capability map. Re-aligned per the "Lakebase Search Document
+Level Authorization" design doc (Eli's, co-authored with Glean):
+
+- **Corpus = the care-protocol clinical documents** — a multi-document corpus (`docs/care_protocol/corpus/`:
+  glycemic targets & deprescribing, cardiorenal pharmacotherapy, retinal cadence, SSD behavioral-health
+  screening, a MY2026 payer memo, a patient-specific outside eye-exam letter) plus the existing HTML protocol
+  anchor. Chunked **deterministically** with section/page provenance by `scripts/lakebase_rag_corpus.py`
+  (reproducible-by-code; the benchmark tracers stay byte-stable). For arbitrary real PDFs the Databricks-native
+  path is `READ_FILES → ai_parse_document → ai_prep_search` (design doc §6) — documented as the production
+  ingestion; the local chunker is the demo's reproducible path over the synthetic corpus.
+- **Serving schema** `rag.documents / rag.chunks / rag.document_acl / rag.group_membership`
+  (`src/retrieval/lakebase/schema.sql`), with **Lakebase Search** indexes (`lakebase_ann`, `lakebase_bm25`) and
+  a **pgvector + full-text fallback** so the demo runs whether or not Lakebase Search is enabled. Embedding dim
+  **1024** (`databricks-gte-large-en`).
+- **Document-level authorization via Postgres RLS** on `rag.chunks`/`rag.documents` (ALLOW/DENY ACL +
+  group_membership, deny-precedence), evaluated with `lakebase_ann.prefilter = on` so unauthorized rows are
+  never scored by the index. Two clinical scopes — `quality_analytics` (population/spec docs) and `care_team`
+  (also patient-specific records) — **realize the `+perm` security tracer at the RAG layer** (roadmap §7).
+  The retriever connects with the **end-user identity**; `A4RagRetriever` (`src/retrieval/a4_lakebase.py`)
+  adds `search_documents` (lexical/semantic/hybrid) returning cited passages, and `tests/test_rag_rls.py`
+  encodes the design doc §13 negative-security tests.
+- **Enabling Lakebase Search is irreversible and restarts computes** → a one-time ⚙ confirm-gated RUNBOOK step,
+  as is loading the corpus. Not a DAB resource (ADR-0009 still holds): schema + corpus build are committed code
+  applied via RUNBOOK.
+- **Scope note:** this is a demo-grade realization of the design doc's production pattern (ACLs, group
+  membership, deny semantics, OBO identity, prefilter). The doc's full reconciliation/observability/revocation
+  hardening (design doc §11-13) is deliberately out of scope for the demo and listed as future work.
+
+## ADR-0013 — Metric views relocated to a dedicated `care_protocol_semantic` schema
+**Date:** 2026-10-30 · **Status:** accepted
+The Ontobricks entity scan over `care_protocol` kept auto-binding ABox-less OWL classes to the governed
+`*_compliance_metrics` **metric views** and failing with `METRIC_VIEW_MISSING_MEASURE_FUNCTION` (a metric
+view can't be probed with a plain `SELECT` — it needs `MEASURE()`), which aborted the scan (see
+`src/ontology/README.md` rev 3/4). Two fixes were on the table:
+- **(A) UI exclude** — deselect the 7 `*_metrics` views (or allow-list only `bronze_*/silver_*/gold_*` +
+  `care_protocol_terminology.*`) in the Ontobricks data-source config. Fast, zero repo change, but it lives
+  only in UI state and is easy to forget on a fresh workspace.
+- **(B, chosen) Relocate as code** — move the metric views out of the scanned base schema into a dedicated
+  **`care_protocol_semantic`** schema. The views' `source:` still points at `care_protocol.gold_adherence_*`;
+  only the view objects move. A scan scoped to the base schema then cannot see them at all.
+Chose **B**: it is reproducible-by-code (DAB), survives a fresh FEVM rebuild, and cleanly separates the
+BI/Genie/SQL **consumption** layer from base data. The per-view UI exclude (A) stays as belt-and-suspenders.
+- **Touched (as code):** `resources/schemas.yml` (declare the schema); `src/semantic/metric_views/*.sql`
+  (view target → `{semantic_schema}`, `source:` stays `{schema}`); `apply_metric_views.py` (+`--semantic_schema`);
+  `resources/jobs.yml` (semantic + seed_query_history params); `seed_query_history.py` (metric-view queries →
+  `{sch_sem}`); `care_protocol.geniespace.json` + `quality_by_age.lvdash.json` (repointed); the five
+  `docs/ontology/pages/*.md` `related_assets`. `benchmark_questions.json` needs no change (scorer substring-matches
+  the unqualified view name).
+- **Ontobricks scope caveat (ADR-0005, Eli-owned):** the mapping source scope must remain
+  `care_protocol.{bronze_*,silver_*,gold_*}` + `care_protocol_terminology.*` and must **NOT** include
+  `care_protocol_semantic`.
+- **Migration:** metric views hold no data — relocation = recreate in the new schema + drop the 7 originals in
+  `care_protocol`. External ECT writes (`bundle deploy` + the drops) are gated on Eli's confirmation.
+
 ## ADR-0012 — Realistic variation via a generative care-behavior model (not point injection)
 **Date:** 2026-10-30 · **Status:** accepted
 Raw Synthea is stationary and uniform: protocol follow-up, MAD and glycemic control are all flat, so the watch

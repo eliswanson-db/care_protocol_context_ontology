@@ -1,6 +1,6 @@
 -- Unity Catalog metric view: MAD (Medication Adherence for Diabetes Medications) -- a story 3x Star measure.
--- PDC-based (proportion of days covered). {catalog}/{schema} substituted by apply_metric_views.py.
-CREATE OR REPLACE VIEW {catalog}.{schema}.mad_compliance_metrics
+-- PDC-based (proportion of days covered). {catalog}/{schema}/{semantic_schema} substituted by apply_metric_views.py.
+CREATE OR REPLACE VIEW {catalog}.{semantic_schema}.mad_compliance_metrics
 WITH METRICS
 LANGUAGE YAML
 AS $$

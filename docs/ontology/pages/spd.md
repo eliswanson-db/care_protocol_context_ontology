@@ -5,7 +5,7 @@ domain: Clinical Domain
 owner: eli.swanson@databricks.com
 related_assets:
   - eli_test_classic_catalog.care_protocol.gold_adherence_spd
-  - eli_test_classic_catalog.care_protocol.spd_compliance_metrics
+  - eli_test_classic_catalog.care_protocol_semantic.spd_compliance_metrics
   - eli_test_classic_catalog.care_protocol_terminology.rxnorm_closure
 ---
 
