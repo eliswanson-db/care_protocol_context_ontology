@@ -6,7 +6,7 @@ CREATE OR REPLACE VIEW {catalog}.{semantic_schema}.ssd_compliance_metrics
 WITH METRICS
 LANGUAGE YAML
 AS $$
-version: 0.1
+version: 1.1
 source: {catalog}.{schema}.gold_adherence_ssd
 comment: "HEDIS SSD (Diabetes Screening for People With Schizophrenia or Bipolar Disorder Who Are Using Antipsychotic Medications). Cross-domain: SMI diagnosis + antipsychotic dispensing + glucose/HbA1c screen, ages 18-64. Denominator = eligible SMI-on-antipsychotic patients; numerator = patients with a glucose or HbA1c test in the measurement year. HEDIS-aligned demo, not NCQA-certified."
 dimensions:
