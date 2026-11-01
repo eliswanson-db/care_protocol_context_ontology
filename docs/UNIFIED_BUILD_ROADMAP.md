@@ -388,6 +388,27 @@ the RUNBOOK (shared=no-action / workspace-local=deploy / manual=admin) and the A
 
 **Held (external → confirm):** the DMVM deploy + seed + Pages import + ontology enablement (the actual writes).
 
+### 2026-11-01 (cont. 2) — DMVM ontology-ON arm DEPLOYED (steps 1–5 of the bring-up)
+
+Eli approved steps 1–5; ran them. First fixed a structural blocker (ADR-0019): two production targets over the
+one shared catalog collided on the unsuffixed schema/volume resources → scoped `schemas`+`volumes` to dev+ect
+only (verified dmvm resolves 0 of each, same 13 jobs/1 pipeline/4 dashboards). Then:
+- **`bundle deploy -t dmvm`** → **22 resources created** (4 Genie agents, 4 dashboards, 13 jobs, 1 pipeline), 0
+  schemas/volumes — no collision. All read the shared catalog.
+- **`seed_query_history -t dmvm`** → SUCCESS (DMVM-local query history; the local CLI lost DNS mid-poll but the
+  job completed server-side — verified via `jobs get-run`).
+- **smoke test `--profile DMVM`** → **74/74 pass** (58 Genie snippets + 16 dashboard datasets) against the shared
+  catalog from DMVM.
+- **`stage_pages` + `stage_source_documents`** → refreshed the **shared** volume to 17 Page files (added the
+  formerly-missing `ssd.md` + `document-access-scope.md`; verified from the ECT side too) + 9 source docs.
+- **Published all 4 DMVM dashboards.**
+DMVM agent IDs: HEDIS `01f1d63eaf1e148aaca3e207c7499c1a`, LOINC Lab `01f1d63eaf311cb38542d9d2a087705c`,
+Cohort & Terminology `01f1d63eaf3d182495a64bedeca25f51`, Protocol/MAD `01f1d63eaf6113c5af84aa85fd4a5a3c`.
+
+**Remaining (manual / admin — Eli):** (6) enable **Genie Ontology on DMVM** (confirm OFF on ECT); (7) import the
+16 **Pages** via Genie Code → Clinical Domain using `docs/ontology/PAGES_IMPORT_PROMPT.md`; then let the ontology
+extract (async) and record DMVM snippet density vs ECT in `capability-matrix.md`.
+
 ### 2026-10-31 (latest+2) — Four-in-one: MV-2 lab metric view + AG-3 terminology agent + capability-map dashboard (+ stale-view drop pending)
 
 Eli: "just start doing all of these as one" (the four open threads from the Genie One review + session logs). Built
