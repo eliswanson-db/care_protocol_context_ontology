@@ -1,12 +1,13 @@
 # Databricks Asset Bundle (DAB) — HEDIS Context & Evidence Lab
-# Validate:  databricks bundle validate -t dev   --profile ECT
-# Deploy:    databricks bundle deploy   -t ect   --profile ECT
+# Validate:  databricks bundle validate -t ect --profile ECT   |   -t dmvm --profile DMVM
+# Deploy:    databricks bundle deploy   -t ect --profile ECT   |   -t dmvm --profile DMVM
+# Two workspaces, ONE shared catalog (ADR-0018): ect = ontology-OFF baseline, dmvm = ontology-ON arm.
 bundle:
   name: care_protocol_context_ontology
 
 variables:
   catalog:
-    description: Unity Catalog holding all demo assets (ADR-0001; ECT Default Storage blocks ad-hoc catalog creation, so we use the workspace's managed catalog)
+    description: Unity Catalog holding all demo assets (ADR-0001). ONE catalog, shared READ_WRITE by ECT + DMVM in the same metastore (ADR-0018) — both targets point at it; data + modeled metadata are built once and read by both. Only the workspace-level native-ontology layer differs.
     default: eli_test_classic_catalog
   schema:
     description: Default schema for pipeline + semantic assets
@@ -36,11 +37,28 @@ targets:
     workspace:
       host: https://fevm-eli-test-classic.cloud.databricks.com   # profile: ECT
 
-  # Shared demo environment on ECT
+  # BASELINE arm (ADR-0018): Genie Ontology OFF, no Pages/Domains — Genie One answers from raw governed
+  # metric-views/comments only. ECT's tag-policy cap blocks new Domains/Pages anyway, so it is the natural
+  # low-context baseline. Shares eli_test_classic_catalog with dmvm.
   ect:
     mode: production
     workspace:
       host: https://fevm-eli-test-classic.cloud.databricks.com   # profile: ECT
+      root_path: /Workspace/Users/eli.swanson@databricks.com/.bundle/${bundle.name}/${bundle.target}
+    run_as:
+      user_name: eli.swanson@databricks.com
+
+  # ONTOLOGY arm (ADR-0018): Genie Ontology ON + Pages + Domains + query-history seeding -> high inferred-
+  # snippet density. SAME shared catalog as ect (eli_test_classic_catalog) — only the native-ontology layer
+  # differs, so data + modeled metadata are held constant and the ontology is the one variable.
+  # Catalog-scoped assets (pipeline/semantic/terminology) are already live in the shared catalog — do NOT
+  # rebuild from here; deploy the workspace-local assets (Genie spaces, dashboards, persist_benchmark) +
+  # the DMVM-only ontology layer (seed job; Pages/Domains are mostly manual, RUNBOOK).
+  # Genie Ontology enablement is a workspace ADMIN setting, not DAB-managed.
+  dmvm:
+    mode: production
+    workspace:
+      host: https://fe-vm-vdm-classic-q6xfh3.cloud.databricks.com   # profile: DMVM
       root_path: /Workspace/Users/eli.swanson@databricks.com/.bundle/${bundle.name}/${bundle.target}
     run_as:
       user_name: eli.swanson@databricks.com

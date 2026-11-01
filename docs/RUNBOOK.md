@@ -2,6 +2,40 @@
 
 Ordered operational steps that are **not** automated by the bundle. Keep this current as phases land.
 
+## DMVM bring-up — ontology-ON arm (ADR-0018)
+Goal: make **DMVM** the high-snippet-density, Genie-Ontology-**ON** workspace so A1-on can be compared against
+A1-off on ECT, both over the **one shared catalog** `eli_test_classic_catalog`. The original problem — "not
+enough snippets on the new workspace" — is because a fresh workspace has **none of the workspace-local snippet
+sources** yet (no dashboards, no Genie agents, no query history, no published Pages); only the shared catalog
+metadata is visible. This section populates all of them.
+
+**Already shared — no action (verified 2026-11-01):** all UC tables, metric views + comments; the Pages and
+source-document **volumes**; the **`Clinical Domain`** domain (same id on both). DMVM needs **no data rebuild and
+no domain creation.**
+
+**Workspace-local — deploy/run on DMVM (🤖 reproducible):**
+1. `databricks bundle validate -t dmvm --profile DMVM` → `databricks bundle deploy -t dmvm --profile DMVM`.
+   Deploys the 4 Genie agents + 4 AI/BI dashboards + all job definitions (unchanged — shared catalog, so no
+   identifier find/replace; `warehouse_id` name lookup resolves on DMVM).
+2. **Do NOT re-run the data pipelines** (`generate_synthea`, `epicize`, `care_behavior`, `ssd_cohort`,
+   `measures`, `semantic`, `stage_care_protocol`) — their outputs are in the shared catalog already. Running
+   them on DMVM would recompute/overwrite shared data for no benefit.
+3. `databricks bundle run seed_query_history -t dmvm --profile DMVM` — **DMVM-local** query history (the usage
+   signal is per-workspace; this is a primary inferred-snippet source).
+4. `python scripts/smoke_test_snippets.py --profile DMVM` — executes every Genie snippet + dashboard dataset
+   against DMVM's warehouse (validates the deploy **and** adds more query history).
+5. `databricks lakeview publish <dashboard_id> --warehouse-id <wh> --profile DMVM` for each dashboard.
+6. `stage_pages` / `stage_source_documents` only needed if the shared volume is stale (it was, pre-2026-11-01);
+   one run from either profile refreshes the shared volume for both.
+
+**Manual / admin (⚙):**
+7. ⚙ **Enable Genie Ontology on DMVM** (workspace admin setting) — the switch that turns inferred snippets on.
+   Conversely, confirm it is **OFF on ECT** to hold the baseline.
+8. ⚙ **Import Pages on DMVM** via Genie Code using `docs/ontology/PAGES_IMPORT_PROMPT.md` (16 Pages → Clinical
+   Domain). Published Pages are per-workspace, so this is required on DMVM even though the sources are shared.
+9. ⚙ Let the ontology extract (async ⏳), then verify Genie One on DMVM **cites** Pages/metric views under
+   "Ontology References", and record snippet density in `capability-matrix.md`.
+
 ## P0 — setup
 1. ⚙ **Auth** — `databricks auth login https://fevm-eli-test-classic.cloud.databricks.com --profile ECT` (already valid).
 2. ⚙ **Capability gate** — confirm on ECT and record in `capability-matrix.md`: **Genie Ontology ON**,
@@ -63,12 +97,17 @@ Ordered operational steps that are **not** automated by the bundle. Keep this cu
 ## Pages (ADR-0008) — content-as-code + manual bulk-import (no API)
 - 🤖 Page source lives in `docs/ontology/pages/*.md` (one per term: domain, synonyms, description, body).
 - 🤖 `bundle run stage_pages -t ect` copies the Page sources into the UC Volume
-  **`/Volumes/${var.catalog}/care_protocol/ontology_pages`** (14 files) so Genie Code can read them from a
-  governed Volume. Re-runnable.
-- ⚙ **Genie Code bulk import** (the one irreducible manual step): Discover → Pages → Bulk import → point Genie
-  Code at the Volume `/Volumes/<catalog>/care_protocol/ontology_pages` (or the `docs/ontology/pages/` files) →
-  review the proposed Pages → assign to the **Clinical Domain** domain → publish. Pages require a domain
-  first (run the domains script above). Pages are Beta.
+  **`/Volumes/${var.catalog}/care_protocol/ontology_pages`** (**16 Page sources + README = 17 files**) so Genie
+  Code can read them from a governed Volume. Re-runnable (overwrites). The volume is in the **shared catalog**,
+  so one run serves both ECT and DMVM. (A 2026-10-30 staging was stale — missing `ssd.md` and
+  `document-access-scope.md`, with measure links pointing at `care_protocol` not `care_protocol_semantic`;
+  re-staging from source fixes all of it.)
+- ⚙ **Genie Code bulk import** (the one irreducible manual step): use the ready prompt in
+  **`docs/ontology/PAGES_IMPORT_PROMPT.md`** — Discover → Pages → Bulk import → Genie Code → paste the prompt →
+  it proposes **one Page per `.md`, skipping README → 16 Pages** → review the table → assign to **Clinical
+  Domain** → publish. Pages require the domain first (shared, already present on both workspaces). Pages are Beta.
+  Re-run per workspace where Genie Ontology is ON (the published-Page set is per-workspace even though the
+  domain/catalog/volume are shared).
 
 ## Source-document volume — build MORE Pages via bulk import (second volume)
 Purpose: a staging ground of **Pages-ready SOURCE material** (facts-only mined extracts + the synthesized
@@ -100,10 +139,11 @@ Code without mixing sources and outputs.
   "certified vs clone" drift Genie One flagged from recurring. To certify, certify the DAB-deployed space.
 - ⚠️ **Genie export rule:** `data_sources.tables` and `data_sources.metric_views` in each `.geniespace.json`
   must be **sorted by identifier**, or the deploy fails with `must be sorted by identifier`.
-- ⚠️ **DMVM-pivot note (identifiers are hardcoded):** the `.geniespace.json` table/metric-view identifiers are
-  the fixed ECT catalog `eli_test_classic_catalog` (ADR-0001; `genie_spaces` file_path is NOT var-substituted).
-  To move the agents to the **DMVM** workspace, find/replace `eli_test_classic_catalog` → the DMVM catalog in
-  both `.geniespace.json` files (and re-point the `warehouse_id` lookup name), then `bundle deploy` to DMVM.
+- ✅ **DMVM deploys the agents unchanged (shared catalog).** The `.geniespace.json` identifiers are hardcoded to
+  `eli_test_classic_catalog` — and DMVM is in the **same metastore and shares that exact catalog** (ADR-0018), so
+  **no find/replace is needed**. DMVM also has a "Serverless Starter Warehouse", so the `warehouse_id` name lookup
+  resolves there too. Just `databricks bundle deploy -t dmvm --profile DMVM`. (This supersedes the earlier
+  "hardcoded identifiers → find/replace for DMVM" note, which assumed separate catalogs.)
 - ⚙ **Publish the dashboard** (makes the `/published` URL live; redeploy updates only the draft):
   `databricks lakeview publish <dashboard_id> --warehouse-id <wh> --profile ECT`.
 - ⚙ **Publish the dashboard** (makes the `/published` URL live; redeploy updates only the draft):

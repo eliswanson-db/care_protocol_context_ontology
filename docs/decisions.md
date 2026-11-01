@@ -5,6 +5,45 @@ statement in the source plans under `docs/sources/`.
 
 ---
 
+## ADR-0018 — Two workspaces, one shared catalog: isolate the native ontology's effect on Genie One
+**Date:** 2026-11-01 · **Status:** accepted
+Genie Ontology is a **workspace-level** capability: once enabled, Genie One (A1) always consults the workspace
+ontology (inferred snippets + modeled context). There is **no per-query "ontology off" switch for Genie One**
+— the ablation ladder (`ctx_l0…ctx_l5`) only works for Genie **Agents**, which carry their own assets (P7/§11).
+So a clean "native ontology vs none" baseline for A1 is impossible inside a single workspace.
+**Verified (2026-11-01):** ECT (`fevm-eli-test-classic`) and **DMVM** (`fe-vm-vdm-classic-q6xfh3`) are in the
+**same metastore** (`metastore_aws_us_east_1`, us-east-1); `eli_test_classic_catalog` is **one catalog object**
+(ISOLATED) bound **READ_WRITE to both** workspaces. DMVM already reads `care_protocol`, `care_protocol_semantic`,
+`care_protocol_terminology` with all comments (no rebuild); both have a "Serverless Starter Warehouse"; DMVM's
+Genie API is reachable.
+**Decision:** run the A1 experiment across **two workspaces over the one shared catalog**, varying only the
+native-ontology layer.
+- **DMVM = ontology-ON (treatment):** Genie Ontology enabled + Pages + Domains + certified assets + query-history
+  seeding → high inferred-snippet density. DMVM is ON because ECT's tag-policy cap blocks new Domains (→ Pages
+  blocked), starving inferred snippets (the original DMVM pivot — [[snippet-density-dmvm-pivot]], [[ect-environmental-constraints]]).
+- **ECT = ontology-OFF (baseline):** same catalog, same governed metric-views/comments; **Genie Ontology toggled
+  OFF** → Genie One answers from raw governed metadata only.
+  **Correction (2026-11-01, verified):** Domains are **metastore-level, not per-workspace** — `Clinical Domain`
+  (id `b624f99f-8903-40db-a1d6-61c11e3336e7`) already exists on **both** workspaces as the *same object*, and the
+  Pages volume lives in the shared catalog. So ECT's OFF-ness cannot and need not come from "absent Domains/Pages"
+  (they're shared and can't be removed from one workspace only); it comes **purely from the workspace-level Genie
+  Ontology toggle being off** on ECT. Non-destructive: nothing on ECT is torn down. Published **Pages are authored
+  per workspace**, so the ON arm (DMVM) still needs its own Page import even though the domain/catalog/volume are
+  shared.
+Data **and** modeled metadata are held constant (one catalog); the only variable is the native-ontology layer —
+the cleanest contrast the platform allows. **Still observational, not causal** (P12): the ON env also adds
+Pages/Domains, which ARE part of the native-ontology mechanism — label it so. The capability map's
+`a1_genie_one` column **splits into `a1_off` (ECT) / `a1_on` (DMVM)**.
+**DAB:** one bundle; `catalog` var stays `eli_test_classic_catalog` for both; add a **`dmvm` target** beside
+`ect`. Catalog-scoped assets build **once** (already live); workspace-local assets (Genie spaces, dashboards,
+persist_benchmark) deploy to both; the ontology layer (seed job + Pages/Domains + enabling Genie Ontology) is
+**DMVM-only** and partly manual (⚙ RUNBOOK). Query-history usage signal is per-workspace → seed on DMVM.
+**Consequences:** Ontobricks (A5, explicit graph) stays a separate arm; the three-way read becomes baseline
+(A1-off) vs native inferred ontology (A1-on) vs explicit graph (A5). Keep it reproducible so a fresh DMVM
+rebuilds the ON env.
+
+---
+
 ## ADR-0017 — SSD behavioral-health cohort is synthesized (Synthea has no SMI/antipsychotic signal)
 **Date:** 2026-10-31 · **Status:** accepted
 SSD is cross-domain: it needs serious mental illness (F20/F25/F31) + antipsychotic dispensing + a metabolic

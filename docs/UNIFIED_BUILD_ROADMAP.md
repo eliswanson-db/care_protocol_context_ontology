@@ -337,6 +337,57 @@ larger HLS platform — the "how much broader utility there is in Databricks" me
 
 ## 11. Session log
 
+### 2026-11-01 — Two-workspace design (ADR-0018): DMVM = ontology-ON arm, ECT = baseline
+
+Committed the four-in-one session (`23801e0`). Then designed the A1 (Genie One) **with vs. without native
+ontology** experiment. **Why two workspaces:** Genie Ontology is workspace-level — once on, Genie One always
+uses it (no per-query off switch; the ablation ladder is Agents-only, P7/line 214). **Verified:** ECT + DMVM
+share one metastore and the **one** `eli_test_classic_catalog` (bound RW to both); DMVM already reads all
+`care_protocol*` schemas + comments, has a Serverless Starter Warehouse, Genie API reachable. So: one catalog
+(data + modeled metadata held constant), two workspaces, vary only the native-ontology layer. See **ADR-0018**.
+
+**DMVM bring-up plan (ontology-ON arm) — mirrors P5–P7 on the shared catalog:**
+1. 🤖 **DAB:** add `dmvm` target (**done** this session); `bundle validate -t dmvm` green. Capability gate so
+   far: warehouse ✓, Genie API ✓, shared catalog ✓. **Open:** confirm Genie Ontology is enableable on DMVM
+   (workspace **admin** setting) + Apps if the app ships there.
+2. ⚙ **Deploy workspace-local assets to DMVM** (`bundle deploy -t dmvm --profile DMVM`): 4 Genie spaces +
+   dashboards + persist_benchmark. External write → **confirm**.
+3. ⚙ **Enable Genie Ontology** (admin) + author/publish **Pages** + create **Domains** + assign governed tags —
+   the high-authority snippet sources ECT's tag-policy cap can't make.
+4. 🤖⏳ **Run query-history seeding** on DMVM (per-workspace usage/freshness) → **wait** for extraction (hours,
+   no SLA). Verify by Genie One citing Pages/metric views.
+5. 🔒 **Verify + measure:** capture DMVM snippet density vs ECT; **split `a1_genie_one` → `a1_off` (ECT) /
+   `a1_on` (DMVM)** in the capability map; label observational (ON env also adds Pages/Domains).
+
+**Done this session:** commit `23801e0`; ADR-0018; `dmvm` DAB target + annotated `ect` as baseline; this plan.
+**Held (external → confirm):** steps 2–5 (all DMVM deploys / admin enablement / seeding).
+
+### 2026-11-01 (cont.) — DMVM bring-up prep: Pages import prompt + runbook; three shared-object corrections
+
+Prepping the DMVM ontology-ON buildout the user asked for ("deploy to DMVM; get Pages, same dashboards, Genie
+agents, schedules, everything that creates ontology snippets"). Read-only grounding surfaced **three things that
+simplify the plan vs. ADR-0018's first draft** — all because *domains and the catalog are metastore-level, not
+per-workspace*:
+- **Domain is shared, not per-workspace.** `Clinical Domain` (`b624f99f-…`) is the **same object** on ECT and
+  DMVM (same id, same create time). No `create_domains.py` re-run on DMVM. ADR-0018 corrected: ECT's OFF-ness
+  comes from the **Genie Ontology workspace toggle**, not from "absent Domains/Pages" (can't remove a shared
+  object from one workspace).
+- **Genie agents deploy to DMVM unchanged.** RUNBOOK had a "find/replace the catalog for DMVM" note that assumed
+  separate catalogs; the catalog is **shared**, so the `.geniespace.json` identifiers + warehouse lookup resolve
+  on DMVM as-is. Corrected the note.
+- **The staging volume is shared and was stale.** `/Volumes/…/care_protocol/ontology_pages` (one object both
+  workspaces read) was missing `ssd.md` + `document-access-scope.md` and had measure links on `care_protocol`
+  not `care_protocol_semantic` (2026-10-30 staging, pre-SSD). The **source files are correct**; one `stage_pages`
+  re-run fixes both workspaces. (Genie Code's review flagged exactly this.)
+
+**Did (local, committed):** new **`docs/ontology/PAGES_IMPORT_PROMPT.md`** — de-duplicated, workspace-agnostic
+Genie Code bulk-import prompt (refresh-volume pre-req, 16-Pages/skip-README, semantic-layer links, review-table
+gate, + a Step-2 "propose don't publish" for the MAD / Step-3 / contraindication gaps). Fixed stale "14 files"
+→ "16 Pages + README (17)" in `pages/README.md` + RUNBOOK. Added a consolidated **DMVM bring-up checklist** to
+the RUNBOOK (shared=no-action / workspace-local=deploy / manual=admin) and the ADR-0018 correction.
+
+**Held (external → confirm):** the DMVM deploy + seed + Pages import + ontology enablement (the actual writes).
+
 ### 2026-10-31 (latest+2) — Four-in-one: MV-2 lab metric view + AG-3 terminology agent + capability-map dashboard (+ stale-view drop pending)
 
 Eli: "just start doing all of these as one" (the four open threads from the Genie One review + session logs). Built
