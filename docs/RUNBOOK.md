@@ -40,9 +40,10 @@ no domain creation.**
 1. ⚙ **Auth** — `databricks auth login https://fevm-eli-test-classic.cloud.databricks.com --profile ECT` (already valid).
 2. ⚙ **Capability gate** — confirm on ECT and record in `capability-matrix.md`: **Genie Ontology ON**,
    **Apps enabled**, MLflow 3, Lakebase, Model Serving + embedding endpoint, Genie Agent API.
-3. 🤖 **Schemas + volume are declarative** (`resources/schemas.yml`, `resources/volumes.yml`) — created by
-   `databricks bundle deploy -t ect --profile ECT`. The catalog pre-exists (ECT Default Storage blocks SQL
-   catalog creation — ADR-0001).
+3. 🤖 **Schemas + volume are declarative** (the `&shared_uc` block in `databricks.yml`, owned by **dev + ect
+   only** — ADR-0019) — created by `databricks bundle deploy -t ect --profile ECT`. The catalog pre-exists
+   (ECT Default Storage blocks SQL catalog creation — ADR-0001). The `dmvm` target intentionally does **not**
+   manage these shared UC objects.
 4. 🤖 **Run the setup jobs (all bundle-managed — no ad-hoc SQL):**
    - `bundle run setup -t ect` → `load_terminology` (vendored CSVs → UC tables, no Drive, ADR-0007) → `build_closure` (iterative BFS → `icd10_closure`).
    - `bundle run generate_synthea -t ect` → classic job: stage pinned Synthea JAR to the Volume → run Synthea → `raw_synthea_*` tables.

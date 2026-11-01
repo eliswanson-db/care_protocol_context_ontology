@@ -5,6 +5,28 @@ statement in the source plans under `docs/sources/`.
 
 ---
 
+## ADR-0019 — Shared-UC resources (schemas + volumes) are owned by dev+ect only, never by the dmvm target
+**Date:** 2026-11-01 · **Status:** accepted
+ADR-0018 adds a second **production** DAB target (`dmvm`) over the **one shared catalog**. Problem: the bundle
+manages the `care_protocol*` **schemas** and their **volumes** as resources (`schemas.yml`/`volumes.yml`), and
+those are **unsuffixed UC objects** in the shared catalog (unlike jobs/pipelines, which are named
+`*_${bundle.target}`, and dashboards/Genie spaces, which are workspace-local). Two production targets managing
+the *same* schema objects in *separate* Terraform states collide: `dmvm`'s first deploy would try to **CREATE
+schemas that already exist** (ECT owns them) → `already exists` error, and — worse — a future
+`databricks bundle destroy -t dmvm` could **DROP the shared schemas and all the data** ECT depends on.
+**Decision:** the shared-UC-owning resources are attached to **dev + ect only**, via a `&shared_uc` YAML anchor
+in `databricks.yml` (the two `resources/*.yml` files were inlined there and deleted from the `include` glob).
+`dmvm` deploys **only** workspace-local / target-suffixed resources (Genie spaces, dashboards, jobs, pipeline
+defs); it never owns the shared schemas/volumes. Verified via `bundle validate -o json`: ect resolves 3 schemas
++ 4 volumes; **dmvm resolves 0 of each**; both resolve the same 13 jobs / 1 pipeline / 4 dashboards. This is the
+code form of ADR-0018's "catalog-scoped assets build **once**; workspace-local assets deploy to **both**."
+**Consequences:** never `bundle destroy -t dmvm` expecting it to leave data intact — it won't touch shared
+schemas now (good), but the data lives under ect's ownership, so teardown/rebuild of the catalog is an **ect**
+operation. The `measures` pipeline + data jobs still deploy to dmvm (target-suffixed, harmless) but are
+**not run** there (ADR-0018). Dev keeps its prefixed `dev_<user>_care_protocol*` schemas (dev-mode naming).
+
+---
+
 ## ADR-0018 — Two workspaces, one shared catalog: isolate the native ontology's effect on Genie One
 **Date:** 2026-11-01 · **Status:** accepted
 Genie Ontology is a **workspace-level** capability: once enabled, Genie One (A1) always consults the workspace
