@@ -108,12 +108,14 @@ targets:
       user_name: eli.swanson@databricks.com
     resources: *shared_uc
 
-  # ONTOLOGY arm (ADR-0018): Genie Ontology ON + Pages + Domains + query-history seeding -> high inferred-
-  # snippet density. SAME shared catalog as ect (eli_test_classic_catalog) — only the native-ontology layer
-  # differs, so data + modeled metadata are held constant and the ontology is the one variable.
+  # ONTOLOGY arm (ADR-0018): high inferred-snippet density via Pages + dashboards + Genie agents + query-history
+  # + analytics notebooks. Genie Ontology has NO on/off toggle (always on); inferred snippets are only fetched
+  # once a workspace exceeds ~1,000 snippets (ECT ≈ 200 = baseline; DMVM ≈ 1,100 = treatment) — so the lever is
+  # snippet COUNT, which this arm maximizes. SAME shared catalog as ect (eli_test_classic_catalog) — only the
+  # native-ontology density differs; data + modeled metadata are held constant.
   # Deploys ONLY workspace-local assets (Genie spaces, dashboards, jobs, pipeline defs) — it does NOT own the
   # shared schemas/volumes (no *shared_uc; ADR-0019), and the catalog-scoped DATA is already live, so the data
-  # jobs/pipeline are deployed-but-not-run here. Genie Ontology enablement is a workspace ADMIN setting.
+  # jobs/pipeline are deployed-but-not-run here.
   dmvm:
     mode: production
     workspace:

@@ -29,17 +29,22 @@ no domain creation.**
    one run from either profile refreshes the shared volume for both.
 
 **Manual / admin (⚙):**
-7. ⚙ **Enable Genie Ontology on DMVM** (workspace admin setting) — the switch that turns inferred snippets on.
-   Conversely, confirm it is **OFF on ECT** to hold the baseline.
+7. ⚙ **No Genie Ontology toggle exists — it is always on.** Inferred snippets are only *fetched* once a
+   workspace holds **> ~1,000 snippets** (measured 2026-11-01: ECT ≈ 200 = sub-threshold baseline; DMVM ≈ 1,100 =
+   above = treatment). So the lever is **snippet count**, not a switch: keep minting snippets on DMVM (Pages,
+   dashboards, Genie agents, query-history, analytics notebooks). Nothing to toggle on ECT — its baseline-ness is
+   just its sub-threshold count.
 8. ⚙ **Import Pages on DMVM** via Genie Code using `docs/ontology/PAGES_IMPORT_PROMPT.md` (16 Pages → Clinical
    Domain). Published Pages are per-workspace, so this is required on DMVM even though the sources are shared.
-9. ⚙ Let the ontology extract (async ⏳), then verify Genie One on DMVM **cites** Pages/metric views under
-   "Ontology References", and record snippet density in `capability-matrix.md`.
+9. ⚙⏳ **Extraction is slow — roughly DAILY, sometimes hours, NOT minutes.** Don't expect snippets right after
+   import. Once surfaced, verify Genie One on DMVM **cites** Pages/metric views under "Ontology References", and
+   record snippet density in `capability-matrix.md`.
 
 ## P0 — setup
 1. ⚙ **Auth** — `databricks auth login https://fevm-eli-test-classic.cloud.databricks.com --profile ECT` (already valid).
-2. ⚙ **Capability gate** — confirm on ECT and record in `capability-matrix.md`: **Genie Ontology ON**,
-   **Apps enabled**, MLflow 3, Lakebase, Model Serving + embedding endpoint, Genie Agent API.
+2. ⚙ **Capability gate** — confirm on ECT and record in `capability-matrix.md`: **Genie Ontology** (always on;
+   inferred snippets gated by workspace snippet count > ~1,000 — ADR-0018), **Apps enabled**, MLflow 3, Lakebase,
+   Model Serving + embedding endpoint, Genie Agent API.
 3. 🤖 **Schemas + volume are declarative** (the `&shared_uc` block in `databricks.yml`, owned by **dev + ect
    only** — ADR-0019) — created by `databricks bundle deploy -t ect --profile ECT`. The catalog pre-exists
    (ECT Default Storage blocks SQL catalog creation — ADR-0001). The `dmvm` target intentionally does **not**

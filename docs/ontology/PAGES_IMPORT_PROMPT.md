@@ -73,7 +73,9 @@ run Genie Code in differs.
 ## Verify after publishing
 
 Ask Genie One a seeded question (e.g. *"what is the GSD compliance rate?"*) and confirm the answer **cites** the
-Page / metric view under **Ontology References**. Extraction is async — see the RUNBOOK async-wait note.
+Page / metric view under **Ontology References**. **Extraction is slow — roughly daily, sometimes hours, NOT
+minutes** (snippets are also density-gated: a workspace fetches inferred snippets only above ~1,000 — ADR-0018).
+Don't expect citations right after publishing.
 
 ## What this covers vs. the backlog
 

@@ -43,15 +43,20 @@ native-ontology layer.
 - **DMVM = ontology-ON (treatment):** Genie Ontology enabled + Pages + Domains + certified assets + query-history
   seeding → high inferred-snippet density. DMVM is ON because ECT's tag-policy cap blocks new Domains (→ Pages
   blocked), starving inferred snippets (the original DMVM pivot — [[snippet-density-dmvm-pivot]], [[ect-environmental-constraints]]).
-- **ECT = ontology-OFF (baseline):** same catalog, same governed metric-views/comments; **Genie Ontology toggled
-  OFF** → Genie One answers from raw governed metadata only.
-  **Correction (2026-11-01, verified):** Domains are **metastore-level, not per-workspace** — `Clinical Domain`
-  (id `b624f99f-8903-40db-a1d6-61c11e3336e7`) already exists on **both** workspaces as the *same object*, and the
-  Pages volume lives in the shared catalog. So ECT's OFF-ness cannot and need not come from "absent Domains/Pages"
-  (they're shared and can't be removed from one workspace only); it comes **purely from the workspace-level Genie
-  Ontology toggle being off** on ECT. Non-destructive: nothing on ECT is torn down. Published **Pages are authored
-  per workspace**, so the ON arm (DMVM) still needs its own Page import even though the domain/catalog/volume are
-  shared.
+- **ECT = ontology-OFF (baseline, effectively):** same catalog, same governed metric-views/comments, but **below
+  the inferred-snippet threshold** → Genie One answers from raw governed metadata only.
+  **Correction (2026-11-01, verified with Eli — supersedes the "toggle" framing):** There is **no Genie Ontology
+  on/off switch** — it is always on. Inferred snippets are only **fetched when the workspace holds more than
+  ~1,000 snippets**. Measured: **ECT ≈ 200** (below → effectively no inferred-ontology context = the baseline),
+  **DMVM ≈ 1,100** (above → inferred snippets active = the treatment). So the OFF/ON split is a **natural
+  density-threshold effect**, not a switch we flip — which is exactly why the DMVM bring-up drives snippet count up
+  (Pages, dashboards, Genie agents, query-history, analytics notebooks all mint snippets). Domains are
+  **metastore-level** (`Clinical Domain` id `b624f99f-8903-40db-a1d6-61c11e3336e7`, same object on both) and the
+  Pages volume is in the shared catalog, so nothing is torn down on ECT; its baseline-ness is purely the
+  sub-threshold snippet count. Published **Pages are per-workspace**, so the ON arm (DMVM) still needs its own
+  import. **Extraction is slow:** new snippets surface on roughly a **daily** cadence (sometimes hours), **not**
+  minutes — plan verification around that. Still **observational, not causal** (snippet density co-varies with
+  Pages/Domains/usage) — label it so.
 Data **and** modeled metadata are held constant (one catalog); the only variable is the native-ontology layer —
 the cleanest contrast the platform allows. **Still observational, not causal** (P12): the ON env also adds
 Pages/Domains, which ARE part of the native-ontology mechanism — label it so. The capability map's
