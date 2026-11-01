@@ -27,3 +27,34 @@ resources:
       warehouse_id: ${var.warehouse_id}
       parent_path: /Workspace/Users/eli.swanson@databricks.com/genie_spaces
       file_path: ./protocol_adherence.geniespace.json
+
+    # Cohort & Terminology agent (AG-3 from the Genie One review): the vocabularies and curated code sets
+    # BEHIND the measures -- ICD-10 subsumption, RxNorm ingredient->drug, LOINC multiaxial Parts, versioned
+    # value sets, and the care-protocol edge graph. Self-contained over care_protocol_terminology.* (no
+    # patient data), scoped separately from the outcome/process agents to keep each space's examples dense
+    # and on-topic (per the review). Body: terminology.geniespace.json.
+    terminology_agent:
+      title: Care Protocol — Cohort & Terminology (${bundle.target})
+      description: >-
+        Curated Genie Agent over the clinical terminology layer: ICD-10-CM hierarchy/closure (cohort
+        subsumption), RxNorm ingredient->clinical-drug closure, LOINC multiaxial Parts (component/system/
+        method), versioned HEDIS value sets, and the care-protocol knowledge-edge graph. Answers
+        definition/code-set questions, not patient counts. HEDIS-aligned demo, not NCQA-certified.
+      warehouse_id: ${var.warehouse_id}
+      parent_path: /Workspace/Users/eli.swanson@databricks.com/genie_spaces
+      file_path: ./terminology.geniespace.json
+
+    # LOINC Lab Measures agent (AG-2 from the Genie One review): lab RESULTS -- volume, patients tested, and
+    # values -- grouped by LOINC multiaxial concept, over the lab_result_metrics metric view (MV-2). Consumes
+    # the governed view so lab counts match the HEDIS numerators (A1c Patients Tested = 9,709 = the class-3
+    # gold). Scoped separately from the outcome / terminology agents. Body: lab_measures.geniespace.json.
+    lab_measures_agent:
+      title: Care Protocol — LOINC Lab Measures (${bundle.target})
+      description: >-
+        Curated Genie Agent over laboratory RESULTS: test volume, patients tested, and result values grouped
+        by LOINC multiaxial concept (component / system / method) via the governed lab_result_metrics view.
+        Answers 'how many patients were tested for X regardless of method' and result-value questions.
+        HEDIS-aligned demo, not NCQA-certified.
+      warehouse_id: ${var.warehouse_id}
+      parent_path: /Workspace/Users/eli.swanson@databricks.com/genie_spaces
+      file_path: ./lab_measures.geniespace.json

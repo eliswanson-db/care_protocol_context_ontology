@@ -1,0 +1,102 @@
+{
+  "datasets": [
+    {
+      "name": "ds_coverage",
+      "displayName": "Scorable coverage by arm",
+      "queryLines": [
+        "SELECT arm, ",
+        "  SUM(CASE WHEN reached THEN 1 ELSE 0 END) AS reached, ",
+        "  COUNT(*) AS scorable ",
+        "FROM eli_test_classic_catalog.care_protocol.benchmark_capability_tidy ",
+        "WHERE verdict <> 'not_applicable' ",
+        "GROUP BY arm ORDER BY arm"
+      ]
+    },
+    {
+      "name": "ds_by_class",
+      "displayName": "Reached by class and arm",
+      "queryLines": [
+        "SELECT class_num, class_name, arm, ",
+        "  SUM(CASE WHEN reached THEN 1 ELSE 0 END) AS reached, ",
+        "  COUNT(*) AS questions ",
+        "FROM eli_test_classic_catalog.care_protocol.benchmark_capability_tidy ",
+        "WHERE verdict <> 'not_applicable' ",
+        "GROUP BY class_num, class_name, arm ORDER BY class_num"
+      ]
+    },
+    {
+      "name": "ds_matrix",
+      "displayName": "Capability matrix (hand-verified)",
+      "queryLines": [
+        "SELECT class_num AS `#`, class_name AS class, question, gold_25k AS gold, min_approach, ",
+        "  m0_metric_view AS m0, closure_sql, a1_genie_one AS genie_one, note ",
+        "FROM eli_test_classic_catalog.care_protocol.benchmark_capability_matrix ",
+        "ORDER BY class_num, question_id"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "capability_map",
+      "displayName": "Capability Map",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {"name": "title", "textbox_spec": "# Context & Retrieval Capability Map — Care Protocol"},
+          "position": {"x": 0, "y": 0, "width": 12, "height": 1}
+        },
+        {
+          "widget": {"name": "subtitle", "textbox_spec": "For each class of hard clinical question, **which context/retrieval approach reaches the hand-verified answer, and how** — not a leaderboard. Verdicts are hand-verified against pinned 25k-patient gold (`verify_gold.py`); `docs/benchmark/capability_map.md` is authoritative. _Synthetic · HEDIS-aligned · Not NCQA-certified · Not for clinical use._"},
+          "position": {"x": 0, "y": 1, "width": 12, "height": 1}
+        },
+        {
+          "widget": {"name": "hdr_coverage", "textbox_spec": "## Scorable coverage by arm\nOf the questions each arm structurally applies to (excludes _not applicable_), how many it reached. A correct refusal counts as reached."},
+          "position": {"x": 0, "y": 2, "width": 12, "height": 1}
+        },
+        {
+          "widget": {
+            "name": "bar_coverage",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_coverage", "fields": [{"name": "arm", "expression": "`arm`"}, {"name": "sum(reached)", "expression": "SUM(`reached`)"}], "disaggregated": false}}],
+            "spec": {"version": 3, "widgetType": "bar", "encodings": {"x": {"fieldName": "arm", "scale": {"type": "categorical"}, "displayName": "Retrieval arm"}, "y": {"fieldName": "sum(reached)", "scale": {"type": "quantitative"}, "displayName": "Questions reached"}, "color": {"fieldName": "arm", "scale": {"type": "categorical"}, "displayName": "Arm"}}, "frame": {"title": "Questions reached by arm (of those it applies to)", "showTitle": true}}
+          },
+          "position": {"x": 0, "y": 3, "width": 12, "height": 6}
+        },
+        {
+          "widget": {"name": "hdr_byclass", "textbox_spec": "## Where each approach earns its place\nReached-count by question class. The gaps are the point: metric views answer definitions, closure SQL is the robust spine for subsumption/multiaxial/multi-hop, Genie One reasons broadly, and graph-native inference (class 8) is where a formal graph becomes necessary."},
+          "position": {"x": 0, "y": 9, "width": 12, "height": 1}
+        },
+        {
+          "widget": {
+            "name": "bar_byclass",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_by_class", "fields": [{"name": "class_name", "expression": "`class_name`"}, {"name": "arm", "expression": "`arm`"}, {"name": "sum(reached)", "expression": "SUM(`reached`)"}], "disaggregated": false}}],
+            "spec": {"version": 3, "widgetType": "bar", "encodings": {"x": {"fieldName": "class_name", "scale": {"type": "categorical"}, "displayName": "Question class"}, "y": {"fieldName": "sum(reached)", "scale": {"type": "quantitative"}, "displayName": "Questions reached"}, "color": {"fieldName": "arm", "scale": {"type": "categorical"}, "displayName": "Arm"}}, "frame": {"title": "Reached by class and arm", "showTitle": true}}
+          },
+          "position": {"x": 0, "y": 10, "width": 12, "height": 7}
+        },
+        {
+          "widget": {"name": "hdr_matrix", "textbox_spec": "## The matrix (hand-verified)\nOne row per question: the gold, the minimal sufficient layer, and each arm's verdict (_reached · not_reached · diverged · not_applicable · correct_refusal_)."},
+          "position": {"x": 0, "y": 17, "width": 12, "height": 1}
+        },
+        {
+          "widget": {
+            "name": "tbl_matrix",
+            "queries": [{"name": "main_query", "query": {"datasetName": "ds_matrix", "fields": [{"name": "#", "expression": "`#`"}, {"name": "class", "expression": "`class`"}, {"name": "question", "expression": "`question`"}, {"name": "gold", "expression": "`gold`"}, {"name": "min_approach", "expression": "`min_approach`"}, {"name": "m0", "expression": "`m0`"}, {"name": "closure_sql", "expression": "`closure_sql`"}, {"name": "genie_one", "expression": "`genie_one`"}, {"name": "note", "expression": "`note`"}], "disaggregated": true}}],
+            "spec": {"version": 2, "widgetType": "table", "encodings": {"columns": [{"fieldName": "#", "displayName": "#"}, {"fieldName": "class", "displayName": "Class"}, {"fieldName": "question", "displayName": "Question"}, {"fieldName": "gold", "displayName": "Gold (25k)"}, {"fieldName": "min_approach", "displayName": "Min approach"}, {"fieldName": "m0", "displayName": "M0 metric view"}, {"fieldName": "closure_sql", "displayName": "closure_sql"}, {"fieldName": "genie_one", "displayName": "A1 Genie One"}, {"fieldName": "note", "displayName": "How"}]}, "frame": {"title": "Hand-verified capability matrix", "showTitle": true}}
+          },
+          "position": {"x": 0, "y": 18, "width": 12, "height": 10}
+        }
+      ]
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "canvasBackgroundColor": {"light": "#FCFCFC", "dark": "#1F272D"},
+      "widgetBackgroundColor": {"light": "#FFFFFF", "dark": "#11171C"},
+      "fontColor": {"light": "#11171C", "dark": "#E8ECF0"},
+      "selectionColor": {"light": "#2272B4", "dark": "#8ACAFF"},
+      "visualizationColors": ["#4E79A7", "#F28E2C", "#E15759", "#76B7B2", "#59A14F", "#9F1853"],
+      "widgetHeaderAlignment": "LEFT"
+    }
+  }
+}

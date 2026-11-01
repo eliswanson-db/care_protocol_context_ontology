@@ -30,3 +30,13 @@ resources:
       warehouse_id: ${var.warehouse_id}
       parent_path: /Workspace/Users/eli.swanson@databricks.com/dashboards
       embed_credentials: true
+
+    # The serious benchmark as a dashboard: the hand-verified capability MAP (not a leaderboard) over the
+    # benchmark_capability_* tables (loaded by the persist_benchmark job). Per class of hard clinical question,
+    # which context/retrieval approach reaches the pinned gold and how. Source of truth: docs/benchmark/capability_map.md.
+    benchmark_capability_map:
+      display_name: Context & Retrieval Capability Map — Care Protocol (${bundle.target})
+      file_path: ./benchmark_capability.lvdash.json
+      warehouse_id: ${var.warehouse_id}
+      parent_path: /Workspace/Users/eli.swanson@databricks.com/dashboards
+      embed_credentials: true

@@ -162,6 +162,20 @@ COMMENT ON COLUMN {catalog}.care_protocol.silver_observation.units IS 'Result un
 -- silver_diabetes_cohort: patients with a diabetes diagnosis under E10/E11/E13 via the ICD-10 closure.
 COMMENT ON COLUMN {catalog}.care_protocol.silver_diabetes_cohort.patient_id IS 'Distinct patients in the diabetes cohort, resolved by subsumption over the ICD-10-CM hierarchy (E10/E11/E13 and all descendants).';
 
+-- gold_lab_result: lab-observation fact grain enriched with LOINC multiaxial Parts (MV-2). Backs lab_result_metrics.
+COMMENT ON COLUMN {catalog}.care_protocol.gold_lab_result.patient_id IS 'Patient the lab result belongs to.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_lab_result.encounter_id IS 'Encounter in which the lab was drawn.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_lab_result.result_ts IS 'Timestamp of the lab result.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_lab_result.measurement_year IS 'Calendar year of the result (YEAR(result_ts)); the grouping key for year-over-year lab volume.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_lab_result.loinc_code IS 'LOINC code of the specific test (e.g. 4548-4, 17856-6, 98979-8). Several codes can share one Component.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_lab_result.description IS 'Human-readable lab/test name as recorded on the observation.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_lab_result.component_code IS 'LOINC Component Part code (e.g. LP-HBA1C, LP-EGFR, LP-UACR) -- the multiaxial identity of WHAT is measured. Null when the LOINC code has no Part in the demo subset.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_lab_result.component IS 'LOINC Component Part name (e.g. Hemoglobin A1c/Hemoglobin.total). One Component spans every code/method measuring it -- the basis for "all A1c regardless of method".';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_lab_result.specimen_system IS 'LOINC System Part name -- the specimen/site (Blood, Serum or Plasma, Urine, Arterial system).';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_lab_result.method IS 'LOINC Method Part name -- the assay/technique (HPLC, IFCC, MDRD, CKD-EPI). Same Component + different Method = same analyte, different measurement.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_lab_result.value_num IS 'Numeric result value (double). Comparable only within one Component/Code -- units differ across analytes.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_lab_result.units IS 'Result units of measure as recorded.';
+
 -- Shared reporting-window columns on the remaining gold measures (GSD already documented above). Same
 -- semantics across every HEDIS measure; kept identical so Genie reads one consistent definition.
 COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ked.period_start IS 'Start of the measurement-year reporting window (January 1).';

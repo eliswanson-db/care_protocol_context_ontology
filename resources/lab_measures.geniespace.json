@@ -1,0 +1,91 @@
+{
+  "version": 2,
+  "config": {
+    "sample_questions": [
+      {"id": "40000000000000000000000000000001", "question": ["How many patients were tested for hemoglobin A1c, across any method?"]},
+      {"id": "40000000000000000000000000000002", "question": ["Show lab volume by lab concept."]},
+      {"id": "40000000000000000000000000000003", "question": ["Break down eGFR results by assay method."]},
+      {"id": "40000000000000000000000000000004", "question": ["What is the average A1c result?"]},
+      {"id": "40000000000000000000000000000005", "question": ["How many patients had a uACR test?"]},
+      {"id": "40000000000000000000000000000006", "question": ["Show A1c testing volume by year."]},
+      {"id": "40000000000000000000000000000007", "question": ["Which specimen systems are represented in the lab results?"]},
+      {"id": "40000000000000000000000000000008", "question": ["Which coded lab concept has the most patients tested?"]}
+    ]
+  },
+  "data_sources": {
+    "tables": [
+      {"identifier": "eli_test_classic_catalog.care_protocol.gold_lab_result"},
+      {"identifier": "eli_test_classic_catalog.care_protocol_terminology.loinc_parts"}
+    ],
+    "metric_views": [
+      {"identifier": "eli_test_classic_catalog.care_protocol_semantic.lab_result_metrics"}
+    ]
+  },
+  "instructions": {
+    "example_question_sqls": [
+      {
+        "id": "40000000000000000000000000000001",
+        "question": ["How many patients were tested for hemoglobin A1c, across any method?"],
+        "sql": ["SELECT MEASURE(`Patients Tested`) AS patients, MEASURE(`Observations`) AS results FROM eli_test_classic_catalog.care_protocol_semantic.lab_result_metrics WHERE `Lab Concept` = 'Hemoglobin A1c/Hemoglobin.total'"]
+      },
+      {
+        "id": "40000000000000000000000000000002",
+        "question": ["Show lab volume by lab concept."],
+        "sql": ["SELECT `Lab Concept`, MEASURE(`Patients Tested`) AS patients, MEASURE(`Observations`) AS results FROM eli_test_classic_catalog.care_protocol_semantic.lab_result_metrics GROUP BY `Lab Concept` ORDER BY results DESC"]
+      },
+      {
+        "id": "40000000000000000000000000000003",
+        "question": ["Break down eGFR results by assay method."],
+        "sql": ["SELECT `Method`, MEASURE(`Observations`) AS results, MEASURE(`Patients Tested`) AS patients FROM eli_test_classic_catalog.care_protocol_semantic.lab_result_metrics WHERE `Lab Concept` = 'Glomerular filtration rate.predicted' GROUP BY `Method` ORDER BY results DESC"]
+      },
+      {
+        "id": "40000000000000000000000000000004",
+        "question": ["What is the average A1c result?"],
+        "sql": ["SELECT MEASURE(`Average Result`) AS avg_a1c FROM eli_test_classic_catalog.care_protocol_semantic.lab_result_metrics WHERE `Lab Concept` = 'Hemoglobin A1c/Hemoglobin.total'"]
+      },
+      {
+        "id": "40000000000000000000000000000005",
+        "question": ["How many patients had a uACR test?"],
+        "sql": ["SELECT MEASURE(`Patients Tested`) AS patients FROM eli_test_classic_catalog.care_protocol_semantic.lab_result_metrics WHERE `Lab Concept` = 'Albumin/Creatinine'"]
+      },
+      {
+        "id": "40000000000000000000000000000006",
+        "question": ["Show A1c testing volume by year."],
+        "sql": ["SELECT `Measurement Year`, MEASURE(`Observations`) AS results FROM eli_test_classic_catalog.care_protocol_semantic.lab_result_metrics WHERE `Lab Concept` = 'Hemoglobin A1c/Hemoglobin.total' GROUP BY `Measurement Year` ORDER BY `Measurement Year`"]
+      },
+      {
+        "id": "40000000000000000000000000000007",
+        "question": ["Which specimen systems are represented in the lab results?"],
+        "sql": ["SELECT `Specimen System`, MEASURE(`Observations`) AS results FROM eli_test_classic_catalog.care_protocol_semantic.lab_result_metrics GROUP BY `Specimen System` ORDER BY results DESC"]
+      },
+      {
+        "id": "40000000000000000000000000000008",
+        "question": ["Which coded lab concept has the most patients tested?"],
+        "sql": ["SELECT `Lab Concept`, MEASURE(`Patients Tested`) AS patients FROM eli_test_classic_catalog.care_protocol_semantic.lab_result_metrics WHERE `Lab Concept` <> 'Uncoded (no LOINC Part)' GROUP BY `Lab Concept` ORDER BY patients DESC LIMIT 1"]
+      },
+      {
+        "id": "40000000000000000000000000000009",
+        "question": ["Which LOINC codes make up the A1c concept, and by what method?"],
+        "sql": ["SELECT c.loinc_code, m.part_name AS method FROM (SELECT loinc_code FROM eli_test_classic_catalog.care_protocol_terminology.loinc_parts WHERE predicate = 'has_component' AND part = 'LP-HBA1C') c LEFT JOIN (SELECT loinc_code, part_name FROM eli_test_classic_catalog.care_protocol_terminology.loinc_parts WHERE predicate = 'has_method') m ON c.loinc_code = m.loinc_code ORDER BY c.loinc_code"]
+      },
+      {
+        "id": "4000000000000000000000000000000a",
+        "question": ["List the distinct A1c results recorded for a specific patient over time."],
+        "sql": ["SELECT result_ts, loinc_code, value_num, units FROM eli_test_classic_catalog.care_protocol.gold_lab_result WHERE component = 'Hemoglobin A1c/Hemoglobin.total' ORDER BY result_ts DESC LIMIT 20"]
+      }
+    ],
+    "text_instructions": [
+      {
+        "id": "c4000000000000000000000000000001",
+        "content": [
+          "This agent answers questions about LABORATORY RESULTS -- test volume, patients tested, and result values -- grouped by LOINC multiaxial concept. For HEDIS measure compliance (who met GSD/KED/etc.), use the Care Protocol HEDIS agent; for terminology/code-set definitions, use the Cohort & Terminology agent.",
+          "Query the metric view lab_result_metrics with MEASURE(): MEASURE(`Observations`) counts result rows, MEASURE(`Patients Tested`) counts DISTINCT patients. Use Patients Tested for 'how many patients', Observations for 'how many tests/results'.",
+          "GROUP BY `Lab Concept` to aggregate by WHAT was measured regardless of code or method (the LOINC Component) -- e.g. 'Hemoglobin A1c/Hemoglobin.total' unifies every A1c code/method. `Method` is the assay (HPLC, IFCC, MDRD, CKD-EPI); `LOINC Code` is the specific code; `Specimen System` is the sample. Same Concept + different Method = same analyte measured differently.",
+          "MEASURE(`Average Result`) / Min / Max are only meaningful WITHIN a single Lab Concept or LOINC Code -- units differ across analytes (A1c % vs eGFR mL/min vs mmHg). Always constrain to one concept before averaging.",
+          "The `Lab Concept` value 'Uncoded (no LOINC Part)' is the bucket of lab codes outside the curated demo Part subset (e.g. BMI, PHQ). Exclude it (WHERE `Lab Concept` <> 'Uncoded (no LOINC Part)') when ranking coded analytes.",
+          "For patient-level result detail (individual values over time), use the gold_lab_result table; for code/method structure, loinc_parts. Synthetic data; LOINC (c) Regenstrief under the LOINC License. HEDIS-aligned demo, not NCQA-certified, not for clinical use."
+        ]
+      }
+    ]
+  }
+}

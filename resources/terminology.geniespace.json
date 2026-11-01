@@ -1,0 +1,123 @@
+{
+  "version": 2,
+  "config": {
+    "sample_questions": [
+      {"id": "30000000000000000000000000000001", "question": ["Which ICD-10 codes roll up under Type 2 diabetes (E11)?"]},
+      {"id": "30000000000000000000000000000002", "question": ["How many ICD-10 codes are in the diabetes hierarchy (E10, E11, E13)?"]},
+      {"id": "30000000000000000000000000000003", "question": ["Is E11.21 a diabetes diagnosis?"]},
+      {"id": "30000000000000000000000000000004", "question": ["What are all the statin clinical drugs under the statin ingredients?"]},
+      {"id": "30000000000000000000000000000005", "question": ["Is RxNorm 312961 a statin?"]},
+      {"id": "30000000000000000000000000000006", "question": ["Which LOINC codes measure hemoglobin A1c, regardless of method?"]},
+      {"id": "30000000000000000000000000000007", "question": ["Show the eGFR LOINC codes and their assay methods."]},
+      {"id": "30000000000000000000000000000008", "question": ["What codes are in the GSD A1c test value set?"]},
+      {"id": "30000000000000000000000000000009", "question": ["How did the KED eGFR value set change across measurement years?"]},
+      {"id": "3000000000000000000000000000000a", "question": ["Which drug classes are contraindicated when eGFR is below 30?"]}
+    ]
+  },
+  "data_sources": {
+    "tables": [
+      {"identifier": "eli_test_classic_catalog.care_protocol_terminology.icd10_closure"},
+      {"identifier": "eli_test_classic_catalog.care_protocol_terminology.icd10_hier"},
+      {"identifier": "eli_test_classic_catalog.care_protocol_terminology.loinc"},
+      {"identifier": "eli_test_classic_catalog.care_protocol_terminology.loinc_parts"},
+      {"identifier": "eli_test_classic_catalog.care_protocol_terminology.protocol_edges"},
+      {"identifier": "eli_test_classic_catalog.care_protocol_terminology.rxnorm_closure"},
+      {"identifier": "eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier"},
+      {"identifier": "eli_test_classic_catalog.care_protocol_terminology.rxnorm_statin"},
+      {"identifier": "eli_test_classic_catalog.care_protocol_terminology.value_set_segment"}
+    ]
+  },
+  "instructions": {
+    "example_question_sqls": [
+      {
+        "id": "30000000000000000000000000000001",
+        "question": ["Which ICD-10 codes roll up under Type 2 diabetes (E11)?"],
+        "sql": ["SELECT descendant_code, descendant_name FROM eli_test_classic_catalog.care_protocol_terminology.icd10_closure WHERE ancestor_code = 'E11' ORDER BY descendant_code"]
+      },
+      {
+        "id": "30000000000000000000000000000002",
+        "question": ["How many ICD-10 codes are in the diabetes hierarchy (E10, E11, E13)?"],
+        "sql": ["SELECT COUNT(DISTINCT descendant_code) AS diabetes_codes FROM eli_test_classic_catalog.care_protocol_terminology.icd10_closure WHERE ancestor_code IN ('E10','E11','E13')"]
+      },
+      {
+        "id": "30000000000000000000000000000003",
+        "question": ["Is E11.21 a diabetes diagnosis?"],
+        "sql": ["SELECT COUNT(*) > 0 AS is_diabetes FROM eli_test_classic_catalog.care_protocol_terminology.icd10_closure WHERE ancestor_code IN ('E10','E11','E13') AND descendant_code = 'E11.21'"]
+      },
+      {
+        "id": "30000000000000000000000000000004",
+        "question": ["What are the direct child codes of E11?"],
+        "sql": ["SELECT code, name FROM eli_test_classic_catalog.care_protocol_terminology.icd10_hier WHERE parent_code = 'E11' ORDER BY code"]
+      },
+      {
+        "id": "30000000000000000000000000000005",
+        "question": ["What are all the statin clinical drugs under the statin ingredients?"],
+        "sql": ["SELECT DISTINCT c.descendant_code, c.descendant_name FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_closure c JOIN eli_test_classic_catalog.care_protocol_terminology.rxnorm_statin s ON c.ancestor_code = s.rxcui ORDER BY c.descendant_code"]
+      },
+      {
+        "id": "30000000000000000000000000000006",
+        "question": ["Is RxNorm 312961 a statin?"],
+        "sql": ["SELECT COUNT(*) > 0 AS is_statin FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_closure c JOIN eli_test_classic_catalog.care_protocol_terminology.rxnorm_statin s ON c.ancestor_code = s.rxcui WHERE c.descendant_code = '312961'"]
+      },
+      {
+        "id": "30000000000000000000000000000007",
+        "question": ["List the statin ingredients."],
+        "sql": ["SELECT rxcui, ingredient FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_statin ORDER BY ingredient"]
+      },
+      {
+        "id": "30000000000000000000000000000008",
+        "question": ["Which LOINC codes measure hemoglobin A1c, regardless of method?"],
+        "sql": ["SELECT loinc_code, loinc_name FROM eli_test_classic_catalog.care_protocol_terminology.loinc_parts WHERE predicate = 'has_component' AND part = 'LP-HBA1C' ORDER BY loinc_code"]
+      },
+      {
+        "id": "30000000000000000000000000000009",
+        "question": ["What are the semantic axes (component, system, method) of LOINC 17856-6?"],
+        "sql": ["SELECT predicate, part, part_name FROM eli_test_classic_catalog.care_protocol_terminology.loinc_parts WHERE loinc_code = '17856-6' ORDER BY predicate"]
+      },
+      {
+        "id": "3000000000000000000000000000000a",
+        "question": ["Show the eGFR LOINC codes and their assay methods."],
+        "sql": ["SELECT loinc_code, part_name AS method FROM eli_test_classic_catalog.care_protocol_terminology.loinc_parts WHERE predicate = 'has_method' AND loinc_code IN (SELECT loinc_code FROM eli_test_classic_catalog.care_protocol_terminology.loinc_parts WHERE predicate = 'has_component' AND part = 'LP-EGFR') ORDER BY loinc_code"]
+      },
+      {
+        "id": "3000000000000000000000000000000b",
+        "question": ["What codes are in the GSD A1c test value set?"],
+        "sql": ["SELECT code, code_system FROM eli_test_classic_catalog.care_protocol_terminology.value_set_segment WHERE segment_id = 'GSD_A1C_TEST' ORDER BY code"]
+      },
+      {
+        "id": "3000000000000000000000000000000c",
+        "question": ["How did the KED eGFR value set change across measurement years?"],
+        "sql": ["SELECT measurement_year, code FROM eli_test_classic_catalog.care_protocol_terminology.value_set_segment WHERE segment_id = 'KED_EGFR' ORDER BY measurement_year, code"]
+      },
+      {
+        "id": "3000000000000000000000000000000d",
+        "question": ["List all value-set segments and their owners."],
+        "sql": ["SELECT DISTINCT segment_id, segment_name, owner FROM eli_test_classic_catalog.care_protocol_terminology.value_set_segment ORDER BY segment_id"]
+      },
+      {
+        "id": "3000000000000000000000000000000e",
+        "question": ["Show the care-protocol recommendation and contraindication edges."],
+        "sql": ["SELECT subject, predicate, object, value FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges ORDER BY subject, predicate"]
+      },
+      {
+        "id": "3000000000000000000000000000000f",
+        "question": ["Which drug classes are contraindicated when eGFR is below 30?"],
+        "sql": ["SELECT subject, object, value FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE predicate = 'contraindicatedWhen' ORDER BY subject"]
+      }
+    ],
+    "text_instructions": [
+      {
+        "id": "c3000000000000000000000000000001",
+        "content": [
+          "This agent answers questions about clinical TERMINOLOGY and cohort/value-set DEFINITIONS -- the vocabularies and curated code sets behind the HEDIS diabetes measures. It does NOT count patients; for patient-level measure rates and care gaps, use the Care Protocol HEDIS agent instead.",
+          "SUBSUMPTION (is-a rollups): icd10_closure and rxnorm_closure are precomputed transitive closures. To find everything under a concept, do a single equality join/filter on ancestor_code; descendant_code is the narrower concept. icd10_hier and rxnorm_hier hold the DIRECT parent/child edges (one level); the *_closure tables expand them to all depths. Example: the diabetes cohort is every ICD-10 code with ancestor_code in (E10, E11, E13).",
+          "RxNorm: rxnorm_statin lists statin INGREDIENT rxcuis. Join them to rxnorm_closure.ancestor_code to subsume every statin CLINICAL DRUG (descendant_code) actually prescribed -- that is how SPD resolves 'is this drug a statin?'.",
+          "LOINC is MULTIAXIAL, not a tree: loinc_parts decomposes each LOINC code into typed Parts via predicate has_component / has_system / has_method. 'All A1c regardless of method' = every loinc_code sharing Component part LP-HBA1C. Component = WHAT is measured; Method = HOW (HPLC, IFCC, MDRD, CKD-EPI); System = the specimen. Group by Component to unify codes across vintages and methods; this is something a single is-a closure cannot express.",
+          "value_set_segment holds the curated HEDIS value sets (segment_id, e.g. GSD_A1C_TEST, KED_EGFR, SPD_STATIN) as member codes, with code_system (LOINC/ICD10CM/RXNORM) and measurement_year. Value sets are VERSIONED: the same segment_id can have different members in different measurement years (terminology drift) -- always consider measurement_year when a question is about what currently qualifies.",
+          "protocol_edges is the care-protocol knowledge graph as subject-predicate-object(-value) triples: predicates recommendedFor / firstLineFor / contraindicatedWith / contraindicatedWhen, with an optional numeric threshold in value (e.g. object eGFR_LT_30 carries value 30). source cites the protocol section.",
+          "Codes are strings -- always quote them (WHERE ancestor_code = 'E11'). All tables are in the care_protocol_terminology schema. Terminology (c) their respective owners (LOINC (c) Regenstrief); curated demo subsets, HEDIS-aligned, not NCQA-certified, not for clinical use."
+        ]
+      }
+    ]
+  }
+}

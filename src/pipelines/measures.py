@@ -53,6 +53,36 @@ def silver_diabetes_cohort():
     return cond.join(closure, cond["icd10_code"] == closure["descendant_code"]).select("patient_id").distinct()
 
 
+# ---------------- Gold: lab results (LOINC multiaxial) ----------------
+@dp.materialized_view(
+    comment="Lab-result fact grain for the LOINC lab-measures metric view (MV-2): one row per numeric lab "
+            "observation, enriched with its LOINC multiaxial Parts (Component / System / Method) so results "
+            "group by SEMANTIC concept across code vintages and methods -- e.g. 'all HbA1c regardless of assay "
+            "method' = one Component (LP-HBA1C), spanning LOINC 4548-4 / 17856-6 / 59261-8. Parts are a LEFT "
+            "join (codes absent from loinc_parts keep a null Component). Averages are only meaningful WITHIN a "
+            "Component or single code -- units differ across analytes. Source for "
+            "care_protocol_semantic.lab_result_metrics. Synthetic; LOINC (c) Regenstrief, used under the LOINC License.")
+def gold_lab_result():
+    obs = spark.read.table("silver_observation")  # noqa: F821 (sibling dataset -- bare name)
+    parts = spark.read.table(f"{TERM}.loinc_parts")  # noqa: F821
+    # Pivot the typed Part edges (one row per predicate) into Component / System / Method columns.
+    comp = (parts.where(F.col("predicate") == "has_component")
+            .select(F.col("loinc_code").alias("c_code"),
+                    F.col("part").alias("component_code"), F.col("part_name").alias("component")))
+    syst = (parts.where(F.col("predicate") == "has_system")
+            .select(F.col("loinc_code").alias("s_code"), F.col("part_name").alias("specimen_system")))
+    meth = (parts.where(F.col("predicate") == "has_method")
+            .select(F.col("loinc_code").alias("m_code"), F.col("part_name").alias("method")))
+    return (obs
+            .join(comp, obs["loinc_code"] == comp["c_code"], "left")
+            .join(syst, obs["loinc_code"] == syst["s_code"], "left")
+            .join(meth, obs["loinc_code"] == meth["m_code"], "left")
+            .withColumn("measurement_year", F.year("result_ts"))
+            .select("patient_id", "encounter_id", "result_ts", "measurement_year",
+                    "loinc_code", "description", "component_code", "component",
+                    "specimen_system", "method", "value_num", "units"))
+
+
 # ---------------- Gold: GSD (Glycemic Status Assessment) ----------------
 @dp.materialized_view(
     comment="GSD adherence event log. Denominator: diabetes patients aged 18-75. Numerator: >=1 A1c "

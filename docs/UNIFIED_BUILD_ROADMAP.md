@@ -337,6 +337,65 @@ larger HLS platform — the "how much broader utility there is in Databricks" me
 
 ## 11. Session log
 
+### 2026-10-31 (latest+2) — Four-in-one: MV-2 lab metric view + AG-3 terminology agent + capability-map dashboard (+ stale-view drop pending)
+
+Eli: "just start doing all of these as one" (the four open threads from the Genie One review + session logs). Built
+all four **as code**, then applied the non-destructive batch to ECT (Eli approved "apply batch, hold the drop").
+Live: `deploy` → `run measures` (built `gold_lab_result`) → `run semantic` (created `lab_result_metrics`; 9 views) →
+`run persist_benchmark` (20 questions, 60 tidy rows). Dashboard datasets live-SQL-tested green on the warehouse.
+
+**Two findings (surfaced; NOT acted on — hand-verification is Eli's per the charter):**
+- **`lab_result_metrics` reproduces the class-3 gold exactly:** Patients Tested for the HbA1c Component = **9,709**,
+  = the pinned `lab_a1c_any_method` gold. So the **metric-view layer (M0) can now reach class 3** (LOINC multiaxial)
+  via this new view — the capability matrix currently records M0 `not_reached` there. Candidate verdict upgrade,
+  pending Eli's hand-verification (don't auto-upgrade; closure/MV is not an oracle).
+- **`Uncoded (no LOINC Part)` dominates lab volume** (~14.2M obs): expected — `loinc_parts` is a curated subset of
+  the measure-relevant analytes, so every other Synthea lab (BMI, PHQ, etc.) falls in the COALESCE bucket. Honest,
+  but if lab snippets should exclude it, filter `component IS NOT NULL`.
+
+**Did (committed-ready source; applied to ECT this session except where noted):**
+- **MV-2 — LOINC Lab Measures metric view.** New gold fact grain `gold_lab_result` in `src/pipelines/measures.py`
+  (silver_observation × loinc_parts, Parts pivoted to Component/System/Method columns via left joins; null Component
+  for codes absent from the demo Part subset). New `src/semantic/metric_views/lab_result.metric_view.sql` →
+  `care_protocol_semantic.lab_result_metrics` (dims Lab Concept/LOINC Code/Specimen/Method/Units/Year; measures
+  Observations, Patients Tested = COUNT(DISTINCT), Avg/Min/Max). This is the charter's "graph > closure WITHIN a
+  vocabulary" exemplar (all A1c by Component regardless of method). +12 `gold_lab_result` column comments.
+- **AG-3 — Cohort & Terminology Genie agent.** New `resources/terminology.geniespace.json` + `terminology_agent`
+  in `genie_spaces.yml`. Self-contained over `care_protocol_terminology.*` (9 tables, sorted by identifier per the
+  export gotcha): ICD-10 closure/hier, RxNorm closure/hier/statin, loinc, loinc_parts, protocol_edges,
+  value_set_segment. **15 example-SQL snippets** (ICD-10 subsumption, direct children, RxNorm ingredient→drug,
+  is-312961-a-statin, LOINC multiaxial Component, eGFR methods, value-set membership + vintage drift, protocol
+  edges, eGFR<30 contraindications) + 10 sample questions + instructions. Scoped to definitions, not patient counts
+  (→ HEDIS agent), kept separate for Genie accuracy. **Net curated snippets 33 → 48** across three agents.
+- **Benchmark leaderboard → capability MAP (persisted).** Closes the "benchmark logs to MLflow only, no results
+  table" gap. Versioned the hand-verified matrix as data: `docs/benchmark/capability_matrix.csv` (20 questions ×
+  3 arms, mirrors `capability_map.md`). New `src/benchmark/persist_capability_map.py` loads it into
+  `care_protocol.benchmark_capability_matrix` (wide) + `benchmark_capability_tidy` (long, for charting), with
+  table/column comments; new `persist_benchmark` job (serverless, no warehouse/Genie needed). New AI/BI dashboard
+  `resources/benchmark_capability.lvdash.json` (+`dashboards.yml`): scorable coverage by arm, reached-by-class,
+  and the full hand-verified matrix table. Framed as a **capability map, not a leaderboard** (ADR-0010).
+
+**Did (continued — AG-2 + a test harness; applied to ECT):**
+- **AG-2 — LOINC Lab Measures Genie agent.** New `resources/lab_measures.geniespace.json` + `lab_measures_agent`
+  (genie_spaces.yml), over `lab_result_metrics` (+ gold_lab_result, loinc_parts). 10 snippets (A1c-any-method,
+  eGFR-by-method, avg result, volume by concept/year/specimen). **Deployed to ECT.** Curated snippets now **58
+  across 4 agents.**
+- **Snippet smoke test (`scripts/smoke_test_snippets.py`).** Reproducible demo-safety net: executes every Genie
+  example-SQL snippet + every dashboard dataset query against the warehouse (via the CLI; no SDK install).
+  **Result: 74/74 pass** (58 Genie snippets + 16 dashboard datasets), all 4 agents + all 4 dashboards green.
+- Local pytest suite (prior-session A4 RAG tests) not runnable here — no `pytest` in either interpreter (needs a
+  dev install); unrelated to this session's assets.
+
+**Didn't (held):**
+- **ADR-0013 stale-view drop** (4th thread) — Eli chose "hold the drop." Still pending: drop the 7 old
+  `care_protocol.*_compliance_metrics` views now that `care_protocol_semantic.*` resolves. Destructive → explicit
+  confirm. (The new `lab_result_metrics` is already in the new schema; no old duplicate to drop for it.)
+- **AG-2 (LOINC Lab agent)** now unblocked by MV-2 (would consume `lab_result_metrics`) — fast follow, not built.
+- **Terminology & new Genie agents not benchmarked** — `terminology_agent` is deployed but not yet a scored arm.
+- **Not committed yet** — the whole four-in-one batch is uncommitted in the working tree.
+- **CSV gotcha fixed mid-run:** `persist_capability_map` first failed — two `note` values had unquoted commas
+  (pandas: "Expected 10 fields, saw 11"). Quoted them, redeployed (re-syncs the file), re-ran green.
+
 ### 2026-10-31 (latest+1) — Genie One review actioned: HEDIS view dimensions + snippet density + source volume
 
 Evaluated Genie One's metric-view / agent recommendations against our goals (serious capability map; snippet

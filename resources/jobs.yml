@@ -315,6 +315,31 @@ resources:
               - databricks-sdk
               - mlflow
 
+    # Persist the hand-verified capability MATRIX into UC so the AI/BI capability-map dashboard can read it
+    # (the roadmap gap: the benchmark job logs to MLflow only, so no results table existed). Loads
+    # docs/benchmark/capability_matrix.csv -> benchmark_capability_matrix (wide) + benchmark_capability_tidy
+    # (long, for charting). Re-runnable (overwrite). Capability map, not a leaderboard (ADR-0010). No live
+    # warehouse / Genie needed -- it loads the version-controlled verdicts, so it runs anytime.
+    persist_benchmark:
+      name: persist_benchmark_${bundle.target}
+      description: Load the hand-verified capability matrix (CSV) into UC tables for the capability-map dashboard.
+      tasks:
+        - task_key: persist_capability_map
+          spark_python_task:
+            python_file: ../src/benchmark/persist_capability_map.py
+            parameters:
+              - "--catalog"
+              - "${var.catalog}"
+              - "--schema"
+              - "care_protocol"
+              - "--src_dir"
+              - "${workspace.file_path}/docs/benchmark"
+          environment_key: serverless
+      environments:
+        - environment_key: serverless
+          spec:
+            client: "3"
+
     # Weekly Protocol Watch (story hook: "nobody asked; Genie noticed"). Scans gold_protocol_adherence by
     # trigger month for Step-3 drift (censoring-aware, small-N gated) and appends to protocol_watch_findings.
     # That table is what a Genie One SCHEDULED TASK (manual setup — see RUNBOOK) reads to deliver the weekly
