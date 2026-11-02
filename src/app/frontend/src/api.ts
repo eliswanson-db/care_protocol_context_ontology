@@ -143,6 +143,28 @@ export interface A1Runs {
   caveat: string;
 }
 
+export interface DriftRate { clinic_id: string; rate: string; triggers: string }
+export interface DriftFinding {
+  clinic_id: string; severity: string; month: string;
+  trailing_rate: string; baseline: string; delta: string; baseline_n: string;
+  censored: boolean; narrative: string;
+}
+export interface DriftTraj { month: string; triggers: string; rate: string }
+export interface DriftTransition { clinic_id: string; change_type: string; transition_date: string; recovery_days: string; narrative: string }
+export interface DriftCaseMix { clinic_id: string; complication_share: string; patients: string }
+export interface Drift {
+  measurement_year: number;
+  annual_ranking: DriftRate[];
+  annual_worst: DriftRate | null;
+  findings: DriftFinding[];
+  worst: DriftFinding | null;
+  worst_clinic: string | null;
+  worst_annual_rank: number | null;
+  trajectory: DriftTraj[];
+  transition: DriftTransition | null;
+  casemix: DriftCaseMix[];
+}
+
 export const api = {
   meta: () => get<Meta>("/api/meta"),
   tracers: () => get<{ measurement_year: number; tracers: Tracer[] }>("/api/tracers"),
@@ -151,4 +173,5 @@ export const api = {
   rag: (pid: string) => get<RagResult>(`/api/patient/${pid}/rag`),
   capabilityMap: () => get<CapabilityMap>("/api/benchmark/capability_map"),
   a1Runs: () => get<A1Runs>("/api/benchmark/a1_runs"),
+  drift: () => get<Drift>("/api/drift"),
 };

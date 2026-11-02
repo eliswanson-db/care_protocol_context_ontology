@@ -1,14 +1,17 @@
-import { BarChart3, GitCompare, Network, Route } from "lucide-react";
+import { BarChart3, GitCompare, Network, Route, TrendingDown } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api, type Meta } from "./api";
 import { Header } from "./components/Header";
 import { BenchmarkScorecard } from "./tabs/BenchmarkScorecard";
+import { DriftLab } from "./tabs/DriftLab";
+import { RetrievalArena } from "./tabs/RetrievalArena";
 import { TracerJourney } from "./tabs/TracerJourney";
 
 const TABS = [
   { key: "tracer", label: "Tracer Journey", icon: Route, enabled: true },
+  { key: "arena", label: "Retrieval Arena", icon: GitCompare, enabled: true },
   { key: "scorecard", label: "Benchmark Scorecard", icon: BarChart3, enabled: true },
-  { key: "arena", label: "Retrieval Arena", icon: GitCompare, enabled: false },
+  { key: "drift", label: "Drift Lab", icon: TrendingDown, enabled: true },
   { key: "ontology", label: "Ontology Explorer", icon: Network, enabled: false },
 ];
 
@@ -48,7 +51,9 @@ export default function App() {
         })}
       </nav>
       {tab === "tracer" && <TracerJourney />}
+      {tab === "arena" && <RetrievalArena />}
       {tab === "scorecard" && <BenchmarkScorecard />}
+      {tab === "drift" && <DriftLab />}
       {meta && (
         <footer className="border-t border-border bg-surface px-5 py-1.5 text-[11px] text-muted">
           {meta.disclaimer} · catalog {meta.catalog} · context {meta.context_release}
