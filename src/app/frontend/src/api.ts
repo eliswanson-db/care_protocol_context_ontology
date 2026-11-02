@@ -128,6 +128,7 @@ export interface CapabilityMap {
   arms: CapArm[];
   classes: CapClass[];
   rollup: CapRollup[];
+  a1_on_source: string | null;
 }
 
 export interface A1ArmSignals {

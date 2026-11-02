@@ -12,17 +12,12 @@ command:
   - "8000"
 
 env:
+  # Logical config only — NO hardcoded endpoints. The warehouse (by name), the Lakebase host (from the
+  # endpoint path), and the Genie space (by title) are all resolved at runtime via the SDK in server/config.py,
+  # so this deploys unchanged to any workspace. CARE_ARM is a label; set it per target.
   - name: CARE_CATALOG
     value: "eli_test_classic_catalog"
   - name: CARE_MEASUREMENT_YEAR
     value: "2025"
   - name: CARE_ARM
     value: "dmvm"
-  - name: CARE_WAREHOUSE_ID
-    value: "3abb59fcfb739e0d"          # DMVM "Serverless Starter Warehouse"
-  - name: CARE_LAKEBASE_HOST
-    value: "ep-divine-wildflower-d2l62zpy.database.us-east-1.cloud.databricks.com"  # DMVM Lakebase
-  - name: CARE_GENIE_SPACE_ID
-    value: "01f1d63eaf1e148aaca3e207c7499c1a"   # DMVM "Care Protocol — HEDIS Diabetes Quality" space (deployed Genie hop)
-  - name: SERVING_ENDPOINT
-    value: "databricks-claude-sonnet-5-5"

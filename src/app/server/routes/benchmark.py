@@ -35,6 +35,20 @@ ARMS = [
 _REACHED = {"reached", "correct_refusal"}  # a correct refusal is a correct outcome
 
 
+def _derive_a1_on(qid: str, csv_val: str, on_by_id: dict) -> str:
+    """a1_on isn't hand-verified — derive its verdict from the actual DMVM run snapshot so it reflects REAL
+    results instead of a frozen 'pending'. a1_off stays hand-verified from the matrix."""
+    rec = on_by_id.get(qid)
+    if csv_val != "pending" or not rec:
+        return csv_val
+    ok, ans = rec.get("answer_ok"), (rec.get("answer") or "").lower()
+    if ok is True:
+        return "reached"
+    if ok is False:
+        return "not_reached" if ans.startswith("error") or "timed out" in ans else "diverged"
+    return "pending"
+
+
 @router.get("/benchmark/capability_map")
 def capability_map():
     path = os.path.join(BENCH_DIR, "capability_matrix.csv")
@@ -43,20 +57,30 @@ def capability_map():
     with open(path, newline="") as f:
         rows = list(csv.DictReader(f))
 
+    on_snap = _signals(_latest("A1_on_*.json"))
+    on_by_id = (on_snap or {}).get("by_id", {})
+
+    def verdicts(r):
+        v = {a["id"]: r[a["col"]] for a in ARMS}
+        v["a1_on"] = _derive_a1_on(r["question_id"], v["a1_on"], on_by_id)
+        return v
+
     classes: list[dict] = []
+    vmap: dict[str, dict] = {}
     for r in rows:
         cn = r["class_num"]
         if not classes or classes[-1]["class_num"] != cn:
             classes.append({"class_num": cn, "class_name": r["class_name"], "questions": []})
+        v = verdicts(r)
+        vmap[r["question_id"]] = v
         classes[-1]["questions"].append({
             "id": r["question_id"], "question": r["question"], "gold": r["gold_25k"],
-            "min_approach": r["min_approach"], "note": r["note"],
-            "verdicts": {a["id"]: r[a["col"]] for a in ARMS},
+            "min_approach": r["min_approach"], "note": r["note"], "verdicts": v,
         })
 
     rollup = []
     for a in ARMS:
-        vals = [r[a["col"]] for r in rows]
+        vals = [vmap[r["question_id"]][a["id"]] for r in rows]
         applicable = [v for v in vals if v not in ("not_applicable", "pending")]
         rollup.append({
             "arm": a["id"], "label": a["label"],
@@ -68,7 +92,8 @@ def capability_map():
             "applicable": len(applicable),
             "total": len(vals),
         })
-    return {"arms": ARMS, "classes": classes, "rollup": rollup}
+    return {"arms": ARMS, "classes": classes, "rollup": rollup,
+            "a1_on_source": on_snap["snapshot"] if on_snap else None}
 
 
 def _latest(pattern: str) -> str | None:

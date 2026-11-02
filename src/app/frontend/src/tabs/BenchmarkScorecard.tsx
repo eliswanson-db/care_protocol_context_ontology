@@ -183,6 +183,11 @@ export function BenchmarkScorecard() {
           ))}
         </div>
         <Matrix map={map} />
+        <p className="mt-2 text-[11px] text-muted">
+          a1_off is hand-verified (authoritative). a1_on is <span className="font-semibold">auto-scored</span> from
+          the latest DMVM run snapshot{map.a1_on_source ? ` (${map.a1_on_source})` : ""} — it reflects the real run,
+          not a hand verdict; re-running the DMVM arm refreshes it.
+        </p>
       </section>
 
       <section className="mb-7">

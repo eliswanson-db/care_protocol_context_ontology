@@ -18,11 +18,16 @@ import time
 
 from fastapi import APIRouter, HTTPException
 
-from ..config import ARM, IS_DATABRICKS_APP, MEASUREMENT_YEAR, get_warehouse_id, get_workspace_client
+from ..config import (
+    ARM,
+    IS_DATABRICKS_APP,
+    MEASUREMENT_YEAR,
+    get_genie_space_id,
+    get_warehouse_id,
+    get_workspace_client,
+)
 
 router = APIRouter()
-
-GENIE_SPACE_ID = os.environ.get("CARE_GENIE_SPACE_ID", "")
 
 
 def _profile() -> str:
@@ -96,13 +101,11 @@ def _ask_cli(patient_id: str) -> dict:
 
 def _ask_sdk(patient_id: str) -> dict:
     """Governed Genie space (A2 Agent) via the SDK — the deployed path (no CLI)."""
-    if not GENIE_SPACE_ID:
-        raise HTTPException(500, "CARE_GENIE_SPACE_ID is not set — cannot reach a Genie space.")
     question = _question(patient_id)
     w = get_workspace_client()
     t0 = time.time()
     try:
-        msg = w.genie.start_conversation_and_wait(GENIE_SPACE_ID, question)
+        msg = w.genie.start_conversation_and_wait(get_genie_space_id(), question)
     except Exception as e:  # noqa: BLE001
         raise HTTPException(502, f"Genie space error: {type(e).__name__}: {str(e)[:260]}")
 

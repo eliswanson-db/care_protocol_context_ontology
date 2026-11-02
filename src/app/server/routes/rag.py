@@ -13,11 +13,11 @@ import time
 from fastapi import APIRouter, HTTPException
 
 from ..config import (
-    LAKEBASE_ENDPOINT,
-    LAKEBASE_HOST,
-    LAKEBASE_SEARCH_EXT,
-    LAKEBASE_USER,
     ARM,
+    LAKEBASE_ENDPOINT,
+    LAKEBASE_SEARCH_EXT,
+    get_lakebase_host,
+    get_lakebase_user,
     get_profile,
 )
 
@@ -39,7 +39,7 @@ def _retriever():
     from ..a4_lakebase import A4RagRetriever  # vendored copy (deploy-safe; src/ isn't synced with the app)
 
     return A4RagRetriever(
-        endpoint=LAKEBASE_ENDPOINT, host=LAKEBASE_HOST, user=LAKEBASE_USER,
+        endpoint=LAKEBASE_ENDPOINT, host=get_lakebase_host(), user=get_lakebase_user(),
         profile=get_profile(), search_ext=LAKEBASE_SEARCH_EXT,
     )
 

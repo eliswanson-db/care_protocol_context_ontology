@@ -23,12 +23,13 @@ MEASUREMENT_YEAR = int(os.environ.get("CARE_MEASUREMENT_YEAR", "2025"))
 ARM = os.environ.get("CARE_ARM", "local")
 CONTEXT_RELEASE = os.environ.get("CARE_CONTEXT_RELEASE", "dev")
 
-# A4 Lakebase RAG (ADR-0014). Postgres is per-workspace; defaults point at the ECT project. Override via env
-# for DMVM. Embeddings are not yet populated on either env (RUNBOOK) -> the RAG route runs lexical/BM25 and
-# auto-upgrades to hybrid once rag.chunks.embedding is backfilled.
-LAKEBASE_HOST = os.environ.get("CARE_LAKEBASE_HOST", "ep-spring-paper-d2objaly.database.us-east-1.cloud.databricks.com")
+# Endpoints are NEVER hardcoded — everything below is a LOGICAL NAME, resolved to the live id/host/space at
+# runtime via the SDK, so the app is portable across workspaces (ECT/DMVM) with no per-workspace ids baked in.
+WAREHOUSE_NAME = os.environ.get("CARE_WAREHOUSE_NAME", "Serverless Starter Warehouse")
+GENIE_SPACE_NAME = os.environ.get("CARE_GENIE_SPACE_NAME", "Care Protocol — HEDIS Diabetes Quality")
+# A4 Lakebase (ADR-0014): the project/branch/endpoint PATH is a logical name (same on every workspace); the
+# per-workspace host is resolved from it. The connecting Postgres user resolves to the caller identity.
 LAKEBASE_ENDPOINT = os.environ.get("CARE_LAKEBASE_ENDPOINT", "projects/care-protocol/branches/production/endpoints/primary")
-LAKEBASE_USER = os.environ.get("CARE_LAKEBASE_USER", "eli.swanson@databricks.com")
 LAKEBASE_SEARCH_EXT = os.environ.get("CARE_LAKEBASE_SEARCH_EXT", "1") == "1"
 
 
@@ -47,12 +48,35 @@ def get_workspace_client() -> WorkspaceClient:
 
 @lru_cache(maxsize=1)
 def get_warehouse_id() -> str:
-    """Warehouse for SQL execution. Explicit env wins; else resolve 'Serverless Starter Warehouse' by name."""
-    wid = os.environ.get("CARE_WAREHOUSE_ID")
-    if wid:
-        return wid
+    """Resolve the SQL warehouse by NAME (WAREHOUSE_NAME) — no hardcoded id."""
     w = get_workspace_client()
     for wh in w.warehouses.list():
-        if wh.name == "Serverless Starter Warehouse":
+        if wh.name == WAREHOUSE_NAME:
             return wh.id
-    raise RuntimeError("No CARE_WAREHOUSE_ID set and 'Serverless Starter Warehouse' not found.")
+    raise RuntimeError(f"Warehouse {WAREHOUSE_NAME!r} not found in this workspace.")
+
+
+@lru_cache(maxsize=1)
+def get_lakebase_host() -> str:
+    """Resolve the Lakebase host from the endpoint PATH via the SDK — no hardcoded DNS."""
+    ep = get_workspace_client().postgres.get_endpoint(LAKEBASE_ENDPOINT)
+    host = ((ep.status.hosts.host if ep.status and ep.status.hosts else None) or "")
+    if not host:
+        raise RuntimeError(f"No host on Lakebase endpoint {LAKEBASE_ENDPOINT!r}.")
+    return host
+
+
+@lru_cache(maxsize=1)
+def get_lakebase_user() -> str:
+    """Postgres connecting identity = the caller (current user locally, service principal when deployed)."""
+    return os.environ.get("CARE_LAKEBASE_USER") or get_workspace_client().current_user.me().user_name
+
+
+@lru_cache(maxsize=1)
+def get_genie_space_id() -> str:
+    """Resolve the governed Genie space by TITLE prefix (GENIE_SPACE_NAME) — no hardcoded space id."""
+    r = get_workspace_client().genie.list_spaces()
+    for s in (r.spaces or []):
+        if s.title and s.title.startswith(GENIE_SPACE_NAME):
+            return s.space_id
+    raise RuntimeError(f"No Genie space titled like {GENIE_SPACE_NAME!r} in this workspace.")
