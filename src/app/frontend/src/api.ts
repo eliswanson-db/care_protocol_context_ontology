@@ -95,10 +95,60 @@ export interface RagResult {
   latency_s: number;
 }
 
+export interface CapArm {
+  id: string;
+  label: string;
+}
+export interface CapQuestion {
+  id: string;
+  question: string;
+  gold: string;
+  min_approach: string;
+  note: string;
+  verdicts: Record<string, string>;
+}
+export interface CapClass {
+  class_num: string;
+  class_name: string;
+  questions: CapQuestion[];
+}
+export interface CapRollup {
+  arm: string;
+  label: string;
+  reached: number;
+  diverged: number;
+  not_reached: number;
+  not_applicable: number;
+  pending: number;
+  applicable: number;
+  total: number;
+}
+export interface CapabilityMap {
+  arms: CapArm[];
+  classes: CapClass[];
+  rollup: CapRollup[];
+}
+
+export interface A1ArmSignals {
+  snapshot: string;
+  n: number;
+  reached_auto: number;
+  snippet_search_fired: number;
+  ontology_used: number;
+  by_id: Record<string, { answer_ok: boolean | null; ontology_used: boolean; tool_names: string[]; latency_s: number; answer: string }>;
+}
+export interface A1Runs {
+  off: A1ArmSignals | null;
+  on: A1ArmSignals | null;
+  caveat: string;
+}
+
 export const api = {
   meta: () => get<Meta>("/api/meta"),
   tracers: () => get<{ measurement_year: number; tracers: Tracer[] }>("/api/tracers"),
   journey: (pid: string) => get<Journey>(`/api/patient/${pid}/journey`),
   genie: (pid: string) => get<GenieResult>(`/api/patient/${pid}/genie`),
   rag: (pid: string) => get<RagResult>(`/api/patient/${pid}/rag`),
+  capabilityMap: () => get<CapabilityMap>("/api/benchmark/capability_map"),
+  a1Runs: () => get<A1Runs>("/api/benchmark/a1_runs"),
 };

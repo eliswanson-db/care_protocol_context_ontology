@@ -11,7 +11,7 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from server.routes import genie, health, rag, tracer
+from server.routes import benchmark, genie, health, rag, tracer
 
 app = FastAPI(title="Care Protocol Context")
 
@@ -19,6 +19,7 @@ app.include_router(health.router, prefix="/api")
 app.include_router(tracer.router, prefix="/api")
 app.include_router(genie.router, prefix="/api")
 app.include_router(rag.router, prefix="/api")
+app.include_router(benchmark.router, prefix="/api")
 
 _frontend = os.path.join(os.path.dirname(__file__), "frontend", "dist")
 if os.path.isdir(_frontend):
