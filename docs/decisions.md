@@ -69,6 +69,22 @@ persist_benchmark) deploy to both; the ontology layer (seed job + Pages/Domains 
 (A1-off) vs native inferred ontology (A1-on) vs explicit graph (A5). Keep it reproducible so a fresh DMVM
 rebuilds the ON env.
 
+**Addendum (2026-11-02) — the ON effect is the INTENT, not yet a verified result.** Probed DMVM directly
+(`genie ask --raw`) rather than assuming: `search_knowledge_snippets` fires but the stream exposes no snippet
+payload ("Found 4 results"), and Genie One grounds entirely in the **16 curated Pages + catalog assets found via
+`search_assets`/`information_schema`** — the *modeled* layer, which **ECT has too**. So we have **no observed
+evidence that the inferred/"learned" snippet layer is doing work on DMVM**; the ~1,100 figure is UI-reported
+*density*, not evidence of *retrieval*. **This does not change the decision — it sharpens its honesty.** The
+plan stands: treat `a1_on` (DMVM) as the **intended** ontology-ON arm and deliberately build the per-workspace
+surfaces that mint inferred snippets (analytics notebooks, dashboards, Genie agents, metric views, column
+comments, query-history seeding), *assuming* the inferred layer will eventually surface. But **whether Genie One
+actually retrieves inferred snippets — vs. always grounding in the shared curated Pages/metric views both arms
+share — is itself an open empirical question this demo is designed to answer, not a premise to assert.** The
+demo says so out loud. `a1_on` verdicts stay **pending** that surface build + extraction (daily cadence) **and**
+a question that only an inferred snippet can answer (design criterion + candidates in
+`docs/benchmark/inferred_ontology_discrimination.md`). Lead the benchmark story with the hand-verified **layer**
+capability map (M0 < closure < Genie-One-over-modeled; graph-only class 8), which stands on its own.
+
 ---
 
 ## ADR-0017 — SSD behavioral-health cohort is synthesized (Synthea has no SMI/antipsychotic signal)

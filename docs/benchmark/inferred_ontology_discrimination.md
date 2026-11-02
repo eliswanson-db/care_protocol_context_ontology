@@ -1,5 +1,19 @@
 # Inferred-ontology discrimination — probe finding + candidate questions (PROPOSAL)
 
+## Intent (the demo framing, decided 2026-11-02)
+
+We **intend** `a1_on` (DMVM) to be the ontology-ON arm, and we are deliberately building the per-workspace
+surfaces that mint native inferred snippets (analytics notebooks, dashboards, Genie agents, metric views,
+column comments, query-history seeding), **assuming** that inferred layer will eventually surface and lift
+answers the modeled layer can't reach. **But we do not assert it works.** The probe below shows that, so far,
+Genie One on DMVM grounds only in the curated Pages + metric views both arms share. **Whether the native
+inferred ontology ever gets retrieved — or whether Genie One always falls back to the shared modeled layer —
+is one of the questions this demo is built to answer.** We say that out loud in the app and lead the benchmark
+with the hand-verified *layer* capability map, which stands on its own. This doc records the probe, the intent,
+and how we'd finally confirm (or falsify) the inferred-layer effect.
+
+---
+
 Status: **proposal / unverified. No benchmark runs yet.** Kept out of `ground_truth.yaml` on purpose —
 that file is the hand-verified answer key *and* the `closure_sql` arm, and `run_capability_map.py` executes
 every class in it; these candidates have no modeled gold by design, so running them from there would pollute

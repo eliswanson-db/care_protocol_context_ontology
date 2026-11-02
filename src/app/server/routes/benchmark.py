@@ -100,10 +100,13 @@ def a1_runs():
         "off": off,
         "on": on,
         "caveat": (
-            "Accuracy is identical on these questions: the care_protocol domain is fully modeled (governed "
-            "metric views + curated Pages exist on BOTH arms), so Genie One reaches the answers with or without "
-            "the high-density inferred ontology. The inferred layer adds candidate breadth, not answer "
-            "correctness, on covered questions. A fair ON/OFF test needs inferred-ontology-only questions "
-            "(cross-space / outside care_protocol) — a benchmark scope extension, not yet in the set."
+            "Intended contrast, not yet a proven one. A1-on (DMVM) is the INTENDED ontology-ON arm: we are "
+            "building the per-workspace surfaces (notebooks, dashboards, Genie agents, metric views, comments, "
+            "query history) that mint native inferred snippets, assuming that layer will surface. But a direct "
+            "probe shows Genie One on DMVM grounding in the same curated Pages + metric views that BOTH arms "
+            "share — we have not yet observed the inferred ('learned') layer doing work. Whether it ever "
+            "retrieves inferred snippets — or only ever uses the shared modeled layer — is an open question this "
+            "demo is designed to answer. Lead with the layer map above; treat ON-vs-OFF as a live experiment, "
+            "and read a1_on verdicts as pending that build + extraction + an inferred-only question."
         ),
     }
