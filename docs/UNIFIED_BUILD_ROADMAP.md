@@ -337,6 +337,46 @@ larger HLS platform — the "how much broader utility there is in Databricks" me
 
 ## 11. Session log
 
+### 2026-11-01 (latest+1) — DMVM bring-up executed: workspace-local assets + A4 Lakebase RAG at ECT parity
+
+Deployed the ontology-ON arm to DMVM over the shared catalog, then brought A4 (Lakebase RAG) to full parity.
+All external writes confirmed by Eli.
+
+**DAB scoping fix (ADR-0019) — had to land first.** A second production target (`dmvm`) over the ONE shared
+catalog collided: `schemas.yml`/`volumes.yml` manage **unsuffixed** UC objects, so two prod TF states would try
+to create already-existing schemas AND a future `bundle destroy -t dmvm` could drop the shared schemas + data.
+Fix: inlined schemas+volumes into `databricks.yml` under a `&shared_uc` anchor attached to **dev + ect only**;
+dropped them from the include glob; deleted the two files. Verified: `dmvm` resolves **0 schemas / 0 volumes**,
+same 13 jobs / 1 pipeline / 4 dashboards as ect. All three targets validate OK.
+
+**Deployed to DMVM (steps 1–5, all green):**
+- `bundle deploy -t dmvm`: **22 resources** (4 Genie agents, 4 dashboards, 13 jobs, 1 pipeline), 0 schemas/volumes.
+- `seed_query_history -t dmvm`: SUCCESS (DMVM-local query history — the per-workspace inferred-snippet fuel).
+- `smoke_test_snippets --profile DMVM`: **74/74 pass** (58 Genie snippets + 16 dashboard datasets).
+- `stage_pages` + `stage_source_documents`: refreshed the **shared** volume to **17 Pages** (added `ssd.md` +
+  `document-access-scope.md`; the Oct-30 staleness that Genie Code flagged is now fixed for BOTH workspaces) + 9
+  source docs. Verified from the ECT side too.
+- Published all 4 DMVM dashboards.
+
+**A4 Lakebase RAG — brought to ECT parity on DMVM:**
+- Created the `care-protocol` Lakebase project on DMVM (`ep-divine-wildflower-d2l62zpy`).
+- **Detected ECT's actual path** (read its live Postgres): Lakebase Search — `lakebase_vector`/`lakebase_text`,
+  `lakebase_ann` + `lakebase_bm25` indexes. **Finding: ECT's `rag.chunks` has 0 embeddings** — ECT runs
+  **lexical/BM25-only** today (the ANN index sits over an all-NULL column; `a4_lakebase.py` embeds the *query*
+  at search time). So "mirror ECT" = corpus + BM25, embeddings absent on both.
+- Eli **enabled Lakebase Search** on the DMVM project (the one irreducible manual UI step; `lakebase_vector`
+  needs `shared_preload_libraries`, which that toggle sets — confirmed by a clean pre-enable failure).
+- Applied `schema.sql` (preferred Lakebase Search path) → loaded corpus (`lakebase_rag_corpus.py
+  --emit_demo_roles`): **7 docs / 36 chunks / 13 ACLs / 3 members / 36 BM25** — matches ECT exactly.
+- **RLS verified live:** `tests/test_rag_rls.py` → **4/4 negative-security tests pass** (analyst can't retrieve
+  LETTER-EYE-TRC-0003; clinician can; enforced via the `rag.acl_allows()` SECURITY DEFINER fn, ADR-0016).
+- DMVM has `databricks-gte-large-en` READY, so embedding both envs' chunks is a fast-follow if we want the
+  semantic/ANN half live (would be a *new* capability on both, not just DMVM — flag as such).
+
+**Remaining manual (yours):** enable **Genie Ontology** on DMVM (+ confirm OFF on ECT to hold the baseline);
+import the **16 Pages** via Genie Code (`docs/ontology/PAGES_IMPORT_PROMPT.md`) → Clinical Domain. Then ⏳ wait
+for snippet extraction and compare density vs ECT; split `a1_genie_one` → `a1_off`/`a1_on`.
+
 ### 2026-11-01 — Two-workspace design (ADR-0018): DMVM = ontology-ON arm, ECT = baseline
 
 Committed the four-in-one session (`23801e0`). Then designed the A1 (Genie One) **with vs. without native

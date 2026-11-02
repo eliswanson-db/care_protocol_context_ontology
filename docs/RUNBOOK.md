@@ -208,11 +208,22 @@ confirm-writes). All steps re-run on a fresh workspace.
   large reload, `REINDEX INDEX CONCURRENTLY rag.chunks_body_bm25`.
 - 🔒 **Verify authorization** (the `+perm` tracer, design doc §13). Needs the Postgres client:
   `pip install -e '.[lakebase]'` (psycopg). Host is the `primary` endpoint
-  (`ep-...database.us-east-1.cloud.databricks.com` from `databricks postgres list-endpoints`):
+  (`ep-...database.us-east-1.cloud.databricks.com` from `databricks postgres get-endpoint <EP>`):
   ```
   export LAKEBASE_HOST=<host> LAKEBASE_USER="<you>" DATABRICKS_CONFIG_PROFILE=ECT
   python3 -I tests/test_rag_rls.py    # analyst cannot see LETTER-EYE-TRC-0003; clinician can
   ```
+- ✅ **DMVM parity (2026-11-01):** the same project exists on DMVM (endpoint
+  `ep-divine-wildflower-d2l62zpy.database.us-east-1.cloud.databricks.com`, profile `DMVM`), Lakebase Search
+  enabled, `schema.sql` + corpus loaded → **7 docs / 36 chunks / 13 ACLs / 3 members** (identical to ECT), RLS
+  **4/4** green. Each workspace has its OWN Lakebase project (Postgres is per-workspace, unlike the shared UC
+  catalog); re-run these steps per workspace with that workspace's host + `--profile`.
+- ⚠️ **Embeddings are NOT populated on either env** (verified: `SELECT count(embedding) FROM rag.chunks` = 0 on
+  ECT and DMVM). A4 runs **lexical/BM25-only** today; the `chunks_embedding_ann` index sits over an all-NULL
+  column and `a4_lakebase.py` embeds the *query* at search time for lexical rank. To light up semantic/ANN
+  retrieval, embed `rag.chunks` via the governed `databricks-gte-large-en` endpoint (READY on both) — this is a
+  **new capability on BOTH**, so do it in lockstep to keep the arms comparable. `scripts/lakebase_embed.py`
+  currently targets the old `retrieval_corpus` table (ADR-0009), not `rag.chunks` — adapt before use.
   The RLS policy consults the ACL/membership tables through the `SECURITY DEFINER` function
   `rag.acl_allows()` (ADR-0016) — the reader has `EXECUTE` on it but no direct SELECT on those tables.
 - Deterministic structure test (no workspace): `python3 -I tests/test_rag_corpus_build.py`.
