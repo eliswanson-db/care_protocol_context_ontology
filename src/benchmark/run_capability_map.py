@@ -102,7 +102,7 @@ def run_genie(question, session, profile):
         d = json.loads(out.stdout)
         text = d.get("text", "") or ""
     except Exception as e:  # noqa: BLE001
-        return f"ERROR: {e}", [], round(time.time() - t0, 1)
+        return f"ERROR: {e}", [], round(time.time() - t0, 1), [], False
     assets = []
     tool_names = []
     ontology_used = False
@@ -159,6 +159,8 @@ def main():
                      "tool_names": tool_names, "ontology_used": ontology_used})
         print(f"     {'OK ' if ok else 'XX '} gold={q['gold'][:40]!r} matched={matched} "
               f"{'[ontology]' if ontology_used else '[no-ontology]'} ({dt}s)")
+        # Write after EACH question so a late failure (transient Genie error) never wipes a long run.
+        json.dump(rows, open(os.path.join(args.out, f"{args.arm}_detail.json"), "w"), indent=2, default=str)
 
     # Capability-map rollup by class.
     by_cls = {}
