@@ -337,6 +337,34 @@ larger HLS platform — the "how much broader utility there is in Databricks" me
 
 ## 11. Session log
 
+### 2026-11-01 (latest+2) — Capability map split into A1-off/A1-on and made live on both workspaces
+
+Eli imported the 16 Pages on DMVM. Next step per ADR-0018: split the single `a1_genie_one` arm into **a1_off
+(ECT baseline)** and **a1_on (DMVM treatment)**, as code. Snippet density (~200 ECT / ~1,100 DMVM) is UI-observed
+only (no CLI/API), so that measurement stays manual; this session did the reproducible restructure + made it live.
+
+**Did (committed `12ebdb8`, then deployed):**
+- `capability_matrix.csv`: `a1_genie_one` → `a1_off` (the existing hand-verified verdicts were taken on ECT =
+  the baseline workspace); added `a1_on` = **`pending`** for all 20 (NOT fabricated — awaits DMVM post-extraction
+  hand-verification, which is Eli's per the charter).
+- `persist_capability_map.py`: 4 arms now (m0 / closure / a1_off / a1_on); `SCORE` adds `pending → null` (distinct
+  from `not_reached` = 0.0); arm/column comments updated.
+- `benchmark_capability.lvdash.json`: `ds_matrix` shows `genie_one_off` + `genie_one_on`; `ds_coverage` /
+  `ds_by_class` exclude `pending` from scorable coverage.
+- `capability_map.md` (source of truth): A1 bullet explains the off/on split + ~1,000-snippet threshold; legend
+  adds ⏳ = pending; the matrix table gained an **A1-on (DMVM)** column (⏳ across all 20 rows).
+
+**Made live (Eli approved all 4 steps):**
+- `bundle deploy` to **ect** (2 resources changed) + **dmvm** (7 changed) — pushed the new dashboard + persist script.
+- `persist_benchmark -t ect` (shared tables): **20 questions / 80 tidy rows** (20 × 4 arms).
+- Smoke-tested live on the ECT warehouse: coverage **a1_off 17/20, closure 15/17, m0 6/20; a1_on correctly
+  excluded (all pending)** — matches the local dry-run exactly.
+- Republished the `benchmark_capability` dashboard on **both** workspaces.
+
+**Open (Eli's, once DMVM extraction completes ~daily):** hand-verify Genie One on DMVM against the 20 questions,
+fill `a1_on` in `capability_matrix.csv`, re-run `persist_benchmark`. Then the three-way read (baseline vs inferred
+ontology vs explicit graph) is fully populated.
+
 ### 2026-11-01 (latest+1) — DMVM bring-up executed: workspace-local assets + A4 Lakebase RAG at ECT parity
 
 Deployed the ontology-ON arm to DMVM over the shared catalog, then brought A4 (Lakebase RAG) to full parity.
