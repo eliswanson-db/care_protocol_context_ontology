@@ -19,3 +19,4 @@ context/terminology/data/
 *.pem
 secrets.*
 .DS_Store
+docs/benchmark/a1_runs/raw_sample_*.jsonl

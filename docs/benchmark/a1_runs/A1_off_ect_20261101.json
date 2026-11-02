@@ -1,0 +1,758 @@
+[
+  {
+    "id": "kpi_gsd_rate",
+    "cls": "1_simple_kpi",
+    "question": "What is the overall GSD compliance rate?",
+    "gold": "0.8071",
+    "min_approach": "metric_view",
+    "hypothesis": {
+      "rag": "insufficient",
+      "metric_view": "sufficient",
+      "closure_sql": "n/a",
+      "graph_ontobricks": "n/a"
+    },
+    "arm": "A1",
+    "answer_ok": true,
+    "primary": "0.8071",
+    "matched": [
+      "0.8071",
+      "80.7"
+    ],
+    "answer": "**The overall GSD compliance rate is still 80.7%.** That's the same as when you last checked on Oct 30. About 4 in 5 eligible diabetes patients aged 18\u201375 had at least one A1c test in the measurement year. The figure covers all measurement years combined. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/9548faecd60d47e08989beb366146d18?o=7474653847172668#embed-query_F9k8yX) [Care Protocol \u2014 HEDIS Diabetes Quality (dev)](https://fevm-eli-test-classic.cloud.databricks.com/genie/rooms/01f1d4983b7e1d71b07aec80b1bb5c5f?isDbOne=true&utm_source=one-chat&o=74746538471",
+    "assets": [],
+    "latency_s": 32.6,
+    "tool_names": [
+      "ask_genie_space"
+    ],
+    "ontology_used": false
+  },
+  {
+    "id": "kpi_ked_eligible",
+    "cls": "1_simple_kpi",
+    "question": "How many patients are eligible for the KED measure?",
+    "gold": "2808",
+    "min_approach": "metric_view",
+    "hypothesis": {
+      "rag": "insufficient",
+      "metric_view": "sufficient",
+      "closure_sql": "adds_value",
+      "graph_ontobricks": "n/a"
+    },
+    "arm": "A1",
+    "answer_ok": true,
+    "primary": "2808",
+    "matched": [
+      "2,808",
+      "2808"
+    ],
+    "answer": "**2,808 patients are eligible for the KED measure** in measurement year 2025, the only year in the data. That's unchanged since you asked on Friday. Eligible means diabetic patients aged 18\u201385. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/90ab357a7bd0440fb8f41217dcebb4bc?o=7474653847172668#embed-query_92a57c) [eli_test_classic_catalog.care_protocol.gold_adherence_ked](https://fevm-eli-test-classic.cloud.databricks.com/explore/data/eli_test_classic_catalog/care_protocol/gold_adherence_ked?isDbOne=true&utm_source=one-chat&o=7474653847172668) [KED (Kidney Hea",
+    "assets": [
+      [
+        "sql",
+        "SELECT `measurement_year`, COUNT(*) AS rows_total, COUNT(DISTINCT `patient_id`) AS eligible_patients, COUNT(DISTINCT CASE WHEN `eligible_flag` THEN `patient_id` END) AS eligible_flag_patients, SUM(CAST(`numerator_flag` AS INT)) AS met, SUM(CASE WHEN `status`='NOT_MET' THEN 1 ELSE 0 END) AS not_met F"
+      ],
+      [
+        "page",
+        "Genie Ontology Page cited"
+      ]
+    ],
+    "latency_s": 13.6,
+    "tool_names": [
+      "execute_sql_query"
+    ],
+    "ontology_used": true
+  },
+  {
+    "id": "sub_kidney",
+    "cls": "2_icd_subsumption",
+    "question": "How many patients have diabetes WITH kidney complications?",
+    "gold": "1881",
+    "min_approach": "closure_sql",
+    "hypothesis": {
+      "rag": "insufficient",
+      "metric_view": "insufficient",
+      "closure_sql": "sufficient",
+      "graph_ontobricks": "sufficient"
+    },
+    "arm": "A1",
+    "answer_ok": true,
+    "primary": "1881",
+    "matched": [
+      "1,881",
+      "1881"
+    ],
+    "answer": "## 1,881 patients have diabetes with kidney complications\n\nThat's **62.1%** of the 3,031 patients in the diabetes cohort. I re-ran the count today and nothing has changed since Oct 30. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/7bcc9bc53dd149ae99a9f35d04d8f4ac?o=7474653847172668#embed-query_8f0bdb)\n\n<!-- begin-embedded:query_8f0bdb -->\n| patients_with_kidney_complications | diabetes_cohort_patients | pct_of_cohort | e11_21_nephropathy | e11_22_ckd | e11_29_other_kidney |\n| --- | --- | --- | --- | --- | --- |\n| 1881 | 3031 | 62.1 | 1565 | 1881 | 1032 |\n<!",
+    "assets": [
+      [
+        "sql",
+        "WITH dm AS (\n  SELECT DISTINCT c.`patient_id`\n  FROM `eli_test_classic_catalog`.`care_protocol`.`silver_condition` c\n  JOIN `eli_test_classic_catalog`.`care_protocol_terminology`.`icd10_closure` h\n    ON c.`icd10_code` = h.`descendant_code` AND h.`ancestor_code` IN ('E10','E11','E13')),\nkid AS (\n  S"
+      ],
+      [
+        "page",
+        "Genie Ontology Page cited"
+      ]
+    ],
+    "latency_s": 20.5,
+    "tool_names": [
+      "execute_sql_query"
+    ],
+    "ontology_used": true
+  },
+  {
+    "id": "sub_retinopathy",
+    "cls": "2_icd_subsumption",
+    "question": "Count patients with any form of diabetic retinopathy.",
+    "gold": "393",
+    "min_approach": "closure_sql",
+    "hypothesis": {
+      "rag": "insufficient",
+      "metric_view": "insufficient",
+      "closure_sql": "sufficient",
+      "graph_ontobricks": "sufficient"
+    },
+    "arm": "A1",
+    "answer_ok": true,
+    "primary": "393",
+    "matched": [
+      "393"
+    ],
+    "answer": "## Still 393 patients with diabetic retinopathy\n\nI re-ran the count today and it hasn't changed since October 30: **393 distinct patients** have some form of diabetic retinopathy. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/91fc3b6c82bb4909bc533d29f055c6ae?o=7474653847172668#embed-query_47bc89)\n\n<!-- begin-embedded:query_47bc89 -->\n| patients_any_dr | npdr | pdr | dme_retinopathy |\n| --- | --- | --- | --- |\n| 393 | 393 | 20 | 36 |\n<!-- end-embedded:query_47bc89 -->\n\n- **How the forms overlap:** All 393 have nonproliferative retinopathy. The 20 with prolif",
+    "assets": [
+      [
+        "sql",
+        "SELECT COUNT(DISTINCT PATIENT) AS patients_any_dr,\n COUNT(DISTINCT CASE WHEN CODE = 1551000119108 THEN PATIENT END) AS npdr,\n COUNT(DISTINCT CASE WHEN CODE = 1501000119109 THEN PATIENT END) AS pdr,\n COUNT(DISTINCT CASE WHEN CODE = 97331000119101 THEN PATIENT END) AS dme_retinopathy\nFROM eli_test_cla"
+      ],
+      [
+        "sql",
+        "SELECT COUNT(DISTINCT c.patient_id) AS silver_icd10_dr_patients FROM eli_test_classic_catalog.care_protocol.silver_condition c JOIN eli_test_classic_catalog.care_protocol_terminology.icd10_closure cl ON c.icd10_code = cl.descendant_code WHERE cl.ancestor_code IN ('E10.3','E11.3','E13.3') AND lower(c"
+      ]
+    ],
+    "latency_s": 17.0,
+    "tool_names": [
+      "execute_sql_query",
+      "execute_sql_query"
+    ],
+    "ontology_used": false
+  },
+  {
+    "id": "lab_a1c_any_method",
+    "cls": "3_loinc_multiaxial",
+    "question": "How many patients have had an HbA1c test, counting every assay method?",
+    "gold": "9709",
+    "min_approach": "closure_sql",
+    "hypothesis": {
+      "rag": "insufficient",
+      "metric_view": "insufficient",
+      "closure_sql": "sufficient",
+      "graph_ontobricks": "sufficient"
+    },
+    "arm": "A1",
+    "answer_ok": true,
+    "primary": "9709",
+    "matched": [
+      "9,709",
+      "9709"
+    ],
+    "answer": "## 9,709 patients have had an HbA1c test\n\nThe count is still **9,709 distinct patients**, with 149,778 results. Nothing has changed since you last asked; the latest result is still dated Oct 30, 2026. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/dec6fc55e44640fca3d09e3472bde7c0?o=7474653847172668#embed-query_83ace6) [eli_test_classic_catalog.care_protocol.silver_observation](https://fevm-eli-test-classic.cloud.databricks.com/explore/data/eli_test_classic_catalog/care_protocol/silver_observation?isDbOne=true&utm_source=one-chat&o=7474653847172668)\n\n<!-- beg",
+    "assets": [
+      [
+        "sql",
+        "WITH a1c AS (\n  SELECT o.`patient_id`, o.`loinc_code`, p.`loinc_name`, o.`result_ts`\n  FROM `eli_test_classic_catalog`.`care_protocol`.`silver_observation` o\n  JOIN `eli_test_classic_catalog`.`care_protocol_terminology`.`loinc_parts` p\n    ON o.`loinc_code` = p.`loinc_code` AND p.`predicate`='has_co"
+      ],
+      [
+        "page",
+        "Genie Ontology Page cited"
+      ]
+    ],
+    "latency_s": 17.4,
+    "tool_names": [
+      "execute_sql_query"
+    ],
+    "ontology_used": true
+  },
+  {
+    "id": "lab_egfr_codes",
+    "cls": "3_loinc_multiaxial",
+    "question": "Which LOINC codes count as an eGFR test here?",
+    "gold": "['33914-3', '98979-8']",
+    "min_approach": "rag",
+    "hypothesis": {
+      "rag": "sufficient",
+      "metric_view": "adds_value",
+      "closure_sql": "sufficient",
+      "graph_ontobricks": "sufficient"
+    },
+    "arm": "A1",
+    "answer_ok": true,
+    "primary": "33914",
+    "matched": [
+      "3",
+      "33914",
+      "8",
+      "98979"
+    ],
+    "answer": "## LOINC codes that count as an eGFR test\n\nThe list hasn't changed since you last asked: I checked the value set again just now and got the same result. An eGFR test is any lab result whose LOINC code is in the **`KED_EGFR`** value set, and which codes count depends on the measurement year:\n\n- **2025:** `33914-3` (MDRD-based) **and** `98979-8` (CKD-EPI)\n- **2026:** `98979-8` only, labelled \"MY2026 modernized: CKD-EPI only\"\n\n<!-- begin-embedded:query_906977 -->\n| measurement_year | code | code_system | segment_name |\n| --- | --- | --- | --- |\n| 2025 | 33914-3 | LOINC | Kidney eval - eGFR (KED) ",
+    "assets": [
+      [
+        "sql",
+        "SELECT `measurement_year`, `code`, `code_system`, `segment_name` FROM `eli_test_classic_catalog`.`care_protocol_terminology`.`value_set_segment` WHERE `segment_id` = 'KED_EGFR' ORDER BY `measurement_year`, `code`"
+      ],
+      [
+        "page",
+        "Genie Ontology Page cited"
+      ]
+    ],
+    "latency_s": 13.6,
+    "tool_names": [
+      "execute_sql_query"
+    ],
+    "ontology_used": true
+  },
+  {
+    "id": "med_on_statin",
+    "cls": "4_rxnorm_subsumption",
+    "question": "How many diabetic patients are on any statin?",
+    "gold": "1651",
+    "min_approach": "closure_sql",
+    "hypothesis": {
+      "rag": "insufficient",
+      "metric_view": "sufficient",
+      "closure_sql": "sufficient",
+      "graph_ontobricks": "sufficient"
+    },
+    "arm": "A1",
+    "answer_ok": true,
+    "primary": "1651",
+    "matched": [
+      "1,651",
+      "1651"
+    ],
+    "answer": "## Diabetic patients on a statin\n\n**1,651 of the 3,031 diabetic patients (54.5%) have had at least one statin ordered** at some point. I re-ran the numbers today and they match what I gave you on Oct 30. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/d66c3d6575744bb9a4729f824969ed07?o=7474653847172668#embed-query_c319e4) Prior HEDIS diabetes analysis\n\n<!-- begin-embedded:query_c319e4 -->\n| diabetic_patients | diabetic_on_any_statin | pct | on_statin_2025_all_ages | simvastatin | atorvastatin | other_statins |\n| --- | --- | --- | --- | --- | --- | --- |\n| 303",
+    "assets": [
+      [
+        "sql",
+        "WITH statin_drugs AS (\n  SELECT DISTINCT c.`descendant_code`, s.`ingredient`\n  FROM `eli_test_classic_catalog`.`care_protocol_terminology`.`rxnorm_statin` s\n  JOIN `eli_test_classic_catalog`.`care_protocol_terminology`.`rxnorm_closure` c ON c.`ancestor_code` = s.`rxcui`\n), statin_pts AS (\n  SELECT D"
+      ],
+      [
+        "sql",
+        "SELECT `measurement_year`, COUNT(DISTINCT `patient_id`) AS eligible_40_75, COUNT(DISTINCT CASE WHEN `numerator_flag` THEN `patient_id` END) AS on_statin, ROUND(AVG(CAST(`numerator_flag` AS INT))*100,1) AS spd_rate_pct FROM `eli_test_classic_catalog`.`care_protocol`.`gold_adherence_spd` GROUP BY 1 OR"
+      ],
+      [
+        "page",
+        "Genie Ontology Page cited"
+      ]
+    ],
+    "latency_s": 24.4,
+    "tool_names": [
+      "execute_sql_query",
+      "execute_sql_query"
+    ],
+    "ontology_used": true
+  },
+  {
+    "id": "med_is_statin",
+    "cls": "4_rxnorm_subsumption",
+    "question": "Is a patient prescribed 'Simvastatin 20 MG Oral Tablet' on a statin?",
+    "gold": "yes",
+    "min_approach": "closure_sql",
+    "hypothesis": {
+      "rag": "adds_value",
+      "metric_view": "insufficient",
+      "closure_sql": "sufficient",
+      "graph_ontobricks": "sufficient"
+    },
+    "arm": "A1",
+    "answer_ok": true,
+    "primary": null,
+    "matched": [],
+    "answer": "## Yes, Simvastatin 20 MG Oral Tablet is a statin\n\nA patient prescribed **Simvastatin 20 MG Oral Tablet** (RxNorm 312961) is on a statin. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/2e25dcd245be4a268195bd3c902f4da8?o=7474653847172668#embed-query_7b63fb)\n\nThe RxNorm hierarchy places it under two levels: [eli_test_classic_catalog.care_protocol_terminology.rxnorm_closure](https://fevm-eli-test-classic.cloud.databricks.com/explore/data/eli_test_classic_catalog/care_protocol_terminology/rxnorm_closure?isDbOne=true&utm_source=one-chat&o=7474653847172668)\n- **In",
+    "assets": [
+      [
+        "page",
+        "Genie Ontology Page cited"
+      ]
+    ],
+    "latency_s": 7.4,
+    "tool_names": [],
+    "ontology_used": true
+  },
+  {
+    "id": "vintage_egfr_2026",
+    "cls": "5_value_set_vintage",
+    "question": "Under the 2026 KED eGFR definition, how many patients have a qualifying eGFR test?",
+    "gold": "0",
+    "min_approach": "metric_view",
+    "hypothesis": {
+      "rag": "insufficient",
+      "metric_view": "sufficient",
+      "closure_sql": "sufficient",
+      "graph_ontobricks": "sufficient"
+    },
+    "arm": "A1",
+    "answer_ok": true,
+    "primary": "0",
+    "matched": [
+      "0"
+    ],
+    "answer": "## Still zero patients qualify for eGFR under the 2026 KED definition\n\n**0 patients** have a qualifying eGFR test under the 2026 definition. I reran the check today and the numbers match what I found on Oct 30. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/67f4545222c14f4c8c3c8f74ecde61da?o=7474653847172668#embed-query_4a2622) KED eligibility analysis\n\n<!-- begin-embedded:query_4a2622 -->\n| value_set_version | codes_accepted | patients_with_qualifying_egfr | codes_matched |\n| --- | --- | --- | --- |\n| 2025 | 33914-3, 98979-8 | 2585 | 33914-3 |\n| 2026 | 9897",
+    "assets": [
+      [
+        "sql",
+        "SELECT v.`measurement_year` AS value_set_version, CONCAT_WS(', ', SORT_ARRAY(COLLECT_SET(v.`code`))) AS codes_accepted, COUNT(DISTINCT g.`patient_id`) AS patients_with_qualifying_egfr, CONCAT_WS(', ', COLLECT_SET(g.`egfr_code`)) AS codes_matched FROM (SELECT DISTINCT `measurement_year`, `code` FROM "
+      ],
+      [
+        "sql",
+        "SELECT `loinc_code`, COUNT(*) AS observations, COUNT(DISTINCT `patient_id`) AS patients FROM `eli_test_classic_catalog`.`care_protocol`.`silver_observation` WHERE `loinc_code` IN ('33914-3','98979-8') GROUP BY 1"
+      ],
+      [
+        "page",
+        "Genie Ontology Page cited"
+      ]
+    ],
+    "latency_s": 18.4,
+    "tool_names": [
+      "execute_sql_query",
+      "execute_sql_query"
+    ],
+    "ontology_used": true
+  },
+  {
+    "id": "proto_statin_gap_safe",
+    "cls": "6_protocol_multihop",
+    "question": "Which diabetics 40-75 have a statin care gap AND no contraindication (not pregnant, no active hepatic disease)?",
+    "gold": "1609",
+    "min_approach": "closure_sql",
+    "hypothesis": {
+      "rag": "insufficient",
+      "metric_view": "insufficient",
+      "closure_sql": "sufficient",
+      "graph_ontobricks": "adds_value"
+    },
+    "arm": "A1",
+    "answer_ok": false,
+    "primary": "1609",
+    "matched": [],
+    "answer": "## Statin care gaps without a contraindication: 1,769 patients\n\n**1,769 diabetic patients aged 40\u201375 have an open statin (SPD) care gap and no pregnancy or active liver disease on record.** That's the same as when you asked on Oct 30, and the data hasn't changed since. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/a1a4693254e54e01beb23aa775eeb9f2?o=7474653847172668#embed-query_41a6ab) HEDIS care gap analysis Counts are for measurement year 2025, the only year in the data. The list below runs oldest first.\n\n<!-- begin-embedded:query_41a6ab -->\n| patient_id |",
+    "assets": [
+      [
+        "sql",
+        "SELECT `subject`, `predicate`, `object`, `value`, `source` FROM `eli_test_classic_catalog`.`care_protocol_terminology`.`protocol_edges`\nWHERE lower(`subject`) LIKE '%statin%' OR lower(`object`) LIKE '%statin%' OR lower(`predicate`) LIKE 'contraindicat%'"
+      ],
+      [
+        "sql",
+        "WITH gaps AS (\n  SELECT `patient_id`, `age`, `period_start`, `period_end` FROM `eli_test_classic_catalog`.`care_protocol`.`gold_adherence_spd`\n  WHERE `status`='NOT_MET' AND `eligible_flag` AND `age` BETWEEN 40 AND 75),\nci AS (\n  SELECT `PATIENT`, `START`, `STOP`,\n    CASE WHEN `CODE` IN (128302006,"
+      ],
+      [
+        "sql",
+        "WITH gaps AS (\n  SELECT `patient_id`, `age`, `period_start`, `period_end` FROM `eli_test_classic_catalog`.`care_protocol`.`gold_adherence_spd`\n  WHERE `status`='NOT_MET' AND `eligible_flag` AND `age` BETWEEN 40 AND 75),\nci AS (\n  SELECT `PATIENT`, `START`, `STOP` FROM `eli_test_classic_catalog`.`car"
+      ],
+      [
+        "page",
+        "Genie Ontology Page cited"
+      ]
+    ],
+    "latency_s": 39.1,
+    "tool_names": [
+      "load_skills",
+      "execute_sql_query",
+      "execute_sql_query",
+      "execute_sql_query"
+    ],
+    "ontology_used": true
+  },
+  {
+    "id": "proto_albuminuria_aceiarb",
+    "cls": "6_protocol_multihop",
+    "question": "Patients with albuminuria (uACR >= 30) NOT on an ACE inhibitor or ARB, per protocol?",
+    "gold": "131",
+    "min_approach": "closure_sql",
+    "hypothesis": {
+      "rag": "insufficient",
+      "metric_view": "insufficient",
+      "closure_sql": "sufficient",
+      "graph_ontobricks": "adds_value"
+    },
+    "arm": "A1",
+    "answer_ok": false,
+    "primary": "131",
+    "matched": [],
+    "answer": "## Still 69 patients with albuminuria not on an ACE inhibitor or ARB (2025)\n\nI re-ran the check today and the numbers haven't changed since your last ask on Oct 30. **69 of 128 patients with albuminuria (\\~54%)** have no ACE inhibitor or ARB order in measurement year 2025. The other 59 are on one. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/1a96bf557525446285666b7fbaba8f6e?o=7474653847172668#embed-query_b43258)\n\n<!-- begin-embedded:query_b43258 -->\n| measurement_year | albuminuria_patients | on_ace_arb_in_year | not_on_ace_arb_in_year | not_on_at_time_of_",
+    "assets": [
+      [
+        "sql",
+        "WITH acearb AS (\n  SELECT DISTINCT descendant_code AS rx FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_closure\n  WHERE ancestor_code IN ('DRUGCLASS-ACE','DRUGCLASS-ARB')\n),\nalb AS (\n  SELECT patient_id, measurement_year, period_start, period_end, uacr_datetime\n  FROM eli_test_classi"
+      ],
+      [
+        "page",
+        "Genie Ontology Page cited"
+      ]
+    ],
+    "latency_s": 31.2,
+    "tool_names": [
+      "execute_sql_query"
+    ],
+    "ontology_used": true
+  },
+  {
+    "id": "proto_cardiorenal",
+    "cls": "6_protocol_multihop",
+    "question": "Identify cardiorenal patients (diabetes + CKD + heart failure) and whether each is on statin + ACE/ARB + SGLT2.",
+    "gold": "10",
+    "min_approach": "closure_sql",
+    "hypothesis": {
+      "rag": "insufficient",
+      "metric_view": "insufficient",
+      "closure_sql": "sufficient",
+      "graph_ontobricks": "adds_value"
+    },
+    "arm": "A1",
+    "answer_ok": true,
+    "primary": "10",
+    "matched": [
+      "10"
+    ],
+    "answer": "## Cardiorenal patients and their triple therapy (re-run 2 Nov)\n\n**2 patients meet the curated cardiorenal definition, and neither is on all three drug classes.** Both have a statin and an ACE inhibitor/ARB but **no SGLT2 inhibitor**. Re-running the analysis today gives the same result as the 30 Oct run. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/11c51b54918940f39a22724573746537?o=7474653847172668#embed-query_c1069e) Prior diabetes/statin analysis\n\n<!-- begin-embedded:query_c1069e -->\n| patient_id | ckd_codes | on_statin | on_ace_arb | on_sglt2 | on_all_",
+    "assets": [
+      [
+        "sql",
+        "WITH seg AS (\n  SELECT `code` FROM `eli_test_classic_catalog`.`care_protocol_terminology`.`value_set_segment` WHERE `segment_id`='CARDIORENAL_COHORT'\n), dx AS (\n  SELECT d.`patient_id`,\n    MAX(CASE WHEN c.`ancestor_code`='E11' THEN 1 ELSE 0 END) dm,\n    MAX(CASE WHEN c.`ancestor_code` IN ('N18.4','"
+      ],
+      [
+        "sql",
+        "WITH dx AS (\n  SELECT d.`patient_id`,\n    MAX(CASE WHEN c.`ancestor_code`='N18' THEN 1 ELSE 0 END) ckd,\n    MAX(CASE WHEN c.`ancestor_code`='I50' THEN 1 ELSE 0 END) hf,\n    CONCAT_WS(', ', SORT_ARRAY(COLLECT_SET(CASE WHEN c.`ancestor_code`='N18' THEN d.`icd10_code` END))) ckd_codes\n  FROM `eli_test_"
+      ],
+      [
+        "sql",
+        "SELECT 'order_text_match' src, COUNT(DISTINCT `patient_id`) n FROM `eli_test_classic_catalog`.`care_protocol`.`care_order_med` WHERE lower(`description`) RLIKE 'gliflozin|jardiance|farxiga|invokana|sglt'\nUNION ALL\nSELECT 'sglt2_closure_descendants', COUNT(*) FROM `eli_test_classic_catalog`.`care_pro"
+      ]
+    ],
+    "latency_s": 37.2,
+    "tool_names": [
+      "execute_sql_query",
+      "execute_sql_query",
+      "execute_sql_query"
+    ],
+    "ontology_used": false
+  },
+  {
+    "id": "def_metformin_egfr",
+    "cls": "7_definition_provenance",
+    "question": "Below what eGFR is metformin contraindicated, and where is that stated?",
+    "gold": "eGFR < 30",
+    "min_approach": "rag",
+    "hypothesis": {
+      "rag": "sufficient",
+      "metric_view": "adds_value",
+      "closure_sql": "insufficient",
+      "graph_ontobricks": "adds_value"
+    },
+    "arm": "A1",
+    "answer_ok": true,
+    "primary": "30",
+    "matched": [
+      "30"
+    ],
+    "answer": "## Metformin is contraindicated when eGFR is below 30\n\nI checked again today and the rule hasn't changed: your care protocol contraindicates metformin when **eGFR is below 30**. It comes from **section CP-GLY-2 of the care-protocol document**. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/23fd919ead0c4f0c9e4ce1c36f3341a1?o=7474653847172668#embed-query_e705de)\n\n### Where it's stated\n- **In the data:** The rule is in the care-protocol rules table, [eli_test_classic_catalog.care_protocol_terminology.protocol_edges](https://fevm-eli-test-classic.cloud.databrick",
+    "assets": [
+      [
+        "sql",
+        "SELECT `subject`, `predicate`, `object`, `value`, `source` FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE lower(`subject`) LIKE '%metformin%' OR lower(`subject`) LIKE '%biguanide%' OR lower(`object`) LIKE '%egfr%' ORDER BY `subject`, `predicate`"
+      ]
+    ],
+    "latency_s": 14.8,
+    "tool_names": [
+      "execute_sql_query"
+    ],
+    "ontology_used": false
+  },
+  {
+    "id": "def_controlled_bp",
+    "cls": "7_definition_provenance",
+    "question": "What does 'controlled' blood pressure mean for BPD, and where is it defined?",
+    "gold": "systolic < 140 and diastolic < 90",
+    "min_approach": "rag",
+    "hypothesis": {
+      "rag": "sufficient",
+      "metric_view": "sufficient",
+      "closure_sql": "insufficient",
+      "graph_ontobricks": "adds_value"
+    },
+    "arm": "A1",
+    "answer_ok": true,
+    "primary": "140",
+    "matched": [
+      "140",
+      "90"
+    ],
+    "answer": "## BPD \"controlled\" means the latest reading is under 140/90 mmHg\n\nFor BPD (Blood Pressure Control for Patients With Diabetes), a patient counts as **controlled** when their **most recent blood pressure reading of the measurement year** has **systolic under 140 and diastolic under 90**. Both have to be under the limit. [BPD (Blood Pressure Control)](https://fevm-eli-test-classic.cloud.databricks.com/one/discover/pages/c460dae0-4e87-4176-bf48-c30e423c1966?isDbOne=true&utm_source=one-chat&o=7474653847172668)\n\n### What the rule includes\n- **Who is measured:** patients in the diabetes group who ar",
+    "assets": [
+      [
+        "sql",
+        "SELECT `measurement_year`,\n  COUNT(*) AS eligible_patients,\n  SUM(CASE WHEN `numerator_flag` THEN 1 ELSE 0 END) AS controlled,\n  ROUND(AVG(CAST(`numerator_flag` AS INT)),4) AS bpd_rate,\n  SUM(CASE WHEN `bp_datetime` IS NULL THEN 1 ELSE 0 END) AS no_reading,\n  SUM(CASE WHEN `bp_datetime` IS NOT NULL "
+      ],
+      [
+        "page",
+        "Genie Ontology Page cited"
+      ],
+      [
+        "metric_view",
+        "metric view cited"
+      ]
+    ],
+    "latency_s": 28.1,
+    "tool_names": [
+      "load_skills",
+      "execute_sql_query"
+    ],
+    "ontology_used": true
+  },
+  {
+    "id": "infer_rationale_path",
+    "cls": "8_graph_native",
+    "question": "Explain the clinical rationale connecting a patient's diabetes diagnosis to their statin therapy (show the connecting path).",
+    "gold": "a path/explanation, not a count",
+    "min_approach": "graph_ontobricks",
+    "hypothesis": {
+      "rag": "insufficient",
+      "metric_view": "insufficient",
+      "closure_sql": "insufficient",
+      "graph_ontobricks": "necessary"
+    },
+    "arm": "A1",
+    "answer_ok": null,
+    "primary": null,
+    "matched": [],
+    "answer": "## How a diabetes diagnosis connects to statin therapy\n\nThe protocol doesn't link diabetes to statins directly. The link goes through the HEDIS **SPD (Statin Therapy for Patients With Diabetes)** measure. A diabetes code puts a patient in the diabetes cohort. Being in that cohort and aged 40\u201375 makes them eligible for SPD. The care protocol then names statins as the recommended therapy for SPD. [SPD (Statin Therapy)](https://fevm-eli-test-classic.cloud.databricks.com/one/discover/pages/90137b0e-d1a0-4667-aea0-8aff1f754984?isDbOne=true&utm_source=one-chat&o=7474653847172668) [Knowledge snippet]",
+    "assets": [
+      [
+        "snippet_search",
+        "{\"query\": \"SPD statin therapy for patients with diabetes definition and diabetes cohort ICD-10 E10 E11 E13\"}"
+      ],
+      [
+        "sql",
+        "SELECT `subject`, `predicate`, `object`, `value`, `source` FROM `eli_test_classic_catalog`.`care_protocol_terminology`.`protocol_edges` ORDER BY `subject`, `predicate`"
+      ],
+      [
+        "sql",
+        "SELECT * FROM `eli_test_classic_catalog`.`care_protocol_terminology`.`rxnorm_statin` LIMIT 20"
+      ],
+      [
+        "sql",
+        "WITH p AS (SELECT '03b2ba36-5163-f878-2947-82d375017950' AS pid),\ndx AS (\n  SELECT d.`patient_id`, d.`icd10_code`, d.`description` AS dx_description, c.`ancestor_code` AS icd10_ancestor, c.`ancestor_name` AS icd10_ancestor_name, c.`depth` AS icd10_depth\n  FROM `eli_test_classic_catalog`.`care_protoc"
+      ],
+      [
+        "sql",
+        "SELECT `patient_id`, `measurement_year`, `age`, `eligible_flag`, `numerator_flag`, `status`, `evidence_code`, `evidence_drug`, `evidence_datetime` FROM `eli_test_classic_catalog`.`care_protocol`.`gold_adherence_spd` WHERE `patient_id` = '03b2ba36-5163-f878-2947-82d375017950'"
+      ],
+      [
+        "page",
+        "Genie Ontology Page cited"
+      ]
+    ],
+    "latency_s": 44.9,
+    "tool_names": [
+      "episode_fetch",
+      "load_skills",
+      "search_knowledge_snippets",
+      "execute_sql_query",
+      "execute_sql_query",
+      "execute_sql_query",
+      "execute_sql_query"
+    ],
+    "ontology_used": true
+  },
+  {
+    "id": "infer_defined_class",
+    "cls": "8_graph_native",
+    "question": "Which patients qualify as 'high cardiorenal risk' as DEFINED by the protocol ontology (diabetes AND CKD AND on a class flagged for review)?",
+    "gold": "TBD-reflow",
+    "min_approach": "graph_ontobricks",
+    "hypothesis": {},
+    "arm": "A1",
+    "answer_ok": null,
+    "primary": null,
+    "matched": [],
+    "answer": "## \"High cardiorenal risk\" still isn't defined in the protocol ontology\n\nI checked again and nothing has changed since your last question, so I can't give a patient list \"as defined by the ontology\".\n- **Patient-care knowledge graph (patientcare2):** it's still the only domain. Its ontology has no risk class and no \"flagged for review\" property on drug classes.\n- **Care-protocol rules:** no new relationship types or review/risk entries. They still only cover recommended-for, first-line-for, contraindicated-with, contraindicated-when, monitored-by, has-threshold and defined-by. [Query Result](h",
+    "assets": [
+      [
+        "sql",
+        "SELECT * FROM `eli_test_classic_catalog`.`care_protocol_terminology`.`protocol_edges` WHERE `predicate` NOT IN ('recommendedFor','firstLineFor','contraindicatedWith','contraindicatedWhen','monitoredBy','hasThreshold','definedBy') OR lower(concat_ws(' ',`subject`,`object`,`source`)) RLIKE 'review|ris"
+      ],
+      [
+        "sql",
+        "SELECT table_catalog, table_schema, table_name, column_name, comment FROM system.information_schema.columns WHERE (lower(column_name) RLIKE 'review|cardiorenal' OR lower(comment) RLIKE 'flagged for review|cardiorenal|requires.?review') AND table_catalog NOT IN ('system') LIMIT 50"
+      ]
+    ],
+    "latency_s": 161.2,
+    "tool_names": [
+      "mcp__eswanson_demo_ontobricks_ontobricks_mcp__list_domains",
+      "execute_sql_query",
+      "execute_sql_query",
+      "mcp__eswanson_demo_ontobricks_ontobricks_mcp__list_domain_ve_0"
+    ],
+    "ontology_used": false
+  },
+  {
+    "id": "op_worst_clinic_annual",
+    "cls": "9_operational_temporal",
+    "question": "Which clinic has the lowest protocol Step-3 (A1c follow-up) adherence overall this year?",
+    "gold": "CLINIC-01 (0.475)",
+    "min_approach": "metric_view",
+    "hypothesis": {
+      "rag": "insufficient",
+      "metric_view": "sufficient",
+      "closure_sql": "sufficient",
+      "graph_ontobricks": "n/a"
+    },
+    "arm": "A1",
+    "answer_ok": true,
+    "primary": "CLINIC-01",
+    "matched": [
+      "0.475",
+      "01",
+      "47.5",
+      "CLINIC-01"
+    ],
+    "answer": "## CLINIC-01 still has the lowest Step-3 adherence, at 47.5%\n\nI re-ran the query against the current data and the answer hasn't changed since your last check. **CLINIC-01** has the lowest Protocol Step-3 (A1c follow-up) adherence: **47.5%**. Of its 40 above-target A1c results, 19 got a recheck or therapy change within 90 days. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/014097c23ffc4feea13546f249136618?o=7474653847172668#embed-query_1ab1a6) [eli_test_classic_catalog.care_protocol.protocol_adherence_metrics](https://fevm-eli-test-classic.cloud.databricks.c",
+    "assets": [
+      [
+        "sql",
+        "SELECT `Measurement Year`, `Clinic`, MEASURE(`Trigger Events`) AS triggers, MEASURE(`Followed Up In Time`) AS followed_up, MEASURE(`Protocol Step 3 Adherence Rate`) AS adherence_rate, MEASURE(`Avg Days To Follow-up`) AS avg_days\nFROM eli_test_classic_catalog.care_protocol.protocol_adherence_metrics\n"
+      ],
+      [
+        "metric_view",
+        "metric view cited"
+      ]
+    ],
+    "latency_s": 21.7,
+    "tool_names": [
+      "load_skills",
+      "execute_sql_query"
+    ],
+    "ontology_used": false
+  },
+  {
+    "id": "op_clinic_drift",
+    "cls": "9_operational_temporal",
+    "question": "Which clinic's protocol Step-3 adherence has recently DROPPED, and by how much versus its own history?",
+    "gold": "CLINIC-08 (trailing 0.467 vs own prior 0.778; delta 0.311, HIGH). CLINIC-08 annual rate is 0.511 -- MID-PACK, 3rd-lowest -- so an annual ranking misses it entirely.",
+    "min_approach": "metric_view",
+    "hypothesis": {
+      "rag": "insufficient",
+      "metric_view": "adds_value",
+      "closure_sql": "sufficient",
+      "graph_ontobricks": "n/a"
+    },
+    "arm": "A1",
+    "answer_ok": true,
+    "primary": "CLINIC-08",
+    "matched": [
+      "0.311",
+      "0.467",
+      "0.778",
+      "08",
+      "3",
+      "31",
+      "47",
+      "78",
+      "CLINIC-08"
+    ],
+    "answer": "## No change since your last check: CLINIC-08 still has the biggest drop\n\nThe protocol watch hasn't run again since **30 Oct 2026**, so the answer is the same as before. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/738e4df60bf5437883a73043aae0d1ce?o=7474653847172668#embed-query_42f5e6)\n\n**CLINIC-08** dropped the most. Its Step-3 adherence was **47% (7 of 15 high-A1c results followed up)** in the 3 months ending September 2025, against **78%** over its own earlier history. That's **31 points lower**, which the watch rates **HIGH**. It's also below the 66% p",
+    "assets": [
+      [
+        "sql",
+        "SELECT `as_of`, `finding_type`, `severity`, `clinic_id`, `measurement_year`, `month`, `t_trig`, `t_follow`, ROUND(`t_rate`,3) t_rate, ROUND(`baseline`,3) baseline, `baseline_n`, ROUND(`delta`,3) delta, `censored`, `horizon_date`, `narrative`\nFROM `eli_test_classic_catalog`.`care_protocol`.`protocol_"
+      ],
+      [
+        "sql",
+        "SELECT `as_of`, COUNT(*) n, COLLECT_SET(`finding_type`) types, COLLECT_SET(`clinic_id`) clinics FROM `eli_test_classic_catalog`.`care_protocol`.`protocol_watch_findings` GROUP BY `as_of` ORDER BY `as_of` DESC LIMIT 20"
+      ],
+      [
+        "metric_view",
+        "metric view cited"
+      ]
+    ],
+    "latency_s": 17.6,
+    "tool_names": [
+      "execute_sql_query",
+      "execute_sql_query"
+    ],
+    "ontology_used": false
+  },
+  {
+    "id": "op_drift_rootcause",
+    "cls": "9_operational_temporal",
+    "question": "Why did CLINIC-08's protocol Step-3 adherence slip in Q3?",
+    "gold": "explanation: PCP transition 2025-07-15 on CLINIC-08; recovery ~150d; case-mix confound (complexity ~4.55 vs ~4.12)",
+    "min_approach": "closure_sql",
+    "hypothesis": {
+      "rag": "adds_value",
+      "metric_view": "insufficient",
+      "closure_sql": "sufficient",
+      "graph_ontobricks": "adds_value"
+    },
+    "arm": "A1",
+    "answer_ok": true,
+    "primary": "CLINIC-08",
+    "matched": [
+      "07",
+      "08",
+      "15",
+      "150",
+      "2025",
+      "4.12",
+      "4.55",
+      "CLINIC-08"
+    ],
+    "answer": "## CLINIC-08's Q3 slip lines up with a change of primary care doctor in July\n\nNothing has changed since you asked on Oct 30. The data and the automated adherence watch's findings are the same, and the watch hasn't run again since then. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/bbc01e49faaf457a982e39a2575d355e?o=7474653847172668#embed-query_ab6726)\n\nOn **2025-07-15**, CLINIC-08's primary care doctor left and a temporary (locum) doctor took over the panel. The clinic's diabetes follow-up order set wasn't carried over cleanly, so timely A1c rechecks droppe",
+    "assets": [
+      [
+        "sql",
+        "SELECT `as_of`, `month`, `finding_type`, `severity`, `t_trig`, `t_follow`, ROUND(`t_rate`,3) t_rate, ROUND(`baseline`,3) baseline, ROUND(`delta`,3) delta, `censored` FROM `eli_test_classic_catalog`.`care_protocol`.`protocol_watch_findings` WHERE `clinic_id`='CLINIC-08' ORDER BY `as_of` DESC, `month`"
+      ],
+      [
+        "sql",
+        "SELECT CASE WHEN `clinic_id`='CLINIC-08' THEN 'CLINIC-08' ELSE 'All other clinics' END AS grp, `measurement_year`, quarter(`trigger_ts`) AS q, COUNT(*) AS triggers, SUM(CASE WHEN `status`='MET' THEN 1 ELSE 0 END) AS met, ROUND(AVG(CASE WHEN `status`='MET' THEN 1.0 ELSE 0 END)*100,1) AS step3_rate_pc"
+      ]
+    ],
+    "latency_s": 31.2,
+    "tool_names": [
+      "load_skills",
+      "execute_sql_query",
+      "execute_sql_query"
+    ],
+    "ontology_used": false
+  },
+  {
+    "id": "op_mad_rate",
+    "cls": "9_operational_temporal",
+    "question": "What is the Medication Adherence for Diabetes (MAD) rate -- the share of eligible patients with PDC >= 0.80?",
+    "gold": "0.4784 (834 eligible)",
+    "min_approach": "metric_view",
+    "hypothesis": {
+      "rag": "insufficient",
+      "metric_view": "sufficient",
+      "closure_sql": "n/a",
+      "graph_ontobricks": "n/a"
+    },
+    "arm": "A1",
+    "answer_ok": true,
+    "primary": "0.4784",
+    "matched": [
+      "47.8",
+      "834"
+    ],
+    "answer": "## MAD rate: 47.84% (measurement year 2025), the same as on Oct 30\n\nI re-ran the query today. **399 of 834 eligible patients** had PDC \u2265 0.80, which gives a **47.84%** Medication Adherence for Diabetes rate. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/5e01a73581f54bfbad522551ea512b7e?o=7474653847172668#embed-query_58c658) [eli_test_classic_catalog.care_protocol.gold_adherence_mad](https://fevm-eli-test-classic.cloud.databricks.com/explore/data/eli_test_classic_catalog/care_protocol/gold_adherence_mad?isDbOne=true&utm_source=one-chat&o=7474653847172668)\n\n<",
+    "assets": [
+      [
+        "sql",
+        "SELECT measurement_year, COUNT(*) AS eligible_patients, SUM(CAST(numerator_flag AS INT)) AS adherent_patients, ROUND(AVG(CAST(numerator_flag AS INT))*100,2) AS mad_rate_pct, SUM(CASE WHEN pdc >= 0.80 THEN 1 ELSE 0 END) AS pdc_ge_080_check, ROUND(AVG(pdc),3) AS avg_pdc FROM `eli_test_classic_catalog`"
+      ]
+    ],
+    "latency_s": 12.9,
+    "tool_names": [
+      "execute_sql_query"
+    ],
+    "ontology_used": false
+  }
+]
