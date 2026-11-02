@@ -1,0 +1,21 @@
+class_num,class_name,question_id,question,gold_25k,min_approach,m0_metric_view,closure_sql,a1_off,a1_on,note
+1,Baked KPIs & measures,kpi_gsd_rate,GSD compliance rate,0.8071,metric_view,reached,reached,reached,pending,A1 answered 80.7% citing the GSD metric view + Page
+1,Baked KPIs & measures,kpi_ked_eligible,KED eligible patients,2808,metric_view,reached,reached,reached,pending,
+2,ICD-10 subsumption (cohort),sub_kidney,Diabetic kidney-complication cohort size,1881,closure_sql,not_reached,reached,reached,pending,A1 via icd10_closure
+2,ICD-10 subsumption (cohort),sub_retinopathy,Any-retinopathy cohort size,393,closure_sql,not_reached,reached,reached,pending,
+3,LOINC multiaxial identity,lab_a1c_any_method,A1c tests across any method,9709,closure_sql,not_reached,reached,reached,pending,A1 via loinc_parts Component
+3,LOINC multiaxial identity,lab_egfr_codes,eGFR LOINC codes,"33914-3, 98979-8",closure_sql,diverged,reached,reached,pending,M0 diverged on code enumeration
+4,RxNorm drug-class subsumption,med_on_statin,Diabetics on any statin,1651,closure_sql,diverged,reached,reached,pending,A1 1651 via RxNorm closure
+4,RxNorm drug-class subsumption,med_is_statin,Is RxNorm 312961 a statin,yes,closure_sql,not_reached,reached,reached,pending,"A1 ""Yes, under the statin class"""
+5,Value-set vintage / drift,vintage_egfr_2026,eGFR under the 2026 value set,0,metric_view,reached,reached,reached,pending,0 because MDRD dropped in MY2026
+6,Protocol multi-hop,proto_statin_gap_safe,Statin care gap and safe to start,1609,closure_sql,not_reached,reached,diverged,pending,A1 1769 -- under-excluded contraindications
+6,Protocol multi-hop,proto_albuminuria_aceiarb,Albuminuria patients off ACE/ARB,131,closure_sql,not_reached,reached,diverged,pending,"A1 69 -- latest-vs-any uACR, single year"
+6,Protocol multi-hop,proto_cardiorenal,Cardiorenal cohort (DM+CKD+HF),10,closure_sql,not_reached,reached,reached,pending,A1 10 (cross-branch)
+7,Protocol definitions,def_metformin_egfr,Metformin eGFR floor,eGFR < 30,document,not_reached,not_applicable,reached,pending,A1 cited the protocol doc
+7,Protocol definitions,def_controlled_bp,Controlled BP threshold,<140/<90,metric_view,reached,not_applicable,reached,pending,M0 via the BPD view comment
+8,Graph-native inference,infer_rationale_path,Variable-shape rationale path,a path,graph,not_reached,not_reached,not_reached,pending,A1 timed out (>240s)
+8,Graph-native inference,infer_defined_class,Defined OWL class check,undefined,graph,not_reached,diverged,correct_refusal,pending,A1 correctly refused after checking patientcare2
+9,Operational drift & root cause,op_worst_clinic_annual,Worst clinic annually,CLINIC-01 (0.475),metric_view,reached,reached,reached,pending,
+9,Operational drift & root cause,op_clinic_drift,Which clinic drifted,CLINIC-08 (0.467 vs 0.778),closure_sql,not_reached,reached,reached,pending,Masked in the annual ranking (3rd-lowest)
+9,Operational drift & root cause,op_drift_rootcause,Why did it drift,PCP handoff + confound,closure_sql,not_reached,reached,reached,pending,A1 named the PCP transition + case-mix
+9,Operational drift & root cause,op_mad_rate,MAD medication-adherence rate,0.4784,metric_view,reached,not_applicable,reached,pending,"A1 47.84%, 834 eligible"

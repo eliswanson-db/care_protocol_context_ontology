@@ -40,6 +40,12 @@ include:
   - resources/jobs.yml
   - resources/pipelines.yml
 
+# The built SPA (src/app/frontend/dist) is gitignored, but the deployed App must serve it — force it into the
+# bundle sync. Build it first: `cd src/app/frontend && npm run build`.
+sync:
+  include:
+    - src/app/frontend/dist/**
+
 targets:
   # Local/iterative development (isolated, prefixed deployments). Dev mode prefixes the schema/volume names,
   # so dev owns its own dev_<user>_care_protocol* schemas — no collision with the production catalog objects.

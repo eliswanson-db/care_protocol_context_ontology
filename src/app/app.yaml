@@ -18,6 +18,9 @@ env:
     value: "2025"
   - name: CARE_ARM
     value: "dmvm"
-  # CARE_WAREHOUSE_ID: set per deploy, or leave unset to resolve "Serverless Starter Warehouse" by name.
+  - name: CARE_WAREHOUSE_ID
+    value: "3abb59fcfb739e0d"          # DMVM "Serverless Starter Warehouse"
+  - name: CARE_LAKEBASE_HOST
+    value: "ep-divine-wildflower-d2l62zpy.database.us-east-1.cloud.databricks.com"  # DMVM Lakebase
   - name: SERVING_ENDPOINT
     value: "databricks-claude-sonnet-5-5"

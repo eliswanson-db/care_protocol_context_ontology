@@ -19,8 +19,12 @@ from fastapi import APIRouter, HTTPException
 
 router = APIRouter()
 
+# Benchmark data: a vendored copy ships inside the app (deploy-safe — the whole repo isn't synced), with the
+# repo's docs/benchmark as the local-dev fallback. Override with CARE_BENCHMARK_DIR.
+_BUNDLED = os.path.join(os.path.dirname(__file__), "..", "benchmark_data")
 _REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
-BENCH_DIR = os.environ.get("CARE_BENCHMARK_DIR", os.path.join(_REPO, "docs", "benchmark"))
+BENCH_DIR = os.environ.get("CARE_BENCHMARK_DIR") or (
+    os.path.abspath(_BUNDLED) if os.path.isdir(_BUNDLED) else os.path.join(_REPO, "docs", "benchmark"))
 
 ARMS = [
     {"id": "m0_metric_view", "label": "M0 · metric view", "col": "m0_metric_view"},
