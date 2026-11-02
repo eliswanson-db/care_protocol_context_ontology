@@ -62,6 +62,7 @@ export interface GenieResult {
   ontology_used: boolean;
   citations: GenieCitation[];
   arm: string;
+  surface: string;
   ran_as: string;
   latency_s: number;
 }

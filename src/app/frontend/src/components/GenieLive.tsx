@@ -60,6 +60,9 @@ export function GenieLive({
         {result && (
           <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[10px] text-muted">{result.latency_s}s · arm {result.arm}</span>
         )}
+        {result && (
+          <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[10px] text-muted" title="Which Genie surface answered">{result.surface}</span>
+        )}
         <button
           onClick={onAsk}
           disabled={status === "loading"}

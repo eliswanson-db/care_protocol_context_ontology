@@ -258,6 +258,37 @@ answers fast and grounded, and leaves a lineage record Genie One can reason over
 - The two line up: the job writes `protocol_watch_findings`; the scheduled task reads it. Faster + auditable
   than asking Genie One to recompute drift from raw rows every Monday.
 
+## Databricks App (P13) — deploy + post-deploy grants
+- 🤖 **Bundle-managed** (`resources/apps.yml`, `src/app/`). Build the SPA first, then deploy + start:
+  ```
+  (cd src/app/frontend && npm run build)         # dist is force-synced via databricks.yml sync.include
+  databricks bundle deploy -t dmvm --profile DMVM
+  databricks bundle run   care_protocol_app -t dmvm --profile DMVM   # deploys code to the app + starts it
+  ```
+  URL: `databricks apps get care-protocol-context-dmvm --profile DMVM` → `.url`. It's behind workspace OAuth.
+- ⚙ **A Databricks App is a STATIC deploy** — it does not track local edits/commits; re-run the two commands
+  above to update it. Data is live (warehouse queries per request); the build/code is frozen at deploy time.
+- 🔒 **Post-deploy grants to the app service principal** (created at deploy; find it via `apps get` →
+  `service_principal_client_id`, here `2cea0a9c-5125-4205-957e-6e864d7217dd`). Re-run per fresh deploy:
+  ```
+  -- read-only UC access for the warehouse-backed tabs
+  GRANT USE CATALOG ON CATALOG eli_test_classic_catalog TO `<sp_client_id>`;
+  GRANT USE SCHEMA, SELECT ON SCHEMA eli_test_classic_catalog.care_protocol            TO `<sp_client_id>`;
+  GRANT USE SCHEMA, SELECT ON SCHEMA eli_test_classic_catalog.care_protocol_semantic   TO `<sp_client_id>`;
+  GRANT USE SCHEMA, SELECT ON SCHEMA eli_test_classic_catalog.care_protocol_terminology TO `<sp_client_id>`;
+  ```
+  ```
+  # Genie hop (deployed): the app SP calls the governed Genie SPACE (A2 Agent) via the SDK — grant CAN_RUN:
+  PATCH /api/2.0/permissions/genie/<CARE_GENIE_SPACE_ID>
+      {"access_control_list":[{"service_principal_name":"<sp_client_id>","permission_level":"CAN_RUN"}]}
+  ```
+- **Dual-mode AI** (`IS_DATABRICKS_APP`): local uses **Genie One (A1)** via the CLI (exposes the inferred-
+  snippet signal); deployed uses the **Genie space (A2)** via SDK (no inferred signal — labeled `surface`).
+- ⏳ **A4 RAG remote is NOT wired** — doc-level RLS (`rag.acl_allows`) denies unknown identities, so the app SP
+  sees zero documents. To light it up remotely: grant the SP connect on the DMVM Lakebase instance, seed its
+  Postgres role as a `rag_reader` with ACL membership (or SET ROLE a seeded reader via `CARE_RAG_AS_USER`),
+  then set that env. Until then the A4 button degrades with an honest RLS message. RAG works locally (as you).
+
 ## Genie Ontology seeding (P7 / §7a)
 - Build Pages + metric views + Genie Agents + dashboards (over-build — see roadmap §7a), assign Domains,
   certify. Run the query-history seeding job on a schedule. Trigger early; build other arms while it extracts.

@@ -22,5 +22,7 @@ env:
     value: "3abb59fcfb739e0d"          # DMVM "Serverless Starter Warehouse"
   - name: CARE_LAKEBASE_HOST
     value: "ep-divine-wildflower-d2l62zpy.database.us-east-1.cloud.databricks.com"  # DMVM Lakebase
+  - name: CARE_GENIE_SPACE_ID
+    value: "01f1d63eaf1e148aaca3e207c7499c1a"   # DMVM "Care Protocol — HEDIS Diabetes Quality" space (deployed Genie hop)
   - name: SERVING_ENDPOINT
     value: "databricks-claude-sonnet-5-5"

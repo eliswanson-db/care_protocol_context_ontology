@@ -8,7 +8,6 @@ runs lexical/BM25 and reports semantic_pending=True; once rag.chunks.embedding i
 to hybrid (RRF of BM25 + pgvector) with no code change.
 """
 import os
-import sys
 import time
 
 from fastapi import APIRouter, HTTPException
@@ -22,12 +21,11 @@ from ..config import (
     get_profile,
 )
 
-# Reuse the repo's retriever (src/retrieval) without copying it into the app.
-_SRC = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-if _SRC not in sys.path:
-    sys.path.insert(0, _SRC)
-
 router = APIRouter()
+
+# Doc-level RLS denies unknown identities, so the deployed app SP sees nothing unless it SET ROLEs to a seeded
+# reader. CARE_RAG_AS_USER names that seeded identity (OBO stand-in) when set; unset = connect as self (local dev).
+_AS_USER = os.environ.get("CARE_RAG_AS_USER") or None
 
 _RAG_QUESTION = (
     "What HbA1c or glycemic evidence satisfies the GSD (Glycemic Status Assessment) numerator for an adult "
@@ -38,7 +36,7 @@ _embed_count: int | None = None  # process cache: how many chunks are embedded (
 
 
 def _retriever():
-    from retrieval.a4_lakebase import A4RagRetriever
+    from ..a4_lakebase import A4RagRetriever  # vendored copy (deploy-safe; src/ isn't synced with the app)
 
     return A4RagRetriever(
         endpoint=LAKEBASE_ENDPOINT, host=LAKEBASE_HOST, user=LAKEBASE_USER,
@@ -52,14 +50,16 @@ def rag(patient_id: str):
     try:
         r = _retriever()
         if _embed_count is None:
-            rows = r._run("SELECT count(embedding) AS n FROM rag.chunks", (), None)
+            rows = r._run("SELECT count(embedding) AS n FROM rag.chunks", (), _AS_USER)
             _embed_count = int(rows[0]["n"]) if rows else 0
         mode = "hybrid" if _embed_count > 0 else "lexical"
         t0 = time.time()
-        results = r.search_documents(_RAG_QUESTION, k=5, mode=mode)
+        results = r.search_documents(_RAG_QUESTION, k=5, mode=mode, as_user=_AS_USER)
         latency = round(time.time() - t0, 1)
     except Exception as e:  # noqa: BLE001 — surface the real failure to the UI
-        raise HTTPException(502, f"Lakebase RAG error: {type(e).__name__}: {str(e)[:300]}")
+        hint = " (doc-level RLS denies unknown identities — set CARE_RAG_AS_USER to a seeded reader)" \
+            if "permission" in str(e).lower() or "denied" in str(e).lower() else ""
+        raise HTTPException(502, f"Lakebase RAG error: {type(e).__name__}: {str(e)[:260]}{hint}")
 
     passages = [
         {
