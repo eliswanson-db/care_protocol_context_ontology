@@ -1,0 +1,23 @@
+# Databricks App — Care Protocol Context (read-only throughline visualizer).
+# Deploy target workspace sets CARE_ARM (ect|dmvm) + the warehouse. SQL runs as the app service principal;
+# add user_api_scopes + OBO later if per-user data scoping is needed.
+command:
+  - "python"
+  - "-m"
+  - "uvicorn"
+  - "app:app"
+  - "--host"
+  - "0.0.0.0"
+  - "--port"
+  - "8000"
+
+env:
+  - name: CARE_CATALOG
+    value: "eli_test_classic_catalog"
+  - name: CARE_MEASUREMENT_YEAR
+    value: "2025"
+  - name: CARE_ARM
+    value: "dmvm"
+  # CARE_WAREHOUSE_ID: set per deploy, or leave unset to resolve "Serverless Starter Warehouse" by name.
+  - name: SERVING_ENDPOINT
+    value: "databricks-claude-sonnet-5-5"

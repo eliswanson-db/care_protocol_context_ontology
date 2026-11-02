@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+/* Map semantic tokens into Tailwind v4 so utilities like bg-surface / text-muted / border-border /
+   text-primary / bg-primary/15 resolve. Colors reference CSS variables redefined for dark below. */
+@theme {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-primary: var(--primary);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-destructive: var(--destructive);
+}
+
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #f0f2f5;
+  --border: #e2e5ea;
+  --fg: #1b1f27;
+  --muted: #6b7280;
+  --primary: #2272b4;
+  --success: #1a7f49;
+  --warning: #b4690e;
+  --destructive: #c23030;
+}
+
+:root[data-theme="dark"] {
+  --bg: #0e1116;
+  --surface: #161b22;
+  --surface-2: #1c2230;
+  --border: #2a313c;
+  --fg: #e6e9ef;
+  --muted: #9aa4b2;
+  --primary: #4a9eda;
+  --success: #3fb950;
+  --warning: #d29922;
+  --destructive: #f06d6d;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1116;
+    --surface: #161b22;
+    --surface-2: #1c2230;
+    --border: #2a313c;
+    --fg: #e6e9ef;
+    --muted: #9aa4b2;
+    --primary: #4a9eda;
+    --success: #3fb950;
+    --warning: #d29922;
+    --destructive: #f06d6d;
+  }
+}
+
+html, body, #root { height: 100%; }
+body { background: var(--bg); color: var(--fg); margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
