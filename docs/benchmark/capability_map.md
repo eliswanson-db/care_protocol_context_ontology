@@ -14,36 +14,41 @@ question, **which context/retrieval approach reaches the hand-verified answer, a
     so for classes 1–6 it reaches gold by construction (it's the answer key).
   - **A1 — Genie One:** the front door, driven headless via `databricks genie ask`. Reasons over the
     workspace; nothing wired to an answer. Run captured in `/tmp/capmap/A1_detail.json` (answers + cited assets).
+    **Split into two workspace arms (ADR-0018)** over the one shared catalog, varying only the native ontology:
+    **A1-off (ECT)** ≈ 200 snippets, below the ~1,000 inferred-snippet threshold → modeled context only
+    (= the baseline, and the column the existing verdicts below were hand-verified on); **A1-on (DMVM)** ≈ 1,100
+    snippets, above threshold → inferred ontology active (= treatment). A1-on is **pending** post-extraction
+    (~daily) hand-verification — not yet filled.
 - **Arms pending:** A4 Lakebase hybrid RAG; A5 Ontobricks graph as a *scored* arm (notably, Genie One already
   reaches the Ontobricks `patientcare2` ontology + graph — see class 8).
 - Verdicts below are **hand-verified** (the charter requires it); the auto-scorer in `run_capability_map.py`
   is a first-pass aid. ✓ = reached gold · ✗ = did not · ◐ = reasoned but diverged on definition · n/a = not
-  applicable · *refusal* = correct "cannot answer".
+  applicable · *refusal* = correct "cannot answer" · ⏳ = pending (A1-on, awaiting DMVM snippet extraction).
 
 ## The matrix
 
-| # | Question (id) | gold (25k) | M0 | closure_sql | A1 Genie One |
-|---|---|---|---|---|---|
-| 1 | GSD rate (`kpi_gsd_rate`) | 0.8071 | ✓ | ✓ | ✓ 80.7%, cited GSD metric view + Page |
-| 1 | KED eligible (`kpi_ked_eligible`) | 2808 | ✓ | ✓ | ✓ |
-| 2 | Diabetic kidney cx (`sub_kidney`) | 1881 | ✗ | ✓ | ✓ via `icd10_closure` |
-| 2 | Any retinopathy (`sub_retinopathy`) | 393 | ✗ | ✓ | ✓ |
-| 3 | A1c any method (`lab_a1c_any_method`) | 9709 | ✗ | ✓ | ✓ via `loinc_parts` Component |
-| 3 | eGFR codes (`lab_egfr_codes`) | 33914-3, 98979-8 | ◐ | ✓ | ✓ |
-| 4 | Diabetics on any statin (`med_on_statin`) | 1651 | ◐ | ✓ | ✓ 1,651 via RxNorm closure |
-| 4 | Is 312961 a statin (`med_is_statin`) | yes | ✗ | ✓ | ✓ "Yes… under the statin class" |
-| 5 | eGFR under 2026 set (`vintage_egfr_2026`) | 0 | ✓ | ✓ | ✓ (0; MDRD dropped in 2026) |
-| 6 | Statin gap, safe (`proto_statin_gap_safe`) | 1609 | ✗ | ✓ | ◐ 1,769 — under-excluded contraindications |
-| 6 | Albuminuria off ACE/ARB (`proto_albuminuria_aceiarb`) | 131 | ✗ | ✓ | ◐ 69 — latest-vs-any uACR, 2025-only |
-| 6 | Cardiorenal cohort (`proto_cardiorenal`) | 10 | ✗ | ✓ | ✓ 10 (cross-branch) |
-| 7 | Metformin eGFR floor (`def_metformin_egfr`) | eGFR < 30 | ✗ | n/a | ✓ cited the protocol doc |
-| 7 | Controlled BP (`def_controlled_bp`) | <140/<90 | ✓* | n/a | ✓ |
-| 8 | Rationale path (`infer_rationale_path`) | a path | ✗ | ✗ | ✗ timed out (>240s) |
-| 8 | Defined class (`infer_defined_class`) | undefined | ✗ | ◐ | *refusal* — correctly found it undefined (checked `patientcare2`) |
-| 9 | Worst clinic annually (`op_worst_clinic_annual`) | CLINIC-01 (0.475) | ✓ | ✓ | ✓ |
-| 9 | Which clinic DRIFTED (`op_clinic_drift`) | CLINIC-08 (0.467 vs 0.778) | ✗ | ✓ | ✓ found CLINIC-08 + delta |
-| 9 | Why did it drift (`op_drift_rootcause`) | PCP handoff + confound | ✗ | ✓ | ✓ named the PCP transition + case-mix |
-| 9 | MAD rate (`op_mad_rate`) | 0.4784 | ✓ | n/a | ✓ 47.84%, 834 eligible |
+| # | Question (id) | gold (25k) | M0 | closure_sql | A1-off (ECT) | A1-on (DMVM) |
+|---|---|---|---|---|---|---|
+| 1 | GSD rate (`kpi_gsd_rate`) | 0.8071 | ✓ | ✓ | ✓ 80.7%, cited GSD metric view + Page | ⏳ |
+| 1 | KED eligible (`kpi_ked_eligible`) | 2808 | ✓ | ✓ | ✓ | ⏳ |
+| 2 | Diabetic kidney cx (`sub_kidney`) | 1881 | ✗ | ✓ | ✓ via `icd10_closure` | ⏳ |
+| 2 | Any retinopathy (`sub_retinopathy`) | 393 | ✗ | ✓ | ✓ | ⏳ |
+| 3 | A1c any method (`lab_a1c_any_method`) | 9709 | ✗ | ✓ | ✓ via `loinc_parts` Component | ⏳ |
+| 3 | eGFR codes (`lab_egfr_codes`) | 33914-3, 98979-8 | ◐ | ✓ | ✓ | ⏳ |
+| 4 | Diabetics on any statin (`med_on_statin`) | 1651 | ◐ | ✓ | ✓ 1,651 via RxNorm closure | ⏳ |
+| 4 | Is 312961 a statin (`med_is_statin`) | yes | ✗ | ✓ | ✓ "Yes… under the statin class" | ⏳ |
+| 5 | eGFR under 2026 set (`vintage_egfr_2026`) | 0 | ✓ | ✓ | ✓ (0; MDRD dropped in 2026) | ⏳ |
+| 6 | Statin gap, safe (`proto_statin_gap_safe`) | 1609 | ✗ | ✓ | ◐ 1,769 — under-excluded contraindications | ⏳ |
+| 6 | Albuminuria off ACE/ARB (`proto_albuminuria_aceiarb`) | 131 | ✗ | ✓ | ◐ 69 — latest-vs-any uACR, 2025-only | ⏳ |
+| 6 | Cardiorenal cohort (`proto_cardiorenal`) | 10 | ✗ | ✓ | ✓ 10 (cross-branch) | ⏳ |
+| 7 | Metformin eGFR floor (`def_metformin_egfr`) | eGFR < 30 | ✗ | n/a | ✓ cited the protocol doc | ⏳ |
+| 7 | Controlled BP (`def_controlled_bp`) | <140/<90 | ✓* | n/a | ✓ | ⏳ |
+| 8 | Rationale path (`infer_rationale_path`) | a path | ✗ | ✗ | ✗ timed out (>240s) | ⏳ |
+| 8 | Defined class (`infer_defined_class`) | undefined | ✗ | ◐ | *refusal* — correctly found it undefined (checked `patientcare2`) | ⏳ |
+| 9 | Worst clinic annually (`op_worst_clinic_annual`) | CLINIC-01 (0.475) | ✓ | ✓ | ✓ | ⏳ |
+| 9 | Which clinic DRIFTED (`op_clinic_drift`) | CLINIC-08 (0.467 vs 0.778) | ✗ | ✓ | ✓ found CLINIC-08 + delta | ⏳ |
+| 9 | Why did it drift (`op_drift_rootcause`) | PCP handoff + confound | ✗ | ✓ | ✓ named the PCP transition + case-mix | ⏳ |
+| 9 | MAD rate (`op_mad_rate`) | 0.4784 | ✓ | n/a | ✓ 47.84%, 834 eligible | ⏳ |
 
 \* `def_controlled_bp` and the BPD metric-view comment both carry the threshold, so M0 reaches it.
 

@@ -29,11 +29,16 @@ SCORE = {
     "diverged": 0.5,
     "not_reached": 0.0,
     "not_applicable": None,
+    "pending": None,   # verdict not yet hand-verified (e.g. a1_on awaiting DMVM snippet extraction) — null shade
 }
+# ADR-0018: A1 (Genie One) splits into two workspace arms over the ONE shared catalog, varying only the native
+# ontology: a1_off = ECT (~200 snippets, sub-threshold → modeled context only = baseline); a1_on = DMVM (~1,100
+# snippets, above the ~1,000 inferred-snippet threshold → inferred ontology active = treatment).
 ARMS = {
     "m0_metric_view": "M0 — Metric views only",
     "closure_sql": "closure_sql — Governed closure/edge SQL",
-    "a1_genie_one": "A1 — Genie One",
+    "a1_off": "A1-off — Genie One (ECT baseline, sub-threshold)",
+    "a1_on": "A1-on — Genie One (DMVM, inferred ontology)",
 }
 
 
@@ -106,7 +111,8 @@ _WIDE_COLS = {
     "min_approach": "Minimal context layer sufficient in principle: metric_view, closure_sql, document, or graph.",
     "m0_metric_view": "Verdict for the metric-views-only baseline: reached / not_reached / diverged / not_applicable / correct_refusal.",
     "closure_sql": "Verdict for governed closure/edge SQL (the answer key for classes 2-6).",
-    "a1_genie_one": "Verdict for Genie One (the front door) reasoning over the workspace.",
+    "a1_off": "Verdict for Genie One on ECT (ADR-0018 baseline: ~200 workspace snippets, below the ~1,000 inferred-snippet threshold → modeled context only, no inferred ontology).",
+    "a1_on": "Verdict for Genie One on DMVM (ADR-0018 treatment: ~1,100 snippets, above threshold → inferred ontology active). 'pending' until post-extraction hand-verification.",
     "note": "Hand-verified annotation: how the arm reached (or missed) the answer.",
 }
 _TIDY_DOC = (
@@ -122,9 +128,9 @@ _TIDY_COLS = {
     "gold_25k": "Hand-verified gold answer at 25k patients.",
     "min_approach": "Minimal sufficient context layer.",
     "arm": "Display label of the retrieval arm.",
-    "arm_key": "Arm key (m0_metric_view / closure_sql / a1_genie_one).",
-    "verdict": "Hand-verified verdict: reached / not_reached / diverged / not_applicable / correct_refusal.",
-    "score": "Numeric shade for the heatmap: reached & correct_refusal=1.0, diverged=0.5, not_reached=0.0, not_applicable=null.",
+    "arm_key": "Arm key (m0_metric_view / closure_sql / a1_off / a1_on).",
+    "verdict": "Hand-verified verdict: reached / not_reached / diverged / not_applicable / correct_refusal / pending.",
+    "score": "Numeric shade for the heatmap: reached & correct_refusal=1.0, diverged=0.5, not_reached=0.0, not_applicable & pending=null.",
     "reached": "True when the arm reached the correct outcome (reached, or a correct refusal).",
 }
 

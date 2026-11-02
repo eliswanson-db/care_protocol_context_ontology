@@ -8,7 +8,7 @@
         "  SUM(CASE WHEN reached THEN 1 ELSE 0 END) AS reached, ",
         "  COUNT(*) AS scorable ",
         "FROM eli_test_classic_catalog.care_protocol.benchmark_capability_tidy ",
-        "WHERE verdict <> 'not_applicable' ",
+        "WHERE verdict NOT IN ('not_applicable', 'pending') ",
         "GROUP BY arm ORDER BY arm"
       ]
     },
@@ -20,7 +20,7 @@
         "  SUM(CASE WHEN reached THEN 1 ELSE 0 END) AS reached, ",
         "  COUNT(*) AS questions ",
         "FROM eli_test_classic_catalog.care_protocol.benchmark_capability_tidy ",
-        "WHERE verdict <> 'not_applicable' ",
+        "WHERE verdict NOT IN ('not_applicable', 'pending') ",
         "GROUP BY class_num, class_name, arm ORDER BY class_num"
       ]
     },
@@ -29,7 +29,7 @@
       "displayName": "Capability matrix (hand-verified)",
       "queryLines": [
         "SELECT class_num AS `#`, class_name AS class, question, gold_25k AS gold, min_approach, ",
-        "  m0_metric_view AS m0, closure_sql, a1_genie_one AS genie_one, note ",
+        "  m0_metric_view AS m0, closure_sql, a1_off AS genie_one_off, a1_on AS genie_one_on, note ",
         "FROM eli_test_classic_catalog.care_protocol.benchmark_capability_matrix ",
         "ORDER BY class_num, question_id"
       ]
