@@ -390,3 +390,35 @@ resources:
             client: "3"
             dependencies:
               - databricks-sdk
+
+    # Hourly HEDIS analytics + ML notebooks (ADR-0018 inferred-ontology fuel). Each notebook is deliberately
+    # metadata-/measure-rich: it reads the governed Gold + semantic + terminology assets so that running it on a
+    # cadence accrues query-history + notebook-asset signal the native Genie ontology can extract into inferred
+    # snippets. Notebook tasks with NO compute block run on SERVERLESS; numpy/pandas only (no pip) -> cheap.
+    # Schedule is PAUSED by default (so dev + the ect BASELINE never run it and stay clean); the dmvm
+    # ONTOLOGY-ON target UNPAUSES it via a target override in databricks.yml.
+    care_analytics:
+      name: care_analytics_${bundle.target}
+      description: Hourly HEDIS analytics/ML notebooks (care-gap risk, measure trend/forecast, comorbidity cohorts, adherence segmentation) over the governed layers — inferred-ontology fuel, serverless + small-data.
+      schedule:
+        quartz_cron_expression: "0 7 * * * ?"   # hourly at :07
+        timezone_id: America/Los_Angeles
+        pause_status: PAUSED   # dmvm target overrides to UNPAUSED (databricks.yml)
+      max_concurrent_runs: 1
+      tasks:
+        - task_key: care_gap_risk
+          notebook_task:
+            notebook_path: ../src/notebooks/care_gap_risk_model.py
+            base_parameters: {catalog: "${var.catalog}", measurement_year: "2025"}
+        - task_key: measure_trend_forecast
+          notebook_task:
+            notebook_path: ../src/notebooks/measure_trend_forecast.py
+            base_parameters: {catalog: "${var.catalog}", measurement_year: "2025"}
+        - task_key: comorbidity_cohort_analytics
+          notebook_task:
+            notebook_path: ../src/notebooks/comorbidity_cohort_analytics.py
+            base_parameters: {catalog: "${var.catalog}"}
+        - task_key: adherence_segmentation
+          notebook_task:
+            notebook_path: ../src/notebooks/adherence_segmentation.py
+            base_parameters: {catalog: "${var.catalog}", measurement_year: "2025"}

@@ -123,3 +123,11 @@ targets:
       root_path: /Workspace/Users/eli.swanson@databricks.com/.bundle/${bundle.name}/${bundle.target}
     run_as:
       user_name: eli.swanson@databricks.com
+    # dmvm is the ONTOLOGY-ON arm: UNPAUSE the hourly analytics notebooks here (PAUSED by default elsewhere) so
+    # they continuously mint inferred-ontology fuel (ADR-0018). dmvm owns no shared_uc resources, so this
+    # target-level resources override is purely additive.
+    resources:
+      jobs:
+        care_analytics:
+          schedule:
+            pause_status: UNPAUSED
