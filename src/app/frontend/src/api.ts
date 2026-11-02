@@ -165,6 +165,10 @@ export interface Drift {
   casemix: DriftCaseMix[];
 }
 
+export interface OntNode { id: string; label: string; kind: string; degree: number }
+export interface OntEdge { subject: string; predicate: string; object: string; value: string | null; source: string }
+export interface OntologyGraph { nodes: OntNode[]; edges: OntEdge[]; predicates: string[] }
+
 export const api = {
   meta: () => get<Meta>("/api/meta"),
   tracers: () => get<{ measurement_year: number; tracers: Tracer[] }>("/api/tracers"),
@@ -174,4 +178,5 @@ export const api = {
   capabilityMap: () => get<CapabilityMap>("/api/benchmark/capability_map"),
   a1Runs: () => get<A1Runs>("/api/benchmark/a1_runs"),
   drift: () => get<Drift>("/api/drift"),
+  ontology: () => get<OntologyGraph>("/api/ontology/graph"),
 };
