@@ -104,15 +104,29 @@ def run_genie(question, session, profile):
     except Exception as e:  # noqa: BLE001
         return f"ERROR: {e}", [], round(time.time() - t0, 1)
     assets = []
+    tool_names = []
+    ontology_used = False
     for t in d.get("tool_calls", []):
+        name = t.get("name", "")
+        if name:
+            tool_names.append(name)
         if t.get("sql"):
             assets.append(("sql", t["sql"][:300]))
+        # Ontology-engagement signal (ADR-0018): did Genie One consult the native ontology for THIS answer?
+        # search_knowledge_snippets = inferred-snippet retrieval; a knowledge_page asset = a modeled Page.
+        if name == "search_knowledge_snippets":
+            ontology_used = True
+            assets.append(("snippet_search", (t.get("arguments") or "")[:200]))
+        if name == "get_asset_info" and "knowledge_page" in (t.get("arguments") or ""):
+            ontology_used = True
+            assets.append(("knowledge_page", (t.get("arguments") or "")[:200]))
     assets += [("table", m) for m in sorted(set(re.findall(r"care_protocol\w*\.\w+\.\w+", text)))]
     if "/discover/pages/" in text:
         assets.append(("page", "Genie Ontology Page cited"))
+        ontology_used = True
     if "_metrics" in text:
         assets.append(("metric_view", "metric view cited"))
-    return text, assets, round(time.time() - t0, 1)
+    return text, assets, round(time.time() - t0, 1), tool_names, ontology_used
 
 
 def main():
@@ -138,11 +152,13 @@ def main():
                          "assets": [], "latency_s": 0.0, "matched": []})
             continue
         print(f"  A1 {q['id']} ...", flush=True)
-        text, assets, dt = run_genie(q["question"], f"capmap_{q['id']}", args.profile)
+        text, assets, dt, tool_names, ontology_used = run_genie(q["question"], f"capmap_{q['id']}", args.profile)
         ok, matched, primary = score(text, q["gold"])
         rows.append({**q, "arm": "A1", "answer_ok": ok, "primary": primary, "matched": matched,
-                     "answer": text[:600], "assets": assets, "latency_s": dt})
-        print(f"     {'OK ' if ok else 'XX '} gold={q['gold'][:40]!r} matched={matched} ({dt}s)")
+                     "answer": text[:600], "assets": assets, "latency_s": dt,
+                     "tool_names": tool_names, "ontology_used": ontology_used})
+        print(f"     {'OK ' if ok else 'XX '} gold={q['gold'][:40]!r} matched={matched} "
+              f"{'[ontology]' if ontology_used else '[no-ontology]'} ({dt}s)")
 
     # Capability-map rollup by class.
     by_cls = {}
@@ -158,6 +174,10 @@ def main():
     n_manual = sum(r["answer_ok"] is None for r in rows)
     print(f"\n{args.arm}: {n_ok}/{len(rows)} reached gold auto ({n_manual} need manual verdict); "
           f"hand-verified matrix is authoritative.")
+    if args.arm == "A1":
+        n_ont = sum(bool(r.get("ontology_used")) for r in rows)
+        print(f"{args.arm}: ontology consulted on {n_ont}/{len(rows)} answers "
+              f"(search_knowledge_snippets / knowledge_page / cited Page) — the ADR-0018 ON/OFF signal.")
 
     detail = os.path.join(args.out, f"{args.arm}_detail.json")
     json.dump(rows, open(detail, "w"), indent=2, default=str)
