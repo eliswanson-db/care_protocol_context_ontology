@@ -96,6 +96,13 @@ def patient_journey(patient_id: str):
                 "status": status, "data": data, "note": note}
 
     stages = [
+        stage("protocol", "Care Protocol — GSD spec", "HEDIS GSD definition: value sets, A1c thresholds, MY window",
+              "doc",
+              {"document": "GSD — Glycemic Status Assessment for Patients With Diabetes (care-protocol spec)",
+               "defines": "eligible diagnosis value sets (E10/E11/E13); A1c control thresholds (<8% control, >9% poor); "
+                          "measurement-year window"},
+              "The source of meaning: a human-authored care-protocol document that DEFINES who is eligible and what "
+              "'compliant' means. Every datum downstream is an instance of these definitions — this is where a trace ends."),
         stage("bronze", "Bronze — raw EHR code", "Source ICD-10-CM / SNOMED as coded at the encounter",
               "live", bronze,
               "The diagnosis exactly as it arrived from Epic/Clarity — a flat code, no meaning attached yet."),
@@ -117,12 +124,55 @@ def patient_journey(patient_id: str):
         stage("page", "Ontology — Discover Page", "GSD Page (highest-authority ontology snippet)",
               "page", {"page": "GSD — Glycemic Status Assessment for Patients With Diabetes"},
               "The human-modeled definition Genie One prioritizes and cites as an Ontology Reference."),
-        stage("genie", "Genie One — natural language", "Ontology-grounded answer over the whole chain",
-              "wired_next", {},
-              "Ask 'is this patient compliant and why?' — Genie reasons over the metric view + Page above."),
-        stage("rag", "A4 — Lakebase hybrid RAG", "Document evidence w/ doc-level RLS",
-              "wired_next", {}, "Retrieve the care-protocol passage that defines the accepted A1c evidence."),
-        stage("graph", "A5 — Ontobricks graph", "Explicit OWL/SNOMED subsumption graph",
-              "wired_next", {}, "The same subsumption, as a navigable graph — the final semantic hop."),
     ]
-    return {"patient_id": patient_id, "measurement_year": my, "stages": stages}
+
+    # --- The modeled answer: the question a visitor asks at the end of the flow, answered from THIS patient's
+    # real data. Each claim carries (a) the spine path to highlight back to source, and (b) the retrieval
+    # modes that can produce it — so clicking a claim shows both "where it came from" and "which tool gets it".
+    status = gold0.get("status") or "UNKNOWN"
+    met = status == "MET"
+    gap = gold0.get("gap_reason")
+    ev_dt = gold0.get("evidence_datetime")
+    dx_code = bronze[0].get("icd10_code") if bronze else None
+
+    subs = next((r for r in closure if r.get("ancestor_code") in ("E10", "E11", "E13")), None)
+    subs_chip = f'{subs.get("descendant_code")} ⊑ {subs.get("ancestor_code")}' if subs else None
+
+    rate_chip = None
+    if metric:
+        m0 = metric[0]
+        try:
+            rf = float(m0.get("rate"))
+            rate_str = f"{rf * 100:.0f}%" if rf <= 1 else f"{rf:.0f}%"
+        except (TypeError, ValueError):
+            rate_str = str(m0.get("rate"))
+        rate_chip = f'{m0.get("clinic")} GSD rate {rate_str}'
+
+    short = patient_id[:8]
+    claims = [
+        {"id": "verdict", "before": f"Patient {short} is ",
+         "chip": ("meeting GSD (MET)" if met else "NOT_MET for GSD"), "kind": "verdict",
+         "stage_path": ["gold", "cohort", "closure", "silver", "bronze", "protocol"],
+         "modes": ["m0_metric_view", "genie"]},
+        {"id": "evidence", "before": " because ",
+         "chip": ("the most recent A1c is in control" if met else (gap or "the care-gap evidence rule is unmet")),
+         "kind": "evidence", "stage_path": ["gold", "protocol"], "modes": ["rag", "genie"]},
+    ]
+    if ev_dt:
+        claims.append({"id": "evidence_dt", "before": " (A1c recorded ", "chip": str(ev_dt)[:10], "suffix": ")",
+                       "kind": "evidence", "stage_path": ["gold"], "modes": ["m0_metric_view"]})
+    if dx_code:
+        claims.append({"id": "code", "before": ". They enter the measure because diagnosis ", "chip": dx_code,
+                       "kind": "code", "stage_path": ["bronze"], "modes": []})
+    if subs_chip:
+        claims.append({"id": "subsumption", "before": " is a form of diabetes — ", "chip": subs_chip,
+                       "kind": "subsumption", "stage_path": ["closure", "silver", "bronze"],
+                       "modes": ["closure_sql", "graph", "genie"]})
+    if rate_chip:
+        claims.append({"id": "rate", "before": ", so they roll into ", "chip": rate_chip, "kind": "rate",
+                       "stage_path": ["metric", "gold"], "modes": ["m0_metric_view", "genie"]})
+    claims.append({"id": "definition", "before": ". All of this is defined by the ", "chip": "GSD care-protocol spec",
+                   "suffix": ".", "kind": "definition", "stage_path": ["protocol"], "modes": ["rag", "genie"]})
+
+    answer = {"question": f"Is patient {short} compliant with GSD for MY {my}, and why?", "claims": claims}
+    return {"patient_id": patient_id, "measurement_year": my, "stages": stages, "answer": answer}

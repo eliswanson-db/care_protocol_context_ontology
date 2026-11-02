@@ -202,10 +202,12 @@ confirm-writes). All steps re-run on a fresh workspace.
   python3 -I scripts/lakebase_rag_corpus.py --emit_demo_roles | \
     PGPASSWORD="$TOKEN" psql "host=<host> user=<you> dbname=databricks_postgres sslmode=require"
   ```
-- 🤖 **Embed** the chunks (gte-large-en, 1024-dim) and build the ANN index — reuse the `scripts/lakebase_embed.py`
-  pattern pointed at `rag.chunks` (semantic/hybrid retrieval and `lakebase_ann.prefilter` need embeddings;
-  lexical/BM25 works without). ⏳ Build the **BM25** index *after* load (corpus stats at build time); after a
-  large reload, `REINDEX INDEX CONCURRENTLY rag.chunks_body_bm25`.
+- 🤖 **Embed** the chunks (gte-large-en, 1024-dim) and rebuild the ANN index — `scripts/lakebase_embed_chunks.py`
+  reads `rag.chunks.content`, embeds via the governed endpoint, writes `embedding` back (idempotent: only NULLs
+  unless `--all`), then `REINDEX CONCURRENTLY` the ANN index with `--reindex`. `--dry_run` embeds + reports, writes
+  nothing. (Semantic/hybrid retrieval and `lakebase_ann.prefilter` need embeddings; lexical/BM25 works without.)
+  ⏳ Build the **BM25** index *after* load (corpus stats at build time); after a large reload,
+  `REINDEX INDEX CONCURRENTLY rag.chunks_body_bm25`.
 - 🔒 **Verify authorization** (the `+perm` tracer, design doc §13). Needs the Postgres client:
   `pip install -e '.[lakebase]'` (psycopg). Host is the `primary` endpoint
   (`ep-...database.us-east-1.cloud.databricks.com` from `databricks postgres get-endpoint <EP>`):
@@ -218,12 +220,11 @@ confirm-writes). All steps re-run on a fresh workspace.
   enabled, `schema.sql` + corpus loaded → **7 docs / 36 chunks / 13 ACLs / 3 members** (identical to ECT), RLS
   **4/4** green. Each workspace has its OWN Lakebase project (Postgres is per-workspace, unlike the shared UC
   catalog); re-run these steps per workspace with that workspace's host + `--profile`.
-- ⚠️ **Embeddings are NOT populated on either env** (verified: `SELECT count(embedding) FROM rag.chunks` = 0 on
-  ECT and DMVM). A4 runs **lexical/BM25-only** today; the `chunks_embedding_ann` index sits over an all-NULL
-  column and `a4_lakebase.py` embeds the *query* at search time for lexical rank. To light up semantic/ANN
-  retrieval, embed `rag.chunks` via the governed `databricks-gte-large-en` endpoint (READY on both) — this is a
-  **new capability on BOTH**, so do it in lockstep to keep the arms comparable. `scripts/lakebase_embed.py`
-  currently targets the old `retrieval_corpus` table (ADR-0009), not `rag.chunks` — adapt before use.
+- ✅ **Embeddings populated — A4 is HYBRID (2026-11-02):** `scripts/lakebase_embed_chunks.py --reindex` embedded
+  all **36/36 chunks** (gte-large-en, 1024-dim) and rebuilt `chunks_embedding_ann` on **both** ECT and DMVM in
+  lockstep. `SELECT count(embedding) FROM rag.chunks` = 36 on both. Hybrid (RRF of BM25 + pgvector/ANN) and
+  `lakebase_ann.prefilter` are live. The P13 app's A4 panel auto-detects the embedded count and serves hybrid.
+  Re-run the script per workspace after any corpus reload (idempotent on NULLs; `--all` to re-embed everything).
   The RLS policy consults the ACL/membership tables through the `SECURITY DEFINER` function
   `rag.acl_allows()` (ADR-0016) — the reader has `EXECUTE` on it but no direct SELECT on those tables.
 - Deterministic structure test (no workspace): `python3 -I tests/test_rag_corpus_build.py`.

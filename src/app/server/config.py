@@ -23,6 +23,19 @@ MEASUREMENT_YEAR = int(os.environ.get("CARE_MEASUREMENT_YEAR", "2025"))
 ARM = os.environ.get("CARE_ARM", "local")
 CONTEXT_RELEASE = os.environ.get("CARE_CONTEXT_RELEASE", "dev")
 
+# A4 Lakebase RAG (ADR-0014). Postgres is per-workspace; defaults point at the ECT project. Override via env
+# for DMVM. Embeddings are not yet populated on either env (RUNBOOK) -> the RAG route runs lexical/BM25 and
+# auto-upgrades to hybrid once rag.chunks.embedding is backfilled.
+LAKEBASE_HOST = os.environ.get("CARE_LAKEBASE_HOST", "ep-spring-paper-d2objaly.database.us-east-1.cloud.databricks.com")
+LAKEBASE_ENDPOINT = os.environ.get("CARE_LAKEBASE_ENDPOINT", "projects/care-protocol/branches/production/endpoints/primary")
+LAKEBASE_USER = os.environ.get("CARE_LAKEBASE_USER", "eli.swanson@databricks.com")
+LAKEBASE_SEARCH_EXT = os.environ.get("CARE_LAKEBASE_SEARCH_EXT", "1") == "1"
+
+
+def get_profile() -> str | None:
+    """CLI profile for local auth; None in Databricks Apps (ambient SP)."""
+    return None if IS_DATABRICKS_APP else os.environ.get("DATABRICKS_PROFILE", "ECT")
+
 
 @lru_cache(maxsize=1)
 def get_workspace_client() -> WorkspaceClient:
