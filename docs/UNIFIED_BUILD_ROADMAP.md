@@ -373,9 +373,12 @@ same 13 jobs / 1 pipeline / 4 dashboards as ect. All three targets validate OK.
 - DMVM has `databricks-gte-large-en` READY, so embedding both envs' chunks is a fast-follow if we want the
   semantic/ANN half live (would be a *new* capability on both, not just DMVM — flag as such).
 
-**Remaining manual (yours):** enable **Genie Ontology** on DMVM (+ confirm OFF on ECT to hold the baseline);
-import the **16 Pages** via Genie Code (`docs/ontology/PAGES_IMPORT_PROMPT.md`) → Clinical Domain. Then ⏳ wait
-for snippet extraction and compare density vs ECT; split `a1_genie_one` → `a1_off`/`a1_on`.
+**Remaining manual (yours) — note the corrected mechanism (commit `91f81f7`): there is NO Genie Ontology
+toggle; it's always on, and the baseline/treatment split is the ~1,000-snippet density threshold (ECT ≈200 =
+below = baseline; DMVM ≈1,100 = above = treatment).** So the job is to drive DMVM's snippet count up, not flip a
+switch: import the **16 Pages** via Genie Code (`docs/ontology/PAGES_IMPORT_PROMPT.md`) → Clinical Domain; the
+query-history seed + dashboards + Genie agents already deployed this session also mint snippets. Then ⏳ wait for
+extraction (**~daily cadence, not minutes**) and compare density vs ECT; split `a1_genie_one` → `a1_off`/`a1_on`.
 
 ### 2026-11-01 — Two-workspace design (ADR-0018): DMVM = ontology-ON arm, ECT = baseline
 
