@@ -136,12 +136,23 @@ def main():
     ap.add_argument("--ground_truth", default="docs/benchmark/ground_truth.yaml")
     ap.add_argument("--out", default="/tmp/capmap")
     ap.add_argument("--only_class", default="", help="optional: run one class, e.g. 6_protocol_multihop")
+    ap.add_argument("--ids", default="", help="optional: comma-separated question ids to run")
+    ap.add_argument("--smoke", action="store_true",
+                    help="run the 5-question representative smoke subset (fast dev loop; Genie One is slow)")
     args = ap.parse_args()
+
+    # One id per key capability — fast iteration without paying for all 20 slow Genie calls.
+    SMOKE_IDS = ["kpi_gsd_rate", "sub_kidney", "med_on_statin", "def_controlled_bp", "op_clinic_drift"]
 
     os.makedirs(args.out, exist_ok=True)
     qs = load_questions(args.ground_truth)
     if args.only_class:
         qs = [q for q in qs if q["cls"] == args.only_class]
+    if args.smoke:
+        qs = [q for q in qs if q["id"] in set(SMOKE_IDS)]
+    elif args.ids:
+        want = {x.strip() for x in args.ids.split(",") if x.strip()}
+        qs = [q for q in qs if q["id"] in want]
 
     rows = []
     for q in qs:
