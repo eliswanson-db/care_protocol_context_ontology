@@ -284,10 +284,14 @@ answers fast and grounded, and leaves a lineage record Genie One can reason over
   ```
 - **Dual-mode AI** (`IS_DATABRICKS_APP`): local uses **Genie One (A1)** via the CLI (exposes the inferred-
   snippet signal); deployed uses the **Genie space (A2)** via SDK (no inferred signal — labeled `surface`).
-- ⏳ **A4 RAG remote is NOT wired** — doc-level RLS (`rag.acl_allows`) denies unknown identities, so the app SP
-  sees zero documents. To light it up remotely: grant the SP connect on the DMVM Lakebase instance, seed its
-  Postgres role as a `rag_reader` with ACL membership (or SET ROLE a seeded reader via `CARE_RAG_AS_USER`),
-  then set that env. Until then the A4 button degrades with an honest RLS message. RAG works locally (as you).
+- ✅ **A4 RAG remote is WIRED (2026-11-02):** the app SP is a normal authorized reader (RLS stays ON, no
+  bypass). One-time per deploy: (1) provision the SP as a Lakebase Postgres role —
+  `databricks postgres create-role projects/care-protocol/branches/production --role-id care-protocol-app
+  --json '{"spec":{"identity_type":"SERVICE_PRINCIPAL","postgres_role":"<SP_CLIENT_ID>","auth_method":"LAKEBASE_OAUTH_V1"}}'`;
+  (2) `python3 -I scripts/lakebase_grant_app_reader.py --sp <SP_CLIENT_ID> --profile DMVM` grants `rag_reader`
+  + puts the SP in group `care_app_service` + ALLOW-READs that group on all docs (acl_allows verified true 7/7).
+  The app connects as `DATABRICKS_CLIENT_ID` (= the postgres_role) so `current_user` matches the ACL. Verified
+  the SP sees all 7 docs / 36 chunks; embeddings present → hybrid.
 
 ## Genie Ontology seeding (P7 / §7a)
 - Build Pages + metric views + Genie Agents + dashboards (over-build — see roadmap §7a), assign Domains,

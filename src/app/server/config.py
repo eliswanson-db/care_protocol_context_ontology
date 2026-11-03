@@ -68,8 +68,13 @@ def get_lakebase_host() -> str:
 
 @lru_cache(maxsize=1)
 def get_lakebase_user() -> str:
-    """Postgres connecting identity = the caller (current user locally, service principal when deployed)."""
-    return os.environ.get("CARE_LAKEBASE_USER") or get_workspace_client().current_user.me().user_name
+    """Postgres connecting identity = the caller's provisioned role. Deployed: the app SP's client id
+    (DATABRICKS_CLIENT_ID = its Lakebase postgres_role). Local: the current user. No hardcoded identity."""
+    if os.environ.get("CARE_LAKEBASE_USER"):
+        return os.environ["CARE_LAKEBASE_USER"]
+    if IS_DATABRICKS_APP and os.environ.get("DATABRICKS_CLIENT_ID"):
+        return os.environ["DATABRICKS_CLIENT_ID"]
+    return get_workspace_client().current_user.me().user_name
 
 
 @lru_cache(maxsize=1)
