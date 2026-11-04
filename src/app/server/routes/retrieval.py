@@ -67,7 +67,7 @@ def _metric_view_lens(pid: str, my: int) -> dict:
     return {
         "id": "metric_view", "label": "Metric View",
         "resolves_at": "build-time (baked into the governed metric view)",
-        "question": f"What GSD compliance rate does patient {pid[:8]} roll into?",
+        "question": "the governed GSD rate this patient's verdict rolls into",
         "answer_rows": rows,
         "provenance": [{"kind": "metric_view", "detail": f"{SM}.gsd_compliance_metrics"}],
         "good_at": "One certified number, shared by BI + Genie; exact & auditable.",
@@ -89,7 +89,7 @@ def _closure_lens(pid: str, my: int) -> dict:
     return {
         "id": "closure", "label": "Closure table",
         "resolves_at": "query-time (one equality join on the closure)",
-        "question": f"Why is patient {pid[:8]} in the diabetes cohort? (is-a subsumption)",
+        "question": "why the patient is in the measure at all (diagnosis subsumption)",
         "answer_rows": rows,
         "provenance": [{"kind": "table", "detail": f"{ST}.icd10_closure"}],
         "good_at": "Correct cohort membership at ANY depth (E11.21 ⊑ E11) — a flat code list misses subcodes.",
@@ -123,7 +123,7 @@ def _graph_lens(pid: str, my: int, measures: list[str]) -> dict:
     return {
         "id": "graph", "label": "Ontobricks graph",
         "resolves_at": "graph traversal (modeled; Ontobricks ABox = src/ontology)",
-        "question": f"Trace the clinical rationale around patient {pid[:8]}'s diabetes, labs and drug classes.",
+        "question": "the clinical rationale linking the patient's codes, drugs and measures",
         "answer_rows": subs + edges,
         "provenance": [
             {"kind": "table", "detail": f"{ST}.protocol_edges"},
@@ -143,7 +143,7 @@ def _live_descriptors(pid: str) -> list[dict]:
             "id": "genie_ontology", "label": "Genie One + Ontology", "deferred": True,
             "endpoint": f"/api/patient/{pid}/genie",
             "resolves_at": "LLM at query-time (natural language → governed SQL + citations)",
-            "question": "Is this patient GSD-compliant, and why? (asked in English)",
+            "question": "the whole question, in English, with citations",
             "good_at": "Anyone asks in English; grounds in Pages/metric views and cites them.",
             "blind_to": "Non-deterministic; quality tracks snippet/Page density; may write a wrong join.",
         },
@@ -151,7 +151,7 @@ def _live_descriptors(pid: str) -> list[dict]:
             "id": "rag", "label": "A4 Lakebase RAG", "deferred": True,
             "endpoint": f"/api/patient/{pid}/rag",
             "resolves_at": "retrieval at query-time (hybrid BM25 + vector; doc-level RLS)",
-            "question": "What care-protocol passage defines the rule behind this patient's status?",
+            "question": "what the rule is, and where the protocol states it",
             "good_at": "Returns the exact narrative passage + document/section provenance; row-secured.",
             "blind_to": "Prose, not computation; can't count a cohort or roll up a hierarchy.",
         },
@@ -159,7 +159,7 @@ def _live_descriptors(pid: str) -> list[dict]:
             "id": "graph", "label": "Ontobricks graph", "deferred": True,
             "endpoint": f"/api/patient/{pid}/ontobricks",
             "resolves_at": "live graph traversal (clinicaldomain_v2 triplestore)",
-            "question": "Trace the typed, cross-vocabulary edges around this patient.",
+            "question": "the clinical rationale linking the patient's codes, drugs and measures",
             "good_at": "Typed, multi-hop, cross-vocabulary paths a closure join can't express.",
             "blind_to": "Overkill for a single is-a rollup; a full scan over ~55M triples.",
         },

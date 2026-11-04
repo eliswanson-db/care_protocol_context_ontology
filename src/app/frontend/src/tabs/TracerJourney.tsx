@@ -168,7 +168,15 @@ export function TracerJourney() {
       <main className="min-w-0 flex-1 overflow-y-auto px-6 py-5">
         {picked && (
           <div className="mb-6">
-            <h1 className="text-2xl font-bold tracking-tight">Follow one patient from raw code to governed answer</h1>
+            <div className="text-[12px] font-bold uppercase tracking-wider text-primary">The question</div>
+            <h1 className="mt-1 text-[26px] font-bold leading-tight tracking-tight">
+              {journey?.answer.question ?? `Is patient ${picked.patient_id.slice(0, 8)} compliant with GSD, and why?`}
+            </h1>
+            <p className="mt-1.5 max-w-4xl text-[14.5px] text-muted">
+              GSD (Glycemic Status Assessment) is met when a diabetic patient aged 18–75 has at least one HbA1c
+              test in the measurement year. Follow this patient from the care-protocol PDF through every data layer
+              to the governed answer — then see how five retrieval approaches answer the same question.
+            </p>
             <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-border bg-surface px-4 py-3">
               <span className="font-mono text-xl font-bold">{picked.patient_id.slice(0, 8)}</span>
               <span className="rounded-md bg-primary/15 px-2.5 py-1 font-mono text-base font-semibold text-primary">
@@ -236,7 +244,7 @@ export function TracerJourney() {
             <Section
               n="02"
               title="Retrieval — the same question, five ways"
-              hint="metric view · closure · Genie · RAG · graph"
+              hint="each approach answers the part of the question it can"
               open={open.retrieval}
               onToggle={() => toggle("retrieval")}
             >

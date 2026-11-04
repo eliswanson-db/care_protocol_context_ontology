@@ -36,35 +36,35 @@ const META: Record<string, { label: string; resolves_at: string; question: strin
   metric_view: {
     label: "Metric View",
     resolves_at: "build-time",
-    question: "What governed rate does this patient roll into?",
+    question: "the governed GSD rate this patient's verdict rolls into",
     good_at: "One certified number; exact & auditable.",
     blind_to: "Why THIS patient — it's a pre-modeled aggregate.",
   },
   closure: {
     label: "Closure table",
     resolves_at: "query-time join",
-    question: "Why is this patient in the cohort? (subsumption)",
+    question: "why the patient is in the measure at all (diagnosis subsumption)",
     good_at: "Correct membership at any depth (E11.21 ⊑ E11).",
     blind_to: "No narrative; hierarchy must be pre-built.",
   },
   genie_ontology: {
     label: "Genie One + Ontology",
     resolves_at: "LLM at query-time",
-    question: "Is this patient GSD-compliant, and why? (in English)",
+    question: "the whole question, in English, with citations",
     good_at: "Ask in English; grounds in Pages/metric views + cites.",
     blind_to: "Non-deterministic; may write a wrong join.",
   },
   rag: {
     label: "A4 Lakebase RAG",
     resolves_at: "retrieval at query-time",
-    question: "What passage defines the rule behind this status?",
+    question: "what the rule is, and where the protocol states it",
     good_at: "Exact narrative passage + provenance; row-secured.",
     blind_to: "Prose, not computation; can't count a cohort.",
   },
   graph: {
     label: "Ontobricks graph",
     resolves_at: "live traversal · clinicaldomain_v2",
-    question: "Trace the typed, cross-vocabulary edges around this patient.",
+    question: "the clinical rationale linking the patient's codes, drugs and measures",
     good_at: "Typed, multi-hop, cross-vocab paths a closure join can't express.",
     blind_to: "Overkill for a single is-a rollup; scans ~55M triples.",
   },
@@ -129,7 +129,9 @@ function Shell({
       >
         {resolvesAt}
       </div>
-      <p className="mt-2 text-[12.5px] italic leading-snug text-fg/80">{question}</p>
+      <p className="mt-2 text-[12.5px] leading-snug text-fg/85">
+        <span className="font-semibold text-muted">Answers: </span>{question}
+      </p>
       <div className="mt-2.5 flex-1">{children}</div>
       <dl className="mt-3 space-y-1 border-t border-border pt-2.5 text-[11.5px] leading-snug">
         <div className="flex gap-1.5">
