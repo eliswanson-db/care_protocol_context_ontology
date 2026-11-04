@@ -1,0 +1,456 @@
+{
+  "judge": "databricks:/databricks-claude-sonnet-5",
+  "agent": "databricks-claude-sonnet-5",
+  "rows": [
+    {
+      "arm": "closed_book",
+      "qid": "kpi_gsd_rate",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "latency_s": 12.6
+    },
+    {
+      "arm": "metric_view",
+      "qid": "kpi_gsd_rate",
+      "correct": true,
+      "grounded": true,
+      "sufficient": true,
+      "answer": "The overall GSD Compliance Rate is 0.8071 [1].",
+      "n_docs": 1,
+      "latency_s": 15.0
+    },
+    {
+      "arm": "closure_sql",
+      "qid": "kpi_gsd_rate",
+      "correct": true,
+      "grounded": true,
+      "sufficient": true,
+      "answer": "The overall GSD compliance rate is 0.8071 (80.71%) [1].",
+      "n_docs": 1,
+      "latency_s": 15.1
+    },
+    {
+      "arm": "rag",
+      "qid": "kpi_gsd_rate",
+      "correct": false,
+      "grounded": true,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 5,
+      "latency_s": 22.7
+    },
+    {
+      "arm": "ontobricks",
+      "qid": "kpi_gsd_rate",
+      "correct": false,
+      "grounded": true,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 11,
+      "latency_s": 15.5
+    },
+    {
+      "arm": "closed_book",
+      "qid": "sub_kidney",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "latency_s": 9.0
+    },
+    {
+      "arm": "metric_view",
+      "qid": "sub_kidney",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "latency_s": 10.1
+    },
+    {
+      "arm": "closure_sql",
+      "qid": "sub_kidney",
+      "correct": true,
+      "grounded": false,
+      "sufficient": true,
+      "answer": "According to the context, 1881 patients have diabetes WITH kidney complications (sub_kidney = 1881) [1].",
+      "n_docs": 1,
+      "latency_s": 16.8
+    },
+    {
+      "arm": "rag",
+      "qid": "sub_kidney",
+      "correct": false,
+      "grounded": true,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 5,
+      "latency_s": 14.7
+    },
+    {
+      "arm": "ontobricks",
+      "qid": "sub_kidney",
+      "correct": false,
+      "grounded": false,
+      "sufficient": false,
+      "answer": "**1 patient** has a diagnosis",
+      "n_docs": 33,
+      "latency_s": 19.2
+    },
+    {
+      "arm": "closed_book",
+      "qid": "med_on_statin",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "latency_s": 8.8
+    },
+    {
+      "arm": "metric_view",
+      "qid": "med_on_statin",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "latency_s": 9.1
+    },
+    {
+      "arm": "closure_sql",
+      "qid": "med_on_statin",
+      "correct": true,
+      "grounded": true,
+      "sufficient": true,
+      "answer": "1651 diabetic patients are on any statin.\n\nCitation: [1] diabetic_on_statin = 1651",
+      "n_docs": 1,
+      "latency_s": 13.7
+    },
+    {
+      "arm": "rag",
+      "qid": "med_on_statin",
+      "correct": false,
+      "grounded": true,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 5,
+      "latency_s": 15.1
+    },
+    {
+      "arm": "ontobricks",
+      "qid": "med_on_statin",
+      "correct": false,
+      "grounded": true,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 28,
+      "latency_s": 15.1
+    },
+    {
+      "arm": "closed_book",
+      "qid": "med_is_statin",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "latency_s": 9.3
+    },
+    {
+      "arm": "metric_view",
+      "qid": "med_is_statin",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "latency_s": 9.8
+    },
+    {
+      "arm": "closure_sql",
+      "qid": "med_is_statin",
+      "correct": true,
+      "grounded": false,
+      "sufficient": true,
+      "answer": "**Yes.** Simvastatin 20 MG Oral Tablet is classified as a statin (is_statin_312961 = 1) [1].",
+      "n_docs": 1,
+      "latency_s": 15.2
+    },
+    {
+      "arm": "rag",
+      "qid": "med_is_statin",
+      "correct": true,
+      "grounded": false,
+      "sufficient": true,
+      "answer": "Yes. Simvastatin is listed as a statin ingredient under the Statin drug class [1], so a patient prescribed \"Simvastatin 20 MG Oral Tablet\" counts as being on a statin (satisfying the SPD numerator) [1][3].",
+      "n_docs": 5,
+      "latency_s": 18.5
+    },
+    {
+      "arm": "ontobricks",
+      "qid": "med_is_statin",
+      "correct": true,
+      "grounded": false,
+      "sufficient": false,
+      "answer": "**Yes.** Simvastatin (ingredient code ing/36567) is mapped to the statin drug class: `(ing/36567) -[inDrugClass]-> (DrugClass/DRUGCLASS-STATIN)` [6]. Since \"Simvastatin 20 MG Oral Tablet\" contains the ingredient simvastatin, it is classified as a statin.",
+      "n_docs": 14,
+      "latency_s": 19.3
+    },
+    {
+      "arm": "closed_book",
+      "qid": "proto_cardiorenal",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "latency_s": 9.2
+    },
+    {
+      "arm": "metric_view",
+      "qid": "proto_cardiorenal",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "latency_s": 10.3
+    },
+    {
+      "arm": "closure_sql",
+      "qid": "proto_cardiorenal",
+      "correct": false,
+      "grounded": true,
+      "sufficient": true,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 1,
+      "latency_s": 15.6
+    },
+    {
+      "arm": "rag",
+      "qid": "proto_cardiorenal",
+      "correct": false,
+      "grounded": true,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 5,
+      "latency_s": 16.0
+    },
+    {
+      "arm": "ontobricks",
+      "qid": "proto_cardiorenal",
+      "correct": false,
+      "grounded": true,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 46,
+      "latency_s": 17.9
+    },
+    {
+      "arm": "closed_book",
+      "qid": "def_controlled_bp",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "latency_s": 9.7
+    },
+    {
+      "arm": "metric_view",
+      "qid": "def_controlled_bp",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "latency_s": 8.9
+    },
+    {
+      "arm": "closure_sql",
+      "qid": "def_controlled_bp",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "latency_s": 9.5
+    },
+    {
+      "arm": "rag",
+      "qid": "def_controlled_bp",
+      "correct": true,
+      "grounded": true,
+      "sufficient": true,
+      "answer": "\"Controlled\" blood pressure for the BPD measure means systolic < 140 mmHg AND diastolic < 90 mmHg, based on the most recent BP reading. This is defined in context [1].",
+      "n_docs": 5,
+      "latency_s": 15.7
+    },
+    {
+      "arm": "ontobricks",
+      "qid": "def_controlled_bp",
+      "correct": true,
+      "grounded": true,
+      "sufficient": true,
+      "answer": "Based on the context, \"controlled\" blood pressure for the BPD measure is defined by two thresholds:\n\n- Systolic blood pressure < 140 (Threshold/systolic_lt_140) [3]\n- Diastolic blood pressure < 90 (Threshold/diastolic_lt_90) [1]\n\nThese thresholds are defined under the Measure/BPD guideline, which is",
+      "n_docs": 11,
+      "latency_s": 17.2
+    },
+    {
+      "arm": "closed_book",
+      "qid": "def_metformin_egfr",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "latency_s": 9.4
+    },
+    {
+      "arm": "metric_view",
+      "qid": "def_metformin_egfr",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "latency_s": 9.5
+    },
+    {
+      "arm": "closure_sql",
+      "qid": "def_metformin_egfr",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "latency_s": 9.4
+    },
+    {
+      "arm": "rag",
+      "qid": "def_metformin_egfr",
+      "correct": true,
+      "grounded": true,
+      "sufficient": true,
+      "answer": "Metformin is contraindicated below an eGFR of **30 mL/min/1.73m\u00b2**.\n\nThis is stated in:\n- [1]: \"Metformin ... Contraindications / cautions: eGFR < 30 (contraindicated); hold around iodinated contrast\"\n- [2]: \"Metformin is **contraindicated** below eGFR **30 mL/min/1.73m\u00b2**; stop it at that level.\"\n-",
+      "n_docs": 5,
+      "latency_s": 19.4
+    },
+    {
+      "arm": "ontobricks",
+      "qid": "def_metformin_egfr",
+      "correct": true,
+      "grounded": true,
+      "sufficient": true,
+      "answer": "Metformin (biguanide class) is contraindicated below an eGFR of 30, per: (DrugClass/DRUGCLASS-BIGUANIDE) -[contraindicatedWhen]-> (Threshold/eGFR_LT_30) [4].",
+      "n_docs": 16,
+      "latency_s": 18.5
+    },
+    {
+      "arm": "closed_book",
+      "qid": "infer_rationale_path",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "latency_s": 9.1
+    },
+    {
+      "arm": "metric_view",
+      "qid": "infer_rationale_path",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "latency_s": 10.0
+    },
+    {
+      "arm": "closure_sql",
+      "qid": "infer_rationale_path",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "latency_s": 9.6
+    },
+    {
+      "arm": "rag",
+      "qid": "infer_rationale_path",
+      "correct": false,
+      "grounded": true,
+      "sufficient": true,
+      "answer": "**Connecting path: Diabetes diagnosis \u2192 SPD measure eligibility \u2192 statin\u2011gap escalation rule**\n\n1. **Diagnosis membership** \u2013 A patient is identified as having diabetes via an ICD\u201110\u2011CM code in the **E10, E11, or E13** family (including descendants), per the diagnosis hierarchy [3].\n\n2. **Measure el",
+      "n_docs": 5,
+      "latency_s": 25.0
+    },
+    {
+      "arm": "ontobricks",
+      "qid": "infer_rationale_path",
+      "correct": true,
+      "grounded": false,
+      "sufficient": false,
+      "answer": "**Clinical rationale path:**\n\nA diabetes diagnosis (e.g., icd/E11.9, E11.65, E11.2, etc., all subClassOf icd/E11 \u2014 [2],[3],[7],[9],[11],[12],[16],[19],[20]) establishes diabetic status, which drives eligibility for the Statin therapy in Diabetes Patients measure, since:\n\n**DrugClass/DRUGCLASS-STATIN",
+      "n_docs": 28,
+      "latency_s": 29.2
+    },
+    {
+      "arm": "closed_book",
+      "qid": "infer_defined_class",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "latency_s": 9.8
+    },
+    {
+      "arm": "metric_view",
+      "qid": "infer_defined_class",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "latency_s": 10.0
+    },
+    {
+      "arm": "closure_sql",
+      "qid": "infer_defined_class",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "latency_s": 9.9
+    },
+    {
+      "arm": "rag",
+      "qid": "infer_defined_class",
+      "correct": false,
+      "grounded": true,
+      "sufficient": false,
+      "answer": "Based on CP-ESC-3 [1], \"high cardiorenal risk\" patients are defined as those with **diabetes AND chronic kidney disease (N18.*) AND heart failure (I50.*)**, who are then flagged to ensure they are on statin, ACE/ARB, and an SGLT2 inhibitor (if eGFR \u2265 20) \u2014 the drug classes flagged for review per the",
+      "n_docs": 5,
+      "latency_s": 22.4
+    },
+    {
+      "arm": "ontobricks",
+      "qid": "infer_defined_class",
+      "correct": false,
+      "grounded": true,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 34,
+      "latency_s": 21.4
+    }
+  ]
+}

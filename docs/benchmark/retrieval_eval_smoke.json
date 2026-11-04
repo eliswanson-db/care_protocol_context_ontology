@@ -1,0 +1,156 @@
+{
+  "judge": "databricks:/databricks-claude-sonnet-5",
+  "agent": "databricks-claude-sonnet-5",
+  "rows": [
+    {
+      "arm": "closed_book",
+      "qid": "kpi_gsd_rate",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "latency_s": 15.2
+    },
+    {
+      "arm": "metric_view",
+      "qid": "kpi_gsd_rate",
+      "correct": true,
+      "grounded": true,
+      "sufficient": true,
+      "answer": "The overall GSD Compliance Rate is 0.8071 (source: [1]).",
+      "n_docs": 1,
+      "latency_s": 17.0
+    },
+    {
+      "arm": "closure_sql",
+      "qid": "kpi_gsd_rate",
+      "correct": true,
+      "grounded": true,
+      "sufficient": true,
+      "answer": "GSD compliance rate: 0.8071 (80.71%) [1]",
+      "n_docs": 1,
+      "latency_s": 15.9
+    },
+    {
+      "arm": "rag",
+      "qid": "kpi_gsd_rate",
+      "correct": false,
+      "grounded": true,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 5,
+      "latency_s": 19.7
+    },
+    {
+      "arm": "ontobricks",
+      "qid": "kpi_gsd_rate",
+      "correct": false,
+      "grounded": true,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 4,
+      "latency_s": 26.1
+    },
+    {
+      "arm": "closed_book",
+      "qid": "sub_kidney",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "latency_s": 10.6
+    },
+    {
+      "arm": "metric_view",
+      "qid": "sub_kidney",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "latency_s": 10.3
+    },
+    {
+      "arm": "closure_sql",
+      "qid": "sub_kidney",
+      "correct": true,
+      "grounded": true,
+      "sufficient": true,
+      "answer": "Based on the provided context, 1,881 patients have diabetes WITH kidney complications [1].",
+      "n_docs": 1,
+      "latency_s": 16.6
+    },
+    {
+      "arm": "rag",
+      "qid": "sub_kidney",
+      "correct": false,
+      "grounded": true,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 5,
+      "latency_s": 17.3
+    },
+    {
+      "arm": "ontobricks",
+      "qid": "sub_kidney",
+      "correct": false,
+      "grounded": true,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 37,
+      "latency_s": 20.8
+    },
+    {
+      "arm": "closed_book",
+      "qid": "def_controlled_bp",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "latency_s": 9.7
+    },
+    {
+      "arm": "metric_view",
+      "qid": "def_controlled_bp",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "latency_s": 9.4
+    },
+    {
+      "arm": "closure_sql",
+      "qid": "def_controlled_bp",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "latency_s": 9.6
+    },
+    {
+      "arm": "rag",
+      "qid": "def_controlled_bp",
+      "correct": true,
+      "grounded": true,
+      "sufficient": true,
+      "answer": "Controlled blood pressure for the BPD measure = systolic < 140 mmHg AND diastolic < 90 mmHg, based on the most recent BP reading. This is defined in context [1].",
+      "n_docs": 5,
+      "latency_s": 16.4
+    },
+    {
+      "arm": "ontobricks",
+      "qid": "def_controlled_bp",
+      "correct": false,
+      "grounded": true,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 60,
+      "latency_s": 16.1
+    }
+  ]
+}

@@ -228,7 +228,7 @@ classes:
       - id: op_worst_clinic_annual
         question: "Which clinic has the lowest protocol Step-3 (A1c follow-up) adherence overall this year?"
         gold: "min annual follow-up rate over gold_protocol_adherence grouped by clinic_id"
-        gold_value_25k: "CLINIC-01 (0.475)"
+        gold_value_25k: "CLINIC-01 (0.412)"   # re-pinned 2026-11-04 after the calibrated A1c regen
         how_asked: "Genie One -> protocol_adherence_metrics with the Clinic dimension, ranked"
         min_approach: metric_view
         graph_strictly_needed: false
@@ -240,7 +240,7 @@ classes:
       - id: op_clinic_drift
         question: "Which clinic's protocol Step-3 adherence has recently DROPPED, and by how much versus its own history?"
         gold: "trailing-3-month rate per clinic vs that clinic's own prior pooled baseline (self-referential), censoring-aware"
-        gold_value_25k: "CLINIC-08 (trailing 0.467 vs own prior 0.778; delta 0.311, HIGH). CLINIC-08 annual rate is 0.511 -- MID-PACK, 3rd-lowest -- so an annual ranking misses it entirely."
+        gold_value_25k: "CLINIC-08 (trailing-3mo 0.256 vs own baseline 0.433 at Oct 2025; drift -0.176, 2x any other clinic). The annual ranking flags CLINIC-01 (0.412, drift ~0) instead."   # re-pinned 2026-11-04
         how_asked: "Genie One -> protocol_watch_findings (precomputed by the watch job); OR recompute the trailing-vs-own-baseline window from gold_protocol_adherence"
         min_approach: metric_view   # the watch findings table / a window query over the metric-view grain
         also_solvable_by: [closure_sql]

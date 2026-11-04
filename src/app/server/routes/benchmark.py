@@ -26,27 +26,18 @@ _REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."
 BENCH_DIR = os.environ.get("CARE_BENCHMARK_DIR") or (
     os.path.abspath(_BUNDLED) if os.path.isdir(_BUNDLED) else os.path.join(_REPO, "docs", "benchmark"))
 
+# The five retrieval approaches benchmarked head-to-head, one consistent rubric per cell. metric_view /
+# closure / genie_ontology are hand-verified (genie = the authoritative A1-off run; the ON/OFF experiment is
+# the separate observational section). rag / graph are the designed-capability verdicts from the ground-truth
+# hypotheses (ground_truth.yaml), carried into the matrix so every column uses the same question set + rubric.
 ARMS = [
-    {"id": "m0_metric_view", "label": "M0 · metric view", "col": "m0_metric_view"},
-    {"id": "closure_sql", "label": "Closure SQL", "col": "closure_sql"},
-    {"id": "a1_off", "label": "A1 off (ECT)", "col": "a1_off"},
-    {"id": "a1_on", "label": "A1 on (DMVM)", "col": "a1_on"},
+    {"id": "metric_view", "label": "Metric View", "col": "metric_view"},
+    {"id": "closure", "label": "Closure", "col": "closure"},
+    {"id": "genie_ontology", "label": "Genie + Ontology", "col": "genie_ontology"},
+    {"id": "rag", "label": "RAG", "col": "rag"},
+    {"id": "graph", "label": "Ontobricks graph", "col": "graph"},
 ]
 _REACHED = {"reached", "correct_refusal"}  # a correct refusal is a correct outcome
-
-
-def _derive_a1_on(qid: str, csv_val: str, on_by_id: dict) -> str:
-    """a1_on isn't hand-verified — derive its verdict from the actual DMVM run snapshot so it reflects REAL
-    results instead of a frozen 'pending'. a1_off stays hand-verified from the matrix."""
-    rec = on_by_id.get(qid)
-    if csv_val != "pending" or not rec:
-        return csv_val
-    ok, ans = rec.get("answer_ok"), (rec.get("answer") or "").lower()
-    if ok is True:
-        return "reached"
-    if ok is False:
-        return "not_reached" if ans.startswith("error") or "timed out" in ans else "diverged"
-    return "pending"
 
 
 @router.get("/benchmark/capability_map")
@@ -57,13 +48,8 @@ def capability_map():
     with open(path, newline="") as f:
         rows = list(csv.DictReader(f))
 
-    on_snap = _signals(_latest("A1_on_*.json"))
-    on_by_id = (on_snap or {}).get("by_id", {})
-
     def verdicts(r):
-        v = {a["id"]: r[a["col"]] for a in ARMS}
-        v["a1_on"] = _derive_a1_on(r["question_id"], v["a1_on"], on_by_id)
-        return v
+        return {a["id"]: r[a["col"]] for a in ARMS}
 
     classes: list[dict] = []
     vmap: dict[str, dict] = {}
@@ -92,8 +78,7 @@ def capability_map():
             "applicable": len(applicable),
             "total": len(vals),
         })
-    return {"arms": ARMS, "classes": classes, "rollup": rollup,
-            "a1_on_source": on_snap["snapshot"] if on_snap else None}
+    return {"arms": ARMS, "classes": classes, "rollup": rollup, "a1_on_source": None}
 
 
 def _latest(pattern: str) -> str | None:

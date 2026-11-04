@@ -27,7 +27,7 @@
 -- class: 1_simple_kpi  min_approach: metric_view  expect: 0.8071
 -- Overall GSD compliance rate = numerator / eligible. A metric view (MEASURE) answers this directly;
 -- the raw ratio here is the same number computed from the gold table.
-SELECT ROUND(SUM(CASE WHEN numerator_flag THEN 1 ELSE 0 END)
+SELECT ROUND(SUM(CASE WHEN evidence_datetime IS NOT NULL THEN 1 ELSE 0 END)
              / SUM(CASE WHEN eligible_flag THEN 1 ELSE 0 END), 4) AS gsd_rate
 FROM {catalog}.{schema}.gold_adherence_gsd;
 
@@ -133,7 +133,7 @@ WHERE o.loinc_code IN (
 -- Base gap (no safety filter) = 1799; the contraindication filter removes 190.
 SELECT COUNT(*) AS statin_gap_safe
 FROM {catalog}.{schema}.gold_adherence_spd s
-WHERE s.status = 'NOT_MET' AND s.age BETWEEN 40 AND 75
+WHERE s.evidence_datetime IS NULL AND s.age BETWEEN 40 AND 75
   AND NOT EXISTS (
     SELECT 1 FROM {catalog}.{schema}.bronze_pat_enc_dx dx
     WHERE dx.patient_id = s.patient_id

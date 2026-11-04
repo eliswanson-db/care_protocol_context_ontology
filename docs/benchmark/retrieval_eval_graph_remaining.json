@@ -1,0 +1,44 @@
+[
+  {
+    "qid": "sub_retinopathy",
+    "correct": false,
+    "n_docs": 22,
+    "answer": "**Answer: 2 patients**\n\nDiabetic retinopathy is coded under ICD-10 **E11.3** (Type 2 diabetes mellitus with ophthalmic complications) and its subtypes (E11.31, "
+  },
+  {
+    "qid": "lab_a1c_any_method",
+    "correct": false,
+    "n_docs": 11,
+    "answer": "INSUFFICIENT CONTEXT"
+  },
+  {
+    "qid": "lab_egfr_codes",
+    "correct": false,
+    "n_docs": 11,
+    "answer": "INSUFFICIENT CONTEXT"
+  },
+  {
+    "qid": "vintage_egfr_2026",
+    "correct": false,
+    "n_docs": 11,
+    "answer": "INSUFFICIENT CONTEXT"
+  },
+  {
+    "qid": "proto_statin_gap_safe",
+    "correct": false,
+    "n_docs": 30,
+    "answer": "INSUFFICIENT CONTEXT"
+  },
+  {
+    "qid": "proto_albuminuria_aceiarb",
+    "correct": false,
+    "n_docs": 5,
+    "answer": "Based on the context:\n\n- **Albuminuria** is defined as uACR \u2265 30 [5].\n- Both **ACE inhibitors** [1] and **ARBs** [4] are recommended for patients with albuminur"
+  },
+  {
+    "qid": "op_drift_rootcause",
+    "correct": false,
+    "n_docs": 0,
+    "answer": "INSUFFICIENT CONTEXT"
+  }
+]
