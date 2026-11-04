@@ -20,6 +20,7 @@ shows HOW it was retrieved, not just a value.
 """
 import html
 import json
+import os
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -95,6 +96,44 @@ def _pct(x) -> str:
         return "—"
 
 
+_DOC = os.path.join(os.path.dirname(__file__), "..", "protocol_docs", "diabetes_care_protocol.html")
+
+
+def _inline(fragment: str) -> str:
+    """HTML inline -> plain text with **bold** markers (the click-in renders bold)."""
+    t = re.sub(r"<\s*(b|strong)\s*>(.*?)<\s*/\s*\1\s*>", r"**\2**", fragment, flags=re.S | re.I)
+    t = re.sub(r"<[^>]+>", "", t)
+    return re.sub(r"\s+", " ", html.unescape(t)).strip()
+
+
+def _protocol_doc(stop_section: str = "4.") -> list[dict]:
+    """Sections 1-3 of the care-protocol document as blocks (heading / paragraph / table / rule)."""
+    src = open(os.path.normpath(_DOC), encoding="utf-8").read()
+    body = src[src.find("<h2"):]
+    blocks: list[dict] = []
+    for m in re.finditer(r"<h2[^>]*>(.*?)</h2>|<table>(.*?)</table>|<div class=\"rule\">(.*?)</div>|<p[^>]*>(.*?)</p>",
+                         body, flags=re.S):
+        h, tbl, rule, para = m.groups()
+        if h is not None:
+            title = _inline(h)
+            if title.startswith(stop_section):
+                break
+            blocks.append({"type": "h", "text": title})
+        elif tbl is not None:
+            rows = []
+            for tr in re.findall(r"<tr>(.*?)</tr>", tbl, flags=re.S):
+                cells = [_inline(c) for c in re.findall(r"<t[hd][^>]*>(.*?)</t[hd]>", tr, flags=re.S)]
+                rows.append(cells)
+            hi = [i for i, r in enumerate(rows) if r and r[0].replace("*", "").startswith("GSD")]
+            blocks.append({"type": "table", "rows": rows, "highlight_rows": hi})
+        elif rule is not None:
+            t = _inline(rule)
+            blocks.append({"type": "rule", "text": t, "highlight": t.startswith("**CP-GLY-1.**")})
+        elif para is not None:
+            blocks.append({"type": "p", "text": _inline(para)})
+    return blocks
+
+
 # --------------------------------------------------- stages ----------------------------------------------------
 def _protocol(pid, my, log):
     ev = _evidence(pid, my)
@@ -123,12 +162,14 @@ def _protocol(pid, my, log):
     age = ev.get("age")
     in_window = age is not None and 18 <= int(age) <= 75
     return {
-        "what": "The human-authored rule. Everything downstream is an instance of this definition.",
+        "what": "The human-authored care protocol. Everything downstream is an instance of these definitions.",
         "takeaway": (f"The protocol defines GSD as ≥1 HbA1c in MY{my}. Patient {pid[:8]} (age {age}, {dx}) "
                      f"{'is in scope' if in_window else 'is outside the 18–75 window'}."),
         "source": meta.get("corpus"),
         "sections": [
-            {"label": f"Retrieved passage — {meta.get('document')} · §{meta.get('section')} · p.{meta.get('page')}",
+            {"label": "CP-DM-2025.1 — §1–3 (rendered from the PDF's version-controlled source)", "kind": "doc",
+             "blocks": _protocol_doc()},
+            {"label": f"How the RAG index stores it — chunk from §{meta.get('section')}, p.{meta.get('page')}",
              "kind": "quote", "text": passage},
             {"label": "Does this rule apply to this patient?", "kind": "kv", "data": {
                 "Diagnosis": f"{dx} (a descendant of the E10/E11/E13 roots — see Closure)",
@@ -433,7 +474,7 @@ def _ontobricks(pid, my, log):
         cls = _short(p0["drug_class"]).split("/")[-1]
         meas = _short(p0["measure"]).split("/")[-1]
         path_txt = (f"Graph-native path: this patient is prescribed {drug} → ingredient → {cls} → recommendedFor "
-                    f"{meas} (4 hops no closure table expresses). ")
+                    f"{meas} — found by generic traversal, no path-specific SQL. ")
     takeaway = (path_txt + f"subClassOf* walked live from icd/{dx}: {' → '.join(n['code'] for n in chain)} "
                 f"({len(chain) - 1} hops, query-time) — {'identical to' if agrees else 'differs from'} the "
                 f"materialized icd10_closure.")
@@ -472,6 +513,96 @@ def _ontobricks(pid, my, log):
     }
 
 
+def _raw(pid, my, log):
+    p = {"pid": pid}
+    cnt = _q(f"""SELECT count(*) AS conditions, count(DISTINCT CODE) AS snomed_codes,
+                        (SELECT count(*) FROM {C}.{S}.raw_synthea_observations o
+                          WHERE o.PATIENT = :pid AND o.CODE IN {A1C_CODES}) AS a1c_obs
+                 FROM {C}.{S}.raw_synthea_conditions WHERE PATIENT = :pid""", p, log, "Size of the raw extract")[0]
+    cond = _q(f"""SELECT START, STOP, SYSTEM, CODE, DESCRIPTION FROM {C}.{S}.raw_synthea_conditions
+                  WHERE PATIENT = :pid ORDER BY (DESCRIPTION ILIKE '%diabet%') DESC, START DESC LIMIT 8""",
+              p, log, "Raw condition rows (Synthea CSV, as generated)")
+    return {
+        "what": "The EHR extract as generated — CSV-shaped, SNOMED-CT coded, no ICD-10 and no Clarity structure yet.",
+        "takeaway": (f"The raw extract has {cnt['conditions']} condition rows ({cnt['snomed_codes']} SNOMED concepts) "
+                     f"and {cnt['a1c_obs']} HbA1c observations for this patient. Nothing is ICD-10 coded yet — "
+                     f"epicize maps SNOMED → ICD-10 and reshapes rows into Clarity tables to produce bronze."),
+        "source": f"{C}.{S}.raw_synthea_conditions · raw_synthea_observations",
+        "sections": [
+            {"label": "Raw condition rows (diabetes-related first)", "kind": "table", "rows": cond},
+            {"label": "What happens next", "kind": "kv", "data": {
+                "Diagnoses": "SNOMED-CT → ICD-10-CM crosswalk (epicize) → bronze_pat_enc_dx",
+                "Lab results": "LOINC observations → the landed lab feed (bronze); the demo's care-behavior "
+                               "model sets their cadence and level (see Bronze)",
+                "Identifiers / demographics": "not shown — the raw patient file carries synthetic PII"}},
+        ],
+    }
+
+
+def _rag(pid, my, log):
+    from .rag import rag as rag_route  # the live A4 Lakebase retriever (doc-level RLS), same as the RAG lens
+    r = rag_route(pid)
+    log.append({"label": f"Hybrid retrieval over rag.chunks ({r.get('mode')}, k=5, doc-level RLS)",
+                "sql": f"search_documents(question={r.get('question')!r}, k=5, mode={r.get('mode')!r})"})
+    rows = [{"document": x.get("title"), "MY": x.get("measurement_year"), "section": x.get("section_path"), "page": x.get("page_start"),
+             "score": round(float(x["score"]), 3) if x.get("score") is not None else None}
+            for x in r.get("results", [])]
+    top = (r.get("results") or [{}])[0]
+    warns = []
+    top_my = top.get("measurement_year")
+    if top_my not in (None, "", my, str(my)):
+        warns.append(f"RAG's top passage is from MY{top_my} ({top.get('title')}), not MY{my}. Text retrieval has no "
+                     f"notion of which rule VERSION applies — the versioned value set (value_set_segment, keyed by "
+                     f"measurement_year) is what pins the right definition.")
+    return {
+        "warnings": warns,
+        "what": "Unstructured context: protocol passages retrieved by meaning + keywords, filtered by document ACLs.",
+        "takeaway": (f"RAG returns {len(rows)} protocol passages that define the rule (top: {top.get('title')} · "
+                     f"§{top.get('section_path')}). It explains WHAT the rule is and WHERE it's written — it "
+                     f"cannot compute this patient's status or count a cohort."),
+        "source": "Lakebase rag.chunks (A4) · document-level RLS",
+        "sections": [
+            {"label": "The retrieval question", "kind": "quote", "text": r.get("question", "")},
+            {"label": "Passages returned", "kind": "table", "rows": rows},
+            {"label": "Top passage", "kind": "quote",
+             "text": html.unescape(re.sub(r"\s+", " ", top.get("content") or ""))[:700]},
+        ],
+    }
+
+
+def _closure_ret(pid, my, log):
+    p = {"pid": pid}
+    member = _q(f"""SELECT DISTINCT d.icd10_code AS patient_code, c.ancestor_code AS value_set_root, c.depth
+                    FROM {C}.{S}.bronze_pat_enc_dx d JOIN {C}.{ST}.icd10_closure c ON c.descendant_code = d.icd10_code
+                    WHERE d.patient_id = :pid AND c.ancestor_code IN ('E10','E11','E13') ORDER BY 1""",
+                p, log, "Cohort membership — one equality join on icd10_closure")
+    path = _q(f"""SELECT DISTINCT m.rxnorm_code, coalesce(h.name, m.description) AS drug, rc.ancestor_code AS drug_class,
+                         pe.predicate, pe.object AS recommended_for
+                  FROM {C}.{S}.bronze_order_med m
+                  JOIN {C}.{ST}.rxnorm_closure rc ON rc.descendant_code = m.rxnorm_code AND rc.ancestor_code LIKE 'DRUGCLASS-%'
+                  JOIN {C}.{ST}.protocol_edges pe ON pe.subject = rc.ancestor_code AND pe.predicate = 'recommendedFor'
+                  LEFT JOIN {C}.{ST}.rxnorm_hier h ON h.code = m.rxnorm_code
+                  WHERE m.patient_id = :pid ORDER BY 3""",
+              p, log, "Drug → class → protocol recommendation — two fixed-shape joins (rxnorm_closure + protocol_edges)")
+    inv = _q(" UNION ALL ".join(f"SELECT '{t}' AS table_name, count(*) AS rows FROM {C}.{ST}.{t}" for t in
+                                ("icd10_closure", "rxnorm_closure", "loinc_parts", "value_set_segment", "protocol_edges")),
+             None, log, "Governed closure + edge tables an agent can query")
+    stat = next((r for r in path if r["recommended_for"] == "SPD"), None)
+    return {
+        "what": "Structured context: pre-materialized hierarchies + typed edge tables, queried with fixed-shape SQL.",
+        "takeaway": ((f"Same rationale as the graph, via two joins: {stat['drug']} ⊑ {stat['drug_class']} "
+                      f"→ recommendedFor SPD. " if stat else "") +
+                     f"Cohort membership is one equality join ({', '.join(m['patient_code'] + ' ⊑ ' + m['value_set_root'] for m in member[:2])}). "
+                     f"Deterministic and fast — but every new path shape needs a new hand-written join."),
+        "source": f"{C}.{ST}.icd10_closure · rxnorm_closure · protocol_edges",
+        "sections": [
+            {"label": "Drug → class → recommendation (fixed-shape joins)", "kind": "table", "rows": path,
+             "empty": "None of this patient's medications resolve to a drug class with a protocol recommendation."},
+            {"label": "Cohort membership via icd10_closure", "kind": "table", "rows": member},
+            {"label": "Tables available to an agent / MCP tool", "kind": "table", "rows": inv},
+        ],
+    }
+
 _STAGES = {"protocol": ("Source — care-protocol document", _protocol),
            "bronze": ("Bronze — raw EHR rows", _bronze),
            "silver": ("Silver — conformed condition + observations", _silver),
@@ -479,8 +610,11 @@ _STAGES = {"protocol": ("Source — care-protocol document", _protocol),
            "cohort": ("Cohort — measure denominators", _cohort),
            "gold": ("Gold — per-patient evidence", _gold),
            "metric": ("Semantic — certified metric view", _metric),
-           "page": ("Ontology — Genie Ontology Page", _page),
-           "ontobricks": ("Ontology — Ontobricks graph (live)", _ontobricks)}
+           "page": ("Retrieval — Genie Ontology Page", _page),
+           "ontobricks": ("Retrieval — Ontobricks graph (live)", _ontobricks),
+           "raw": ("Source — raw EHR extract", _raw),
+           "rag": ("Retrieval — RAG index (A4 Lakebase)", _rag),
+           "closure_ret": ("Retrieval — closure + edge tables", _closure_ret)}
 
 
 @router.get("/patient/{patient_id}/stage/{key}")

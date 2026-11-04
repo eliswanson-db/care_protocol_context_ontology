@@ -8,7 +8,17 @@ const TIER: Record<string, string> = {
   protocol: "var(--tier-protocol)", bronze: "var(--tier-bronze)", silver: "var(--tier-silver)",
   closure: "var(--tier-silver)", cohort: "var(--tier-silver)", gold: "var(--tier-gold)",
   metric: "var(--tier-gold)", page: "var(--tier-page)", ontobricks: "var(--tier-page)",
+  raw: "var(--tier-protocol)", rag: "var(--tier-page)", closure_ret: "var(--tier-page)",
 };
+
+function Bold({ text }: { text: string }) {
+  return (
+    <>
+      {text.split(/(\*\*[^*]+\*\*)/g).map((t, i) =>
+        t.startsWith("**") ? <strong key={i} className="font-semibold text-fg">{t.slice(2, -2)}</strong> : <span key={i}>{t}</span>)}
+    </>
+  );
+}
 
 function cell(v: unknown): string {
   if (v === null || v === undefined || v === "") return "—";
@@ -84,6 +94,45 @@ function Section({ s, accent }: { s: StageSection; accent: string }) {
             </div>
           ))}
         </div>
+      );
+      break;
+    case "doc":
+      body = (
+        <article className="max-h-[30rem] space-y-2.5 overflow-auto rounded-md border border-border bg-surface-2 px-5 py-4 text-[13.5px] leading-relaxed">
+          {(s.blocks ?? []).map((b, i) => {
+            if (b.type === "h") return <h4 key={i} className="pt-1 text-[15px] font-bold tracking-tight">{b.text}</h4>;
+            if (b.type === "p") return <p key={i} className="text-fg/85"><Bold text={b.text ?? ""} /></p>;
+            if (b.type === "rule")
+              return (
+                <div key={i} className="rounded-md border-l-4 px-3 py-2"
+                  style={{ borderColor: accent, background: b.highlight ? `color-mix(in srgb, ${accent} 16%, transparent)` : undefined }}>
+                  <Bold text={b.text ?? ""} />
+                  {b.highlight && <span className="ml-2 text-[11px] font-semibold uppercase tracking-wide" style={{ color: accent }}>← Step 3 trigger</span>}
+                </div>
+              );
+            const [head, ...rows] = b.rows ?? [];
+            return (
+              <div key={i} className="overflow-x-auto rounded-md border border-border bg-surface">
+                <table className="w-full text-left text-[12.5px]">
+                  <thead className="bg-surface-2 text-muted">
+                    <tr>{(head ?? []).map((h, j) => <th key={j} className="px-2.5 py-1.5 font-semibold">{h}</th>)}</tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((r, j) => {
+                      const hi = (b.highlight_rows ?? []).includes(j + 1);
+                      return (
+                        <tr key={j} className="border-t border-border"
+                          style={hi ? { background: `color-mix(in srgb, ${accent} 16%, transparent)` } : undefined}>
+                          {r.map((c, k) => <td key={k} className="px-2.5 py-1.5 align-top"><Bold text={c} /></td>)}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })}
+        </article>
       );
       break;
     case "path":

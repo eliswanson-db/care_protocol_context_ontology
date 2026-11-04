@@ -222,7 +222,7 @@ export function TracerJourney() {
             <Section
               n="01"
               title="The build"
-              hint="raw code → bronze → silver → gold → ontology · click a node"
+              hint="protocol + raw extract → bronze → silver → gold → context & retrieval · click a node"
               open={open.build}
               onToggle={() => toggle("build")}
             >

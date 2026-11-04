@@ -109,6 +109,9 @@ def patient_journey(patient_id: str):
               AND cl.ancestor_code IN ('E10','E11','E13')
             ORDER BY (cl.descendant_code = :prim) DESC, cl.descendant_code, cl.depth LIMIT 10""", p)
 
+    raw_n = run_sql(f"SELECT count(*) AS n FROM {C}.{S}.raw_synthea_conditions WHERE PATIENT = :pid",
+                    {"pid": patient_id})[0]["n"]
+
     in_cohort = run_sql(
         f"SELECT patient_id FROM {C}.{S}.silver_diabetes_cohort WHERE patient_id = :pid", p)
 
@@ -151,6 +154,9 @@ def patient_journey(patient_id: str):
               "The source of meaning: the actual care-protocol document (the PDF/HTML in a UC Volume, also the A4 "
               "RAG corpus). This excerpt DEFINES who is eligible and what 'compliant' means; every datum downstream "
               "is an instance of these definitions."),
+        stage("raw", "Source — raw EHR extract", "Synthea CSV: SNOMED-coded conditions + LOINC observations",
+              "live", {"raw_rows": raw_n},
+              "The extract as generated, before epicize maps SNOMED to ICD-10 and reshapes it into Clarity tables."),
         stage("bronze", "Bronze — raw EHR code", "Source ICD-10-CM / SNOMED as coded at the encounter",
               "live", bronze,
               "The diagnosis exactly as it arrived from Epic/Clarity — a flat code, no meaning attached yet."),
@@ -174,6 +180,12 @@ def patient_journey(patient_id: str):
         stage("page", "Ontology — Genie Ontology Page", "GSD Page (highest-authority ontology snippet)",
               "page", {"page": "GSD — Glycemic Status Assessment for Patients With Diabetes"},
               "The human-modeled definition Genie One prioritizes and cites as an Ontology Reference."),
+        stage("rag", "Retrieval — RAG index", "Protocol passages in Lakebase (hybrid search, doc-level RLS)",
+              "page", {"corpus": "rag.chunks"},
+              "Unstructured context: the protocol text, retrieved by meaning + keywords."),
+        stage("closure_ret", "Retrieval — closure + edge tables", "icd10/rxnorm closures + protocol_edges",
+              "page", {"tables": 5},
+              "Structured context: pre-materialized hierarchies and typed edge tables, queried with fixed-shape SQL."),
         stage("ontobricks", "Ontology — Ontobricks graph", "Cross-vocabulary OWL mapping over the governed tables (clinicaldomain)",
               "page",
               {"graph": "clinicaldomain_v2 (live triplestore)"},

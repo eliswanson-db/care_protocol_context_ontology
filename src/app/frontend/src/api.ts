@@ -19,13 +19,14 @@ export interface Tracer {
 
 export interface StageSection {
   label: string;
-  kind: "quote" | "kv" | "table" | "chain" | "triples" | "code" | "markdown" | "chips" | "path";
+  kind: "quote" | "kv" | "table" | "chain" | "triples" | "code" | "markdown" | "chips" | "path" | "doc";
   text?: string;
   data?: Record<string, unknown>;
   rows?: Record<string, unknown>[];
   nodes?: { code: string; name: string; depth: number | string }[];
   items?: string[];
   steps?: { node: string; name: string; edge: string }[];
+  blocks?: { type: "h" | "p" | "table" | "rule"; text?: string; rows?: string[][]; highlight_rows?: number[]; highlight?: boolean }[];
   empty?: string;
 }
 export interface StageDetail {

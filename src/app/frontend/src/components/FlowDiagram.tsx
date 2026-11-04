@@ -2,7 +2,10 @@ import {
   BookOpen,
   ChevronRight,
   Database,
+  FileSearch,
+  FileSpreadsheet,
   FileText,
+  GitMerge,
   Gauge,
   Layers,
   Network,
@@ -23,6 +26,9 @@ const ICONS: Record<string, LucideIcon> = {
   metric: Gauge,
   page: BookOpen,
   ontobricks: Share2,
+  raw: FileSpreadsheet,
+  rag: FileSearch,
+  closure_ret: GitMerge,
 };
 
 // Short, human labels for the card face. Full title + description live in the click-in detail.
@@ -36,6 +42,9 @@ const SHORT: Record<string, string> = {
   metric: "Governed metric view",
   page: "Genie Ontology",
   ontobricks: "Ontobricks graph",
+  raw: "Raw EHR extract",
+  rag: "RAG index",
+  closure_ret: "Closure + edge tables",
 };
 
 // One short line of what happens at this hop — a little context without re-stating the click-in detail.
@@ -49,15 +58,18 @@ const DETAIL: Record<string, string> = {
   metric: "certified rule → MET / NOT_MET, live",
   page: "the Page + metadata Genie grounds on",
   ontobricks: "live triples + subClassOf* closure",
+  raw: "Synthea CSV — SNOMED, no ICD-10 yet",
+  rag: "protocol passages, hybrid + doc RLS",
+  closure_ret: "fixed-shape joins over hierarchies",
 };
 
 // Left-to-right PHASES; stages inside a phase stack vertically. One accent color per phase.
 const PHASES: { key: string; label: string; color: string; stages: string[] }[] = [
-  { key: "source", label: "Source", color: "var(--tier-protocol)", stages: ["protocol"] },
+  { key: "source", label: "Source", color: "var(--tier-protocol)", stages: ["protocol", "raw"] },
   { key: "bronze", label: "Bronze", color: "var(--tier-bronze)", stages: ["bronze"] },
   { key: "silver", label: "Silver", color: "var(--tier-silver)", stages: ["silver", "closure", "cohort"] },
   { key: "gold", label: "Gold · serving", color: "var(--tier-gold)", stages: ["gold", "metric"] },
-  { key: "ontology", label: "Ontology", color: "var(--tier-page)", stages: ["page", "ontobricks"] },
+  { key: "ontology", label: "Context & retrieval", color: "var(--tier-page)", stages: ["page", "rag", "closure_ret", "ontobricks"] },
 ];
 
 function first(data: unknown): Record<string, unknown> | null {
@@ -91,6 +103,12 @@ function summary(stage: Stage): string {
       return "GSD Page";
     case "ontobricks":
       return "live graph";
+    case "raw":
+      return `${d?.raw_rows ?? "—"} raw rows`;
+    case "rag":
+      return "protocol passages";
+    case "closure_ret":
+      return "5 governed tables";
     default:
       return "—";
   }
