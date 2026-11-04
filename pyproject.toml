@@ -14,6 +14,8 @@ dependencies = [
 dev = ["pytest", "ruff"]
 # A4 Lakebase RAG retriever (src/retrieval/a4_lakebase.py) + live doc-RLS test.
 lakebase = ["psycopg[binary]>=3.1"]
+# Retrieval-science eval harness (src/benchmark/retrieval_eval): FMAPI agent client + MLflow GenAI judges.
+eval = ["openai", "httpx", "pyyaml", "psycopg[binary]>=3.1"]
 
 [tool.ruff]
 line-length = 110

@@ -30,15 +30,15 @@ QUERIES = [
     "SELECT MEASURE(`Poor Control Patients`) AS poorly_controlled FROM {cat}.{sch_sem}.gsd_compliance_metrics",
     # --- how many patients are eligible / compliant / in a care gap ---
     "SELECT COUNT(*) AS gsd_eligible FROM {cat}.{sch}.gold_adherence_gsd",
-    "SELECT COUNT(*) AS gsd_care_gaps FROM {cat}.{sch}.gold_adherence_gsd WHERE status = 'NOT_MET'",
-    "SELECT COUNT(*) AS ked_care_gaps FROM {cat}.{sch}.gold_adherence_ked WHERE status = 'NOT_MET'",
-    "SELECT COUNT(*) AS bpd_care_gaps FROM {cat}.{sch}.gold_adherence_bpd WHERE status = 'NOT_MET'",
-    "SELECT measure_id, status, COUNT(*) AS n FROM {cat}.{sch}.gold_adherence_gsd GROUP BY measure_id, status",
+    "SELECT COUNT(*) AS gsd_care_gaps FROM {cat}.{sch}.gold_adherence_gsd WHERE evidence_datetime IS NULL",
+    "SELECT COUNT(*) AS ked_care_gaps FROM {cat}.{sch}.gold_adherence_ked WHERE egfr_datetime IS NULL OR uacr_datetime IS NULL",
+    "SELECT COUNT(*) AS bpd_care_gaps FROM {cat}.{sch}.gold_adherence_bpd WHERE systolic IS NULL OR systolic >= 140 OR diastolic >= 90",
+    "SELECT measure_id, CASE WHEN evidence_datetime IS NOT NULL THEN 'MET' ELSE 'NOT_MET' END AS status, COUNT(*) AS n FROM {cat}.{sch}.gold_adherence_gsd GROUP BY measure_id, CASE WHEN evidence_datetime IS NOT NULL THEN 'MET' ELSE 'NOT_MET' END",
     "SELECT COUNT(DISTINCT patient_id) AS diabetes_patients FROM {cat}.{sch}.silver_diabetes_cohort",
     # --- which patients have a kidney-evaluation care gap and why ---
-    "SELECT patient_id, age, egfr_flag, uacr_flag FROM {cat}.{sch}.gold_adherence_ked WHERE status = 'NOT_MET' ORDER BY age DESC",
-    "SELECT patient_id, age, systolic, diastolic FROM {cat}.{sch}.gold_adherence_bpd WHERE status = 'NOT_MET' ORDER BY systolic DESC",
-    "SELECT patient_id, evidence_value AS a1c FROM {cat}.{sch}.gold_adherence_gsd WHERE a1c_gt9 ORDER BY evidence_value DESC",
+    "SELECT patient_id, age, (egfr_datetime IS NOT NULL) AS egfr_tested, (uacr_datetime IS NOT NULL) AS uacr_tested FROM {cat}.{sch}.gold_adherence_ked WHERE egfr_datetime IS NULL OR uacr_datetime IS NULL ORDER BY age DESC",
+    "SELECT patient_id, age, systolic, diastolic FROM {cat}.{sch}.gold_adherence_bpd WHERE systolic IS NULL OR systolic >= 140 OR diastolic >= 90 ORDER BY systolic DESC",
+    "SELECT patient_id, evidence_value AS a1c FROM {cat}.{sch}.gold_adherence_gsd WHERE evidence_value > 9.0 ORDER BY evidence_value DESC",
     # --- terminology / ontology questions ---
     "SELECT descendant_code, descendant_name FROM {cat}.{sch_term}.icd10_closure WHERE ancestor_code = 'E11' ORDER BY descendant_code",
     "SELECT COUNT(*) AS e11_subtree_size FROM {cat}.{sch_term}.icd10_closure WHERE ancestor_code = 'E11'",

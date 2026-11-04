@@ -25,6 +25,54 @@ ontology files to import. The build does not automate Ontobricks.
   edges (`recommendedFor`/`contraindicatedWith`/`monitoredBy`) are **typed, cross-vocabulary, multi-hop** —
   where a single is-a closure cannot answer and the graph (traversal + inference) earns its place.
 
+## Revision notes (2026-11-02 rev 5 — the FIVE Condition subclasses were still ABox-less)
+A re-scan still showed `source/target entity 'icd'/'loinc'/'obs' not found` on the relationships, with
+only `patient` resolving. Root cause is the **same auto-bind choke rev 3 described, missed in five more
+places**: the OWL declares 14 classes but the R2RML had only 9 entity maps. The 5 unmapped ones — the
+`Condition` subclasses `DiabetesDiagnosis / ChronicKidneyDisease / HeartFailure / Pregnancy /
+HepaticDisease` — got auto-bound to discovered tables; the leftover tables are the `*_compliance_metrics`
+**metric views** (still physically in `care_protocol` — rev 4's relocation is committed but **not yet
+deployed**), whose plain `SELECT` throws `METRIC_VIEW_MISSING_MEASURE_FUNCTION` and **aborts the entity
+scan after the first entity (Patient)**. Everything scanned after Patient is therefore absent from the
+entity set, so every relationship endpoint except `patient` reports "not found" — exactly the symptom.
+- **Fix (as code):** rev 3 deleted its two ABox-less classes, but these five are **load-bearing for the
+  class-8 benchmark golds** (`docs/benchmark/ground_truth.yaml:201,211` — the OWL-defined-class / property-
+  path questions, the one place `graph_strictly_needed: true`), so deleting them would gut the "graph earns
+  its place" story. Instead they are now **mapped**: `care_protocol.r2rml.ttl` adds five `rdf:type`
+  membership maps that type the existing `icd/{icd_code}` IRIs from `icd10_closure` (roots match the repo's
+  own value sets: diabetes E10/E11/E13, CKD N18, HF I50, pregnancy Z34/O26/O15/O00, hepatic K70/K74).
+  They are **not entity maps** (no `rr:class`, no new prefix/id column) so they do **not** reintroduce the
+  rev-2 `icd_code` collision; because each class now sits in a TriplesMap bound to a real table, Ontobricks
+  should no longer auto-bind it to a metric view.
+- **Two independent conditions caused the abort; this kills (a).** The durable belt-and-suspenders is (b):
+  deploy rev 4 and keep the Ontobricks **source scope = base tables only** (exclude `care_protocol_semantic`
+  and every `*_metrics` view), so no future unmapped class can hit a metric view regardless. Do both.
+- **Verify in-workspace** (ECT auth was expired at edit time, so this is untested live): re-run the
+  terminology load + `closure_tables.sql` so `icd10_closure` exists, re-import this R2RML, and confirm the
+  entity scan now registers all nine entities (icd/loinc/obs/part/rx/ing/drugclass/measure/patient) and the
+  15 relationships resolve both endpoints.
+
+## Revision notes (2026-11-03 rev 6 — care-protocol edges target a ValueSet hub; +Threshold; inDrugClass fixed, ADR-0020)
+ClinicalDomain V1 published cleanly after rev 5 (all 13 entities register; metric-view scan-abort gone). But the
+**cross-vocabulary care-protocol edges — the graph's reason to exist — were broken**: patient-clinical edges were
+huge (hasObservation/ofTest ~15.1M) while the guideline edges were dangling or empty. Root cause: the R2RML was
+written against an older `protocol_edges` shape. Fixes (ADR-0020):
+- **`inDrugClass` was 0 rows** (no `inDrugClass` predicate in the data) → re-sourced from `rxnorm_statin` ⋈
+  `rxnorm_hier.parent_code` (statins; 3 reachable, non-dangling) → the class-8 hero path
+  (diabetes → statin rationale) now traverses end to end.
+- **`recommendedFor`/`contraindicatedWith` were all dangling** (objects templated as `icd/{code}` but they are
+  value-set / cohort / measure ids) → new **`ValueSet`** entity (keyed by segment_id/cohort id) is now their target,
+  plus a **`contains`** edge (ValueSet → ICD members, joined to `icd10_hier` so each resolves). `recommendedFor`
+  also routes the one measure object (SPD) to `measure/`.
+- **`contraindicatedWhen`/`definedBy`/`firstLineFor`/`hasThreshold` were unmapped** → mapped. New **`Threshold`**
+  entity (eGFR/uACR/A1c/BP cutoffs + `thresholdValue`) is the target of contraindicatedWhen/definedBy/hasThreshold —
+  the renal-dosing + glycemic-band knowledge for the class-8 defined-class query. `firstLineFor` → ValueSet.
+- `DrugClassEntity` now matches `subject LIKE 'DRUGCLASS-%'` (robust; the old UNION missed classes that only appear
+  in firstLineFor/contraindicatedWhen). `monitoredBy BPD→BP` fixed in `protocol_edges.csv` (→ LP-SBP/LP-DBP; needs a
+  terminology reload to take effect).
+All new maps verified against live ECT data (counts > 0, every endpoint resolves to an entity). **Unchanged caveat:**
+re-import in-workspace to confirm OntoBricks v0.8.0 resolves the new `valueset/`/`threshold/` endpoints as expected.
+
 ## Revision notes (2026-10-30 rev 4 — metric views relocated to a separate schema, ADR-0013)
 Rev 3 mitigated the scan choke two ways (remove ABox-less OWL classes; exclude the view layer from the
 Ontobricks source scope). We now go one better and make it structural **as code**: the governed metric

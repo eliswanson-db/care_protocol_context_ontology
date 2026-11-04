@@ -10,29 +10,39 @@ Catalog/schema are injected once via make_tools(catalog).
 """
 from __future__ import annotations
 
+# table = gold EVIDENCE base; view = governed metric view (the rule lives here, computed live); gap = the
+# NOT_MET predicate derived from evidence (same rule the metric view applies), for the per-patient care-gap list.
 MEASURES = {
-    "GSD": {"table": "gold_adherence_gsd", "name": "Glycemic Status Assessment", "age": "18-75"},
-    "KED": {"table": "gold_adherence_ked", "name": "Kidney Health Evaluation", "age": "18-85"},
-    "BPD": {"table": "gold_adherence_bpd", "name": "Blood Pressure control", "age": "18-75"},
-    "SPD": {"table": "gold_adherence_spd", "name": "Statin Therapy", "age": "40-75"},
-    "EED": {"table": "gold_adherence_eed", "name": "Eye Exam", "age": "18-75"},
+    "GSD": {"table": "gold_adherence_gsd", "view": "gsd_compliance_metrics", "rate": "GSD Compliance Rate",
+            "gap": "evidence_datetime IS NULL", "name": "Glycemic Status Assessment", "age": "18-75"},
+    "KED": {"table": "gold_adherence_ked", "view": "ked_compliance_metrics", "rate": "KED Compliance Rate",
+            "gap": "egfr_datetime IS NULL OR uacr_datetime IS NULL", "name": "Kidney Health Evaluation", "age": "18-85"},
+    "BPD": {"table": "gold_adherence_bpd", "view": "bpd_compliance_metrics", "rate": "BPD Compliance Rate",
+            "gap": "systolic IS NULL OR systolic >= 140 OR diastolic >= 90", "name": "Blood Pressure control", "age": "18-75"},
+    "SPD": {"table": "gold_adherence_spd", "view": "spd_compliance_metrics", "rate": "SPD Compliance Rate",
+            "gap": "evidence_datetime IS NULL", "name": "Statin Therapy", "age": "40-75"},
+    "EED": {"table": "gold_adherence_eed", "view": "eed_compliance_metrics", "rate": "EED Compliance Rate",
+            "gap": "evidence_datetime IS NULL", "name": "Eye Exam", "age": "18-75"},
 }
 CLOSURES = {"ICD10CM": "icd10_closure", "RXNORM": "rxnorm_closure"}
 
 
-def make_tools(catalog: str, schema: str = "care_protocol", term_schema: str = "care_protocol_terminology"):
+def make_tools(catalog: str, schema: str = "care_protocol", term_schema: str = "care_protocol_terminology",
+               semantic_schema: str = "care_protocol_semantic"):
     """Bind the tool set to a catalog/schema. Returns a dict of {tool_name: callable(query, **kwargs)}."""
     care = f"{catalog}.{schema}"
     term = f"{catalog}.{term_schema}"
+    sem = f"{catalog}.{semantic_schema}"
 
     def get_measure_rate(query, measure_id: str) -> dict:
-        """Compliance rate for a HEDIS measure (GSD/KED/BPD/SPD/EED), computed deterministically from Gold."""
+        """Compliance rate for a HEDIS measure (GSD/KED/BPD/SPD/EED), from the GOVERNED metric view — the rule
+        lives in the semantic layer and is computed live (not a baked flag in gold)."""
         m = MEASURES.get(measure_id.upper())
         if not m:
             return {"error": f"unknown measure {measure_id!r}; known: {', '.join(MEASURES)}"}
         rows = query(
-            f"SELECT COUNT(*) AS eligible, SUM(CAST(numerator_flag AS INT)) AS numerator, "
-            f"ROUND(AVG(CAST(numerator_flag AS INT)), 4) AS rate FROM {care}.{m['table']}")
+            f"SELECT MEASURE(`Eligible Patients`) AS eligible, MEASURE(`Compliant Patients`) AS numerator, "
+            f"ROUND(MEASURE(`{m['rate']}`), 4) AS rate FROM {sem}.{m['view']}")
         r = rows[0]
         return {"measure_id": measure_id.upper(), "measure_name": m["name"], "eligible_ages": m["age"],
                 "eligible": int(r["eligible"]), "numerator": int(r["numerator"]),
@@ -67,10 +77,11 @@ def make_tools(catalog: str, schema: str = "care_protocol", term_schema: str = "
         m = MEASURES.get(measure_id.upper())
         if not m:
             return {"error": f"unknown measure {measure_id!r}"}
+        gap = m["gap"]  # the NOT_MET predicate, derived from evidence (same rule the metric view applies)
         rows = query(
-            f"SELECT patient_id, age, status FROM {care}.{m['table']} "
-            f"WHERE status = 'NOT_MET' ORDER BY age DESC LIMIT {int(limit)}")
-        total = query(f"SELECT COUNT(*) AS n FROM {care}.{m['table']} WHERE status = 'NOT_MET'")[0]["n"]
+            f"SELECT patient_id, age FROM {care}.{m['table']} "
+            f"WHERE {gap} ORDER BY age DESC LIMIT {int(limit)}")
+        total = query(f"SELECT COUNT(*) AS n FROM {care}.{m['table']} WHERE {gap}")[0]["n"]
         return {"measure_id": measure_id.upper(), "care_gap_count": int(total), "sample": rows}
 
     return {

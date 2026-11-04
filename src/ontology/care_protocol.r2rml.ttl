@@ -1,5 +1,6 @@
 @prefix rr:   <http://www.w3.org/ns/r2rml#> .
 @prefix cp:   <https://care-protocol.example/ontology#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
 # =====================================================================================
@@ -67,10 +68,29 @@
   rr:logicalTable [ rr:sqlQuery "SELECT DISTINCT parent_code AS ing_code FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE parent_code IS NOT NULL" ] ;
   rr:subjectMap [ rr:template "https://care-protocol.example/ing/{ing_code}" ; rr:class cp:Ingredient ] .
 
-# ---- DrugClass — drugclass/{drug_class}. Drawn from protocol_edges. ----
+# ---- DrugClass — drugclass/{drug_class}. Every DRUGCLASS-* node in protocol_edges (rev 6: robust
+#      prefix match; the old UNION missed classes that only appear in firstLineFor/contraindicatedWhen). ----
 <#DrugClassEntity> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT subject AS drug_class FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE predicate IN ('recommendedFor','contraindicatedWith') UNION SELECT object AS drug_class FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE predicate = 'inDrugClass'" ] ;
+  rr:logicalTable [ rr:sqlQuery "SELECT DISTINCT subject AS drug_class FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE subject LIKE 'DRUGCLASS-%'" ] ;
   rr:subjectMap [ rr:template "https://care-protocol.example/drugclass/{drug_class}" ; rr:class cp:DrugClass ] .
+
+# ---- ValueSet — valueset/{vs_id}. rev 6 (ADR-0014): the population a guideline targets. Unifies
+#      (a) curated value sets in value_set_segment (COMORBID_CKD, CONTRA_PREGNANCY, ...) and
+#      (b) protocol cohort ids used as recommendedFor/contraindicatedWith/firstLineFor objects or
+#      defined via protocol_edges.definedBy (ALBUMINURIA, GLYCEMIC). SPD is NOT a ValueSet (it is a
+#      Measure) so it is excluded here and handled by RecommendedForSpdMap -> measure/. ----
+<#ValueSetEntity> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT DISTINCT vs_id FROM (SELECT segment_id AS vs_id FROM eli_test_classic_catalog.care_protocol_terminology.value_set_segment UNION SELECT object AS vs_id FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE predicate IN ('recommendedFor','contraindicatedWith','firstLineFor') UNION SELECT subject AS vs_id FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE predicate = 'definedBy') v WHERE vs_id <> 'SPD'" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/valueset/{vs_id}" ; rr:class cp:ValueSet ] ;
+  rr:predicateObjectMap [ rr:predicate cp:valueSetId ; rr:objectMap [ rr:column "vs_id" ] ] .
+
+# ---- Threshold — threshold/{thr}. rev 6 (ADR-0014): the clinical decision cutoffs that carry the
+#      renal-dosing / glycemic-band knowledge (contraindicatedWhen, definedBy, hasThreshold objects),
+#      with the numeric value as cp:thresholdValue. ----
+<#ThresholdEntity> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT object AS thr, MAX(value) AS thr_value FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE predicate IN ('contraindicatedWhen','definedBy','hasThreshold') GROUP BY object" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/threshold/{thr}" ; rr:class cp:Threshold ] ;
+  rr:predicateObjectMap [ rr:predicate cp:thresholdValue ; rr:objectMap [ rr:column "thr_value" ] ] .
 
 # ---- Measure (HEDIS measure) — measure/{measure_id}. The five demo measures. ----
 <#MeasureEntity> a rr:TriplesMap ;
@@ -84,6 +104,51 @@
   rr:subjectMap [ rr:template "https://care-protocol.example/obs/{obs_id}" ; rr:class cp:Observation ] ;
   rr:predicateObjectMap [ rr:predicate cp:ofTest ;      rr:objectMap [ rr:template "https://care-protocol.example/loinc/{loinc_code}" ] ] ;
   rr:predicateObjectMap [ rr:predicate cp:resultValue ; rr:objectMap [ rr:column "value_num" ] ] .
+
+# =====================================================================================
+# CLASS MEMBERSHIP (OWL subclass typing) — 2026-11-02 rev 5.
+# The five Condition subclasses (DiabetesDiagnosis/ChronicKidneyDisease/HeartFailure/
+# Pregnancy/HepaticDisease) were declared in the OWL (rdfs:subClassOf cp:Condition) but had
+# NO mapping, so Ontobricks auto-bound them to discovered tables — and the leftover tables were
+# the *_compliance_metrics METRIC VIEWS, whose plain SELECT throws METRIC_VIEW_MISSING_MEASURE_
+# FUNCTION and ABORTS the entity scan. With only the first entity (Patient) registered, every
+# later relationship endpoint (icd/loinc/obs/...) then reported "entity not found". (Same root
+# cause rev 3 fixed for ValueSet/ProtocolRule; these five were missed.)
+#
+# Fix: type the EXISTING icd/{icd_code} IRIs into each subclass via an explicit rdf:type triple,
+# with member codes drawn from icd10_closure (transitive, so E11 -> E11.21 etc. are included).
+# These are NOT entity maps — NO rr:class / NO new prefix / NO new id column — so they do not
+# reintroduce the rev-2 collision on the icd_code endpoint (Condition stays the sole entity on
+# icd/). Because each class now appears in a TriplesMap bound to a real table, Ontobricks should
+# no longer auto-bind it to a metric view. Roots match the repo's own value sets (COMORBID_CKD=N18,
+# COMORBID_HF=I50, CONTRA_PREGNANCY=Z34/O26/O15/O00, CONTRA_HEPATIC=K70/K74, diabetes=E10/E11/E13).
+# These memberships are also what the class-8 benchmark golds reason over (ground_truth.yaml:201,211).
+# =====================================================================================
+
+<#DiabetesDiagnosisType> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT DISTINCT descendant_code AS icd_code FROM eli_test_classic_catalog.care_protocol_terminology.icd10_closure WHERE ancestor_code IN ('E10','E11','E13')" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/icd/{icd_code}" ] ;
+  rr:predicateObjectMap [ rr:predicate rdf:type ; rr:objectMap [ rr:constant cp:DiabetesDiagnosis ] ] .
+
+<#ChronicKidneyDiseaseType> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT DISTINCT descendant_code AS icd_code FROM eli_test_classic_catalog.care_protocol_terminology.icd10_closure WHERE ancestor_code = 'N18'" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/icd/{icd_code}" ] ;
+  rr:predicateObjectMap [ rr:predicate rdf:type ; rr:objectMap [ rr:constant cp:ChronicKidneyDisease ] ] .
+
+<#HeartFailureType> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT DISTINCT descendant_code AS icd_code FROM eli_test_classic_catalog.care_protocol_terminology.icd10_closure WHERE ancestor_code = 'I50'" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/icd/{icd_code}" ] ;
+  rr:predicateObjectMap [ rr:predicate rdf:type ; rr:objectMap [ rr:constant cp:HeartFailure ] ] .
+
+<#PregnancyType> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT DISTINCT descendant_code AS icd_code FROM eli_test_classic_catalog.care_protocol_terminology.icd10_closure WHERE ancestor_code IN ('Z34','O26','O15','O00')" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/icd/{icd_code}" ] ;
+  rr:predicateObjectMap [ rr:predicate rdf:type ; rr:objectMap [ rr:constant cp:Pregnancy ] ] .
+
+<#HepaticDiseaseType> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT DISTINCT descendant_code AS icd_code FROM eli_test_classic_catalog.care_protocol_terminology.icd10_closure WHERE ancestor_code IN ('K70','K74')" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/icd/{icd_code}" ] ;
+  rr:predicateObjectMap [ rr:predicate rdf:type ; rr:objectMap [ rr:constant cp:HepaticDisease ] ] .
 
 # =====================================================================================
 # RELATIONSHIP MAPS — every endpoint column is the entity's unique id column above.
@@ -148,25 +213,75 @@
   rr:predicateObjectMap [ rr:predicate cp:hasIngredient ;
      rr:objectMap [ rr:template "https://care-protocol.example/ing/{ing_code}" ] ] .
 
-# ---- Ingredient -inDrugClass-> DrugClass  (protocol_edges predicate='inDrugClass') ----
+# ---- Ingredient -inDrugClass-> DrugClass. rev 6 (ADR-0014): protocol_edges has NO 'inDrugClass'
+#      predicate (the old map returned 0 rows, severing the drug->class hop and the class-8 hero path).
+#      Source statin membership from rxnorm_statin, joined to the Ingredient entity keys
+#      (rxnorm_hier.parent_code) so every emitted ing/ endpoint resolves (no danglers). Only statins are
+#      enumerated in the demo terminology subset -> only DRUGCLASS-STATIN is populated here; ACE/ARB/
+#      SGLT2/BIGUANIDE ingredient lists are a data-gen follow-on. ----
 <#InDrugClassMap> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT subject AS ing_code, object AS drug_class FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE predicate = 'inDrugClass'" ] ;
+  rr:logicalTable [ rr:sqlQuery "SELECT DISTINCT s.rxcui AS ing_code, 'DRUGCLASS-STATIN' AS drug_class FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_statin s JOIN (SELECT DISTINCT parent_code FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE parent_code IS NOT NULL) h ON s.rxcui = h.parent_code" ] ;
   rr:subjectMap [ rr:template "https://care-protocol.example/ing/{ing_code}" ] ;
   rr:predicateObjectMap [ rr:predicate cp:inDrugClass ;
      rr:objectMap [ rr:template "https://care-protocol.example/drugclass/{drug_class}" ] ] .
 
-# ---- Care-protocol knowledge edges — split per predicate so each object lands in its namespace. ----
-<#RecommendedForMap> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT subject AS drug_class, object AS icd_code FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE predicate = 'recommendedFor'" ] ;
+# ---- Care-protocol knowledge edges. rev 6 (ADR-0014): objects are value-set / cohort / measure ids,
+#      NOT ICD codes (the old icd/{} template made every one of these dangle). recommendedFor splits:
+#      SPD -> measure/ (SPD is a HEDIS measure), everything else -> valueset/. ----
+<#RecommendedForVsMap> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT subject AS drug_class, object AS vs_id FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE predicate = 'recommendedFor' AND object <> 'SPD'" ] ;
   rr:subjectMap [ rr:template "https://care-protocol.example/drugclass/{drug_class}" ] ;
   rr:predicateObjectMap [ rr:predicate cp:recommendedFor ;
-     rr:objectMap [ rr:template "https://care-protocol.example/icd/{icd_code}" ] ] .
+     rr:objectMap [ rr:template "https://care-protocol.example/valueset/{vs_id}" ] ] .
+
+<#RecommendedForSpdMap> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT subject AS drug_class, object AS measure_id FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE predicate = 'recommendedFor' AND object = 'SPD'" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/drugclass/{drug_class}" ] ;
+  rr:predicateObjectMap [ rr:predicate cp:recommendedFor ;
+     rr:objectMap [ rr:template "https://care-protocol.example/measure/{measure_id}" ] ] .
 
 <#ContraindicatedWithMap> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT subject AS drug_class, object AS icd_code FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE predicate = 'contraindicatedWith'" ] ;
+  rr:logicalTable [ rr:sqlQuery "SELECT subject AS drug_class, object AS vs_id FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE predicate = 'contraindicatedWith'" ] ;
   rr:subjectMap [ rr:template "https://care-protocol.example/drugclass/{drug_class}" ] ;
   rr:predicateObjectMap [ rr:predicate cp:contraindicatedWith ;
+     rr:objectMap [ rr:template "https://care-protocol.example/valueset/{vs_id}" ] ] .
+
+# ---- firstLineFor (DrugClass -> ValueSet) + contraindicatedWhen (DrugClass -> Threshold): rev 6, were
+#      unmapped though present in protocol_edges. contraindicatedWhen carries the renal-dosing cutoffs. ----
+<#FirstLineForMap> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT subject AS drug_class, object AS vs_id FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE predicate = 'firstLineFor'" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/drugclass/{drug_class}" ] ;
+  rr:predicateObjectMap [ rr:predicate cp:firstLineFor ;
+     rr:objectMap [ rr:template "https://care-protocol.example/valueset/{vs_id}" ] ] .
+
+<#ContraindicatedWhenMap> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT subject AS drug_class, object AS thr FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE predicate = 'contraindicatedWhen'" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/drugclass/{drug_class}" ] ;
+  rr:predicateObjectMap [ rr:predicate cp:contraindicatedWhen ;
+     rr:objectMap [ rr:template "https://care-protocol.example/threshold/{thr}" ] ] .
+
+# ---- ValueSet -contains-> coded members (rev 6): the hop that makes a value set traversable to patients.
+#      ICD10CM members -> icd/{code} (joined to icd10_hier so every endpoint resolves to a Condition).
+#      This closes DrugClass -recommendedFor/contraindicatedWith-> ValueSet -contains-> Condition <-hasDiagnosis- Patient. ----
+<#ValueSetContainsIcdMap> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT DISTINCT v.segment_id AS vs_id, v.code AS icd_code FROM eli_test_classic_catalog.care_protocol_terminology.value_set_segment v JOIN eli_test_classic_catalog.care_protocol_terminology.icd10_hier h ON v.code = h.code WHERE v.code_system = 'ICD10CM'" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/valueset/{vs_id}" ] ;
+  rr:predicateObjectMap [ rr:predicate cp:contains ;
      rr:objectMap [ rr:template "https://care-protocol.example/icd/{icd_code}" ] ] .
+
+# ---- ValueSet -definedBy-> Threshold (rev 6): ALBUMINURIA definedBy uACR>=30 (a lab-defined cohort). ----
+<#DefinedByMap> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT subject AS vs_id, object AS thr FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE predicate = 'definedBy'" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/valueset/{vs_id}" ] ;
+  rr:predicateObjectMap [ rr:predicate cp:definedBy ;
+     rr:objectMap [ rr:template "https://care-protocol.example/threshold/{thr}" ] ] .
+
+# ---- Measure -hasThreshold-> Threshold (rev 6): GSD a1c<8/>9 bands, BPD <140/90 — HEDIS control cutoffs. ----
+<#HasThresholdMap> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT subject AS measure_id, object AS thr FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE predicate = 'hasThreshold'" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/measure/{measure_id}" ] ;
+  rr:predicateObjectMap [ rr:predicate cp:hasThreshold ;
+     rr:objectMap [ rr:template "https://care-protocol.example/threshold/{thr}" ] ] .
 
 <#MonitoredByMap> a rr:TriplesMap ;
   rr:logicalTable [ rr:sqlQuery "SELECT subject AS measure_id, object AS part_code FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE predicate = 'monitoredBy'" ] ;
@@ -175,59 +290,61 @@
      rr:objectMap [ rr:template "https://care-protocol.example/part/{part_code}" ] ] .
 
 # ---- Measure results: Patient -eligibleFor-> Measure (all), -hasCareGap-> Measure (NOT_MET), + status.
-#      One pair of maps per HEDIS measure over gold_adherence_<m>. ----
+#      Gold is an EVIDENCE base (no verdict column); the compliance RULE lives in the governed metric view
+#      (care_protocol_semantic.<m>_compliance_metrics). Each `met` expression below MIRRORS that view's rule so
+#      the graph ABox materializes the same verdict -- keep the two in sync if a rule changes. ----
 
 # GSD — Glycemic Status Assessment (A1c)
 <#GsdMeasureMap> a rr:TriplesMap ;
-  rr:logicalTable [ rr:tableName "eli_test_classic_catalog.care_protocol.gold_adherence_gsd" ] ;
+  rr:logicalTable [ rr:sqlQuery "SELECT patient_id, CASE WHEN evidence_datetime IS NOT NULL THEN 'MET' ELSE 'NOT_MET' END AS status FROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd" ] ;
   rr:subjectMap [ rr:template "https://care-protocol.example/patient/{patient_id}" ] ;
   rr:predicateObjectMap [ rr:predicate cp:eligibleFor ; rr:objectMap [ rr:constant "https://care-protocol.example/measure/GSD" ] ] ;
   rr:predicateObjectMap [ rr:predicate cp:status ;      rr:objectMap [ rr:column "status" ] ] .
 <#GsdCareGapMap> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT patient_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd WHERE status = 'NOT_MET'" ] ;
+  rr:logicalTable [ rr:sqlQuery "SELECT patient_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd WHERE NOT (evidence_datetime IS NOT NULL)" ] ;
   rr:subjectMap [ rr:template "https://care-protocol.example/patient/{patient_id}" ] ;
   rr:predicateObjectMap [ rr:predicate cp:hasCareGap ; rr:objectMap [ rr:constant "https://care-protocol.example/measure/GSD" ] ] .
 
 # BPD — Blood Pressure control for diabetics
 <#BpdMeasureMap> a rr:TriplesMap ;
-  rr:logicalTable [ rr:tableName "eli_test_classic_catalog.care_protocol.gold_adherence_bpd" ] ;
+  rr:logicalTable [ rr:sqlQuery "SELECT patient_id, CASE WHEN COALESCE(systolic < 140 AND diastolic < 90, false) THEN 'MET' ELSE 'NOT_MET' END AS status FROM eli_test_classic_catalog.care_protocol.gold_adherence_bpd" ] ;
   rr:subjectMap [ rr:template "https://care-protocol.example/patient/{patient_id}" ] ;
   rr:predicateObjectMap [ rr:predicate cp:eligibleFor ; rr:objectMap [ rr:constant "https://care-protocol.example/measure/BPD" ] ] ;
   rr:predicateObjectMap [ rr:predicate cp:status ;      rr:objectMap [ rr:column "status" ] ] .
 <#BpdCareGapMap> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT patient_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_bpd WHERE status = 'NOT_MET'" ] ;
+  rr:logicalTable [ rr:sqlQuery "SELECT patient_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_bpd WHERE NOT (COALESCE(systolic < 140 AND diastolic < 90, false))" ] ;
   rr:subjectMap [ rr:template "https://care-protocol.example/patient/{patient_id}" ] ;
   rr:predicateObjectMap [ rr:predicate cp:hasCareGap ; rr:objectMap [ rr:constant "https://care-protocol.example/measure/BPD" ] ] .
 
 # KED — Kidney Health Evaluation (eGFR + uACR)
 <#KedMeasureMap> a rr:TriplesMap ;
-  rr:logicalTable [ rr:tableName "eli_test_classic_catalog.care_protocol.gold_adherence_ked" ] ;
+  rr:logicalTable [ rr:sqlQuery "SELECT patient_id, CASE WHEN egfr_datetime IS NOT NULL AND uacr_datetime IS NOT NULL THEN 'MET' ELSE 'NOT_MET' END AS status FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked" ] ;
   rr:subjectMap [ rr:template "https://care-protocol.example/patient/{patient_id}" ] ;
   rr:predicateObjectMap [ rr:predicate cp:eligibleFor ; rr:objectMap [ rr:constant "https://care-protocol.example/measure/KED" ] ] ;
   rr:predicateObjectMap [ rr:predicate cp:status ;      rr:objectMap [ rr:column "status" ] ] .
 <#KedCareGapMap> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT patient_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked WHERE status = 'NOT_MET'" ] ;
+  rr:logicalTable [ rr:sqlQuery "SELECT patient_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked WHERE NOT (egfr_datetime IS NOT NULL AND uacr_datetime IS NOT NULL)" ] ;
   rr:subjectMap [ rr:template "https://care-protocol.example/patient/{patient_id}" ] ;
   rr:predicateObjectMap [ rr:predicate cp:hasCareGap ; rr:objectMap [ rr:constant "https://care-protocol.example/measure/KED" ] ] .
 
 # EED — Eye Exam for diabetics
 <#EedMeasureMap> a rr:TriplesMap ;
-  rr:logicalTable [ rr:tableName "eli_test_classic_catalog.care_protocol.gold_adherence_eed" ] ;
+  rr:logicalTable [ rr:sqlQuery "SELECT patient_id, CASE WHEN evidence_datetime IS NOT NULL THEN 'MET' ELSE 'NOT_MET' END AS status FROM eli_test_classic_catalog.care_protocol.gold_adherence_eed" ] ;
   rr:subjectMap [ rr:template "https://care-protocol.example/patient/{patient_id}" ] ;
   rr:predicateObjectMap [ rr:predicate cp:eligibleFor ; rr:objectMap [ rr:constant "https://care-protocol.example/measure/EED" ] ] ;
   rr:predicateObjectMap [ rr:predicate cp:status ;      rr:objectMap [ rr:column "status" ] ] .
 <#EedCareGapMap> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT patient_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_eed WHERE status = 'NOT_MET'" ] ;
+  rr:logicalTable [ rr:sqlQuery "SELECT patient_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_eed WHERE NOT (evidence_datetime IS NOT NULL)" ] ;
   rr:subjectMap [ rr:template "https://care-protocol.example/patient/{patient_id}" ] ;
   rr:predicateObjectMap [ rr:predicate cp:hasCareGap ; rr:objectMap [ rr:constant "https://care-protocol.example/measure/EED" ] ] .
 
 # SPD — Statin Therapy for diabetics
 <#SpdMeasureMap> a rr:TriplesMap ;
-  rr:logicalTable [ rr:tableName "eli_test_classic_catalog.care_protocol.gold_adherence_spd" ] ;
+  rr:logicalTable [ rr:sqlQuery "SELECT patient_id, CASE WHEN evidence_datetime IS NOT NULL THEN 'MET' ELSE 'NOT_MET' END AS status FROM eli_test_classic_catalog.care_protocol.gold_adherence_spd" ] ;
   rr:subjectMap [ rr:template "https://care-protocol.example/patient/{patient_id}" ] ;
   rr:predicateObjectMap [ rr:predicate cp:eligibleFor ; rr:objectMap [ rr:constant "https://care-protocol.example/measure/SPD" ] ] ;
   rr:predicateObjectMap [ rr:predicate cp:status ;      rr:objectMap [ rr:column "status" ] ] .
 <#SpdCareGapMap> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT patient_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_spd WHERE status = 'NOT_MET'" ] ;
+  rr:logicalTable [ rr:sqlQuery "SELECT patient_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_spd WHERE NOT (evidence_datetime IS NOT NULL)" ] ;
   rr:subjectMap [ rr:template "https://care-protocol.example/patient/{patient_id}" ] ;
   rr:predicateObjectMap [ rr:predicate cp:hasCareGap ; rr:objectMap [ rr:constant "https://care-protocol.example/measure/SPD" ] ] .

@@ -16,8 +16,8 @@ dimensions:
     synonyms: [year, reporting year, MY]
     display_name: Measurement Year
   - name: Compliance Status
-    expr: status
-    comment: "MET = both an eGFR and a uACR test were found in the measurement year; NOT_MET = at least one is missing."
+    expr: "CASE WHEN egfr_datetime IS NOT NULL AND uacr_datetime IS NOT NULL THEN 'MET' ELSE 'NOT_MET' END"
+    comment: "Computed live: MET = both an eGFR and a uACR test were found in the measurement year; NOT_MET = at least one is missing."
     synonyms: [status, met status, adherence status, gap status]
     display_name: Compliance Status
   - name: Clinic
@@ -31,8 +31,8 @@ dimensions:
     synonyms: [panel, pcp panel, provider panel, care team]
     display_name: Panel
   - name: Gap Reason
-    expr: COALESCE(gap_reason, 'Met')
-    comment: "Why the patient is a care gap (NOT_MET); 'Met' when compliant. Group care gaps by reason."
+    expr: "CASE WHEN egfr_datetime IS NOT NULL AND uacr_datetime IS NOT NULL THEN 'Met' WHEN egfr_datetime IS NULL AND uacr_datetime IS NULL THEN 'No eGFR or uACR test' WHEN egfr_datetime IS NULL THEN 'No eGFR test' ELSE 'No uACR test' END"
+    comment: "Computed live: why the patient is a care gap (NOT_MET); 'Met' when compliant. Group care gaps by reason."
     synonyms: [gap reason, reason, care gap reason, why gap]
     display_name: Gap Reason
   - name: Age Band
@@ -59,7 +59,7 @@ measures:
       type: number
       decimal_places: {type: exact, places: 0}
   - name: eGFR Tested Patients
-    expr: COUNT(1) FILTER (WHERE egfr_flag)
+    expr: "COUNT(1) FILTER (WHERE egfr_datetime IS NOT NULL)"
     comment: "Eligible patients with at least one eGFR (estimated glomerular filtration rate) test in the measurement year."
     synonyms: [egfr tested, gfr tested, kidney function tested, egfr count]
     display_name: eGFR Tested Patients
@@ -67,7 +67,7 @@ measures:
       type: number
       decimal_places: {type: exact, places: 0}
   - name: uACR Tested Patients
-    expr: COUNT(1) FILTER (WHERE uacr_flag)
+    expr: "COUNT(1) FILTER (WHERE uacr_datetime IS NOT NULL)"
     comment: "Eligible patients with at least one uACR (urine albumin-creatinine ratio) test in the measurement year."
     synonyms: [uacr tested, urine albumin tested, microalbumin tested, uacr count]
     display_name: uACR Tested Patients
@@ -75,8 +75,8 @@ measures:
       type: number
       decimal_places: {type: exact, places: 0}
   - name: Compliant Patients
-    expr: COUNT(1) FILTER (WHERE numerator_flag)
-    comment: "Eligible patients meeting the full KED numerator: BOTH an eGFR and a uACR test in the measurement year."
+    expr: "COUNT(1) FILTER (WHERE egfr_datetime IS NOT NULL AND uacr_datetime IS NOT NULL)"
+    comment: "Eligible patients meeting the full KED numerator: BOTH an eGFR and a uACR test in the measurement year — computed live."
     synonyms: [numerator, compliant count, patients met, both tests, complete kidney eval]
     display_name: Compliant Patients
     format:

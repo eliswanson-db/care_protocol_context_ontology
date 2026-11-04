@@ -7,7 +7,7 @@ LANGUAGE YAML
 AS $$
 version: 1.1
 source: {catalog}.{schema}.gold_protocol_adherence
-comment: "Diabetes care-protocol Step 3 adherence: after an A1c above target (demo >=7%, story >9%), was there a recheck A1c or diabetes-therapy change within 90 days? The process-adherence layer that reveals WHICH step slipped. HEDIS-aligned demo, not NCQA-certified."
+comment: "Diabetes care-protocol Step 3 adherence: after an A1c result >= 9% (poor control), was there a follow-up A1c within 90 days? The process-adherence layer that reveals WHICH step slipped. HEDIS-aligned demo, not NCQA-certified."
 dimensions:
   - name: Measurement Year
     expr: measurement_year
@@ -24,7 +24,7 @@ dimensions:
     synonyms: [panel, pcp panel, provider panel, care team]
     display_name: Panel
   - name: Adherence Status
-    expr: status
+    expr: "CASE WHEN followup_within_90d THEN 'MET' ELSE 'NOT_MET' END"
     comment: "MET = a recheck or therapy change occurred within 90 days of the high A1c; NOT_MET = the step was missed."
     synonyms: [status, step status, protocol status, followed up]
     display_name: Adherence Status

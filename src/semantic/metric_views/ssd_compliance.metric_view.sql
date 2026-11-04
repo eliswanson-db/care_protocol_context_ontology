@@ -16,7 +16,7 @@ dimensions:
     synonyms: [year, reporting year, MY]
     display_name: Measurement Year
   - name: Compliance Status
-    expr: status
+    expr: "CASE WHEN evidence_datetime IS NOT NULL THEN 'MET' ELSE 'NOT_MET' END"
     comment: "MET = glucose or HbA1c screen found in the measurement year; NOT_MET = no screen."
     synonyms: [status, screening status, gap status]
     display_name: Compliance Status
@@ -48,7 +48,7 @@ measures:
     display_name: Eligible Patients
     format: {type: number, decimal_places: {type: exact, places: 0}}
   - name: Screened Patients
-    expr: COUNT(1) FILTER (WHERE numerator_flag)
+    expr: "COUNT(1) FILTER (WHERE evidence_datetime IS NOT NULL)"
     comment: "Eligible patients with a glucose or HbA1c screen in the measurement year (the numerator)."
     synonyms: [numerator, screened count, patients screened]
     display_name: Screened Patients

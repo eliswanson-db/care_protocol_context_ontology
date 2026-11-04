@@ -28,6 +28,10 @@
 # ---- Classes ----
 cp:Patient        a owl:Class .
 cp:Condition      a owl:Class .          # an ICD-10-CM diagnosis concept
+# Condition subclasses — membership is asserted in the R2RML (rev 5: rdf:type maps over
+# icd10_closure, NOT separate entity maps) so they type existing icd/{code} IRIs without
+# auto-binding to a metric view. These are the OWL-defined classes the class-8 benchmark
+# golds (ground_truth.yaml:201,211) reason over; do not remove without updating that gold.
 cp:DiabetesDiagnosis a owl:Class ; rdfs:subClassOf cp:Condition .
 cp:ChronicKidneyDisease a owl:Class ; rdfs:subClassOf cp:Condition .
 cp:HeartFailure   a owl:Class ; rdfs:subClassOf cp:Condition .
@@ -43,11 +47,12 @@ cp:Ingredient     a owl:Class .          # an RxNorm ingredient
 cp:DrugClass      a owl:Class .          # e.g. Statin, ACE inhibitor
 
 cp:Measure        a owl:Class .          # a HEDIS measure (GSD/KED/BPD/SPD/EED)
-# NOTE: ValueSet / ProtocolRule were declared but have NO R2RML mapping (no ABox). Ontobricks
-# auto-binds every declared class to a catalog table, so these empty classes got bound to leftover
-# tables — the *_compliance_metrics METRIC VIEWS — which cannot be probed with a plain SELECT
-# (METRIC_VIEW_MISSING_MEASURE_FUNCTION) and aborted the entity scan. Removed until they have an
-# ABox. Re-add together with a matching R2RML entity map (over a real table) if/when needed.
+cp:ValueSet       a owl:Class .          # a named population / value set (VSAC-style): the coded cohort a guideline targets
+cp:Threshold      a owl:Class .          # a clinical decision threshold (eGFR<30, uACR>=30, A1c<8, BP<140/90) with a numeric cutoff
+# rev 6 (ADR-0014): ValueSet is now MAPPED (see care_protocol.r2rml.ttl ValueSetEntity over value_set_segment +
+# the protocol_edges cohort ids), so it no longer auto-binds to a leftover metric view. This models HEDIS/eCQM the
+# way a payer actually reasons: a guideline targets a VALUE SET, which in turn -contains-> coded members
+# (ICD/LOINC/RxNorm) — a cross-vocabulary hub a single is-a closure cannot express. ProtocolRule stays reserved.
 
 # ---- Object properties (the typed edges a closure table cannot all express) ----
 cp:hasDiagnosis       a owl:ObjectProperty ; rdfs:domain cp:Patient ;    rdfs:range cp:Condition .
@@ -64,10 +69,21 @@ cp:hasIngredient      a owl:ObjectProperty ; rdfs:domain cp:Medication ; rdfs:ra
 cp:inDrugClass        a owl:ObjectProperty ; rdfs:domain cp:Ingredient ; rdfs:range cp:DrugClass .
 cp:eligibleFor        a owl:ObjectProperty ; rdfs:domain cp:Patient ;    rdfs:range cp:Measure .
 cp:hasCareGap         a owl:ObjectProperty ; rdfs:domain cp:Patient ;    rdfs:range cp:Measure .
-# care-protocol knowledge edges (from the PDF) — the cross-domain, multi-hop relationships:
-cp:recommendedFor     a owl:ObjectProperty ; rdfs:domain cp:DrugClass ; rdfs:range cp:Condition .
-cp:contraindicatedWith a owl:ObjectProperty ; rdfs:domain cp:DrugClass ; rdfs:range cp:Condition .
+# care-protocol knowledge edges (from the PDF) — the cross-domain, multi-hop relationships.
+# rev 6 (ADR-0014): recommendedFor/contraindicatedWith/firstLineFor target a ValueSet (the population a guideline
+# names), NOT a single ICD code — the protocol_edges objects are value-set / cohort ids (COMORBID_CKD,
+# CONTRA_PREGNANCY, ALBUMINURIA, ...). The ValueSet then -contains-> its coded members, so the graph traverses
+# DrugClass -recommendedFor-> ValueSet -contains-> ICD/LOINC/RxNorm -...-> Patient (a typed multi-hop a single is-a
+# closure cannot express). recommendedFor also admits a Measure target (STATIN recommendedFor SPD). contraindicatedWhen
+# points at a Threshold (eGFR dosing cutoff) — the renal-dosing knowledge behind the class-8 defined-class query.
+cp:recommendedFor     a owl:ObjectProperty ; rdfs:domain cp:DrugClass .                             # range: ValueSet or Measure
+cp:contraindicatedWith a owl:ObjectProperty ; rdfs:domain cp:DrugClass ; rdfs:range cp:ValueSet .
+cp:firstLineFor       a owl:ObjectProperty ; rdfs:domain cp:DrugClass ; rdfs:range cp:ValueSet .    # e.g. BIGUANIDE firstLineFor GLYCEMIC
+cp:contraindicatedWhen a owl:ObjectProperty ; rdfs:domain cp:DrugClass ; rdfs:range cp:Threshold .  # e.g. BIGUANIDE contraindicatedWhen eGFR<30
 cp:monitoredBy        a owl:ObjectProperty ; rdfs:domain cp:Measure ;   rdfs:range cp:LoincPart .
+cp:contains           a owl:ObjectProperty ; rdfs:domain cp:ValueSet .                              # range: Condition / LabTest / Medication (coded members)
+cp:definedBy          a owl:ObjectProperty ; rdfs:domain cp:ValueSet ;  rdfs:range cp:Threshold .   # e.g. ALBUMINURIA definedBy uACR>=30
+cp:hasThreshold       a owl:ObjectProperty ; rdfs:domain cp:Measure ;   rdfs:range cp:Threshold .   # e.g. GSD a1c<8 good / >9 poor; BPD <140/90
 
 # `inDrugClass` is transitive-friendly: Medication -hasIngredient-> Ingredient -inDrugClass-> DrugClass.
 # This 2-hop typed path is what the SQL rxnorm_closure flattens; the graph keeps it explicit + reasonable.
@@ -80,6 +96,8 @@ cp:resultValue      a owl:DatatypeProperty ; rdfs:domain cp:Observation ; rdfs:r
 cp:status           a owl:DatatypeProperty ; rdfs:range xsd:string .   # MET / NOT_MET (measure result)
 cp:ageAtPeriodEnd   a owl:DatatypeProperty ; rdfs:domain cp:Patient ;     rdfs:range xsd:integer .
 cp:measurementYear  a owl:DatatypeProperty ; rdfs:range xsd:integer .
+cp:thresholdValue   a owl:DatatypeProperty ; rdfs:domain cp:Threshold ;   rdfs:range xsd:double .   # numeric cutoff (30, 140, 8, ...)
+cp:valueSetId       a owl:DatatypeProperty ; rdfs:domain cp:ValueSet ;    rdfs:range xsd:string .   # the value-set / cohort id (segment_id)
 
 # ICD-10 is-a lives on rdfs:subClassOf among Condition concepts (mapped from icd10_hier).
 # NOTE: the closure (icd10_closure) is the SQL materialization of subClassOf*; here a reasoner derives it.

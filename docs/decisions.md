@@ -5,6 +5,31 @@ statement in the source plans under `docs/sources/`.
 
 ---
 
+## ADR-0020 — Care-protocol knowledge edges target a ValueSet hub (not ICD codes); add Threshold; fix inDrugClass
+**Date:** 2026-11-03 · **Status:** accepted
+After ClinicalDomain V1 published cleanly (the metric-view scan-abort was fixed by rev-5), the cross-vocabulary
+care-protocol edges — the graph's whole differentiator over a SQL closure — were nearly all broken: `inDrugClass`
+returned **0 rows** (no such predicate in `protocol_edges` → the drug→ingredient→class→condition hero path was
+severed), and `recommendedFor`/`contraindicatedWith` were **all dangling** (R2RML templated their objects as
+`icd/{code}`, but the objects are value-set / cohort / measure ids — COMORBID_CKD, CONTRA_PREGNANCY, ALBUMINURIA,
+SPD — not ICD codes). `contraindicatedWhen`/`firstLineFor`/`definedBy` were present in data but unmapped.
+**Decision (modeling, Eli-owned per ADR-0005; among three options Claude recommended this one):** introduce a
+first-class **`ValueSet`** entity (keyed by segment_id/cohort id) as the target of
+`recommendedFor`/`contraindicatedWith`/`firstLineFor`, with a new **`contains`** edge (ValueSet → coded ICD/LOINC/
+RxNorm members) so the graph traverses `DrugClass -recommendedFor-> ValueSet -contains-> Condition <-hasDiagnosis-
+Patient`. This mirrors how HEDIS/eCQM/VSAC actually model measures (value-set-driven), and is the only option that
+shows graph **lift** — expanding to ICD codes (rejected option B) just reproduces `icd10_closure`; per-type splitting
+(rejected C) fragments the property. Also added a **`Threshold`** entity (eGFR/uACR/A1c/BP cutoffs with
+`thresholdValue`) as the target of `contraindicatedWhen`/`definedBy`/`hasThreshold` — the renal-dosing + glycemic-band
+knowledge behind the class-8 defined-class query. `recommendedFor` admits a Measure target for the one measure object
+(STATIN recommendedFor **SPD**). **`inDrugClass`** is now sourced from `rxnorm_statin` ⋈ `rxnorm_hier.parent_code`
+(statins only — the only enumerated class in the demo subset; ACE/ARB/SGLT2/BIGUANIDE ingredient lists are a data-gen
+follow-on), yielding 3 reachable, non-dangling edges that complete the hero path. `monitoredBy BPD→BP` fixed in
+`protocol_edges.csv` (→ LP-SBP/LP-DBP; takes effect on next terminology reload). All new maps verified against live
+data (every endpoint resolves; nothing dangles). Eli re-imports the OWL + R2RML and republishes (ADR-0005).
+
+---
+
 ## ADR-0019 — Shared-UC resources (schemas + volumes) are owned by dev+ect only, never by the dmvm target
 **Date:** 2026-11-01 · **Status:** accepted
 ADR-0018 adds a second **production** DAB target (`dmvm`) over the **one shared catalog**. Problem: the bundle

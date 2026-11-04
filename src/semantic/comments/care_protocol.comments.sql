@@ -80,7 +80,7 @@ COMMENT ON COLUMN {catalog}.care_protocol_terminology.rxnorm_closure.descendant_
 -- gold_protocol_adherence: process-adherence (which protocol step slipped), one row per A1c trigger event.
 COMMENT ON COLUMN {catalog}.care_protocol.gold_protocol_adherence.patient_id IS 'Patient the trigger belongs to.';
 COMMENT ON COLUMN {catalog}.care_protocol.gold_protocol_adherence.trigger_ts IS 'Timestamp of the A1c result at/above target that created the protocol-step obligation.';
-COMMENT ON COLUMN {catalog}.care_protocol.gold_protocol_adherence.trigger_a1c IS 'The A1c value that triggered the step (demo threshold >=7%; story uses >9%).';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_protocol_adherence.trigger_a1c IS 'The A1c value (>= 9%, poor control) that triggered the Step-3 obligation.';
 COMMENT ON COLUMN {catalog}.care_protocol.gold_protocol_adherence.followup_ts IS 'Timestamp of the earliest qualifying follow-up (recheck A1c or diabetes-therapy order) within 90 days; null if none.';
 COMMENT ON COLUMN {catalog}.care_protocol.gold_protocol_adherence.followup_type IS 'What satisfied the step: recheck (a later A1c) or therapy (a diabetes-med order).';
 COMMENT ON COLUMN {catalog}.care_protocol.gold_protocol_adherence.followup_days IS 'Days from the high A1c to the follow-up.';

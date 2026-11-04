@@ -85,9 +85,11 @@ def gold_lab_result():
 
 # ---------------- Gold: GSD (Glycemic Status Assessment) ----------------
 @dp.materialized_view(
-    comment="GSD adherence event log. Denominator: diabetes patients aged 18-75. Numerator: >=1 A1c "
-            "(LOINC) result in the measurement year. One row per eligible patient. HEDIS-aligned demo, "
-            "not NCQA-certified. Exclusions (hospice/ESRD/frailty) to be applied in a later iteration.")
+    comment="GSD EVIDENCE base — one row per eligible diabetes patient (18-75) with their latest measurement-year "
+            "A1c evidence (datetime/code/value) and dimensions. The compliance RULE is NOT baked here: numerator "
+            "(>=1 A1c test), MET/UNMET status, and the control bands (<8 / >9) are defined LIVE in the governed "
+            "gsd_compliance_metrics metric view. Gold = evidence; the semantic layer = the measure. HEDIS-aligned "
+            "demo, not NCQA-certified.")
 def gold_adherence_gsd():
     patients = spark.read.table(f"{BRONZE}.bronze_patient")  # noqa: F821
     cohort = spark.read.table("silver_diabetes_cohort")  # noqa: F821
@@ -109,27 +111,17 @@ def gold_adherence_gsd():
                       F.col("loinc_code").alias("evidence_code"),
                       F.col("value_num").alias("evidence_value")))
 
-    # Poor glycemic control is a modeled patient attribute (ADR-0012): override the latest A1c with the modeled
-    # value for poor patients so a1c_gt9 reflects it, without the care-behavior model ever editing observations.
-    glyc = spark.read.table(f"{BRONZE}.panel_roster").select("patient_id", "glycemic_poor", "modeled_a1c")  # noqa: F821
-    return (eligible.join(latest, "patient_id", "left").join(glyc, "patient_id", "left")
-            .withColumn("evidence_value", F.when(F.col("glycemic_poor") & F.col("modeled_a1c").isNotNull()
-                                                 & F.col("evidence_datetime").isNotNull(), F.col("modeled_a1c"))
-                        .otherwise(F.col("evidence_value")))
+    # evidence_value is the patient's ACTUAL latest A1c. The care-behavior feed is calibrated (ADR-0012), so a
+    # poorly-controlled patient's real readings are > 9% -- no modeled override, gold and silver agree.
+    return (eligible.join(latest, "patient_id", "left")
             .withColumn("measure_id", F.lit("GSD"))
             .withColumn("measurement_year", F.lit(MY))
             .withColumn("period_start", F.to_date(F.lit(f"{MY}-01-01")))
             .withColumn("period_end", my_end)
             .withColumn("eligible_flag", F.lit(True))
-            .withColumn("numerator_flag", F.col("evidence_datetime").isNotNull())
-            .withColumn("status", F.when(F.col("evidence_datetime").isNotNull(), F.lit("MET")).otherwise(F.lit("NOT_MET")))
-            .withColumn("a1c_lt8", F.col("evidence_value") < F.lit(8.0))
-            .withColumn("a1c_gt9", F.col("evidence_value") > F.lit(9.0))
-            .withColumn("gap_reason", F.when(F.col("evidence_datetime").isNotNull(), F.lit(None).cast("string"))
-                        .otherwise(F.lit("No A1c test in measurement year")))
+            # Evidence only — numerator_flag / status / gap_reason / a1c bands are derived LIVE in the metric view.
             .select("patient_id", "measure_id", "measurement_year", "period_start", "period_end",
-                    "age", "eligible_flag", "numerator_flag", "status", "gap_reason",
-                    "evidence_datetime", "evidence_code", "evidence_value", "a1c_lt8", "a1c_gt9")
+                    "age", "eligible_flag", "evidence_datetime", "evidence_code", "evidence_value")
             .join(_roster(), "patient_id", "left"))
 
 
@@ -174,19 +166,10 @@ def gold_adherence_ked():
             .withColumn("period_start", F.to_date(F.lit(f"{MY}-01-01")))
             .withColumn("period_end", my_end)
             .withColumn("eligible_flag", F.lit(True))
-            .withColumn("egfr_flag", F.col("egfr_datetime").isNotNull())
-            .withColumn("uacr_flag", F.col("uacr_datetime").isNotNull())
-            # KED numerator requires BOTH components in the measurement year.
-            .withColumn("numerator_flag", F.col("egfr_datetime").isNotNull() & F.col("uacr_datetime").isNotNull())
-            .withColumn("status", F.when(F.col("egfr_datetime").isNotNull() & F.col("uacr_datetime").isNotNull(),
-                                         F.lit("MET")).otherwise(F.lit("NOT_MET")))
-            .withColumn("gap_reason",
-                        F.when(F.col("egfr_datetime").isNotNull() & F.col("uacr_datetime").isNotNull(), F.lit(None).cast("string"))
-                        .when(F.col("egfr_datetime").isNull() & F.col("uacr_datetime").isNull(), F.lit("No eGFR or uACR test"))
-                        .when(F.col("egfr_datetime").isNull(), F.lit("No eGFR test"))
-                        .otherwise(F.lit("No uACR test")))
+            # Evidence only — the COMPOUND numerator (eGFR AND uACR), status and gap reason are derived live in
+            # the ked_compliance_metrics metric view from the two evidence datetimes.
             .select("patient_id", "measure_id", "measurement_year", "period_start", "period_end", "age",
-                    "eligible_flag", "egfr_flag", "uacr_flag", "numerator_flag", "status", "gap_reason",
+                    "eligible_flag",
                     "egfr_datetime", "egfr_code", "egfr_value", "uacr_datetime", "uacr_code", "uacr_value")
             .join(_roster(), "patient_id", "left"))
 
@@ -224,20 +207,16 @@ def gold_adherence_bpd():
     w = Window.partitionBy("patient_id").orderBy(F.col("bp_datetime").desc())
     latest = readings.withColumn("rn", F.row_number().over(w)).where(F.col("rn") == 1).drop("rn")
 
-    controlled = (F.col("systolic") < 140) & (F.col("diastolic") < 90)
     return (eligible.join(latest, "patient_id", "left")
             .withColumn("measure_id", F.lit("BPD"))
             .withColumn("measurement_year", F.lit(MY))
             .withColumn("period_start", F.to_date(F.lit(f"{MY}-01-01")))
             .withColumn("period_end", my_end)
             .withColumn("eligible_flag", F.lit(True))
-            .withColumn("numerator_flag", controlled)
-            .withColumn("status", F.when(controlled, F.lit("MET")).otherwise(F.lit("NOT_MET")))
-            .withColumn("gap_reason", F.when(controlled, F.lit(None).cast("string"))
-                        .when(F.col("bp_datetime").isNull(), F.lit("No BP reading in measurement year"))
-                        .otherwise(F.lit("BP not controlled (>=140/90)")))
+            # Evidence only (the most-recent BP reading); the "controlled <140/90" numerator + status are derived
+            # live in the bpd_compliance_metrics metric view from systolic/diastolic.
             .select("patient_id", "measure_id", "measurement_year", "period_start", "period_end", "age",
-                    "eligible_flag", "numerator_flag", "status", "gap_reason", "bp_datetime", "systolic", "diastolic")
+                    "eligible_flag", "bp_datetime", "systolic", "diastolic")
             .join(_roster(), "patient_id", "left"))
 
 
@@ -281,13 +260,9 @@ def gold_adherence_spd():
             .withColumn("period_start", F.to_date(F.lit(f"{MY}-01-01")))
             .withColumn("period_end", my_end)
             .withColumn("eligible_flag", F.lit(True))
-            .withColumn("numerator_flag", F.col("evidence_datetime").isNotNull())
-            .withColumn("status", F.when(F.col("evidence_datetime").isNotNull(), F.lit("MET")).otherwise(F.lit("NOT_MET")))
-            .withColumn("gap_reason", F.when(F.col("evidence_datetime").isNotNull(), F.lit(None).cast("string"))
-                        .otherwise(F.lit("No statin dispensed in measurement year")))
+            # Evidence only; the "statin dispensed" numerator + status are derived live in spd_compliance_metrics.
             .select("patient_id", "measure_id", "measurement_year", "period_start", "period_end", "age",
-                    "eligible_flag", "numerator_flag", "status", "gap_reason",
-                    "evidence_datetime", "evidence_code", "evidence_drug")
+                    "eligible_flag", "evidence_datetime", "evidence_code", "evidence_drug")
             .join(_roster(), "patient_id", "left"))
 
 
@@ -325,28 +300,24 @@ def gold_adherence_eed():
             .withColumn("period_start", F.to_date(F.lit(f"{MY}-01-01")))
             .withColumn("period_end", my_end)
             .withColumn("eligible_flag", F.lit(True))
-            .withColumn("numerator_flag", F.col("evidence_datetime").isNotNull())
-            .withColumn("status", F.when(F.col("evidence_datetime").isNotNull(), F.lit("MET")).otherwise(F.lit("NOT_MET")))
-            .withColumn("gap_reason", F.when(F.col("evidence_datetime").isNotNull(), F.lit(None).cast("string"))
-                        .otherwise(F.lit("No diabetic eye exam in measurement year")))
+            # Evidence only; the "eye exam present" numerator + status are derived live in eed_compliance_metrics.
             .select("patient_id", "measure_id", "measurement_year", "period_start", "period_end", "age",
-                    "eligible_flag", "numerator_flag", "status", "gap_reason",
-                    "evidence_datetime", "evidence_code", "evidence_exam")
+                    "eligible_flag", "evidence_datetime", "evidence_code", "evidence_exam")
             .join(_roster(), "patient_id", "left"))
 
 
 # ---------------- Protocol-STEP adherence (the "A Monday with Genie" hero: did the due event happen in time?) ----
 # Protocol Step: after an A1c above target, intensify therapy and recheck A1c within 90 days.
-# Story uses A1c >9% (poor control); synthetic Synthea data is well-controlled (max ~10, only 4 results >9),
-# so the demo trigger is A1c >= 7 ("above the <7% target"). The MECHANISM (expected event within a window after
-# a trigger) is identical -- change A1C_TRIGGER to 9.0 on real data. One row per trigger event.
-A1C_TRIGGER = 7.0
+# Trigger = A1c >9% (poor control) -- the clinically correct threshold the KP storyboard is built on. The
+# care-behavior model (ADR-0012) writes each poor-control patient's modeled A1c (>9%) into the event stream as a
+# real result, so the poorly-controlled cohort (~700) triggers here, not just the ~4 raw well-controlled highs.
+A1C_TRIGGER = 9.0
 FOLLOWUP_DAYS = 90
 
 
 @dp.materialized_view(
-    comment="Protocol Step 3 adherence: for each A1c result at/above the trigger (demo 7%; story 9%), was there "
-            "a recheck A1c OR a diabetes-therapy order within 90 days? One row per trigger event. This is the "
+    comment="Protocol Step 3 adherence: for each A1c result >9% (poor control), was there "
+            "a recheck A1c within 90 days? One row per trigger event. This is the "
             "PROCESS-adherence layer (which protocol step slipped), distinct from the outcome Star measures. "
             "HEDIS-aligned demo, not NCQA-certified.")
 def gold_protocol_adherence():
@@ -355,20 +326,16 @@ def gold_protocol_adherence():
                  .select("loinc_code").distinct())
     obs = spark.read.table("silver_observation")  # noqa: F821
     a1c = (obs.join(a1c_codes, obs["loinc_code"] == a1c_codes["loinc_code"])
-           .where(F.year("result_ts") == MY)
-           .select("patient_id", "result_ts", "value_num", "description"))
+           .select("patient_id", "result_ts", "value_num"))
 
-    # Triggers exclude model-generated rechecks (marked in the description) so a recheck never recurses into a
-    # trigger; rechecks still count as follow-ups below. Matches the care-behavior model's trigger set (ADR-0012).
-    triggers = (a1c.where((F.col("value_num") >= A1C_TRIGGER) & (~F.col("description").rlike("(?i)recheck")))
+    # Trigger: every A1c >= 9% in the measurement year (each is a protocol obligation).
+    triggers = (a1c.where((F.year("result_ts") == MY) & (F.col("value_num") >= A1C_TRIGGER))
                 .select("patient_id", F.col("result_ts").alias("trigger_ts"), F.col("value_num").alias("trigger_a1c")))
 
-    # Candidate follow-up: a MARKED recheck A1c (the care-behavior model emits one when the care system responds
-    # to a high A1c -- ADR-0012). We count ONLY these modeled rechecks: a patient's pre-scheduled routine A1c
-    # that merely lands within 90d is not the protocol-driven response, and a routine metformin refill is not a
-    # follow-up either (both would otherwise fire for nearly every trigger and wash out the signal).
-    followups = (a1c.where(F.col("description").rlike("(?i)recheck"))
-                 .select("patient_id", F.col("result_ts").alias("fts")).withColumn("ftype", F.lit("recheck")))
+    # Follow-up: ANY later A1c within 90 days -- including one that lands in January of the next year, so a late
+    # Q4 trigger isn't scored a miss by the calendar. The care-behavior feed is quarterly + causally consistent
+    # (a missed follow-up genuinely has no A1c in the window), so no synthetic tagging is needed (ADR-0012).
+    followups = a1c.select("patient_id", F.col("result_ts").alias("fts")).withColumn("ftype", F.lit("recheck"))
 
     j = (triggers.alias("t").join(followups.alias("f"), "patient_id")
          .where((F.col("f.fts") > F.col("t.trigger_ts")) &
@@ -381,10 +348,11 @@ def gold_protocol_adherence():
             .withColumn("measure_id", F.lit("PROTO_STEP3"))
             .withColumn("measurement_year", F.lit(MY))
             .withColumn("followup_days", F.datediff(F.col("followup_ts"), F.col("trigger_ts")))
+            # The trigger->recheck temporal MATCH (within 90d) is evidence assembly and stays here; the adherence
+            # RATE, MET/UNMET status, and the trailing-window DRIFT are derived live in protocol_adherence_metrics.
             .withColumn("followup_within_90d", F.col("followup_ts").isNotNull())
-            .withColumn("status", F.when(F.col("followup_ts").isNotNull(), F.lit("MET")).otherwise(F.lit("NOT_MET")))
             .select("patient_id", "measure_id", "measurement_year", "trigger_ts", "trigger_a1c",
-                    "followup_ts", "followup_type", "followup_days", "followup_within_90d", "status")
+                    "followup_ts", "followup_type", "followup_days", "followup_within_90d")
             .join(_roster(), "patient_id", "left"))
 
 
@@ -427,10 +395,10 @@ def gold_adherence_mad():
             .withColumn("measurement_year", F.lit(MY))
             .withColumn("period_start", my_start).withColumn("period_end", my_end)
             .withColumn("eligible_flag", F.lit(True))
-            .withColumn("numerator_flag", F.col("pdc") >= F.lit(0.8))
-            .withColumn("status", F.when(F.col("pdc") >= F.lit(0.8), F.lit("MET")).otherwise(F.lit("NOT_MET")))
+            # Evidence only (per-patient PDC = covered/period, a ratio-of-sums); the PDC>=0.8 numerator + status
+            # are derived live in mad_compliance_metrics.
             .select("patient_id", "measure_id", "measurement_year", "period_start", "period_end", "age",
-                    "eligible_flag", "fills", "covered_days", "period_days", "pdc", "numerator_flag", "status")
+                    "eligible_flag", "fills", "covered_days", "period_days", "pdc")
             .join(_roster(), "patient_id", "left"))
 
 
@@ -480,11 +448,11 @@ def gold_adherence_ssd():
             .withColumn("smi_dx", F.lit(True))
             .withColumn("antipsychotic_dispensed", F.lit(True))
             .withColumn("excluded_preexisting_dm", F.lit(False))   # eligible rows have already passed the exclusion
-            .withColumn("numerator_flag", screened_valid)
-            .withColumn("status", F.when(screened_valid, F.lit("MET")).otherwise(F.lit("NOT_MET")))
+            # Evidence only: evidence_datetime/code are populated iff a VALID SSD screen occurred (screen in the
+            # value set, in MY). The "screened" numerator + status are derived live in ssd_compliance_metrics.
             .withColumn("evidence_datetime", F.when(screened_valid, F.col("screen_ts")))
             .withColumn("evidence_code", F.when(screened_valid, F.col("screen_loinc")))
             .select("patient_id", "measure_id", "measurement_year", "period_start", "period_end", "age",
                     "eligible_flag", "smi_dx", "antipsychotic_dispensed", "excluded_preexisting_dm",
-                    "numerator_flag", "status", "smi_dx_code", "antipsychotic_rxnorm", "antipsychotic_desc",
+                    "smi_dx_code", "antipsychotic_rxnorm", "antipsychotic_desc",
                     "evidence_datetime", "evidence_code", "clinic_id", "panel_id"))

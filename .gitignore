@@ -20,3 +20,8 @@ context/terminology/data/
 secrets.*
 .DS_Store
 docs/benchmark/a1_runs/raw_sample_*.jsonl
+
+# Local MLflow eval runs + local agent tooling (not source)
+mlflow.db
+mlruns/
+.isaac/

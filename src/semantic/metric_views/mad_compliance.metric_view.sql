@@ -23,7 +23,7 @@ dimensions:
     synonyms: [panel, pcp panel, provider panel, care team]
     display_name: Panel
   - name: Adherence Status
-    expr: status
+    expr: "CASE WHEN pdc >= 0.8 THEN 'MET' ELSE 'NOT_MET' END"
     comment: "MET = PDC >= 80%; NOT_MET = PDC < 80% (a refill-gap / adherence gap)."
     synonyms: [status, adherence status, pdc status]
     display_name: Adherence Status
@@ -39,7 +39,7 @@ measures:
     display_name: Eligible Patients
     format: {type: number, decimal_places: {type: exact, places: 0}}
   - name: Adherent Patients
-    expr: COUNT(1) FILTER (WHERE numerator_flag)
+    expr: "COUNT(1) FILTER (WHERE pdc >= 0.8)"
     comment: "Patients with PDC >= 80% (the numerator)."
     synonyms: [numerator, adherent, patients adherent, met]
     display_name: Adherent Patients

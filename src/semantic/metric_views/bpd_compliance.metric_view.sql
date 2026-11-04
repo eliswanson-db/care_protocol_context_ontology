@@ -15,7 +15,7 @@ dimensions:
     synonyms: [year, reporting year, MY]
     display_name: Measurement Year
   - name: Compliance Status
-    expr: status
+    expr: "CASE WHEN systolic < 140 AND diastolic < 90 THEN 'MET' ELSE 'NOT_MET' END"
     comment: "MET = latest measurement-year BP is controlled (<140/90); NOT_MET = uncontrolled or no reading."
     synonyms: [status, met status, adherence status, gap status, bp control status]
     display_name: Compliance Status
@@ -30,7 +30,7 @@ dimensions:
     synonyms: [panel, pcp panel, provider panel, care team]
     display_name: Panel
   - name: Gap Reason
-    expr: COALESCE(gap_reason, 'Met')
+    expr: "CASE WHEN systolic < 140 AND diastolic < 90 THEN 'Met' WHEN bp_datetime IS NULL THEN 'No BP reading in measurement year' ELSE 'BP not controlled (>=140/90)' END"
     comment: "Why the patient is a care gap (NOT_MET); 'Met' when compliant. Group care gaps by reason."
     synonyms: [gap reason, reason, care gap reason, why gap]
     display_name: Gap Reason
@@ -58,7 +58,7 @@ measures:
       type: number
       decimal_places: {type: exact, places: 0}
   - name: Controlled Patients
-    expr: COUNT(1) FILTER (WHERE numerator_flag)
+    expr: "COUNT(1) FILTER (WHERE systolic < 140 AND diastolic < 90)"
     comment: "Eligible patients whose most recent measurement-year BP reading is controlled (<140/90) -- the numerator."
     synonyms: [numerator, controlled count, patients met, bp controlled]
     display_name: Controlled Patients

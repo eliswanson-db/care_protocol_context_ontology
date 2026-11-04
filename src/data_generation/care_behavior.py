@@ -42,11 +42,10 @@ N_PANELS = 40
 N_CLINICS = 8                     # ~5 panels/clinic -> the disrupted clinic has enough triggers to show drift
 MY = 2025
 MY_START, MY_END = f"{MY}-01-01", f"{MY}-12-31"
-A1C_TRIGGER = 7.0
+A1C_TRIGGER = 9.0                 # poor control (the KP story's threshold)
 FOLLOWUP_DAYS = 90
 TRANSITION_DATE = f"{MY}-07-15"
 GAP_RECOVERY_DAYS = 150
-RECHECK_TAG = "Hemoglobin A1c (recheck)"
 
 FU_B0 = 0.20                      # baseline timely-follow-up ~ logistic(0.20) ≈ 55%
 FU_BE = 1.30
@@ -129,17 +128,40 @@ def main():
                .withColumn("modeled_a1c", F.when(u("ctrl", "patient_id") >= F.col("p_ctrl"),
                                                  F.round(F.lit(9.3) + u("ctrlv", "patient_id") * F.lit(2.4), 1))))
 
-    # ---------- triggers = RECORDED bronze high A1c (values untouched) ----------
+    # ---------- HbA1c stream: calibrated, quarterly, and causally consistent with the follow-up model ----------
+    # Raw Synthea A1c is clinically implausible (MY median ~4.3%, min 2.3% for DIABETICS) and roughly monthly. The
+    # effective feed therefore (1) keeps one reading per patient per quarter (realistic diabetic monitoring),
+    # (2) re-levels each patient's series to a plausible band while keeping their own reading-to-reading
+    # variation -- poor-control patients around their modeled 9.3-11.7%, other cohort patients 6.0-8.6%,
+    # non-diabetics 5.0-5.8% -- and (3) makes Step-3 follow-up REAL: a trigger (A1c >= 9) that is not followed up
+    # has no A1c in the next 90 days (those readings are removed); a followed trigger has one (kept, or emitted
+    # if the quarterly cadence left the window empty). The measure then counts ANY A1c within 90 days -- no tags.
     a1c_codes = (spark.table(f"{term}.loinc_parts")
                  .where((F.col("part") == "LP-HBA1C") & (F.col("predicate") == "has_component"))
                  .select("loinc_code").distinct())
     a1c_list = [r["loinc_code"] for r in a1c_codes.collect()]
-    recheck_code = a1c_list[0]
     obs = spark.table(f"{g}.bronze_order_results")
-    a1c = (obs.where(F.col("loinc_code").isin(a1c_list)).where(F.year("result_ts") == MY)
-           .withColumn("value_num", F.expr("try_cast(value as double)")))
-    triggers = (a1c.where(F.col("value_num") >= A1C_TRIGGER).join(cohort, "patient_id")
-                .select("patient_id", F.col("result_ts").alias("trigger_ts"), F.col("value_num").alias("trigger_a1c"), F.col("units"))
+    is_a1c = F.coalesce(F.col("loinc_code").isin(a1c_list), F.lit(False))
+    non_a1c = obs.where(~is_a1c)
+    raw = obs.where(is_a1c).withColumn("v", F.expr("try_cast(value as double)")).where(F.col("v").isNotNull())
+
+    wq = Window.partitionBy("patient_id", F.year("result_ts"), F.quarter("result_ts")).orderBy("result_ts")
+    q = raw.withColumn("rn", F.row_number().over(wq)).where("rn = 1").drop("rn")
+    pmean = q.groupBy("patient_id").agg(F.avg("v").alias("pm"))
+    tgt = (q.select("patient_id").distinct()
+           .join(control.select("patient_id", "glycemic_poor", "modeled_a1c"), "patient_id", "left")
+           .withColumn("target",
+                       F.when(F.col("glycemic_poor") == F.lit(True), F.col("modeled_a1c"))
+                        .when(F.col("glycemic_poor").isNotNull(), F.lit(6.0) + u("a1ct", "patient_id") * F.lit(2.6))
+                        .otherwise(F.lit(5.0) + u("a1cn", "patient_id") * F.lit(0.8)))
+           .select("patient_id", "target"))
+    cal = (q.join(pmean, "patient_id").join(tgt, "patient_id")
+           .withColumn("v_cal", F.round(F.greatest(F.lit(4.2), F.least(
+               F.lit(14.0), F.col("target") + (F.col("v") - F.col("pm")) * F.lit(1.5))), 1)))
+
+    triggers = (cal.where((F.year("result_ts") == MY) & (F.col("v_cal") >= A1C_TRIGGER)).join(cohort, "patient_id")
+                .select("patient_id", F.col("result_ts").alias("trigger_ts"), F.col("v_cal").alias("trigger_a1c"),
+                        "units", "loinc_code", "description", "target")
                 .join(roster.select("patient_id", "engagement", "c_std", "u_panel", "panel_id", "clinic_id", "is_handoff"), "patient_id"))
 
     days_since = F.datediff(F.col("trigger_ts"), F.to_date(F.lit(TRANSITION_DATE)))
@@ -152,18 +174,31 @@ def main():
     triggers = (triggers.withColumn("p_fu", sig(logit_fu))
                 .withColumn("followed", u("fu", "patient_id", "trigger_ts") < F.col("p_fu")))
 
-    # Followed -> a MARKED recheck A1c at offset 14..85d (excluded from triggers by its description).
-    followed = (triggers.where("followed")
-                .withColumn("off_days", F.lit(14) + (u("off", "patient_id", "trigger_ts") * F.lit(71)).cast("int"))
-                .withColumn("followup_ts", F.expr("trigger_ts + make_interval(0,0,0, off_days, 0,0,0)")))
-    recheck_rows = (followed
-                    .withColumn("rc_val", F.round(F.lit(6.7) + unorm("rcval", "patient_id", "trigger_ts") * F.lit(0.6), 1))
-                    .select("patient_id", F.lit(None).cast("string").alias("encounter_id"),
-                            F.col("followup_ts").cast("timestamp").alias("result_ts"), F.lit(recheck_code).alias("loinc_code"),
-                            F.lit(RECHECK_TAG).alias("description"),
-                            F.col("rc_val").cast("string").alias("value"),
-                            F.coalesce(F.col("units"), F.lit("%")).alias("units")))
-    care_order_results = obs.unionByName(recheck_rows)
+    # Not followed up -> no A1c in (trigger, trigger + 90d]: remove those readings.
+    in_window = lambda ts, t0: (ts > t0) & (F.datediff(ts, t0) <= F.lit(FOLLOWUP_DAYS))
+    nf = triggers.where(~F.col("followed")).select("patient_id", F.col("trigger_ts").alias("t0"))
+    dropped = (cal.join(nf, "patient_id").where(in_window(F.col("result_ts"), F.col("t0")))
+               .select("patient_id", "result_ts").distinct())
+    kept = cal.join(dropped, ["patient_id", "result_ts"], "left_anti")
+    # A trigger removed by an EARLIER missed follow-up no longer exists (it was never drawn); the rest stand.
+    triggers = triggers.join(dropped.withColumnRenamed("result_ts", "trigger_ts"), ["patient_id", "trigger_ts"], "left_anti")
+
+    # Followed up -> there is an A1c in the window: keep the quarterly one if present, else emit one at 14..85d,
+    # lower than the trigger (therapy was intensified) and below the 9% line so it doesn't open a new obligation.
+    has_fu = (triggers.where("followed").alias("t")
+              .join(kept.select("patient_id", F.col("result_ts").alias("ts")).alias("k"), "patient_id")
+              .where(in_window(F.col("k.ts"), F.col("t.trigger_ts"))).select("patient_id", "trigger_ts").distinct())
+    need = triggers.where("followed").join(has_fu, ["patient_id", "trigger_ts"], "left_anti")
+    emitted = (need
+               .withColumn("off_days", F.lit(14) + (u("off", "patient_id", "trigger_ts") * F.lit(71)).cast("int"))
+               .withColumn("result_ts", F.expr("trigger_ts + make_interval(0,0,0, off_days, 0,0,0)").cast("timestamp"))
+               .withColumn("v_cal", F.round(F.least(F.lit(8.8), F.col("target") - F.lit(1.5)
+                                                     + unorm("rcval", "patient_id", "trigger_ts") * F.lit(0.3)), 1))
+               .select("patient_id", F.lit(None).cast("string").alias("encounter_id"), "result_ts", "loinc_code",
+                       "description", F.col("v_cal").cast("string").alias("value"),
+                       F.coalesce(F.col("units"), F.lit("%")).alias("units")))
+    a1c_out = kept.withColumn("value", F.col("v_cal").cast("string")).select(*obs.columns)
+    care_order_results = non_a1c.unionByName(a1c_out).unionByName(emitted.select(*obs.columns))
 
     # ---------- medication fills with realistic gaps (continuous PDC) ----------
     biguanide = (spark.table(f"{term}.rxnorm_closure").where(F.col("ancestor_code") == "DRUGCLASS-BIGUANIDE")
@@ -247,7 +282,13 @@ def main():
                  F.avg((F.col("pdc") >= 0.8).cast("int")).alias("adh")).collect()[0]
     print(f"\nMAD PDC: p10={ps['p10']:.2f} p50={ps['p50']:.2f} p90={ps['p90']:.2f} mean={ps['mean']:.2f} adherent(>=0.8)={ps['adh']:.1%}")
     pc = control.join(cohort, "patient_id").agg(F.avg(F.col("glycemic_poor").cast("int"))).collect()[0][0]
-    print(f"Poor control (glycemic_poor attribute, read by GSD as a1c_gt9): {pc:.1%}  (target ~15-20%)")
+    print(f"Poor control (glycemic_poor attribute): {pc:.1%}  (target ~15-20%)")
+    dist = (a1c_out.join(cohort, "patient_id").where(F.year("result_ts") == MY)
+            .withColumn("v", F.col("value").cast("double"))
+            .agg(F.count("*").alias("n"), F.expr("percentile(v,0.05)").alias("p05"), F.expr("percentile(v,0.5)").alias("p50"),
+                 F.expr("percentile(v,0.95)").alias("p95"), F.countDistinct("patient_id").alias("pts")).collect()[0])
+    print(f"Cohort HbA1c MY{MY} (calibrated, quarterly): n={dist['n']} patients={dist['pts']} "
+          f"p05={dist['p05']:.1f} p50={dist['p50']:.1f} p95={dist['p95']:.1f}  emitted rechecks={emitted.count()}")
     print("\n============ care_order_* + panel_roster written. ============")
 
 

@@ -15,7 +15,7 @@ dimensions:
     synonyms: [year, reporting year, MY]
     display_name: Measurement Year
   - name: Compliance Status
-    expr: status
+    expr: "CASE WHEN evidence_datetime IS NOT NULL THEN 'MET' ELSE 'NOT_MET' END"
     comment: "MET = a statin was dispensed in the measurement year; NOT_MET = no statin (care gap)."
     synonyms: [status, met status, adherence status, gap status]
     display_name: Compliance Status
@@ -30,7 +30,7 @@ dimensions:
     synonyms: [panel, pcp panel, provider panel, care team]
     display_name: Panel
   - name: Gap Reason
-    expr: COALESCE(gap_reason, 'Met')
+    expr: "CASE WHEN evidence_datetime IS NOT NULL THEN 'Met' ELSE 'No statin dispensed in measurement year' END"
     comment: "Why the patient is a care gap (NOT_MET); 'Met' when compliant. Group care gaps by reason."
     synonyms: [gap reason, reason, care gap reason, why gap]
     display_name: Gap Reason
@@ -58,7 +58,7 @@ measures:
       type: number
       decimal_places: {type: exact, places: 0}
   - name: On Statin Patients
-    expr: COUNT(1) FILTER (WHERE numerator_flag)
+    expr: "COUNT(1) FILTER (WHERE evidence_datetime IS NOT NULL)"
     comment: "Eligible patients dispensed a statin in the measurement year (the numerator)."
     synonyms: [numerator, on statin, statin count, patients on statin, patients met]
     display_name: On Statin Patients
