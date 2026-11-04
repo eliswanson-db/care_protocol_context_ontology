@@ -1,8 +1,13 @@
 import { ChevronRight, CornerDownRight, Sparkles } from "lucide-react";
 import type { Claim } from "../api";
-import { MODES } from "./RetrievalModes";
 
-const MODE_LABEL: Record<string, string> = Object.fromEntries(MODES.map((m) => [m.id, m.label]));
+const MODE_LABEL: Record<string, string> = {
+  metric_view: "Metric View",
+  closure: "Closure table",
+  genie_ontology: "Genie One + Ontology",
+  rag: "A4 Lakebase RAG",
+  graph: "Ontobricks graph",
+};
 
 export function AnswerPanel({
   question,
@@ -21,12 +26,12 @@ export function AnswerPanel({
 
   return (
     <div className="rounded-xl border border-border bg-surface p-4">
-      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted">
+      <div className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-wide text-muted">
         <Sparkles className="h-4 w-4 text-primary" /> Modeled answer
       </div>
-      <p className="mt-2 text-sm font-medium">{question}</p>
+      <p className="mt-2 text-base font-semibold">{question}</p>
 
-      <p className="mt-3 text-[15px] leading-7">
+      <p className="mt-3 text-[18px] leading-8">
         {claims.map((c) => {
           const on = c.id === activeClaimId;
           return (
@@ -35,7 +40,7 @@ export function AnswerPanel({
               <button
                 onClick={() => onSelect(on ? null : c.id)}
                 className={[
-                  "mx-0.5 inline rounded px-1.5 py-0.5 text-sm font-semibold transition",
+                  "mx-0.5 inline rounded px-1.5 py-0.5 text-[17px] font-semibold transition",
                   on ? "bg-primary text-white" : "bg-primary/12 text-primary hover:bg-primary/20",
                 ].join(" ")}
               >

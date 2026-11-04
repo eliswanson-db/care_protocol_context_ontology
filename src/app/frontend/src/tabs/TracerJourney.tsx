@@ -1,21 +1,37 @@
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, ChevronDown } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { api, type GenieResult, type Journey, type RagResult, type Tracer } from "../api";
+import { api, type GenieResult, type Journey, type OntobricksResult, type RagResult, type RetrievalResult, type Tracer } from "../api";
 import { AnswerPanel } from "../components/AnswerPanel";
 import { FlowDiagram } from "../components/FlowDiagram";
-import { GenieLive, type GenieStatus } from "../components/GenieLive";
 import { NodeDetail } from "../components/NodeDetail";
-import { RagLive, type RagStatus } from "../components/RagLive";
-import { RetrievalModes } from "../components/RetrievalModes";
+import { RetrievalRow, type LiveStatus } from "../components/RetrievalRow";
 import { TracerPicker } from "../components/TracerPicker";
 
-function SectionLabel({ n, title, hint }: { n: string; title: string; hint: string }) {
+function Section({
+  n,
+  title,
+  hint,
+  open,
+  onToggle,
+  children,
+}: {
+  n: string;
+  title: string;
+  hint: string;
+  open: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="mb-3 flex items-baseline gap-2">
-      <span className="text-[11px] font-semibold text-primary">{n}</span>
-      <h2 className="text-sm font-semibold">{title}</h2>
-      <span className="text-xs text-muted">{hint}</span>
-    </div>
+    <section>
+      <button onClick={onToggle} className="mb-3.5 flex w-full items-center gap-2.5 text-left">
+        <ChevronDown className={`h-4 w-4 shrink-0 text-muted transition ${open ? "" : "-rotate-90"}`} />
+        <span className="rounded bg-primary/15 px-1.5 py-0.5 text-[12px] font-bold text-primary">{n}</span>
+        <h2 className="text-[17px] font-bold tracking-tight">{title}</h2>
+        <span className="truncate text-[13px] text-muted">{hint}</span>
+      </button>
+      {open && children}
+    </section>
   );
 }
 
@@ -23,14 +39,19 @@ export function TracerJourney() {
   const [tracers, setTracers] = useState<Tracer[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [journey, setJourney] = useState<Journey | null>(null);
+  const [retrieval, setRetrieval] = useState<RetrievalResult | null>(null);
   const [loadingList, setLoadingList] = useState(true);
   const [loadingJourney, setLoadingJourney] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [open, setOpen] = useState<Record<string, boolean>>({ build: true, retrieval: false, answer: false });
+  const toggle = (k: string) => setOpen((o) => ({ ...o, [k]: !o[k] }));
+
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [activeClaim, setActiveClaim] = useState<string | null>(null);
 
-  const [genieStatus, setGenieStatus] = useState<GenieStatus>("idle");
+  const [genieStatus, setGenieStatus] = useState<LiveStatus>("idle");
   const [genieResult, setGenieResult] = useState<GenieResult | null>(null);
   const [genieError, setGenieError] = useState<string | null>(null);
 
@@ -49,7 +70,7 @@ export function TracerJourney() {
       });
   };
 
-  const [ragStatus, setRagStatus] = useState<RagStatus>("idle");
+  const [ragStatus, setRagStatus] = useState<LiveStatus>("idle");
   const [ragResult, setRagResult] = useState<RagResult | null>(null);
   const [ragError, setRagError] = useState<string | null>(null);
 
@@ -65,6 +86,25 @@ export function TracerJourney() {
       .catch((e) => {
         setRagError(String(e));
         setRagStatus("error");
+      });
+  };
+
+  const [graphStatus, setGraphStatus] = useState<LiveStatus>("idle");
+  const [graphResult, setGraphResult] = useState<OntobricksResult | null>(null);
+  const [graphError, setGraphError] = useState<string | null>(null);
+
+  const askGraph = () => {
+    if (!selected) return;
+    setGraphStatus("loading");
+    setGraphError(null);
+    api.ontobricks(selected)
+      .then((r) => {
+        setGraphResult(r);
+        setGraphStatus("done");
+      })
+      .catch((e) => {
+        setGraphError(String(e));
+        setGraphStatus("error");
       });
   };
 
@@ -90,10 +130,17 @@ export function TracerJourney() {
     setRagStatus("idle");
     setRagResult(null);
     setRagError(null);
+    setGraphStatus("idle");
+    setGraphResult(null);
+    setGraphError(null);
+    setRetrieval(null);
     api.journey(selected)
       .then(setJourney)
       .catch((e) => setError(String(e)))
       .finally(() => setLoadingJourney(false));
+    api.retrieval(selected)
+      .then(setRetrieval)
+      .catch(() => setRetrieval(null));
   }, [selected]);
 
   const picked = tracers.find((t) => t.patient_id === selected);
@@ -110,19 +157,41 @@ export function TracerJourney() {
 
   return (
     <div className="flex min-h-0 flex-1">
-      <TracerPicker tracers={tracers} selected={selected} onSelect={setSelected} loading={loadingList} />
+      <TracerPicker
+        tracers={tracers}
+        selected={selected}
+        onSelect={setSelected}
+        loading={loadingList}
+        collapsed={!sidebarOpen}
+        onToggle={() => setSidebarOpen((v) => !v)}
+      />
       <main className="min-w-0 flex-1 overflow-y-auto px-6 py-5">
         {picked && (
-          <div className="mb-5">
-            <h1 className="text-lg font-semibold">Follow one patient from raw code to governed answer</h1>
-            <p className="mt-1 text-sm text-muted">
-              Patient <span className="font-mono">{picked.patient_id.slice(0, 8)}</span> ·{" "}
-              <span className="font-mono text-primary">{picked.dx_code}</span> {picked.dx_desc} · {picked.clinic_id} ·{" "}
-              <span className={picked.status === "NOT_MET" ? "font-semibold text-destructive" : "font-semibold text-success"}>
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold tracking-tight">Follow one patient from raw code to governed answer</h1>
+            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-border bg-surface px-4 py-3">
+              <span className="font-mono text-xl font-bold">{picked.patient_id.slice(0, 8)}</span>
+              <span className="rounded-md bg-primary/15 px-2.5 py-1 font-mono text-base font-semibold text-primary">
+                {picked.dx_code}
+              </span>
+              <span className="text-[15px] text-muted">{picked.dx_desc}</span>
+              <span className="text-[15px] font-medium text-muted">· {picked.clinic_id} · age {picked.age}</span>
+              <span
+                className={[
+                  "ml-auto rounded-full px-3.5 py-1.5 text-sm font-bold",
+                  picked.status === "NOT_MET"
+                    ? "bg-destructive/15 text-destructive"
+                    : "bg-success/15 text-success",
+                ].join(" ")}
+              >
                 GSD {picked.status}
               </span>
-              {picked.gap_reason ? ` — ${picked.gap_reason}` : ""}
-            </p>
+            </div>
+            {picked.gap_reason && (
+              <p className="mt-2 text-[14px] text-muted">
+                Care gap: <span className="font-medium text-fg">{picked.gap_reason}</span>
+              </p>
+            )}
           </div>
         )}
 
@@ -141,9 +210,14 @@ export function TracerJourney() {
         )}
 
         {!loadingJourney && !error && journey && (
-          <div className="space-y-7">
-            <section>
-              <SectionLabel n="01" title="The build" hint="one record through every semantic layer — click a node" />
+          <div className="space-y-6">
+            <Section
+              n="01"
+              title="The build"
+              hint="raw code → bronze → silver → gold → ontology · click a node"
+              open={open.build}
+              onToggle={() => toggle("build")}
+            >
               <FlowDiagram
                 stages={journey.stages}
                 activePath={activePath}
@@ -153,22 +227,35 @@ export function TracerJourney() {
                   setSelectedNode((cur) => (cur === k ? null : k));
                 }}
               />
-              {detailStage && <NodeDetail stage={detailStage} onClose={() => setSelectedNode(null)} />}
-            </section>
+              {detailStage && selected && (
+                <NodeDetail key={`${selected}-${detailStage.key}`} stage={detailStage} patientId={selected}
+                  onClose={() => setSelectedNode(null)} />
+              )}
+            </Section>
 
-            <section>
-              <SectionLabel n="02" title="Retrieval" hint="five ways to answer the same question — value · impact · mode" />
-              <RetrievalModes
+            <Section
+              n="02"
+              title="Retrieval — the same question, five ways"
+              hint="metric view · closure · Genie · RAG · graph"
+              open={open.retrieval}
+              onToggle={() => toggle("retrieval")}
+            >
+              <RetrievalRow
+                retrieval={retrieval}
                 activeModes={activeModes}
-                onAskGenie={askGenie}
-                genieBusy={genieStatus === "loading"}
-                onAskRag={askRag}
-                ragBusy={ragStatus === "loading"}
+                genie={{ status: genieStatus, result: genieResult, error: genieError, onAsk: askGenie }}
+                rag={{ status: ragStatus, result: ragResult, error: ragError, onAsk: askRag }}
+                graph={{ status: graphStatus, result: graphResult, error: graphError, onAsk: askGraph }}
               />
-            </section>
+            </Section>
 
-            <section>
-              <SectionLabel n="03" title="The answer" hint="model a question, then trace any claim back to source" />
+            <Section
+              n="03"
+              title="The answer"
+              hint="trace any claim back to its source"
+              open={open.answer}
+              onToggle={() => toggle("answer")}
+            >
               <AnswerPanel
                 question={journey.answer.question}
                 claims={journey.answer.claims}
@@ -179,17 +266,7 @@ export function TracerJourney() {
                 }}
                 stageTitle={stageTitle}
               />
-            </section>
-
-            <section>
-              <SectionLabel n="04" title="Genie One, live" hint="the same answer via natural language — grounded + cited" />
-              <GenieLive status={genieStatus} result={genieResult} error={genieError} onAsk={askGenie} />
-            </section>
-
-            <section>
-              <SectionLabel n="05" title="A4 RAG, live" hint="the care-protocol passage behind the rule — RLS-governed" />
-              <RagLive status={ragStatus} result={ragResult} error={ragError} onAsk={askRag} />
-            </section>
+            </Section>
           </div>
         )}
 

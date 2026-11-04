@@ -45,7 +45,7 @@ export const MODES: ModeDef[] = [
     mode: "Hybrid BM25 + vector retrieval over care-protocol docs (doc-level RLS)",
     value: "Returns the exact protocol passage behind the rule",
     impact: "Grounds the answer in the source document; row-secured",
-    live: false,
+    live: true,
   },
   {
     id: "graph",

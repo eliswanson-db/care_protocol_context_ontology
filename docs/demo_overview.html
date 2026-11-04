@@ -1,0 +1,381 @@
+<title>Care Protocol Context</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap');
+
+/* Layout: full-bleed slide deck, one slide at a time, fixed bottom nav. Dark data-room feel, both themes. */
+:root {
+  --bg: #f6f8fb;
+  --surface: #ffffff;
+  --surface-2: #eef1f6;
+  --border: #dde2ea;
+  --fg: #141922;
+  --muted: #586274;
+  --accent: #2272b4;
+  --c-metric: #2a78d6;
+  --c-closure: #1baf7a;
+  --c-genie: #6250d6;
+  --c-rag: #b57400;
+  --c-graph: #d55181;
+  --t-source: #6b7280;
+  --t-bronze: #a9712f;
+  --t-silver: #7c8595;
+  --t-gold: #b6861a;
+  --t-serving: #2272b4;
+  --good: #0ca30c;
+  --bad: #d03b3b;
+  --font-display: "Archivo", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b0e13; --surface: #12161d; --surface-2: #1a202a; --border: #2a313d;
+    --fg: #eef2f8; --muted: #aeb8c6; --accent: #4a9eda;
+    --c-metric: #3987e5; --c-closure: #22b48f; --c-genie: #9085e9; --c-rag: #d1a033; --c-graph: #e0769f;
+    --t-source: #8a94a6; --t-bronze: #c8904e; --t-silver: #aeb8c6; --t-gold: #dbaa3e; --t-serving: #4a9eda;
+    --good: #3fb950; --bad: #f06d6d;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b0e13; --surface: #12161d; --surface-2: #1a202a; --border: #2a313d;
+  --fg: #eef2f8; --muted: #aeb8c6; --accent: #4a9eda;
+  --c-metric: #3987e5; --c-closure: #22b48f; --c-genie: #9085e9; --c-rag: #d1a033; --c-graph: #e0769f;
+  --t-source: #8a94a6; --t-bronze: #c8904e; --t-silver: #aeb8c6; --t-gold: #dbaa3e; --t-serving: #4a9eda;
+  --good: #3fb950; --bad: #f06d6d;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); line-height: 1.5;
+  -webkit-font-smoothing: antialiased; }
+
+.deck { min-height: 100%; }
+.slide {
+  min-height: calc(100dvh - 86px);
+  display: flex; flex-direction: column; justify-content: center;
+  gap: 1.1rem;
+  max-width: 1040px; margin-inline: auto;
+  padding-left: max(20px, env(safe-area-inset-left, 0px));
+  padding-right: max(20px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 92px;
+}
+.eyebrow { font-family: var(--font-mono); font-size: .74rem; font-weight: 500; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--accent); }
+h1 { font-family: var(--font-display); font-weight: 800; font-size: clamp(2.1rem, 6vw, 3.6rem);
+  line-height: 1.04; letter-spacing: -0.02em; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--font-display); font-weight: 700; font-size: clamp(1.6rem, 4.2vw, 2.5rem);
+  line-height: 1.08; letter-spacing: -0.015em; margin: 0; text-wrap: balance; }
+p { margin: 0; max-width: 68ch; }
+.lead { font-size: clamp(1.05rem, 2.2vw, 1.35rem); color: var(--fg); }
+.sub { color: var(--muted); }
+strong { font-weight: 600; }
+.mono { font-family: var(--font-mono); }
+
+.chips { display: flex; flex-wrap: wrap; gap: .5rem; }
+.chip { font-family: var(--font-mono); font-size: .72rem; letter-spacing: .03em; color: var(--muted);
+  border: 1px solid var(--border); border-radius: 999px; padding: .28rem .66rem; background: var(--surface); }
+
+/* generic list of points with a leading accent tick */
+.points { display: flex; flex-direction: column; gap: .9rem; margin: 0; padding: 0; list-style: none; }
+.points li { display: grid; grid-template-columns: auto 1fr; gap: .7rem; align-items: start;
+  font-size: 1.02rem; }
+.points li::before { content: ""; width: .55rem; height: .55rem; border-radius: 2px; margin-top: .5rem;
+  background: var(--accent); }
+
+/* two-column panel (Learned / Modeled) */
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.panel { border: 1px solid var(--border); border-radius: 14px; background: var(--surface); padding: 1.1rem 1.2rem;
+  display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+.panel .k { font-family: var(--font-mono); font-size: .72rem; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--accent); }
+.panel h3 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 1.15rem; }
+
+/* demo map rows */
+.map { display: flex; flex-direction: column; gap: .55rem; }
+.map-row { display: grid; grid-template-columns: 2.1rem 1fr; gap: .8rem; align-items: baseline;
+  border-top: 1px solid var(--border); padding-top: .55rem; }
+.map-row .n { font-family: var(--font-mono); font-weight: 500; color: var(--accent); font-size: .95rem;
+  font-variant-numeric: tabular-nums; }
+.map-row .t { font-weight: 600; font-size: 1.05rem; }
+.map-row .d { color: var(--muted); font-weight: 400; }
+
+/* medallion flow */
+.flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: .4rem; }
+.phase { flex: 1 1 120px; min-width: 0; border: 1px solid var(--border); border-top: 3px solid var(--pc);
+  border-radius: 12px; background: var(--surface); padding: .7rem .7rem .8rem; display: flex; flex-direction: column; gap: .4rem; }
+.phase .pl { font-family: var(--font-mono); font-size: .64rem; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--pc); font-weight: 500; }
+.phase .pt { font-weight: 600; font-size: .92rem; line-height: 1.15; }
+.phase .pv { font-family: var(--font-mono); font-size: .76rem; color: var(--pc); background: color-mix(in srgb, var(--pc) 14%, transparent);
+  border-radius: 6px; padding: .2rem .4rem; align-self: flex-start; }
+
+/* approach cards */
+.cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: .7rem; }
+.card { border: 1px solid var(--border); border-top: 3px solid var(--cc); border-radius: 12px;
+  background: var(--surface); padding: .8rem .85rem; display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+.card .ct { display: flex; align-items: center; gap: .45rem; font-weight: 600; font-size: .98rem; }
+.card .dot { width: .6rem; height: .6rem; border-radius: 50%; background: var(--cc); flex: none; }
+.card .g, .card .b { font-size: .82rem; line-height: 1.35; color: var(--muted); display: grid;
+  grid-template-columns: 1rem 1fr; gap: .3rem; }
+.card .g b { color: var(--good); font-weight: 700; }
+.card .b b { color: var(--bad); font-weight: 700; }
+
+/* capability ladder */
+.ladder { display: flex; flex-direction: column; gap: .7rem; }
+.bar-row { display: grid; grid-template-columns: 11rem 1fr auto; gap: .8rem; align-items: center; }
+.bar-label { display: flex; align-items: center; gap: .5rem; font-weight: 600; font-size: .98rem; }
+.bar-label .dot { width: .7rem; height: .7rem; border-radius: 3px; flex: none; }
+.bar-track { height: 1.6rem; background: var(--surface-2); border-radius: 6px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 6px; }
+.bar-val { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: .92rem; color: var(--muted); }
+
+/* beats (sequence) */
+.beats { display: grid; grid-template-columns: repeat(4, 1fr); gap: .7rem; }
+.beat { border: 1px solid var(--border); border-radius: 12px; background: var(--surface); padding: .85rem .9rem;
+  display: flex; flex-direction: column; gap: .4rem; min-width: 0; }
+.beat .time { font-family: var(--font-mono); font-size: .72rem; letter-spacing: .04em; color: var(--accent); }
+.beat .bt { font-weight: 600; font-size: .98rem; line-height: 1.15; }
+.beat p { font-size: .84rem; color: var(--muted); }
+
+figure { margin: 0; }
+figcaption { color: var(--muted); font-size: .92rem; margin-top: .7rem; max-width: 72ch; }
+.disclaimer { font-family: var(--font-mono); font-size: .72rem; color: var(--muted); letter-spacing: .02em; }
+
+/* fixed nav bar */
+.navbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+  display: flex; align-items: center; gap: .8rem;
+  background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px);
+  border-top: 1px solid var(--border);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-top: 10px; padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
+.navbar button { font-family: var(--font-body); font-size: .9rem; font-weight: 600; color: var(--fg);
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: .4rem .8rem;
+  cursor: pointer; }
+.navbar button:hover { border-color: var(--accent); }
+.navbar button:disabled { opacity: .4; cursor: default; }
+.navbar button:focus-visible, .dot-nav button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.counter { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: .85rem; color: var(--muted); }
+.dot-nav { display: flex; gap: .4rem; margin-inline: auto; }
+.dot-nav button { padding: 0; width: .6rem; height: .6rem; border-radius: 50%; border: 1px solid var(--border);
+  background: var(--surface-2); }
+.dot-nav button[aria-current="true"] { background: var(--accent); border-color: var(--accent); }
+.theme-btn { margin-left: .2rem; }
+
+@media (max-width: 720px) {
+  .cols, .cards, .beats { grid-template-columns: 1fr; }
+  .cards { grid-template-columns: 1fr 1fr; }
+  .bar-row { grid-template-columns: 7.5rem 1fr auto; }
+  .dot-nav { display: none; }
+  .navbar .counter { margin-inline: auto; }
+}
+</style>
+
+<div class="deck">
+
+  <section class="slide">
+    <div class="eyebrow">Databricks · demo walkthrough</div>
+    <h1>Care Protocol Context &amp; Evidence Lab</h1>
+    <p class="lead">Semantics, ontology, and a governed context layer for HEDIS diabetes quality — shown end to end, from a raw diagnosis code to a cited, governed answer.</p>
+    <div class="chips">
+      <span class="chip">Kaiser Permanente scenario</span>
+      <span class="chip">Synthetic data</span>
+      <span class="chip">HEDIS-aligned</span>
+      <span class="chip">Not NCQA-certified</span>
+    </div>
+    <p class="sub mono" style="font-size:.8rem">Measurement year 2025 · one shared Unity Catalog</p>
+  </section>
+
+  <section class="slide" hidden>
+    <div class="eyebrow">Why it matters</div>
+    <h2>Quality is the margin now</h2>
+    <ul class="points">
+      <li>Value-based care ties revenue to outcomes. Diabetes carries <strong>two triple-weighted</strong> Star measures: blood-sugar control and medication adherence.</li>
+      <li>Care slips <strong>between visits</strong> — an A1c above target with no recheck, therapy not intensified, a refill gap, a panel that just changed PCPs.</li>
+      <li>Protocols drift quietly and surface <strong>after the measurement year closes</strong>, when little time is left to close the gap.</li>
+    </ul>
+  </section>
+
+  <section class="slide" hidden>
+    <div class="eyebrow">The idea</div>
+    <h2>One governed layer that knows the data</h2>
+    <div class="cols">
+      <div class="panel">
+        <span class="k">Learned</span>
+        <h3>From tables you already have</h3>
+        <p class="sub">Members, encounters, orders, labs and fills — conformed into the entities a question is actually about.</p>
+      </div>
+      <div class="panel">
+        <span class="k">Modeled</span>
+        <h3>Where it matters</h3>
+        <p class="sub">Protocol → step → expected event, plus certified Star metric views. The definitions a structured answer must obey.</p>
+      </div>
+    </div>
+    <p>Protocol steps and Star measures share the same <strong>member</strong>, so one question crosses from care delivery to the health plan. Unity Catalog carries the owners, lineage, row filters and column masks into every surface.</p>
+  </section>
+
+  <section class="slide" hidden>
+    <div class="eyebrow">What you'll see</div>
+    <h2>Five views, one throughline</h2>
+    <div class="map">
+      <div class="map-row"><span class="n">01</span><span><span class="t">Tracer Journey.</span> <span class="d">One patient from raw code to governed answer, through every layer.</span></span></div>
+      <div class="map-row"><span class="n">02</span><span><span class="t">Retrieval Arena.</span> <span class="d">The same question answered five ways, scored side by side.</span></span></div>
+      <div class="map-row"><span class="n">03</span><span><span class="t">Benchmark Scorecard.</span> <span class="d">Which approach gets which kind of question right, and wrong.</span></span></div>
+      <div class="map-row"><span class="n">04</span><span><span class="t">Drift Lab.</span> <span class="d">A Monday with Genie: catching a slipping protocol before the year closes.</span></span></div>
+      <div class="map-row"><span class="n">05</span><span><span class="t">Ontology Explorer.</span> <span class="d">The modeled clinical graph — measures, drug classes, labs, conditions.</span></span></div>
+    </div>
+  </section>
+
+  <section class="slide" hidden>
+    <div class="eyebrow">The throughline</div>
+    <h2>One patient, every layer</h2>
+    <figure>
+      <div class="flow">
+        <div class="phase" style="--pc:var(--t-source)"><span class="pl">Source</span><span class="pt">Protocol + EHR</span><span class="pv">GSD spec (PDF)</span></div>
+        <div class="phase" style="--pc:var(--t-bronze)"><span class="pl">Bronze</span><span class="pt">Raw code</span><span class="pv">E11.21</span></div>
+        <div class="phase" style="--pc:var(--t-silver)"><span class="pl">Silver</span><span class="pt">Conformed + subsumed</span><span class="pv">E11.21 ⊑ E11</span></div>
+        <div class="phase" style="--pc:var(--t-gold)"><span class="pl">Gold</span><span class="pt">HEDIS measure</span><span class="pv">NOT_MET</span></div>
+        <div class="phase" style="--pc:var(--t-serving)"><span class="pl">Serving</span><span class="pt">Metric view · Page</span><span class="pv">80% rate</span></div>
+      </div>
+      <figcaption>A real diabetes code resolves to the cohort by subsumption, becomes a measure verdict, and rolls into a governed rate. Every claim in the final answer traces back to the layer it came from.</figcaption>
+    </figure>
+  </section>
+
+  <section class="slide" hidden>
+    <div class="eyebrow">Five approaches</div>
+    <h2>The same question, five ways</h2>
+    <div class="cards">
+      <div class="card" style="--cc:var(--c-metric)">
+        <div class="ct"><span class="dot"></span>Metric View</div>
+        <div class="g"><b>✓</b><span>One certified number, shared by BI and Genie.</span></div>
+        <div class="b"><b>✗</b><span>Can't explain a single patient.</span></div>
+      </div>
+      <div class="card" style="--cc:var(--c-closure)">
+        <div class="ct"><span class="dot"></span>Closure table</div>
+        <div class="g"><b>✓</b><span>Correct cohort at any depth of the code tree.</span></div>
+        <div class="b"><b>✗</b><span>No narrative; must be pre-built.</span></div>
+      </div>
+      <div class="card" style="--cc:var(--c-genie)">
+        <div class="ct"><span class="dot"></span>Genie + Ontology</div>
+        <div class="g"><b>✓</b><span>Ask in English; grounded and cited.</span></div>
+        <div class="b"><b>✗</b><span>Non-deterministic; depends on context.</span></div>
+      </div>
+      <div class="card" style="--cc:var(--c-rag)">
+        <div class="ct"><span class="dot"></span>RAG</div>
+        <div class="g"><b>✓</b><span>The exact protocol passage, row-secured.</span></div>
+        <div class="b"><b>✗</b><span>Prose, not computation; can't count.</span></div>
+      </div>
+      <div class="card" style="--cc:var(--c-graph)">
+        <div class="ct"><span class="dot"></span>Ontobricks graph</div>
+        <div class="g"><b>✓</b><span>Typed, multi-hop, cross-vocabulary paths.</span></div>
+        <div class="b"><b>✗</b><span>Overkill for a simple rollup.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide" hidden>
+    <div class="eyebrow">Which tool, which question</div>
+    <h2>Each approach earns a different question</h2>
+    <figure>
+      <div class="ladder">
+        <div class="bar-row"><span class="bar-label"><span class="dot" style="background:var(--c-metric)"></span>Metric view</span><div class="bar-track"><div class="bar-fill" style="width:30%;background:var(--c-metric)"></div></div><span class="bar-val">6 / 20</span></div>
+        <div class="bar-row"><span class="bar-label"><span class="dot" style="background:var(--c-closure)"></span>Closure</span><div class="bar-track"><div class="bar-fill" style="width:75%;background:var(--c-closure)"></div></div><span class="bar-val">15 / 20</span></div>
+        <div class="bar-row"><span class="bar-label"><span class="dot" style="background:var(--c-genie)"></span>Genie + Ontology</span><div class="bar-track"><div class="bar-fill" style="width:85%;background:var(--c-genie)"></div></div><span class="bar-val">17 / 20</span></div>
+        <div class="bar-row"><span class="bar-label"><span class="dot" style="background:var(--c-rag)"></span>RAG</span><div class="bar-track"><div class="bar-fill" style="width:25%;background:var(--c-rag)"></div></div><span class="bar-val">5 / 20</span></div>
+        <div class="bar-row"><span class="bar-label"><span class="dot" style="background:var(--c-graph)"></span>Ontobricks graph</span><div class="bar-track"><div class="bar-fill" style="width:75%;background:var(--c-graph)"></div></div><span class="bar-val">15 / 20</span></div>
+      </div>
+      <figcaption>Questions answered correctly, out of 20 hard ones. Metric views cover the baked KPIs; the closure layer does subsumption and multi-hop; Genie orchestrates and reaches the most; RAG owns the prose definitions; only the graph reaches the variable-shape rationale path.</figcaption>
+    </figure>
+  </section>
+
+  <section class="slide" hidden>
+    <div class="eyebrow">A Monday with Genie</div>
+    <h2>The drift nobody asked about</h2>
+    <div class="beats">
+      <div class="beat"><span class="time">7:00 am</span><span class="bt">Noticed first</span><p>A scheduled Protocol Watch flags Step-3 (A1c recheck) slipping at two centers — before anyone opens a dashboard.</p></div>
+      <div class="beat"><span class="time">8:05 am</span><span class="bt">Root cause</span><p>The panels changed PCPs; the follow-up order set didn't transfer. A fix the system can make, not a training problem.</p></div>
+      <div class="beat"><span class="time">8:15 am</span><span class="bt">Sized</span><p>Both triple-weighted measures project to slip a star. 2,340 members are still closable before year end.</p></div>
+      <div class="beat"><span class="time">Next Mon</span><span class="bt">Closed the loop</span><p>The same watch checks whether the fix worked — every number from the same governed definitions.</p></div>
+    </div>
+    <p class="sub">The annual ranking points at the wrong clinic. Catching this needs each clinic compared to <strong>its own</strong> prior baseline, then explained through the panel and PCP history.</p>
+  </section>
+
+  <section class="slide" hidden>
+    <div class="eyebrow">Built to be trusted</div>
+    <h2>Governed, cited, synthetic</h2>
+    <ul class="points">
+      <li>Every answer <strong>cites its sources</strong> — the tables, documents and definitions it stands on, with lineage.</li>
+      <li>Row filters and column masks are defined once and <strong>follow the data</strong> into every surface, including scheduled briefs.</li>
+      <li>Analytics, not point-of-care. Comparisons are risk-adjusted, and <strong>clinicians review every recommendation</strong>.</li>
+    </ul>
+    <p class="lead">Three questions to take away: which protocol step would you most want watched every Monday? Who owns the definition of "adherence" for it? Which decision changes if you knew in week 3, not two months later?</p>
+    <p class="disclaimer">Synthetic data · HEDIS-aligned · not NCQA-certified · not for clinical use.</p>
+  </section>
+
+</div>
+
+<nav class="navbar" aria-label="Slides">
+  <button id="prev" type="button">Prev</button>
+  <div class="dot-nav" id="dots" role="tablist" aria-label="Go to slide"></div>
+  <span class="counter" id="counter">01 / 09</span>
+  <button id="next" type="button">Next</button>
+  <button id="theme" class="theme-btn" type="button" aria-label="Toggle light or dark">Theme</button>
+</nav>
+
+<script>
+(function () {
+  var slides = Array.prototype.slice.call(document.querySelectorAll(".slide"));
+  var i = 0;
+  var prev = document.getElementById("prev");
+  var next = document.getElementById("next");
+  var counter = document.getElementById("counter");
+  var dotsWrap = document.getElementById("dots");
+  var pad = function (n) { return (n < 10 ? "0" : "") + n; };
+
+  slides.forEach(function (s, k) {
+    var d = document.createElement("button");
+    d.type = "button";
+    d.setAttribute("role", "tab");
+    d.setAttribute("aria-label", "Slide " + (k + 1));
+    d.addEventListener("click", function () { show(k); });
+    dotsWrap.appendChild(d);
+  });
+  var dots = Array.prototype.slice.call(dotsWrap.children);
+
+  function show(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach(function (s, k) { s.hidden = (k !== i); });
+    dots.forEach(function (d, k) { d.setAttribute("aria-current", k === i ? "true" : "false"); });
+    counter.textContent = pad(i + 1) + " / " + pad(slides.length);
+    prev.disabled = i === 0;
+    next.disabled = i === slides.length - 1;
+    window.scrollTo(0, 0);
+  }
+
+  prev.addEventListener("click", function () { show(i - 1); });
+  next.addEventListener("click", function () { show(i + 1); });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "ArrowRight" || e.key === "PageDown") { show(i + 1); }
+    else if (e.key === "ArrowLeft" || e.key === "PageUp") { show(i - 1); }
+    else if (e.key === " ") { e.preventDefault(); show(i + 1); }
+    else if (e.key === "Home") { show(0); }
+    else if (e.key === "End") { show(slides.length - 1); }
+  });
+
+  // Presenter theme override (per-viewer convenience; falls back silently).
+  var themeBtn = document.getElementById("theme");
+  var root = document.documentElement;
+  try { var saved = localStorage.getItem("cpc_theme"); if (saved) root.setAttribute("data-theme", saved); } catch (e) {}
+  themeBtn.addEventListener("click", function () {
+    var dark = getComputedStyle(root).colorScheme.indexOf("dark") !== -1;
+    var nextTheme = dark ? "light" : "dark";
+    root.setAttribute("data-theme", nextTheme);
+    try { localStorage.setItem("cpc_theme", nextTheme); } catch (e) {}
+  });
+
+  show(0);
+})();
+</script>

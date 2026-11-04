@@ -17,6 +17,30 @@ export interface Tracer {
   dx_desc: string;
 }
 
+export interface StageSection {
+  label: string;
+  kind: "quote" | "kv" | "table" | "chain" | "triples" | "code" | "markdown" | "chips" | "path";
+  text?: string;
+  data?: Record<string, unknown>;
+  rows?: Record<string, unknown>[];
+  nodes?: { code: string; name: string; depth: number | string }[];
+  items?: string[];
+  steps?: { node: string; name: string; edge: string }[];
+  empty?: string;
+}
+export interface StageDetail {
+  key: string;
+  title: string;
+  patient_id: string;
+  what: string;
+  takeaway: string;
+  source: string | null;
+  sections: StageSection[];
+  queries: { label: string; sql: string }[];
+  warnings: string[];
+  latency_s: number;
+}
+
 export interface Stage {
   key: string;
   title: string;
@@ -93,6 +117,59 @@ export interface RagResult {
   embedded_chunks: number;
   ran_as: string;
   results: RagPassage[];
+  latency_s: number;
+}
+
+export interface RetrievalProvenance {
+  kind: string;
+  detail: string;
+}
+export interface RetrievalLens {
+  id: string;
+  label: string;
+  resolves_at: string;
+  question: string;
+  answer_rows: Record<string, unknown>[];
+  provenance: RetrievalProvenance[];
+  good_at: string;
+  blind_to: string;
+  latency_s: number;
+}
+export interface LiveLens {
+  id: string;
+  label: string;
+  deferred: true;
+  endpoint: string;
+  resolves_at: string;
+  question: string;
+  good_at: string;
+  blind_to: string;
+}
+export interface RetrievalResult {
+  patient_id: string;
+  measurement_year: number;
+  eligible_measures: string[];
+  deterministic_lenses: RetrievalLens[];
+  live_lenses: LiveLens[];
+}
+
+export interface OntTriple {
+  subject: string;
+  predicate: string;
+  object: string;
+}
+export interface OntobricksResult {
+  patient_id: string;
+  source: string;
+  table: string;
+  patient_triples: OntTriple[];
+  care_triples: OntTriple[];
+  latency_s: number;
+}
+export interface OntobricksCareEdges {
+  source: string;
+  table: string;
+  triples: OntTriple[];
   latency_s: number;
 }
 
@@ -175,8 +252,12 @@ export const api = {
   meta: () => get<Meta>("/api/meta"),
   tracers: () => get<{ measurement_year: number; tracers: Tracer[] }>("/api/tracers"),
   journey: (pid: string) => get<Journey>(`/api/patient/${pid}/journey`),
+  stage: (pid: string, key: string) => get<StageDetail>(`/api/patient/${pid}/stage/${key}`),
   genie: (pid: string) => get<GenieResult>(`/api/patient/${pid}/genie`),
   rag: (pid: string) => get<RagResult>(`/api/patient/${pid}/rag`),
+  retrieval: (pid: string) => get<RetrievalResult>(`/api/patient/${pid}/retrieval`),
+  ontobricks: (pid: string) => get<OntobricksResult>(`/api/patient/${pid}/ontobricks`),
+  ontobricksCareEdges: () => get<OntobricksCareEdges>("/api/ontobricks/care_edges"),
   capabilityMap: () => get<CapabilityMap>("/api/benchmark/capability_map"),
   a1Runs: () => get<A1Runs>("/api/benchmark/a1_runs"),
   drift: () => get<Drift>("/api/drift"),

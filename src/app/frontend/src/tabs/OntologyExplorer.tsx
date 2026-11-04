@@ -112,9 +112,9 @@ export function OntologyExplorer() {
       </aside>
 
       <main className="min-w-0 flex-1 overflow-y-auto px-6 py-5">
-        <div className="mb-3">
-          <h1 className="text-lg font-semibold">The modeled clinical graph</h1>
-          <p className="mt-1 text-sm text-muted">
+        <div className="mb-4">
+          <h1 className="text-2xl font-bold tracking-tight">The modeled clinical graph</h1>
+          <p className="mt-1.5 text-[15px] text-muted">
             Typed edges (<span className="font-mono">protocol_edges</span>) linking measures ↔ drug classes ↔ LOINC
             Parts ↔ conditions ↔ thresholds — the cross-domain relationships a closure table can't express. Click a
             node to walk the graph.

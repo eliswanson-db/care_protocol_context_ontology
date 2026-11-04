@@ -32,6 +32,13 @@ GENIE_SPACE_NAME = os.environ.get("CARE_GENIE_SPACE_NAME", "Care Protocol — HE
 LAKEBASE_ENDPOINT = os.environ.get("CARE_LAKEBASE_ENDPOINT", "projects/care-protocol/branches/production/endpoints/primary")
 LAKEBASE_SEARCH_EXT = os.environ.get("CARE_LAKEBASE_SEARCH_EXT", "1") == "1"
 
+# A5 Ontobricks — the LIVE published OWL triplestore (Eli-owned, ADR-0005). The app queries the asserted-triple
+# table directly. Defaults to the published clinical-domain v2 graph; override per workspace via env.
+ONTOBRICKS_CATALOG = os.environ.get("CARE_ONTOBRICKS_CATALOG", "eswanson_demo")
+ONTOBRICKS_SCHEMA = os.environ.get("CARE_ONTOBRICKS_SCHEMA", "ontobricks")
+ONTOBRICKS_TABLE = os.environ.get("CARE_ONTOBRICKS_TABLE", "triplestore_clinicaldomain_v2")
+ONTOBRICKS_NS = os.environ.get("CARE_ONTOBRICKS_NS", "https://care-protocol.example/ontology/")
+
 
 def get_profile() -> str | None:
     """CLI profile for local auth; None in Databricks Apps (ambient SP)."""

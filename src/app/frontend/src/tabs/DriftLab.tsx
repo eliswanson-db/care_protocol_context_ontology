@@ -67,17 +67,17 @@ export function DriftLab() {
 
   return (
     <main className="flex-1 overflow-y-auto px-6 py-5">
-      <div className="mb-5">
-        <h1 className="text-lg font-semibold">A Monday with Genie — the drift nobody asked about</h1>
-        <p className="mt-1 text-sm text-muted">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold tracking-tight">A Monday with Genie — the drift nobody asked about</h1>
+        <p className="mt-1.5 text-[15px] text-muted">
           Protocol Step-3 = an A1c recheck within 90 days of an at/above-target result. The annual ranking and the
-          operational question point at <span className="font-semibold">different clinics</span>. MY {d.measurement_year}.
+          operational question point at <span className="font-semibold text-fg">different clinics</span>. MY {d.measurement_year}.
         </p>
       </div>
 
       {/* Beat 1 — the trap */}
       <section className="mb-7">
-        <h2 className="mb-2 text-sm font-semibold">01 · The annual ranking (the trap)</h2>
+        <h2 className="mb-2.5 text-[17px] font-bold tracking-tight">01 · The annual ranking (the trap)</h2>
         <div className="space-y-1.5">
           {d.annual_ranking.map((r) => {
             const isAnnualWorst = r.clinic_id === d.annual_worst?.clinic_id;
@@ -105,8 +105,8 @@ export function DriftLab() {
       {/* Beat 2 — the watch noticed */}
       {d.worst && (
         <section className="mb-7">
-          <h2 className="mb-2 flex items-center gap-1.5 text-sm font-semibold">
-            <Bell className="h-4 w-4 text-warning" /> 02 · Nobody asked; the Weekly Protocol Watch noticed
+          <h2 className="mb-2.5 flex items-center gap-1.5 text-[17px] font-bold tracking-tight">
+            <Bell className="h-5 w-5 text-warning" /> 02 · Nobody asked; the Weekly Protocol Watch noticed
           </h2>
           <div className="rounded-xl border border-warning/40 bg-warning/5 p-4">
             <div className="flex flex-wrap items-center gap-3">
@@ -130,7 +130,7 @@ export function DriftLab() {
       {/* Beat 3 — trajectory */}
       {d.trajectory.length > 0 && d.worst && (
         <section className="mb-7">
-          <h2 className="mb-2 text-sm font-semibold">03 · {d.worst_clinic} monthly trajectory — the cliff</h2>
+          <h2 className="mb-2.5 text-[17px] font-bold tracking-tight">03 · {d.worst_clinic} monthly trajectory — the cliff</h2>
           <div className="rounded-xl border border-border bg-surface p-3">
             <TrajChart traj={d.trajectory} baseline={parseFloat(d.worst.baseline)} transitionMonth={d.transition?.transition_date ?? null} />
           </div>
@@ -139,8 +139,8 @@ export function DriftLab() {
 
       {/* Beat 4 — root cause */}
       <section className="mb-7">
-        <h2 className="mb-2 flex items-center gap-1.5 text-sm font-semibold">
-          <Stethoscope className="h-4 w-4 text-primary" /> 04 · Root cause (and ruling out the confound)
+        <h2 className="mb-2.5 flex items-center gap-1.5 text-[17px] font-bold tracking-tight">
+          <Stethoscope className="h-5 w-5 text-primary" /> 04 · Root cause (and ruling out the confound)
         </h2>
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           {d.transition && (

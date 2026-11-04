@@ -20,42 +20,85 @@
   --surface: #ffffff;
   --surface-2: #f0f2f5;
   --border: #e2e5ea;
-  --fg: #1b1f27;
-  --muted: #6b7280;
+  --fg: #141922;
+  --muted: #5a6475;
   --primary: #2272b4;
-  --success: #1a7f49;
+  --success: #0ca30c;
   --warning: #b4690e;
-  --destructive: #c23030;
+  --destructive: #d03b3b;
+  /* Retrieval approaches — validated categorical slots (light). Identity, not decoration. */
+  --lens-metric_view: #2a78d6;
+  --lens-closure: #1baf7a;
+  --lens-genie_ontology: #6250d6;
+  --lens-rag: #b57400;
+  --lens-graph: #d55181;
+  /* Medallion-tier accents (light). The bronze/silver/gold motif a data audience reads instantly. */
+  --tier-protocol: #6b7280;
+  --tier-bronze: #a9712f;
+  --tier-silver: #7c8595;
+  --tier-closure: #0e8a6e;
+  --tier-cohort: #0e8a6e;
+  --tier-gold: #b6861a;
+  --tier-metric: #2272b4;
+  --tier-page: #6250d6;
 }
 
 :root[data-theme="dark"] {
-  --bg: #0e1116;
+  --bg: #0b0e13;
   --surface: #161b22;
   --surface-2: #1c2230;
-  --border: #2a313c;
-  --fg: #e6e9ef;
-  --muted: #9aa4b2;
+  --border: #2d3542;
+  --fg: #f0f3f8;
+  --muted: #aeb8c6;
   --primary: #4a9eda;
   --success: #3fb950;
   --warning: #d29922;
   --destructive: #f06d6d;
+  --lens-metric_view: #3987e5;
+  --lens-closure: #199e70;
+  --lens-genie_ontology: #9085e9;
+  --lens-rag: #d1a033;
+  --lens-graph: #e0769f;
+  --tier-protocol: #8a94a6;
+  --tier-bronze: #c8904e;
+  --tier-silver: #aeb8c6;
+  --tier-closure: #22b48f;
+  --tier-cohort: #22b48f;
+  --tier-gold: #dbaa3e;
+  --tier-metric: #4a9eda;
+  --tier-page: #9085e9;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0e1116;
+    --bg: #0b0e13;
     --surface: #161b22;
     --surface-2: #1c2230;
-    --border: #2a313c;
-    --fg: #e6e9ef;
-    --muted: #9aa4b2;
+    --border: #2d3542;
+    --fg: #f0f3f8;
+    --muted: #aeb8c6;
     --primary: #4a9eda;
     --success: #3fb950;
     --warning: #d29922;
     --destructive: #f06d6d;
+    --lens-metric_view: #3987e5;
+    --lens-closure: #199e70;
+    --lens-genie_ontology: #9085e9;
+    --lens-rag: #d1a033;
+    --lens-graph: #e0769f;
+    --tier-protocol: #8a94a6;
+    --tier-bronze: #c8904e;
+    --tier-silver: #aeb8c6;
+    --tier-closure: #22b48f;
+    --tier-cohort: #22b48f;
+    --tier-gold: #dbaa3e;
+    --tier-metric: #4a9eda;
+    --tier-page: #9085e9;
   }
 }
 
 html, body, #root { height: 100%; }
+html { font-size: 16.5px; }
 body { background: var(--bg); color: var(--fg); margin: 0;
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased; }

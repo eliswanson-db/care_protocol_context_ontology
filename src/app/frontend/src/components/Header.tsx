@@ -13,10 +13,10 @@ export function Header({ meta }: { meta: Meta | null }) {
   return (
     <header className="flex items-center justify-between border-b border-border bg-surface px-5 py-3">
       <div className="flex items-center gap-2.5">
-        <Activity className="h-5 w-5 text-primary" />
+        <Activity className="h-6 w-6 text-primary" />
         <div>
-          <div className="text-sm font-semibold leading-tight">Care Protocol Context</div>
-          <div className="text-xs text-muted">The semantic throughline — one record through every layer</div>
+          <div className="text-base font-bold leading-tight">Care Protocol Context</div>
+          <div className="text-[12px] text-muted">The semantic throughline — one record through every layer</div>
         </div>
       </div>
       <div className="flex items-center gap-2 text-xs">
