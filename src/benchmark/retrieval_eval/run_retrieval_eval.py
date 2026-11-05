@@ -222,7 +222,7 @@ def main():
     ap.add_argument("--arms", default=",".join(ARMS), help="comma-separated subset of " + ",".join(ARMS))
     ap.add_argument("--out", default="retrieval_eval.json", help="file name under docs/benchmark/")
     ap.add_argument("--merge", action="store_true", help="replace only the (arm, question) rows run now in --out")
-    ap.add_argument("--qids", default="", help="comma-separated subset of question ids")
+    ap.add_argument("--qids", default="", help="comma-separated question ids (default: the demo set in the CSV)")
     ap.add_argument("--workers", type=int, default=6)
     ap.add_argument("--repeats", type=int, default=1, help="runs per cell; the majority tier is reported")
     ap.add_argument("--schema-tier", action="store_true", help="also score each arm with the shared physical schema")
@@ -264,8 +264,13 @@ def main():
               f"{' HARNESS-ERROR' if r.get('harness_error') else ''} ({r['latency_s']}s)", flush=True)
         return r
 
-    cells = [(q, arm) for _ in range(args.repeats) for q in QUESTIONS for arm in ARMS
-             if not args.qids or q["qid"] in args.qids.split(",")]
+    # Default question set = the demo set in docs/benchmark/capability_matrix.csv (the rest are archived in
+    # capability_matrix_full.csv and still runnable with --qids).
+    import csv
+    demo = [x["question_id"] for x in csv.DictReader(open(os.path.join(
+        os.path.dirname(__file__), "..", "..", "..", "docs", "benchmark", "capability_matrix.csv")))]
+    wanted = args.qids.split(",") if args.qids else demo
+    cells = [(q, arm) for _ in range(args.repeats) for q in QUESTIONS for arm in ARMS if q["qid"] in wanted]
     with ThreadPoolExecutor(max_workers=args.workers) as ex:
         runs = list(ex.map(one, cells))
     # The agent (tier 2) and judges are LLMs, so a cell can differ run to run. Report the MAJORITY tier over

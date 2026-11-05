@@ -308,7 +308,7 @@ export function RetrievalArena() {
                 }`}
               >
                 <div className="font-medium leading-snug">{x.question}</div>
-                <div className="mt-0.5 text-[11px] text-muted">{x.class_name} · min: {x.min_approach}</div>
+                <div className="mt-0.5 text-[11px] text-muted">{x.class_name}</div>
               </button>
             </li>
           ))}
@@ -322,7 +322,6 @@ export function RetrievalArena() {
               <h1 className="text-2xl font-bold tracking-tight">{q.question}</h1>
               <p className="mt-1.5 flex flex-wrap items-center gap-2 text-[14px] text-muted">
                 <span className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-[13px]">gold: {q.gold}</span>
-                <span>min approach: <span className="font-semibold text-fg">{q.min_approach}</span></span>
                 {q.note ? <span className="italic">· {q.note}</span> : null}
               </p>
             </div>

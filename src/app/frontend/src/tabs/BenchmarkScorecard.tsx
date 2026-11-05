@@ -125,7 +125,6 @@ function Matrix({ map }: { map: CapabilityMap }) {
                     <div className="font-medium">{q.question}</div>
                     <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] text-muted">
                       <span className="rounded bg-surface-2 px-1 py-0.5 font-mono">gold: {q.gold}</span>
-                      <span>min: {q.min_approach}</span>
                       {q.note ? <span className="italic">· {q.note}</span> : null}
                     </div>
                   </td>
@@ -241,13 +240,15 @@ export function BenchmarkScorecard() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">When each layer earns its place</h1>
         <p className="mt-1.5 text-[15px] text-muted">
-          Each approach is scored only on what it retrieves. <span className="font-semibold text-success">✓ Answered</span> means the answer is in
-          that context, or the context was enough to write one SQL query that returned it.
+          Seven questions, four stories: when Genie Ontology's retrieval beats RAG, when RAG does just as well, when the
+          Ontobricks graph beats Genie Ontology, and when the graph looks like it should win but doesn't.{" "}
+          <span className="font-semibold text-success">✓ Answered</span> means the answer was in the retrieved context, or the
+          context was enough to write one SQL query that returned it.
         </p>
       </div>
 
       <div className="space-y-6">
-        <Collapsible title="Ablation ladder — reach by arm">
+        <Collapsible title="How often each approach's retrieval was enough">
           <Ladder map={map} />
           <p className="mt-2 text-[13px] text-muted">
             Genie One is not on the same footing: on ECT it also loads a hand-written HEDIS skill built from this question
@@ -255,7 +256,7 @@ export function BenchmarkScorecard() {
           </p>
         </Collapsible>
 
-        <Collapsible title="Capability map — question × arm">
+        <Collapsible title="The seven questions">
           <div className="mb-2 flex flex-wrap gap-2 text-[11px]">
             {["tier1", "tier2", "wrong_answer", "query_failed", "no_query", "no_retrieval", "skipped"].map((k) => (
               <span key={k} className={`rounded px-1.5 py-0.5 font-semibold ${TIER[k].cls}`}>{TIER[k].label}</span>
@@ -263,27 +264,8 @@ export function BenchmarkScorecard() {
           </div>
           <Matrix map={map} />
           <p className="mt-2 text-[12px] text-muted">
-            What each approach retrieves: <span className="font-semibold text-fg">metric view</span> = the YAML definitions of the 3
-            certified metric views most relevant to the question; <span className="font-semibold text-fg">closure / edge</span> = the
-            terminology table cards plus the rows the question's linked entities hit (same entity linker as the graph);{" "}
-            <span className="font-semibold text-fg">Genie Ontology</span> = its own snippet search + Pages, recorded on ECT;{" "}
-            <span className="font-semibold text-fg">RAG</span> = top-5 Lakebase passages; <span className="font-semibold text-fg">graph</span> = the
-            subgraph up to 3 hops around the linked entities in the live triplestore. Tier 1 is judged one gold fact at a time; tier 2's
-            query is executed and its rows judged. {map.scored_by?.repeats ?? 3} runs per cell, majority shown; hover a cell
-            for what was retrieved and the query.
+            Each row's note says why it came out that way. Hover a cell to see what that approach retrieved and the query it wrote.
           </p>
-          <div className="mt-3 flex items-start gap-2 rounded-lg border border-border bg-surface-2/60 p-3 text-[12.5px] leading-snug text-fg">
-            <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted" />
-            <span>
-              <span className="font-semibold">Why most cells fail (2026-11-05).</span>{" "}
-              The usual failure is <span className="font-semibold">✗ no query</span>, not a wrong one. The context carries meaning
-              but not the table and column names needed to query. Metric views and the graph bring their own schema; closure,
-              RAG and Genie Ontology mostly don't. The agent wrote MEASURE() queries with no syntax errors. The genuine
-              content gaps: the KED metric view ignores value-set vintage (returns 2,453 under the 2026 code set; the answer is 0),{" "}
-              <span className="font-mono">protocol_drift_metrics</span> has no UC comment, no Page covers metformin, Genie
-              Ontology's snippets cite pre-Nov-4 columns, and the graph lacks ACE/ARB class edges and drug names.
-            </span>
-          </div>
         </Collapsible>
 
         <Collapsible title="Ontology ON vs OFF (ADR-0018, observational)" hint="optional detail" defaultOpen={false}>

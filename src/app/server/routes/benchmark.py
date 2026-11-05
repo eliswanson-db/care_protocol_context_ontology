@@ -96,7 +96,7 @@ def capability_map():
         vmap[r["question_id"]] = v
         classes[-1]["questions"].append({
             "id": r["question_id"], "question": r["question"], "gold": r["gold_25k"],
-            "min_approach": r["min_approach"], "note": "", "verdicts": v,
+            "min_approach": r["min_approach"], "note": r.get("note") or "", "verdicts": v,
             "evidence": {a["id"]: evidence(a, r) for a in ARMS if a["kind"] == "retrieval"},
         })
 
