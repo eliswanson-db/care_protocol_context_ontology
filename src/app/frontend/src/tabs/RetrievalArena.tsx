@@ -442,12 +442,6 @@ export function RetrievalArena() {
                   </div>
                 </div>
               </Collapsible>}
-
-              <p className="text-[12px] text-muted">
-                The five cards use one rubric: metric view / closure / Genie One are hand-verified (Genie One = the authoritative
-                recorded run); RAG and graph are scored as retrieval-as-context. The retrieval section compares the two knowledge
-                layers like-for-like; Genie One's answer is end-to-end and non-deterministic, as-of the recording.
-              </p>
             </div>
           </>
         )}
