@@ -30,14 +30,27 @@ BENCH_DIR = os.environ.get("CARE_BENCHMARK_DIR") or (
 # closure / genie_ontology are hand-verified (genie = the authoritative A1-off run; the ON/OFF experiment is
 # the separate observational section). rag / graph are the designed-capability verdicts from the ground-truth
 # hypotheses (ground_truth.yaml), carried into the matrix so every column uses the same question set + rubric.
+# The five retrieval approaches, scored on ONE basis: is the context this approach retrieves, on its own, sufficient
+# to answer (same judge for all; docs/benchmark/retrieval_eval_arena.json from the retrieval_eval harness).
+# Genie One end-to-end (retrieval + its own SQL) is a different thing — kept as a separate, hand-verified column.
 ARMS = [
-    {"id": "metric_view", "label": "Metric View", "col": "metric_view"},
-    {"id": "closure", "label": "Closure", "col": "closure"},
-    {"id": "genie_ontology", "label": "Genie + Ontology", "col": "genie_ontology"},
-    {"id": "rag", "label": "RAG", "col": "rag"},
-    {"id": "graph", "label": "Ontobricks graph", "col": "graph"},
+    {"id": "metric_view", "label": "Metric View", "eval_arm": "metric_view", "kind": "retrieval"},
+    {"id": "closure", "label": "Closure / SQL", "eval_arm": "closure_sql", "kind": "retrieval"},
+    {"id": "genie_ontology", "label": "Genie Ontology", "eval_arm": "genie_ontology", "kind": "retrieval"},
+    {"id": "rag", "label": "RAG", "eval_arm": "rag", "kind": "retrieval"},
+    {"id": "graph", "label": "Ontobricks graph", "eval_arm": "ontobricks", "kind": "retrieval"},
+    {"id": "genie_one", "label": "Genie One (end-to-end)", "csv_col": "genie_ontology", "kind": "end_to_end"},
 ]
 _REACHED = {"reached", "correct_refusal"}  # a correct refusal is a correct outcome
+
+
+def _eval_rows() -> dict:
+    path = os.path.join(BENCH_DIR, "retrieval_eval_arena.json")
+    if not os.path.isfile(path):
+        return {}
+    d = json.load(open(path))
+    return {"meta": {"judge": d.get("judge"), "agent": d.get("agent")},
+            "by": {(r["arm"], r["qid"]): r for r in d.get("rows", [])}}
 
 
 @router.get("/benchmark/capability_map")
@@ -47,9 +60,22 @@ def capability_map():
         raise HTTPException(404, f"capability_matrix.csv not found at {path}")
     with open(path, newline="") as f:
         rows = list(csv.DictReader(f))
+    ev = _eval_rows()
+    by = ev.get("by", {})
 
-    def verdicts(r):
-        return {a["id"]: r[a["col"]] for a in ARMS}
+    def verdict(a, r):
+        if a["kind"] == "end_to_end":
+            return r[a["csv_col"]]
+        e = by.get((a["eval_arm"], r["question_id"]))
+        if not e:
+            return "pending"
+        if e.get("sufficient"):
+            return "reached"
+        return "not_reached" if e.get("n_docs") else "no_retrieval"
+
+    def evidence(a, r):
+        e = by.get((a.get("eval_arm"), r["question_id"])) or {}
+        return (e.get("context") or "")[:600]
 
     classes: list[dict] = []
     vmap: dict[str, dict] = {}
@@ -57,11 +83,12 @@ def capability_map():
         cn = r["class_num"]
         if not classes or classes[-1]["class_num"] != cn:
             classes.append({"class_num": cn, "class_name": r["class_name"], "questions": []})
-        v = verdicts(r)
+        v = {a["id"]: verdict(a, r) for a in ARMS}
         vmap[r["question_id"]] = v
         classes[-1]["questions"].append({
             "id": r["question_id"], "question": r["question"], "gold": r["gold_25k"],
-            "min_approach": r["min_approach"], "note": r["note"], "verdicts": v,
+            "min_approach": r["min_approach"], "note": "", "verdicts": v,
+            "evidence": {a["id"]: evidence(a, r) for a in ARMS if a["kind"] == "retrieval"},
         })
 
     rollup = []
@@ -69,16 +96,18 @@ def capability_map():
         vals = [vmap[r["question_id"]][a["id"]] for r in rows]
         applicable = [v for v in vals if v not in ("not_applicable", "pending")]
         rollup.append({
-            "arm": a["id"], "label": a["label"],
+            "arm": a["id"], "label": a["label"], "kind": a["kind"],
             "reached": sum(v in _REACHED for v in vals),
             "diverged": sum(v == "diverged" for v in vals),
             "not_reached": sum(v == "not_reached" for v in vals),
+            "no_retrieval": sum(v == "no_retrieval" for v in vals),
             "not_applicable": sum(v == "not_applicable" for v in vals),
             "pending": sum(v == "pending" for v in vals),
             "applicable": len(applicable),
             "total": len(vals),
         })
-    return {"arms": ARMS, "classes": classes, "rollup": rollup, "a1_on_source": None}
+    return {"arms": ARMS, "classes": classes, "rollup": rollup, "a1_on_source": None,
+            "scored_by": ev.get("meta")}
 
 
 def _latest(pattern: str) -> str | None:
@@ -106,14 +135,41 @@ def _signals(path: str | None) -> dict | None:
     }
 
 
+def _snippet_evidence() -> dict:
+    """Observed Genie Ontology retrieval per workspace (scripts/record_genie_ontology.py)."""
+    path = os.path.join(BENCH_DIR, "genie_ontology_retrieval.json")
+    if not os.path.isfile(path):
+        return {}
+    d = json.load(open(path))
+    out = {"recorded_at": d.get("recorded_at")}
+    for ws, v in d.get("workspaces", {}).items():
+        qs = v.get("questions", {}).values()
+        snips = [x for q in qs for x in q.get("snippets") or []]
+        out[ws] = {"identity": v.get("identity"), "questions": len(v.get("questions", {})),
+                   "searched": sum(1 for q in qs if q.get("queries")),
+                   "snippets": len(snips), "on_topic": sum(1 for x in snips if x.get("on_topic")),
+                   "pages": sum(len(q.get("pages") or []) for q in qs)}
+    return out
+
+
 @router.get("/benchmark/a1_runs")
 def a1_runs():
     off = _signals(_latest("A1_off_*.json"))
     on = _signals(_latest("A1_on_*.json"))
+    ev = _snippet_evidence()
     return {
         "off": off,
         "on": on,
+        "snippet_evidence": ev,
         "caveat": (
+            "Observed 2026-11-04: the inferred-snippet layer fires on BOTH workspaces — it is not an on/off switch. "
+            "Run as the same user over the 10 questions, ECT's snippets were almost all about this demo (mined from its "
+            "Genie spaces and metric views) while DMVM's came from other projects in the shared metastore. Retrieval "
+            "is also identity-scoped (the app's service principal sees fewer snippets). Answer accuracy is close on "
+            "both workspaces because Genie One mostly grounds in the shared Pages, certified metric views and SQL; "
+            "the snippets carry definitions, not computed values. Still observational, not causal (ADR-0018)."
+        ),
+        "caveat_old": (
             "Intended contrast, not yet a proven one. A1-on (DMVM) is the INTENDED ontology-ON arm: we are "
             "building the per-workspace surfaces (notebooks, dashboards, Genie agents, metric views, comments, "
             "query history) that mint native inferred snippets, assuming that layer will surface. But a direct "

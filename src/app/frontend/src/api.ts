@@ -205,6 +205,7 @@ export interface OntobricksCareEdges {
 export interface CapArm {
   id: string;
   label: string;
+  kind: "retrieval" | "end_to_end";
 }
 export interface CapQuestion {
   id: string;
@@ -213,6 +214,7 @@ export interface CapQuestion {
   min_approach: string;
   note: string;
   verdicts: Record<string, string>;
+  evidence?: Record<string, string>;
 }
 export interface CapClass {
   class_num: string;
@@ -225,6 +227,8 @@ export interface CapRollup {
   reached: number;
   diverged: number;
   not_reached: number;
+  no_retrieval: number;
+  kind: "retrieval" | "end_to_end";
   not_applicable: number;
   pending: number;
   applicable: number;
@@ -235,6 +239,7 @@ export interface CapabilityMap {
   classes: CapClass[];
   rollup: CapRollup[];
   a1_on_source: string | null;
+  scored_by?: { judge?: string; agent?: string } | null;
 }
 
 export interface A1ArmSignals {
@@ -249,6 +254,10 @@ export interface A1Runs {
   off: A1ArmSignals | null;
   on: A1ArmSignals | null;
   caveat: string;
+  snippet_evidence?: {
+    recorded_at?: string;
+    [ws: string]: { identity: string; questions: number; searched: number; snippets: number; on_topic: number; pages: number } | string | undefined;
+  };
 }
 
 export interface DriftRate { clinic_id: string; rate: string; triggers: string }
