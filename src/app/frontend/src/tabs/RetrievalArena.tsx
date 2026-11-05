@@ -18,13 +18,14 @@ function Verdict({ v }: { v: string }) {
   return <span className={`rounded px-1.5 py-0.5 text-[11px] font-semibold ${s.cls}`}>{s.label}</span>;
 }
 
-// The five retrieval approaches, in the shared order, each with its identity color + how it resolves.
+// The five retrieval approaches, in the shared order: each card scores ONLY what that approach retrieves
+// (same question, same fixed agent, same judges) — `arm` is the retrieval_eval provider.
 const APPROACHES = [
-  { id: "metric_view", label: "Metric View", resolves: "build-time (baked into the metric view)" },
-  { id: "closure", label: "Closure", resolves: "query-time (join the closure / edge table)" },
-  { id: "genie_ontology", label: "Genie One + Ontology", resolves: "end-to-end: ontology retrieval + SQL" },
-  { id: "rag", label: "RAG", resolves: "hybrid retrieval over the protocol docs" },
-  { id: "graph", label: "Ontobricks graph", resolves: "graph traversal (live triplestore)" },
+  { id: "metric_view", arm: "metric_view", label: "Metric View", how: "MEASURE() over a certified metric view" },
+  { id: "closure", arm: "closure_sql", label: "Closure / governed SQL", how: "fixed-shape SQL over closure, edge and gold tables" },
+  { id: "genie_ontology", arm: "genie_ontology", label: "Genie Ontology", how: "Genie Pages + certified metric-view definitions" },
+  { id: "rag", arm: "rag", label: "RAG", how: "passage search over the care-protocol documents" },
+  { id: "graph", arm: "ontobricks", label: "Ontobricks graph", how: "entity-linked typed edges from the live graph" },
 ] as const;
 
 const LENS: Record<string, string> = {
@@ -39,11 +40,8 @@ function AgentVerdict({ s }: { s?: Scored }) {
   if (!s) return <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[11px] text-muted">not scored yet</span>;
   return (
     <span className="flex flex-wrap items-center gap-1">
-      <span className={`rounded px-1.5 py-0.5 text-[11px] font-semibold ${s.correct ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"}`}>
-        {s.correct ? "answers it ✓" : "can't answer from this"}
-      </span>
-      <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[10.5px] text-muted">
-        grounded {s.grounded === null ? "—" : s.grounded ? "✓" : "✗"} · sufficient {s.sufficient ? "✓" : "✗"}
+      <span className={`rounded px-1.5 py-0.5 text-[11px] font-semibold ${s.sufficient ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"}`}>
+        {s.sufficient ? "context sufficient ✓" : s.n_docs ? "context insufficient" : "retrieved nothing"}
       </span>
     </span>
   );
@@ -222,30 +220,56 @@ export function RetrievalArena() {
             </div>
 
             <div className="space-y-6">
-              <Collapsible title="Five approaches, one question">
+              <Collapsible title="Five approaches, one question"
+                hint="is the retrieved context alone enough to answer? one judge, every approach">
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
                   {APPROACHES.map((a) => {
                     const c = LENS[a.id];
+                    const sc = ctx?.scored_all?.[a.arm];
                     return (
-                      <div
-                        key={a.id}
-                        style={{ borderTopColor: c }}
-                        className="flex flex-col rounded-xl border border-t-[3px] border-border bg-surface p-3"
-                      >
+                      <div key={a.id} style={{ borderTopColor: c }}
+                        className="flex flex-col rounded-xl border border-t-[3px] border-border bg-surface p-3">
                         <div className="flex items-center gap-2">
                           <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: c }} />
                           <span className="text-[13.5px] font-semibold leading-tight">{a.label}</span>
                         </div>
-                        <div className="mt-2"><Verdict v={q.verdicts[a.id]} /></div>
-                        <div className="mt-2 text-[11.5px] leading-snug text-muted">{a.resolves}</div>
+                        <div className="mt-1 text-[11px] leading-snug text-muted">{a.how}</div>
+                        <div className="mt-2">
+                          {!ctx ? (
+                            <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[11px] text-muted">loading…</span>
+                          ) : !sc ? (
+                            <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[11px] text-muted">not scored</span>
+                          ) : (
+                            <span className={`rounded px-1.5 py-0.5 text-[11.5px] font-semibold ${sc.sufficient ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"}`}>
+                              {sc.sufficient ? "context sufficient ✓" : sc.n_docs ? "context insufficient" : "retrieved nothing"}
+                            </span>
+                          )}
+                        </div>
+                        {sc && (
+                          <>
+                            <div className="mt-1.5 text-[10.5px] text-muted">{sc.n_docs} item{sc.n_docs === 1 ? "" : "s"} retrieved</div>
+                            {sc.n_docs > 0 && sc.context && (
+                              <details className="mt-2 text-[11px]">
+                                <summary className="cursor-pointer font-semibold text-primary">What it retrieved</summary>
+                                <pre className="mt-1 max-h-56 overflow-auto whitespace-pre-wrap rounded bg-surface-2 p-2 font-mono text-[10.5px] leading-4">{sc.context}</pre>
+                              </details>
+                            )}
+                          </>
+                        )}
                       </div>
                     );
                   })}
                 </div>
+                <p className="mt-2.5 text-[12px] text-muted">
+                  Each approach retrieves with its own method, and a judge ({ctx?.scored_meta?.judge ?? "—"}) decides whether that
+                  retrieved context alone holds every fact the gold answer needs. Structured approaches retrieve by running their best governed query where their representation can express
+                  the question, and nothing where it can't. Genie One's end-to-end answer (retrieval + its own SQL) is scored
+                  separately below.
+                </p>
               </Collapsible>
 
               <Collapsible title="Retrieval — Genie Ontology vs the graph"
-                hint="what each knowledge layer returns for this question, fed to the same fixed agent">
+                hint="what each knowledge layer returns for this question, side by side">
                 {!ctx && !ctxErr && (
                   <div className="flex items-center gap-2 text-[13px] text-muted">
                     <Loader2 className="h-4 w-4 animate-spin" /> Retrieving from the Genie Ontology and the live graph…

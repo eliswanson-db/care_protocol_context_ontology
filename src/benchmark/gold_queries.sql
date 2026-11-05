@@ -165,3 +165,37 @@ WITH dm AS (SELECT DISTINCT patient_id FROM {catalog}.{schema}.bronze_pat_enc_dx
      hf AS (SELECT DISTINCT patient_id FROM {catalog}.{schema}.bronze_pat_enc_dx WHERE icd10_code LIKE 'I50%')
 SELECT COUNT(*) AS cardiorenal_cohort
 FROM dm JOIN ckd USING (patient_id) JOIN hf USING (patient_id);
+
+-- @id: op_worst_clinic_annual
+-- class: 9_operational_temporal  min_approach: metric_view  expect: CLINIC-04
+-- Lowest protocol Step-3 adherence year-to-date, closed 90-day windows only (open windows aren't misses yet).
+SELECT clinic_id, ROUND(AVG(CAST(followup_within_90d AS INT)), 3) AS step3_adherence_rate,
+       COUNT(*) AS closed_obligations
+FROM {catalog}.{schema}.gold_protocol_adherence
+WHERE measurement_year = 2026 AND window_closed
+GROUP BY clinic_id ORDER BY step3_adherence_rate, clinic_id;
+
+-- @id: op_clinic_drift
+-- class: 9_operational_temporal  min_approach: metric_view  expect: CLINIC-08
+-- Each clinic's trailing-3-month adherence (ending the latest closed month) vs its OWN year-to-date baseline.
+WITH c AS (
+  SELECT clinic_id, date_trunc('MONTH', trigger_ts) AS m, CAST(followup_within_90d AS INT) AS f
+  FROM {catalog}.{schema}.gold_protocol_adherence WHERE measurement_year = 2026 AND window_closed),
+last AS (SELECT max(m) AS lm FROM c)
+SELECT clinic_id,
+       ROUND(AVG(CASE WHEN m > add_months(lm, -3) THEN f END), 3) AS trailing_3mo,
+       ROUND(AVG(f), 3) AS own_baseline,
+       ROUND(AVG(CASE WHEN m > add_months(lm, -3) THEN f END) - AVG(f), 3) AS drift
+FROM c CROSS JOIN last GROUP BY clinic_id ORDER BY drift;
+
+-- @id: op_drift_rootcause
+-- class: 9_operational_temporal  min_approach: closure_sql  expect: 2026-05-15
+-- The hop a KPI view can't make: join the drifting clinic to the PCP-transition dimension, before vs after.
+SELECT CAST(t.transition_date AS STRING) AS transition_date, t.clinic_id, t.change_type, t.recovery_days,
+       ROUND(AVG(CASE WHEN p.trigger_ts < t.transition_date THEN CAST(p.followup_within_90d AS INT) END), 3) AS adherence_before,
+       ROUND(AVG(CASE WHEN p.trigger_ts >= t.transition_date THEN CAST(p.followup_within_90d AS INT) END), 3) AS adherence_after,
+       t.narrative
+FROM {catalog}.{schema}.panel_pcp_transition t
+JOIN {catalog}.{schema}.gold_protocol_adherence p
+  ON p.clinic_id = t.clinic_id AND p.window_closed AND p.measurement_year = 2026
+GROUP BY ALL;

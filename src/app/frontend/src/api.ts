@@ -53,6 +53,7 @@ export interface Scored {
   sufficient: boolean;
   answer: string;
   n_docs: number;
+  context?: string;
 }
 export interface ArenaContext {
   qid: string;
@@ -60,6 +61,7 @@ export interface ArenaContext {
   ontology: { docs: CtxDoc[]; latency_s: number; error?: string; scored?: Scored };
   graph: { docs: CtxDoc[]; latency_s: number; error?: string; graph_table: string; scored?: Scored };
   closed_book?: Scored;
+  scored_all?: Record<string, Scored>;
   scored_meta?: { agent: string; judge: string };
   genie_one: {
     snapshot?: string; pages_cited?: string[]; snippet_searches?: string[]; tables_queried?: string[];

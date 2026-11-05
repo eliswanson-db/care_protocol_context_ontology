@@ -44,7 +44,7 @@ def _scored(qid: str) -> dict:
     if not os.path.isfile(path):
         return {}
     d = json.load(open(path))
-    out = {r["arm"]: {k: r.get(k) for k in ("correct", "grounded", "sufficient", "answer", "n_docs")}
+    out = {r["arm"]: {k: r.get(k) for k in ("correct", "grounded", "sufficient", "answer", "n_docs", "context")}
            for r in d.get("rows", []) if r["qid"] == qid}
     out["_meta"] = {"agent": d.get("agent"), "judge": d.get("judge")}
     return out
@@ -99,5 +99,6 @@ def arena_context(qid: str):
             "ontology": {**onto, "scored": scored.get("genie_ontology")},
             "graph": {**gr, "graph_table": graph, "scored": scored.get("ontobricks")},
             "closed_book": scored.get("closed_book"),
+            "scored_all": {k: v for k, v in scored.items() if k != "_meta"},
             "scored_meta": scored.get("_meta"),
             "genie_one": _genie_trail(qid)}

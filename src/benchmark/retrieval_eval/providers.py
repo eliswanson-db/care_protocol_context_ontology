@@ -41,29 +41,53 @@ def _doc(content: str, **meta) -> dict:
 # doesn't have to INFER what the number is (an un-labelled bare value reads as ungrounded, correctly).
 _METRIC_SQL = {
     "kpi_gsd_rate": (
-        "GSD Compliance Rate",
-        f"SELECT ROUND(MEASURE(`GSD Compliance Rate`), 4) AS v "
-        f"FROM {CATALOG}.{SCHEMA_SEMANTIC}.gsd_compliance_metrics",
+        "GSD Compliance Rate (MY2026, year-to-date)",
+        f"SELECT ROUND(MEASURE(`GSD Compliance Rate`), 4) AS gsd_compliance_rate, MEASURE(`Eligible Patients`) AS "
+        f"eligible, MEASURE(`Compliant Patients`) AS compliant "
+        f"FROM {CATALOG}.{SCHEMA_SEMANTIC}.gsd_compliance_metrics WHERE `Measurement Year` = 2026",
     ),
     "kpi_ked_eligible": (
         "KED Eligible Patients",
-        f"SELECT MEASURE(`Eligible Patients`) AS v "
+        f"SELECT MEASURE(`Eligible Patients`) AS ked_eligible "
         f"FROM {CATALOG}.{SCHEMA_SEMANTIC}.ked_compliance_metrics",
     ),
+    # Protocol Step-3 adherence by clinic (closed 90-day windows), lowest first.
+    "op_worst_clinic_annual": (
+        "Protocol Step-3 adherence by clinic, MY2026 year-to-date (closed windows), lowest first",
+        f"SELECT `Clinic` AS clinic, ROUND(MEASURE(`Protocol Step 3 Adherence Rate`), 3) AS step3_adherence_rate, "
+        f"MEASURE(`Trigger Events`) AS closed_obligations "
+        f"FROM {CATALOG}.{SCHEMA_SEMANTIC}.protocol_adherence_metrics GROUP BY ALL ORDER BY 2",
+    ),
+    # Window measures: grouping by Clinic alone returns each clinic's LATEST trailing-3-month window (semiadditive last).
+    "op_clinic_drift": (
+        "Protocol Step-3 drift by clinic: latest trailing-3-month adherence vs the clinic's own baseline",
+        f"SELECT `Clinic` AS clinic, ROUND(MEASURE(`Adherence (trailing 3mo)`), 3) AS trailing_3mo, "
+        f"ROUND(MEASURE(`Adherence (baseline)`), 3) AS own_baseline, "
+        f"ROUND(MEASURE(`Drift (trailing vs baseline)`), 3) AS drift "
+        f"FROM {CATALOG}.{SCHEMA_SEMANTIC}.protocol_drift_metrics GROUP BY ALL ORDER BY 4",
+    ),
 }
+
+
+def _render(rows: list[dict], limit: int = 12) -> str:
+    if not rows:
+        return "(no rows)"
+    cols = list(rows[0].keys())
+    lines = [" | ".join(cols)] + [" | ".join(str(r.get(c)) for c in cols) for r in rows[:limit]]
+    return "\n".join(lines) + (f"\n... (+{len(rows) - limit} more rows)" if len(rows) > limit else "")
 
 
 @mlflow.trace(span_type="RETRIEVER", name="metric_view")
 def metric_view(question: str, qid: str) -> list[dict]:
     entry = _METRIC_SQL.get(qid)
     if not entry:
-        return []  # no covering metric view -> the arm is structurally insufficient for this question
+        return []  # no certified metric view covers this question -> the arm is structurally insufficient
     label, sql = entry
     rows = run_sql(sql)
     if not rows:
         return []
-    val = list(rows[0].values())[0]
-    return [_doc(f"Governed metric view — {label} = {val}", source="metric_view", measure=label, sql=sql[:200])]
+    return [_doc(f"Governed metric view result — {label}:\n{_render(rows)}", source="metric_view",
+                 measure=label, sql=sql[:300])]
 
 
 # --- closure_sql: reuse the hand-verified gold_queries.sql blocks (the closure/edge-table resolution arm) ----
@@ -91,10 +115,8 @@ def closure_sql(question: str, qid: str) -> list[dict]:
     rows = run_sql(sql)
     if not rows:
         return []
-    r0 = rows[0]
-    rendered = ", ".join(f"{k} = {v}" for k, v in r0.items())
-    return [_doc(f"Result of a governed query over the closure/edge tables: {rendered}",
-                 source="closure_sql", sql=sql[:200])]
+    return [_doc(f"Result of a fixed-shape governed SQL query (closure / edge / gold tables):\n{_render(rows)}",
+                 source="closure_sql", sql=sql[:300])]
 
 
 # --- rag: A4 Lakebase hybrid retrieval over the care-protocol corpus (best-effort from local) ----------------

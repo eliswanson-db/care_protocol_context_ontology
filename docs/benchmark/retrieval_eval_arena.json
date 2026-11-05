@@ -10,7 +10,41 @@
       "sufficient": false,
       "answer": "INSUFFICIENT CONTEXT",
       "n_docs": 0,
-      "latency_s": 13.3
+      "context": "(no context retrieved)",
+      "latency_s": 13.6
+    },
+    {
+      "arm": "metric_view",
+      "qid": "kpi_gsd_rate",
+      "correct": false,
+      "grounded": true,
+      "sufficient": true,
+      "answer": "GSD Compliance Rate is **74.24%** (1,781 compliant out of 2,399 eligible) \u2014 [1]",
+      "n_docs": 1,
+      "context": "Governed metric view result \u2014 GSD Compliance Rate (MY2026, year-to-date):\ngsd_compliance_rate | eligible | compliant\n0.7424 | 2399 | 1781",
+      "latency_s": 20.4
+    },
+    {
+      "arm": "closure_sql",
+      "qid": "kpi_gsd_rate",
+      "correct": false,
+      "grounded": true,
+      "sufficient": true,
+      "answer": "Based on the provided context, the overall GSD compliance rate is **0.7424** (i.e., 74.24%) \u2014 Source [1].",
+      "n_docs": 1,
+      "context": "Result of a fixed-shape governed SQL query (closure / edge / gold tables):\ngsd_rate\n0.7424",
+      "latency_s": 16.1
+    },
+    {
+      "arm": "rag",
+      "qid": "kpi_gsd_rate",
+      "correct": false,
+      "grounded": true,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 5,
+      "context": "Effective **measurement year 2026**, the Glycemic Status Assessment (GSD) numerator accepts a **Glucose\nManagement Indicator (GMI)** derived from continuous glucose monitoring (CGM) as an equivalent glycemic-status\nresult, alongside a laboratory **HbA1c**. The GMI result is identified by **LOINC 97506-0**; HbA1c remains\n**LOINC 4548-4** (and method variants). A patient with a qualifying GMI but no lab HbA1c is now **compliant**.\nOperational impact: the GSD value set gains a code for MY2026. A patient who looked like a care gap under the\nMY2025 value set (CGM data only, no lab draw) flips to compliant under MY2026 \u2014 a pure **measure-drift** event\ndriven by a value-set version change, not by any change in the patient's data.\n\n- Check HbA1c **every 3 months** for patients who are above individualized goal or whose therapy has changed.\n- Check HbA1c **every 6 months** for patients who are stable at goal.\n- Do not react to a single out-of-range HbA1c; confirm with a repeat before escalating therapy.\nThe GSD measure requires only **one** A1c in the measurement year, so it cannot distinguish a patient checked\nquarterly from one checked once.\n\nA single population A1c threshold is **not** appropriate for every adult with diabetes. The target range is\nindividualized by comorbidity burden and life expectancy:\n| Patient profile | Target A1c range |\n|---|---|\n| No or minimal microvascular complications, >10 years life expectancy | 6.0\u20137.0% |\n| Moderate comorbidity, 5\u201310 years life expectancy | 7.0\u20138.0% |\n| Marked comorbidity or end-stage disease, <5 years life expectancy | 8.0\u20139.0% |\nThis is the key difference from the GSD quality **measure**, which only records whether an A1c test happened\nand buckets the latest value as good control (<8.0%) or poor control (>9.0%). The measure answers *\"was a test\ndone and what was the value?\"*; the protocol answers *\"what should this specific patient's target be?\"*.\n\nFor **MY2026**, the eGFR value set is modernized to the race-free CKD-EPI 2021 estimating equation and\n**drops the legacy race-based (MDRD) eGFR code** that older lab feeds still emit. Health systems whose result\nfeed still carries the legacy code will see eGFR coverage \u2014 and therefore KED compliance \u2014 fall on otherwise\nunchanged data until mapping is updated. This is the second controlled drift scenario in the demo.\n\nMeasure Eligible ages Numerator (compliant when\u2026) Threshold / definition GSD \u2014 Glycemic Status Assessment 18\u201375 \u22651 HbA1c test in the measurement year Good control &lt; 8.0%; poor control &gt; 9.0%; general target &lt; 7.0% KED \u2014 Kidney Health Evaluation 18\u201385 BOTH an eGFR test AND a uACR test in the year Both components required; either alone is a gap BPD \u2014 Blood Pressure Control 18\u201375 Most recent BP reading controlled Controlled = systolic &lt; 140 mmHg AND diastolic &lt; 90 mmHg SPD \u2014 Statin Therapy 40\u201375 Dispensed a statin during the year Moderate-to-high intensity statin EED \u2014 Eye Exam 18\u201375 Retinal / diabetic eye exam in the year Dilated or ",
+      "latency_s": 19.1
     },
     {
       "arm": "genie_ontology",
@@ -20,7 +54,8 @@
       "sufficient": false,
       "answer": "INSUFFICIENT CONTEXT",
       "n_docs": 4,
-      "latency_s": 27.6
+      "context": "Genie Ontology Page \u2014 Care Gap (Numerator, Denominator, MET / NOT_MET)\nHEDIS measures are expressed as a **denominator** and a **numerator**, and compliance is the ratio.\n\n- **Denominator (eligible):** the patients a measure applies to (e.g. the diabetes cohort in an age band).\n- **Numerator (compliant):** the eligible patients who received the required care (e.g. an A1c test for GSD;\n  both eGFR and uACR for KED).\n- **Status:** a patient is **MET** when in the numerator, otherwise **NOT_MET** \u2014 a **care gap** (eligible but\n  missing the required care). Closing care gaps raises the measure's compliance rate.\n- **Compliance rate** = compliant \u00f7 eligible, exposed as a governed measure in the metric views\n  (`GSD Compliance Rate`, `KED Compliance Rate`). Each gold row keeps **record-level evidence** (the test\n  date/code/value) so a gap, or a met status, is fully traceable.\n\n> HEDIS-aligned demo, not NCQA-certified.\n\nGenie Ontology Page \u2014 GSD \u2014 Glycemic Status Assessment for Patients With Diabetes\n**GSD (Glycemic Status Assessment for Patients With Diabetes)** is a HEDIS quality measure. It assesses\nwhether patients with diabetes had their glycemic status evaluated during the measurement year.\n\n- **Eligible population (denominator):** patients aged **18\u201375** as of the end of the measurement year who\n  are in the **diabetes cohort** (an ICD-10-CM diabetes diagnosis under E10/E11/E13, resolved by subsumption\n  over the ICD-10 hierarchy).\n- **Numerator (compliant):** at least one **HbA1c (A1c)** test (LOINC value set `GSD_A1C_TEST`) in the\n  measurement year.\n- **Glycemic control bands:** the latest A1c value is also classified as **good control (<8%)** or\n  **poor control (>9%)**.\n\nA patient is **MET** when an A1c test is found, otherwise **NOT_MET** (a care gap). The governed rate is the\n**GSD Compliance Rate** in `gsd_compliance_metrics` (compliant \u00f7 eligible).\n\n> HEDIS-aligned demo, not NCQA-certified. GSD replaced the older \"HbA1c Control for Patients With Diabetes\"\n> framing in recent HEDIS measurement years.\n\nMetric view care_protocol_semantic.gsd_compliance_metrics [certified, Clinical Domain]. HEDIS GSD (Glycemic Status Assessment) compliance for the diabetes population aged 18-75. The measure is DEFINED here, computed live over the gold evidence base: denominator = eligible diabetes patients; numerator = patients with an A1c test (LOINC) in the measurement year (evidence present). Also exposes glycemic-control bands (good <8%, poor >9%). HEDIS-aligned demo, not NCQA-certified. Dimensions: Compliance Status = CASE WHEN evidence_datetime IS NOT NULL THEN 'MET' ELSE 'NOT_MET' END (Computed live: MET = an A1c test exists in the measurement year; NOT_MET = no A1c test. The rule lives in this metric view, not in gold.); Gap Reason = CASE WHEN evidence_datetime IS NOT NULL THEN 'Met' ELSE 'No A1c test in measurement year' END (Computed live: why the patient is a care gap (NOT_MET); 'Met' when compliant. Group care gaps by reason.); Age Band = CASE W",
+      "latency_s": 34.4
     },
     {
       "arm": "ontobricks",
@@ -30,7 +65,8 @@
       "sufficient": false,
       "answer": "INSUFFICIENT CONTEXT",
       "n_docs": 11,
-      "latency_s": 17.3
+      "context": "(Measure/GSD) -[hasThreshold]-> (Threshold/a1c_poor_gt_9)  [guideline]\n\n(Measure/GSD) -[monitoredBy]-> (part/LP-HBA1C)  [guideline]\n\n(Measure/GSD) -[hasThreshold]-> (Threshold/a1c_good_lt_8)  [guideline]\n\n(Patient/b0a02050-28ee-7b1f-382d-518653a1213f) -[eligibleFor]-> (Measure/GSD)  [member]\n\n(Patient/b704af88-96bc-f177-6f09-9a182e0631ac) -[eligibleFor]-> (Measure/GSD)  [member]\n\n(Patient/b21235de-38c4-f2f1-7faf-9450b73dca6d) -[eligibleFor]-> (Measure/GSD)  [member]\n\n(Patient/90649462-d082-be78-a648-f9ccfd76d12a) -[eligibleFor]-> (Measure/GSD)  [member]\n\n(Patient/821786a7-c043-77f6-fca9-14434e7bd1b3) -[eligibleFor]-> (Measure/GSD)  [member]\n\n(Patient/2e933dee-be60-2aa6-7f97-e8ff779c9fa2) -[eligibleFor]-> (Measure/GSD)  [member]\n\n(Patient/03534fc0-1a04-9823-0b02-f1e44dabd212) -[eligibleFor]-> (Measure/GSD)  [member]\n\n(Patient/64eb5a96-396a-f371-adda-98e9ea3e89d3) -[hasCareGap]-> (Measure/GSD)  [member]",
+      "latency_s": 17.5
     },
     {
       "arm": "closed_book",
@@ -40,7 +76,41 @@
       "sufficient": false,
       "answer": "INSUFFICIENT CONTEXT",
       "n_docs": 0,
-      "latency_s": 9.4
+      "context": "(no context retrieved)",
+      "latency_s": 9.7
+    },
+    {
+      "arm": "metric_view",
+      "qid": "sub_kidney",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "context": "(no context retrieved)",
+      "latency_s": 9.3
+    },
+    {
+      "arm": "closure_sql",
+      "qid": "sub_kidney",
+      "correct": true,
+      "grounded": false,
+      "sufficient": true,
+      "answer": "Based on the context provided, **1,881 patients** have diabetes WITH kidney complications [1].",
+      "n_docs": 1,
+      "context": "Result of a fixed-shape governed SQL query (closure / edge / gold tables):\nsub_kidney\n1881",
+      "latency_s": 15.7
+    },
+    {
+      "arm": "rag",
+      "qid": "sub_kidney",
+      "correct": false,
+      "grounded": true,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 5,
+      "context": "CP-ESC-1 (statin gap). A patient aged 40\u201375 with diabetes and no statin dispensed in the year (SPD gap) should be started on a moderate-to-high intensity statin , after confirming no contraindication (pregnancy, active hepatic disease). CP-ESC-2 (kidney gap). A patient missing eGFR or uACR (KED gap) should have the missing component ordered. If uACR \u2265 30 mg/g, start an ACE inhibitor or ARB (not both). CP-ESC-3 (combined cardiorenal). A patient with diabetes and chronic kidney disease (N18.*) and heart failure (I50.*) is a cardiorenal priority: ensure statin, ACE/ARB, and an SGLT2 inhibitor (if eGFR \u2265 20), and monitor A1c every 3 months. Escalation rules reference measures (GSD/KED/SPD), labs (eGFR, uACR, A1c), diagnosis families (E10/E11/E13, N18, I50) and drug classes \u2014 the relationships this protocol contributes to the knowledge graph.\n\nThese agents are indicated for **cardiorenal protection even when A1c is already at goal**:\n- Type 2 diabetes **plus atherosclerotic cardiovascular disease (ASCVD)**: add a GLP-1 RA or an SGLT2\n  inhibitor to reduce major adverse cardiovascular events.\n- Type 2 diabetes **plus heart failure**: add an **SGLT2 inhibitor** to reduce heart-failure hospitalization.\n- Type 2 diabetes **plus chronic kidney disease** (eGFR \u2265 20): add an **SGLT2 inhibitor** for renal protection.\nThe decision is **outcome-driven, not glucose-driven**: a patient at an A1c goal on metformin alone who has\nCKD with albuminuria should still have an SGLT2 inhibitor added for renal protection \u2014 a recommendation no\nHEDIS quality measure captures.\n\nMeasure Eligible ages Numerator (compliant when\u2026) Threshold / definition GSD \u2014 Glycemic Status Assessment 18\u201375 \u22651 HbA1c test in the measurement year Good control &lt; 8.0%; poor control &gt; 9.0%; general target &lt; 7.0% KED \u2014 Kidney Health Evaluation 18\u201385 BOTH an eGFR test AND a uACR test in the year Both components required; either alone is a gap BPD \u2014 Blood Pressure Control 18\u201375 Most recent BP reading controlled Controlled = systolic &lt; 140 mmHg AND diastolic &lt; 90 mmHg SPD \u2014 Statin Therapy 40\u201375 Dispensed a statin during the year Moderate-to-high intensity statin EED \u2014 Eye Exam 18\u201375 Retinal / diabetic eye exam in the year Dilated or retinal-imaging exam; biennial if prior exam normal and low risk A1c is identified by LOINC Component \"Hemoglobin A1c\" across methods (e.g. 4548-4 default, 17856-6 HPLC, 59261-8 IFCC). eGFR and uACR are the two required kidney components of KED.\n\nA single population A1c threshold is **not** appropriate for every adult with diabetes. The target range is\nindividualized by comorbidity burden and life expectancy:\n| Patient profile | Target A1c range |\n|---|---|\n| No or minimal microvascular complications, >10 years life expectancy | 6.0\u20137.0% |\n| Moderate comorbidity, 5\u201310 years life expectancy | 7.0\u20138.0% |\n| Marked comorbidity or end-stage disease, <5 years life expectancy | 8.0\u20139.0% |\nThis is the key difference from the GSD quality **measure**, which only records w",
+      "latency_s": 15.7
     },
     {
       "arm": "genie_ontology",
@@ -50,7 +120,8 @@
       "sufficient": false,
       "answer": "INSUFFICIENT CONTEXT",
       "n_docs": 2,
-      "latency_s": 18.2
+      "context": "Genie Ontology Page \u2014 KED \u2014 Kidney Health Evaluation for Patients With Diabetes\n**KED (Kidney Health Evaluation for Patients With Diabetes)** is a HEDIS quality measure for assessing kidney\nhealth in diabetic patients. Its numerator is **compound** \u2014 it requires two different tests in the same year.\n\n- **Eligible population (denominator):** patients aged **18\u201385** as of the end of the measurement year in the\n  **diabetes cohort**.\n- **Numerator (compliant):** **both** of the following in the measurement year:\n  1. an **eGFR** (estimated glomerular filtration rate) test \u2014 value set `KED_EGFR`, and\n  2. a **uACR** (urine albumin-creatinine ratio) test \u2014 value set `KED_UACR`.\n\nA patient is **MET** only when **both** components are present; missing either is a care gap. Because the two\ncomponents are tracked separately, the **eGFR Test Rate** and **uACR Test Rate** are each exposed in\n`ked_compliance_metrics` alongside the combined **KED Compliance Rate**. In this demo uACR is the limiting\ncomponent (eGFR ~92%, uACR ~51%, combined ~51%).\n\n> The eGFR value set spans LOINC vintages (e.g. `33914-3` MDRD and `98979-8`) \u2014 a reminder that value sets\n> evolve and a measure must accept all valid codes for the concept. HEDIS-aligned demo, not NCQA-certified.\n\nMetric view care_protocol_semantic.ked_compliance_metrics [certified, Clinical Domain]. HEDIS KED (Kidney Health Evaluation) compliance for the diabetes population aged 18-85. Denominator = eligible diabetes patients; numerator requires BOTH an eGFR test and a uACR test in the measurement year. Exposes the combined rate and each component (eGFR, uACR) separately. HEDIS-aligned demo, not NCQA-certified. Dimensions: Compliance Status = CASE WHEN egfr_datetime IS NOT NULL AND uacr_datetime IS NOT NULL THEN 'MET' ELSE 'NOT_MET' END (Computed live: MET = both an eGFR and a uACR test were found in the measurement year; NOT_MET = at least one is missing.); Gap Reason = CASE WHEN egfr_datetime IS NOT NULL AND uacr_datetime IS NOT NULL THEN 'Met' WHEN egfr_datetime IS NULL AND uacr_datetime IS NULL THEN 'No eGFR or uACR test' WHEN egfr_datetime IS NULL THEN 'No eGFR test' ELSE 'No uACR test' END (Computed live: why the patient is a care gap (NOT_MET); 'Met' when compliant. Group care gaps by reason.); Age Band = CASE WHEN age < 45 THEN '18-44' WHEN age < 65 THEN '45-64' ELSE '65-85' END (Age band at the end of the measurement year (KED eligible population is 18-85).). Measures: Eligible Patients = COUNT(1) (Diabetes patients aged 18-85 eligible for KED (the measure denominator). One row per patient.); eGFR Tested Patients = COUNT(1) FILTER (WHERE egfr_datetime IS NOT NULL) (Eligible patients with at least one eGFR (estimated glomerular filtration rate) test in the measurement year.); uACR Tested Patients = COUNT(1) FILTER (WHERE uacr_datetime IS NOT NULL) (Eligible patients with at least one uACR (urine albumin-creatinine ratio) test in the measurement year.); Compliant Patients = COUNT(1) FILTER (WHERE egfr_date",
+      "latency_s": 18.5
     },
     {
       "arm": "ontobricks",
@@ -60,7 +131,8 @@
       "sufficient": false,
       "answer": "",
       "n_docs": 33,
-      "latency_s": 22.8
+      "context": "(icd/E11.65) -[subClassOf]-> (icd/E11)  [guideline]\n\n(icd/E11.31) -[subClassOf]-> (icd/E11.3)  [guideline]\n\n(icd/N17.9) -[subClassOf]-> (icd/N17)  [guideline]\n\n(icd/E10.2) -[subClassOf]-> (icd/E10)  [guideline]\n\n(icd/E11.22) -[subClassOf]-> (icd/E11.2)  [guideline]\n\n(icd/N18.6) -[subClassOf]-> (icd/N18)  [guideline]\n\n(icd/E10.21) -[subClassOf]-> (icd/E10.2)  [guideline]\n\n(icd/E11.2) -[subClassOf]-> (icd/E11)  [guideline]\n\n(icd/E11.29) -[subClassOf]-> (icd/E11.2)  [guideline]\n\n(icd/E11.9) -[subClassOf]-> (icd/E11)  [guideline]\n\n(icd/N18.1) -[subClassOf]-> (icd/N18)  [guideline]\n\n(icd/E11.319) -[subClassOf]-> (icd/E11.31)  [guideline]\n\n(icd/N18.4) -[subClassOf]-> (icd/N18)  [guideline]\n\n(icd/E11.3) -[subClassOf]-> (icd/E11)  [guideline]\n\n(icd/N18.2) -[subClassOf]-> (icd/N18)  [guideline]\n\n(icd/E11.21) -[subClassOf]-> (icd/E11.2)  [guideline]\n\n(icd/N18.3) -[subClassOf]-> (icd/N18)  [guideline]\n\n(icd/N18.5) -[subClassOf]-> (icd/N18)  [guideline]\n\n(icd/E10.9) -[subClassOf]-> (icd/E10)  [guideline]\n\n(icd/E11.40) -[subClassOf]-> (icd/E11.4)  [guideline]\n\n(DrugClass/DRUGCLASS-SGLT2) -[recommendedFor]-> (ValueSet/COMORBID_CKD)  [guideline]\n\n(icd/N18.30) -[subClassOf]-> (icd/N18.3)  [guideline]\n\n(Measure/KED) -[monitoredBy]-> (part/LP-EGFR)  [guideline]\n\n(icd/E11.4) -[subClassOf]-> (icd/E11)  [guideline]\n\n(Measure/KED) -[monitoredBy]-> (part/LP-UACR)  [guideline]\n\n(Patient/5137a17d-0389-ebd7-06ab-f3cd0147b611) -[hasCareGap]-> (Measure/KED)  [member]\n\n(Patient/8fd853a2-c2e7-15f2-a90e-b69f5a61b0e5) -[hasDiagnosis]-> (icd/N18.1)  [member]\n\n(Patient/a9023e0a-f044-deb8-b46f-3ad97ba72cda) -[hasDiagnosis]-> (icd/E11.65)  [member]\n\n(Patient/26ffc351-d575-328c-8576-726363a68883) -[hasDiagnosis]-> (icd/N18.30)  [member]\n\n(Patient/09a37169-d395-ddef-644a-e5a8c23212e0) -[hasDiagnosis]-> (icd/N18.4)  [member]\n\n(Patient/3ca8a8dc-cae8-eee8-9882-7b76f76a9aac) -[hasDiagnosis]-> (icd/E11.319)  [member]\n\n(Patient/76ee082f-50c3-ae50-8bc2-535c64cc50f9) -[hasDiagnosis]-> (icd/N18.30)  [member]\n\n(Patient/9bea7885-d9ac-14cb-195a-6a7ec9a716c8) -[hasDiagnosis]-> (icd/E11.29)  [member]",
+      "latency_s": 19.7
     },
     {
       "arm": "closed_book",
@@ -70,7 +142,41 @@
       "sufficient": false,
       "answer": "INSUFFICIENT CONTEXT",
       "n_docs": 0,
-      "latency_s": 10.2
+      "context": "(no context retrieved)",
+      "latency_s": 9.1
+    },
+    {
+      "arm": "metric_view",
+      "qid": "med_on_statin",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "context": "(no context retrieved)",
+      "latency_s": 8.9
+    },
+    {
+      "arm": "closure_sql",
+      "qid": "med_on_statin",
+      "correct": true,
+      "grounded": true,
+      "sufficient": true,
+      "answer": "1651\n\nSource: [1] Result of a fixed-shape governed SQL query (closure/edge/gold tables) \u2014 diabetic_on_statin: 1651",
+      "n_docs": 1,
+      "context": "Result of a fixed-shape governed SQL query (closure / edge / gold tables):\ndiabetic_on_statin\n1651",
+      "latency_s": 14.6
+    },
+    {
+      "arm": "rag",
+      "qid": "med_on_statin",
+      "correct": false,
+      "grounded": true,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 5,
+      "context": "CP-ESC-1 (statin gap). A patient aged 40\u201375 with diabetes and no statin dispensed in the year (SPD gap) should be started on a moderate-to-high intensity statin , after confirming no contraindication (pregnancy, active hepatic disease). CP-ESC-2 (kidney gap). A patient missing eGFR or uACR (KED gap) should have the missing component ordered. If uACR \u2265 30 mg/g, start an ACE inhibitor or ARB (not both). CP-ESC-3 (combined cardiorenal). A patient with diabetes and chronic kidney disease (N18.*) and heart failure (I50.*) is a cardiorenal priority: ensure statin, ACE/ARB, and an SGLT2 inhibitor (if eGFR \u2265 20), and monitor A1c every 3 months. Escalation rules reference measures (GSD/KED/SPD), labs (eGFR, uACR, A1c), diagnosis families (E10/E11/E13, N18, I50) and drug classes \u2014 the relationships this protocol contributes to the knowledge graph.\n\nMeasure Eligible ages Numerator (compliant when\u2026) Threshold / definition GSD \u2014 Glycemic Status Assessment 18\u201375 \u22651 HbA1c test in the measurement year Good control &lt; 8.0%; poor control &gt; 9.0%; general target &lt; 7.0% KED \u2014 Kidney Health Evaluation 18\u201385 BOTH an eGFR test AND a uACR test in the year Both components required; either alone is a gap BPD \u2014 Blood Pressure Control 18\u201375 Most recent BP reading controlled Controlled = systolic &lt; 140 mmHg AND diastolic &lt; 90 mmHg SPD \u2014 Statin Therapy 40\u201375 Dispensed a statin during the year Moderate-to-high intensity statin EED \u2014 Eye Exam 18\u201375 Retinal / diabetic eye exam in the year Dilated or retinal-imaging exam; biennial if prior exam normal and low risk A1c is identified by LOINC Component \"Hemoglobin A1c\" across methods (e.g. 4548-4 default, 17856-6 HPLC, 59261-8 IFCC). eGFR and uACR are the two required kidney components of KED.\n\n**Statins and ACE inhibitors / ARBs are contraindicated in pregnancy.** A gap-closure recommendation that\nwould otherwise fire (e.g. \"start a statin for this 40-year-old with diabetes\") must be suppressed if the\npatient is pregnant. This is an exclusion the structured measure does not reason about on its own.\n\nDrug class Indicated for Example agents (RxNorm ingredient) Contraindications / cautions Statin SPD: all diabetics 40\u201375; cardiovascular risk reduction atorvastatin, simvastatin, rosuvastatin, pravastatin, lovastatin, fluvastatin Pregnancy; active hepatic disease / unexplained persistent transaminase elevation ACE inhibitor or ARB Albuminuria (uACR \u2265 30 mg/g) or hypertension lisinopril, enalapril, losartan, valsartan Pregnancy; bilateral renal artery stenosis; hyperkalemia; do NOT combine ACE + ARB SGLT2 inhibitor CKD (eGFR \u2265 20), heart failure empagliflozin, dapagliflozin Do not initiate if eGFR &lt; 20; risk of genital mycotic infection, DKA Metformin First-line glycemic control metformin eGFR &lt; 30 (contraindicated); hold around iodinated contrast\n\nMost adults aged 40\u201375 with diabetes should receive a **moderate-to-high intensity statin** (this is the SPD\nmeasure numerator). Before starting, confirm no contraindicatio",
+      "latency_s": 14.8
     },
     {
       "arm": "genie_ontology",
@@ -80,7 +186,8 @@
       "sufficient": false,
       "answer": "INSUFFICIENT CONTEXT",
       "n_docs": 3,
-      "latency_s": 18.8
+      "context": "Genie Ontology Page \u2014 Diabetes Cohort\nThe **diabetes cohort** is the set of patients with a diabetes diagnosis, used as the basis for the diabetes\nquality measures (GSD, KED, etc.). It is resolved **semantically**, not by a hand-maintained code list.\n\n- A patient is in the cohort if they have any ICD-10-CM diagnosis that is a **descendant of E10, E11, or\n  E13** (type 1, type 2, and other/specified diabetes) in the ICD-10 hierarchy.\n- This is computed by joining `silver_condition` to the **`icd10_closure`** table on `descendant_code` where\n  `ancestor_code IN ('E10','E11','E13')` \u2014 a **single equality join** that captures the entire subtree\n  (e.g. `E11.21`, `E11.319`) via **subsumption**.\n- Result: `silver_diabetes_cohort` (distinct `patient_id`). A flat code list would miss specific children and\n  undercount; the hierarchy closure catches them all.\n\n> See also **ICD-10 Subsumption**. HEDIS-aligned demo, not NCQA-certified.\n\nGenie Ontology Page \u2014 SPD \u2014 Statin Therapy for Patients With Diabetes\n**SPD (Statin Therapy for Patients With Diabetes)** is a HEDIS measure for statin use in diabetic patients.\n\n- **Eligible population (denominator):** patients aged **40\u201375** as of the end of the measurement year in the\n  **diabetes cohort**.\n- **Numerator (compliant):** dispensed **at least one statin** during the measurement year.\n\n**Why this exercises the ontology:** the `SPD_STATIN` value set lists RxNorm **ingredients** (e.g. `36567`\nsimvastatin, `83367` atorvastatin), but prescriptions carry RxNorm **clinical-drug** codes (e.g. `312961`\n*Simvastatin 20 MG Oral Tablet*). A flat match of ingredients against prescriptions finds **zero** statins.\nSPD instead resolves statins by **subsumption over `rxnorm_closure`** (ingredient \u2192 its clinical drugs) \u2014 the\nsame closure-join pattern used for the diabetes cohort over ICD-10. This is the medication-side companion to\nICD-10 subsumption: meaning comes from the hierarchy, not a flat code list.\n\n> HEDIS-aligned demo, not NCQA-certified.\n\nMetric view care_protocol_semantic.spd_compliance_metrics [certified, Clinical Domain]. HEDIS SPD (Statin Therapy) compliance for the diabetes population aged 40-75. Denominator = eligible diabetes patients; numerator = dispensed a statin in the measurement year (statins resolved from RxNorm ingredients to clinical drugs via subsumption). HEDIS-aligned demo, not NCQA-certified. Dimensions: Compliance Status = CASE WHEN evidence_datetime IS NOT NULL THEN 'MET' ELSE 'NOT_MET' END (MET = a statin was dispensed in the measurement year; NOT_MET = no statin (care gap).); Gap Reason = CASE WHEN evidence_datetime IS NOT NULL THEN 'Met' ELSE 'No statin dispensed in measurement year' END (Why the patient is a care gap (NOT_MET); 'Met' when compliant. Group care gaps by reason.); Age Band = CASE WHEN age < 55 THEN '40-54' WHEN age < 65 THEN '55-64' ELSE '65-75' END (Age band at the end of the measurement year (SPD eligible population is 40-75).). Measures: Eligible Patients = COUNT(1) (Diabe",
+      "latency_s": 17.8
     },
     {
       "arm": "ontobricks",
@@ -90,7 +197,8 @@
       "sufficient": false,
       "answer": "INSUFFICIENT CONTEXT",
       "n_docs": 28,
-      "latency_s": 17.1
+      "context": "(icd/E11.65) -[subClassOf]-> (icd/E11)  [guideline]\n\n(icd/E11.31) -[subClassOf]-> (icd/E11.3)  [guideline]\n\n(icd/E10.2) -[subClassOf]-> (icd/E10)  [guideline]\n\n(ing/36567) -[inDrugClass]-> (DrugClass/DRUGCLASS-STATIN)  [guideline]\n\n(DrugClass/DRUGCLASS-STATIN) -[recommendedFor]-> (Measure/SPD)  [guideline]\n\n(icd/E11.22) -[subClassOf]-> (icd/E11.2)  [guideline]\n\n(DrugClass/DRUGCLASS-STATIN) -[contraindicatedWith]-> (ValueSet/CONTRA_HEPATIC)  [guideline]\n\n(icd/E10.21) -[subClassOf]-> (icd/E10.2)  [guideline]\n\n(icd/E11.2) -[subClassOf]-> (icd/E11)  [guideline]\n\n(ing/301542) -[inDrugClass]-> (DrugClass/DRUGCLASS-STATIN)  [guideline]\n\n(icd/E11.29) -[subClassOf]-> (icd/E11.2)  [guideline]\n\n(icd/E11.9) -[subClassOf]-> (icd/E11)  [guideline]\n\n(icd/E11.319) -[subClassOf]-> (icd/E11.31)  [guideline]\n\n(ing/83367) -[inDrugClass]-> (DrugClass/DRUGCLASS-STATIN)  [guideline]\n\n(DrugClass/DRUGCLASS-STATIN) -[contraindicatedWith]-> (ValueSet/CONTRA_PREGNANCY)  [guideline]\n\n(icd/E11.3) -[subClassOf]-> (icd/E11)  [guideline]\n\n(icd/E11.21) -[subClassOf]-> (icd/E11.2)  [guideline]\n\n(icd/E10.9) -[subClassOf]-> (icd/E10)  [guideline]\n\n(icd/E11.40) -[subClassOf]-> (icd/E11.4)  [guideline]\n\n(icd/E11.4) -[subClassOf]-> (icd/E11)  [guideline]\n\n(Patient/a2e0f188-1de6-5394-4c60-1a37764cd941) -[hasDiagnosis]-> (icd/E11.22)  [member]\n\n(Patient/9fa7888d-5a43-e1d1-177d-362b4549f6cc) -[hasCareGap]-> (Measure/SPD)  [member]\n\n(Patient/0e17a222-f81d-90c7-7d48-f515ee5153b4) -[hasDiagnosis]-> (icd/E11.9)  [member]\n\n(Patient/0745e29c-e376-1ddd-03f9-9e90a667cf8b) -[hasDiagnosis]-> (icd/E11.9)  [member]\n\n(Patient/08b7ab43-f54e-dbfd-07a6-bcee3d66ad75) -[hasDiagnosis]-> (icd/E11.319)  [member]\n\n(Patient/d3b33197-6ee2-16b4-65fe-83283e1f87e7) -[hasDiagnosis]-> (icd/E11.9)  [member]\n\n(Patient/72a2edc1-e2c1-aff9-1706-0544247452b6) -[hasDiagnosis]-> (icd/E11.319)  [member]\n\n(Patient/0a25b264-ad91-bf3c-cd8c-29dd2c9dbf2a) -[eligibleFor]-> (Measure/SPD)  [member]",
+      "latency_s": 15.8
     },
     {
       "arm": "closed_book",
@@ -100,7 +208,41 @@
       "sufficient": false,
       "answer": "INSUFFICIENT CONTEXT",
       "n_docs": 0,
-      "latency_s": 10.1
+      "context": "(no context retrieved)",
+      "latency_s": 10.4
+    },
+    {
+      "arm": "metric_view",
+      "qid": "vintage_egfr_2026",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "context": "(no context retrieved)",
+      "latency_s": 9.9
+    },
+    {
+      "arm": "closure_sql",
+      "qid": "vintage_egfr_2026",
+      "correct": false,
+      "grounded": true,
+      "sufficient": true,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 1,
+      "context": "Result of a fixed-shape governed SQL query (closure / edge / gold tables):\negfr_2026_patients\n0",
+      "latency_s": 14.4
+    },
+    {
+      "arm": "rag",
+      "qid": "vintage_egfr_2026",
+      "correct": false,
+      "grounded": true,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 5,
+      "context": "Measure Eligible ages Numerator (compliant when\u2026) Threshold / definition GSD \u2014 Glycemic Status Assessment 18\u201375 \u22651 HbA1c test in the measurement year Good control &lt; 8.0%; poor control &gt; 9.0%; general target &lt; 7.0% KED \u2014 Kidney Health Evaluation 18\u201385 BOTH an eGFR test AND a uACR test in the year Both components required; either alone is a gap BPD \u2014 Blood Pressure Control 18\u201375 Most recent BP reading controlled Controlled = systolic &lt; 140 mmHg AND diastolic &lt; 90 mmHg SPD \u2014 Statin Therapy 40\u201375 Dispensed a statin during the year Moderate-to-high intensity statin EED \u2014 Eye Exam 18\u201375 Retinal / diabetic eye exam in the year Dilated or retinal-imaging exam; biennial if prior exam normal and low risk A1c is identified by LOINC Component \"Hemoglobin A1c\" across methods (e.g. 4548-4 default, 17856-6 HPLC, 59261-8 IFCC). eGFR and uACR are the two required kidney components of KED.\n\nStart an **ACE inhibitor or ARB** when a patient has hypertension with albuminuria, or chronic kidney disease.\nThe albuminuria gate is a **urine albumin-to-creatinine ratio (uACR) \u2265 30 mg/g**. Monitor uACR **at least\nannually**. The KED measure checks that an eGFR test *and* a uACR test were done; it does not encode the\nACE/ARB decision that an abnormal uACR should trigger.\n\nCP-ESC-1 (statin gap). A patient aged 40\u201375 with diabetes and no statin dispensed in the year (SPD gap) should be started on a moderate-to-high intensity statin , after confirming no contraindication (pregnancy, active hepatic disease). CP-ESC-2 (kidney gap). A patient missing eGFR or uACR (KED gap) should have the missing component ordered. If uACR \u2265 30 mg/g, start an ACE inhibitor or ARB (not both). CP-ESC-3 (combined cardiorenal). A patient with diabetes and chronic kidney disease (N18.*) and heart failure (I50.*) is a cardiorenal priority: ensure statin, ACE/ARB, and an SGLT2 inhibitor (if eGFR \u2265 20), and monitor A1c every 3 months. Escalation rules reference measures (GSD/KED/SPD), labs (eGFR, uACR, A1c), diagnosis families (E10/E11/E13, N18, I50) and drug classes \u2014 the relationships this protocol contributes to the knowledge graph.\n\nFor **MY2026**, the eGFR value set is modernized to the race-free CKD-EPI 2021 estimating equation and\n**drops the legacy race-based (MDRD) eGFR code** that older lab feeds still emit. Health systems whose result\nfeed still carries the legacy code will see eGFR coverage \u2014 and therefore KED compliance \u2014 fall on otherwise\nunchanged data until mapping is updated. This is the second controlled drift scenario in the demo.\n\nAssessment Codes Frequency HbA1c LOINC Component \"Hemoglobin A1c\" Every 3 months if uncontrolled (&gt; 9%); every 6 months if at goal Kidney (eGFR + uACR) eGFR + uACR LOINC At least annually (KED) Blood pressure LOINC 8480-6 / 8462-4 Every clinical encounter Dilated retinal eye exam Retinal exam procedure Annually; biennially if a prior exam was normal and risk is low",
+      "latency_s": 16.4
     },
     {
       "arm": "genie_ontology",
@@ -110,7 +252,8 @@
       "sufficient": false,
       "answer": "INSUFFICIENT CONTEXT",
       "n_docs": 4,
-      "latency_s": 20.7
+      "context": "Genie Ontology Page \u2014 eGFR \u2014 Estimated Glomerular Filtration Rate\n**eGFR (estimated glomerular filtration rate)** estimates how well the kidneys filter blood. It is one of the\ntwo components of the **KED** numerator (the other is **uACR**).\n\n- **Terminology:** LOINC. The demo value set `KED_EGFR` includes **`33914-3`** (MDRD-based eGFR, the code\n  Synthea emits) and **`98979-8`** (a newer CKD-EPI eGFR code). A measure must accept **all** valid LOINC\n  codes for the concept \u2014 relying on a single code would undercount.\n- eGFR tests are conformed into `silver_observation` and feed `gold_adherence_ked` (`egfr_flag`).\n\n> This multi-code value set is the concrete example of **value-set / terminology drift** \u2014 the \"right\" code\n> depends on vintage and source system. HEDIS-aligned demo, not NCQA-certified.\n\nGenie Ontology Page \u2014 KED \u2014 Kidney Health Evaluation for Patients With Diabetes\n**KED (Kidney Health Evaluation for Patients With Diabetes)** is a HEDIS quality measure for assessing kidney\nhealth in diabetic patients. Its numerator is **compound** \u2014 it requires two different tests in the same year.\n\n- **Eligible population (denominator):** patients aged **18\u201385** as of the end of the measurement year in the\n  **diabetes cohort**.\n- **Numerator (compliant):** **both** of the following in the measurement year:\n  1. an **eGFR** (estimated glomerular filtration rate) test \u2014 value set `KED_EGFR`, and\n  2. a **uACR** (urine albumin-creatinine ratio) test \u2014 value set `KED_UACR`.\n\nA patient is **MET** only when **both** components are present; missing either is a care gap. Because the two\ncomponents are tracked separately, the **eGFR Test Rate** and **uACR Test Rate** are each exposed in\n`ked_compliance_metrics` alongside the combined **KED Compliance Rate**. In this demo uACR is the limiting\ncomponent (eGFR ~92%, uACR ~51%, combined ~51%).\n\n> The eGFR value set spans LOINC vintages (e.g. `33914-3` MDRD and `98979-8`) \u2014 a reminder that value sets\n> evolve and a measure must accept all valid codes for the concept. HEDIS-aligned demo, not NCQA-certified.\n\nMetric view care_protocol_semantic.lab_result_metrics [certified, Clinical Domain]. LOINC lab-result measures over the synthetic observation stream, enriched with LOINC multiaxial Parts. Group by Lab Concept (Component) to count labs by WHAT was measured regardless of code vintage or method -- the multiaxial-identity capability a flat code list or a single is-a closure cannot express. Averages are only meaningful within a single Concept/Code (units differ across analytes). Synthetic; LOINC (c) Regenstrief under the LOINC License. Dimensions: Lab Concept = COALESCE(component, 'Uncoded (no LOINC Part)') (LOINC Component Part -- WHAT the test measures (e.g. 'Hemoglobin A1c/Hemoglobin.total', 'Glomerular filtration rate.predicted', 'Albumin/Creatinine'). The multiaxial grouping key: one Concept spans every code/method that measures it. 'Uncoded' when the LOINC code has no Part in the demo subset.); LOINC Code = l",
+      "latency_s": 21.3
     },
     {
       "arm": "ontobricks",
@@ -120,7 +263,8 @@
       "sufficient": false,
       "answer": "INSUFFICIENT CONTEXT",
       "n_docs": 11,
-      "latency_s": 17.5
+      "context": "(DrugClass/DRUGCLASS-BIGUANIDE) -[contraindicatedWhen]-> (Threshold/eGFR_LT_30)  [guideline]\n\n(Measure/KED) -[monitoredBy]-> (part/LP-EGFR)  [guideline]\n\n(Measure/KED) -[monitoredBy]-> (part/LP-UACR)  [guideline]\n\n(Patient/5137a17d-0389-ebd7-06ab-f3cd0147b611) -[hasCareGap]-> (Measure/KED)  [member]\n\n(Patient/8b231bda-36f8-2146-6dc4-a9caf88cd117) -[hasCareGap]-> (Measure/KED)  [member]\n\n(Patient/034570f1-3c45-4241-f5b1-bfdf73ae4b5e) -[eligibleFor]-> (Measure/KED)  [member]\n\n(Patient/09c41063-a0d4-f12a-65ce-ab9a3e9be510) -[hasCareGap]-> (Measure/KED)  [member]\n\n(Patient/afe78780-aefc-78cc-abfd-efdeb9d9692b) -[eligibleFor]-> (Measure/KED)  [member]\n\n(Patient/c5b91bce-82fe-3295-b942-9229a3604cc7) -[eligibleFor]-> (Measure/KED)  [member]\n\n(Patient/65d50b54-13b8-13a6-d399-4f29915b0b42) -[eligibleFor]-> (Measure/KED)  [member]\n\n(Patient/73c74b9c-a1e9-823e-cd41-edfc39195596) -[eligibleFor]-> (Measure/KED)  [member]",
+      "latency_s": 17.4
     },
     {
       "arm": "closed_book",
@@ -130,7 +274,41 @@
       "sufficient": false,
       "answer": "INSUFFICIENT CONTEXT",
       "n_docs": 0,
-      "latency_s": 9.8
+      "context": "(no context retrieved)",
+      "latency_s": 9.2
+    },
+    {
+      "arm": "metric_view",
+      "qid": "proto_cardiorenal",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "context": "(no context retrieved)",
+      "latency_s": 12.5
+    },
+    {
+      "arm": "closure_sql",
+      "qid": "proto_cardiorenal",
+      "correct": false,
+      "grounded": true,
+      "sufficient": true,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 1,
+      "context": "Result of a fixed-shape governed SQL query (closure / edge / gold tables):\ncardiorenal_cohort\n10",
+      "latency_s": 14.7
+    },
+    {
+      "arm": "rag",
+      "qid": "proto_cardiorenal",
+      "correct": false,
+      "grounded": true,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 5,
+      "context": "CP-ESC-1 (statin gap). A patient aged 40\u201375 with diabetes and no statin dispensed in the year (SPD gap) should be started on a moderate-to-high intensity statin , after confirming no contraindication (pregnancy, active hepatic disease). CP-ESC-2 (kidney gap). A patient missing eGFR or uACR (KED gap) should have the missing component ordered. If uACR \u2265 30 mg/g, start an ACE inhibitor or ARB (not both). CP-ESC-3 (combined cardiorenal). A patient with diabetes and chronic kidney disease (N18.*) and heart failure (I50.*) is a cardiorenal priority: ensure statin, ACE/ARB, and an SGLT2 inhibitor (if eGFR \u2265 20), and monitor A1c every 3 months. Escalation rules reference measures (GSD/KED/SPD), labs (eGFR, uACR, A1c), diagnosis families (E10/E11/E13, N18, I50) and drug classes \u2014 the relationships this protocol contributes to the knowledge graph.\n\nDrug class Indicated for Example agents (RxNorm ingredient) Contraindications / cautions Statin SPD: all diabetics 40\u201375; cardiovascular risk reduction atorvastatin, simvastatin, rosuvastatin, pravastatin, lovastatin, fluvastatin Pregnancy; active hepatic disease / unexplained persistent transaminase elevation ACE inhibitor or ARB Albuminuria (uACR \u2265 30 mg/g) or hypertension lisinopril, enalapril, losartan, valsartan Pregnancy; bilateral renal artery stenosis; hyperkalemia; do NOT combine ACE + ARB SGLT2 inhibitor CKD (eGFR \u2265 20), heart failure empagliflozin, dapagliflozin Do not initiate if eGFR &lt; 20; risk of genital mycotic infection, DKA Metformin First-line glycemic control metformin eGFR &lt; 30 (contraindicated); hold around iodinated contrast\n\nThese agents are indicated for **cardiorenal protection even when A1c is already at goal**:\n- Type 2 diabetes **plus atherosclerotic cardiovascular disease (ASCVD)**: add a GLP-1 RA or an SGLT2\n  inhibitor to reduce major adverse cardiovascular events.\n- Type 2 diabetes **plus heart failure**: add an **SGLT2 inhibitor** to reduce heart-failure hospitalization.\n- Type 2 diabetes **plus chronic kidney disease** (eGFR \u2265 20): add an **SGLT2 inhibitor** for renal protection.\nThe decision is **outcome-driven, not glucose-driven**: a patient at an A1c goal on metformin alone who has\nCKD with albuminuria should still have an SGLT2 inhibitor added for renal protection \u2014 a recommendation no\nHEDIS quality measure captures.\n\n**Statins and ACE inhibitors / ARBs are contraindicated in pregnancy.** A gap-closure recommendation that\nwould otherwise fire (e.g. \"start a statin for this 40-year-old with diabetes\") must be suppressed if the\npatient is pregnant. This is an exclusion the structured measure does not reason about on its own.\n\nCP-GLY-1. Target HbA1c is &lt; 7.0% for most adults. A1c between 8.0% and 9.0% warrants therapy review; A1c &gt; 9.0% is classified poorly controlled and triggers escalation within 3 months. CP-GLY-2. Metformin is first-line glucose-lowering therapy. Metformin is contraindicated when eGFR &lt; 30 mL/min/1.73m\u00b2; use with caution and do not initiate ",
+      "latency_s": 16.0
     },
     {
       "arm": "genie_ontology",
@@ -140,7 +318,8 @@
       "sufficient": false,
       "answer": "INSUFFICIENT CONTEXT",
       "n_docs": 2,
-      "latency_s": 17.8
+      "context": "Genie Ontology Page \u2014 SPD \u2014 Statin Therapy for Patients With Diabetes\n**SPD (Statin Therapy for Patients With Diabetes)** is a HEDIS measure for statin use in diabetic patients.\n\n- **Eligible population (denominator):** patients aged **40\u201375** as of the end of the measurement year in the\n  **diabetes cohort**.\n- **Numerator (compliant):** dispensed **at least one statin** during the measurement year.\n\n**Why this exercises the ontology:** the `SPD_STATIN` value set lists RxNorm **ingredients** (e.g. `36567`\nsimvastatin, `83367` atorvastatin), but prescriptions carry RxNorm **clinical-drug** codes (e.g. `312961`\n*Simvastatin 20 MG Oral Tablet*). A flat match of ingredients against prescriptions finds **zero** statins.\nSPD instead resolves statins by **subsumption over `rxnorm_closure`** (ingredient \u2192 its clinical drugs) \u2014 the\nsame closure-join pattern used for the diabetes cohort over ICD-10. This is the medication-side companion to\nICD-10 subsumption: meaning comes from the hierarchy, not a flat code list.\n\n> HEDIS-aligned demo, not NCQA-certified.\n\nMetric view care_protocol_semantic.spd_compliance_metrics [certified, Clinical Domain]. HEDIS SPD (Statin Therapy) compliance for the diabetes population aged 40-75. Denominator = eligible diabetes patients; numerator = dispensed a statin in the measurement year (statins resolved from RxNorm ingredients to clinical drugs via subsumption). HEDIS-aligned demo, not NCQA-certified. Dimensions: Compliance Status = CASE WHEN evidence_datetime IS NOT NULL THEN 'MET' ELSE 'NOT_MET' END (MET = a statin was dispensed in the measurement year; NOT_MET = no statin (care gap).); Gap Reason = CASE WHEN evidence_datetime IS NOT NULL THEN 'Met' ELSE 'No statin dispensed in measurement year' END (Why the patient is a care gap (NOT_MET); 'Met' when compliant. Group care gaps by reason.); Age Band = CASE WHEN age < 55 THEN '40-54' WHEN age < 65 THEN '55-64' ELSE '65-75' END (Age band at the end of the measurement year (SPD eligible population is 40-75).). Measures: Eligible Patients = COUNT(1) (Diabetes patients aged 40-75 eligible for SPD (the measure denominator). One row per patient.); On Statin Patients = COUNT(1) FILTER (WHERE evidence_datetime IS NOT NULL) (Eligible patients dispensed a statin in the measurement year (the numerator).); SPD Compliance Rate = MEASURE(`On Statin Patients`) / MEASURE(`Eligible Patients`) (Share of eligible diabetes patients dispensed a statin in the measurement year. Numerator / denominator; re-aggregates at any grain.).",
+      "latency_s": 18.2
     },
     {
       "arm": "ontobricks",
@@ -148,9 +327,10 @@
       "correct": false,
       "grounded": true,
       "sufficient": false,
-      "answer": "INS",
+      "answer": "",
       "n_docs": 45,
-      "latency_s": 23.3
+      "context": "(icd/I50.9) -[subClassOf]-> (icd/I50)  [guideline]\n\n(icd/E11.65) -[subClassOf]-> (icd/E11)  [guideline]\n\n(DrugClass/DRUGCLASS-SGLT2) -[recommendedFor]-> (ValueSet/COMORBID_HF)  [guideline]\n\n(icd/E11.31) -[subClassOf]-> (icd/E11.3)  [guideline]\n\n(icd/E10.2) -[subClassOf]-> (icd/E10)  [guideline]\n\n(ing/36567) -[inDrugClass]-> (DrugClass/DRUGCLASS-STATIN)  [guideline]\n\n(DrugClass/DRUGCLASS-STATIN) -[recommendedFor]-> (Measure/SPD)  [guideline]\n\n(icd/E11.22) -[subClassOf]-> (icd/E11.2)  [guideline]\n\n(icd/N18.6) -[subClassOf]-> (icd/N18)  [guideline]\n\n(DrugClass/DRUGCLASS-STATIN) -[contraindicatedWith]-> (ValueSet/CONTRA_HEPATIC)  [guideline]\n\n(icd/E10.21) -[subClassOf]-> (icd/E10.2)  [guideline]\n\n(icd/E11.2) -[subClassOf]-> (icd/E11)  [guideline]\n\n(DrugClass/DRUGCLASS-ACE) -[contraindicatedWith]-> (ValueSet/CONTRA_PREGNANCY)  [guideline]\n\n(ing/301542) -[inDrugClass]-> (DrugClass/DRUGCLASS-STATIN)  [guideline]\n\n(icd/E11.29) -[subClassOf]-> (icd/E11.2)  [guideline]\n\n(icd/E11.9) -[subClassOf]-> (icd/E11)  [guideline]\n\n(icd/N18.1) -[subClassOf]-> (icd/N18)  [guideline]\n\n(icd/E11.319) -[subClassOf]-> (icd/E11.31)  [guideline]\n\n(ing/83367) -[inDrugClass]-> (DrugClass/DRUGCLASS-STATIN)  [guideline]\n\n(icd/N18.4) -[subClassOf]-> (icd/N18)  [guideline]\n\n(DrugClass/DRUGCLASS-STATIN) -[contraindicatedWith]-> (ValueSet/CONTRA_PREGNANCY)  [guideline]\n\n(icd/E11.3) -[subClassOf]-> (icd/E11)  [guideline]\n\n(icd/N18.2) -[subClassOf]-> (icd/N18)  [guideline]\n\n(icd/E11.21) -[subClassOf]-> (icd/E11.2)  [guideline]\n\n(icd/N18.3) -[subClassOf]-> (icd/N18)  [guideline]\n\n(DrugClass/DRUGCLASS-ARB) -[recommendedFor]-> (ValueSet/ALBUMINURIA)  [guideline]\n\n(icd/N18.5) -[subClassOf]-> (icd/N18)  [guideline]\n\n(icd/E10.9) -[subClassOf]-> (icd/E10)  [guideline]\n\n(icd/E11.40) -[subClassOf]-> (icd/E11.4)  [guideline]\n\n(DrugClass/DRUGCLASS-SGLT2) -[recommendedFor]-> (ValueSet/COMORBID_CKD)  [guideline]\n\n(DrugClass/DRUGCLASS-ACE) -[recommendedFor]-> (ValueSet/ALBUMINURIA)  [guideline]\n\n(icd/N18.30) -[subClassOf]-> (icd/N18.3)  [guideline]\n\n(DrugClass/DRUGCLASS-ARB) -[contraindicatedWith]-> (ValueSet/CONTRA_PREGNANCY)  [guideline]\n\n(DrugClass/DRUGCLASS-SGLT2) -[contraindicatedWhen]-> (Threshold/eGFR_LT_20)  [guideline]\n\n(Measure/KED) -[monitoredBy]-> (part/LP-EGFR)  [guideline]\n\n(icd/E11.4) -[subClassOf]-> (icd/E11)  [guideline]\n\n(Measure/KED) -[monitoredBy]-> (part/LP-UACR)  [guideline]\n\n(Patient/5137a17d-0389-ebd7-06ab-f3cd0147b611) -[hasCareGap]-> (Measure/KED)  [member]\n\n(Patient/8fd853a2-c2e7-15f2-a90e-b69f5a61b0e5) -[hasDiagnosis]-> (icd/N18.1)  [member]\n\n(Patient/a9023e0a-f044-deb8-b46f-3ad97ba72cda) -[hasDiagnosis]-> (icd/E11.65)  [member]\n\n(Patient/584f57d2-ed1d-bcab-d21c-689a4e83c026) -[eligibleFor]-> (Measure/SPD)  [member]\n\n(Patient/26ffc351-d575-328c-8576-726363a68883) -[hasDiagnosis]-> (icd/N18.30)  [member]\n\n(Patient/09a37169-d395-ddef-644a-e5a8c23212e0) -[hasDiagnosis]-> (icd/N18.4)  [member]\n\n(Patient/3ca8a8dc-cae8-eee8-9882-7b76f76a9aac) -[hasDiagnosis]-> (icd/E11.319)  [",
+      "latency_s": 22.5
     },
     {
       "arm": "closed_book",
@@ -160,7 +340,41 @@
       "sufficient": false,
       "answer": "INSUFFICIENT CONTEXT",
       "n_docs": 0,
-      "latency_s": 9.8
+      "context": "(no context retrieved)",
+      "latency_s": 9.2
+    },
+    {
+      "arm": "metric_view",
+      "qid": "def_metformin_egfr",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "context": "(no context retrieved)",
+      "latency_s": 9.0
+    },
+    {
+      "arm": "closure_sql",
+      "qid": "def_metformin_egfr",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "context": "(no context retrieved)",
+      "latency_s": 9.1
+    },
+    {
+      "arm": "rag",
+      "qid": "def_metformin_egfr",
+      "correct": true,
+      "grounded": true,
+      "sufficient": true,
+      "answer": "Metformin is contraindicated below an eGFR of **30 mL/min/1.73m\u00b2**.\n\nThis is stated in context [1] (\"Metformin ... eGFR < 30 (contraindicated)\"), context [2] (\"Metformin is **contraindicated** below eGFR **30 mL/min/1.73m\u00b2**; stop it at that level\"), and context [3], CP-GLY-2 (\"Metformin is contraindicated when eGFR < 30 mL/min/1.73m\u00b2\").",
+      "n_docs": 5,
+      "context": "Drug class Indicated for Example agents (RxNorm ingredient) Contraindications / cautions Statin SPD: all diabetics 40\u201375; cardiovascular risk reduction atorvastatin, simvastatin, rosuvastatin, pravastatin, lovastatin, fluvastatin Pregnancy; active hepatic disease / unexplained persistent transaminase elevation ACE inhibitor or ARB Albuminuria (uACR \u2265 30 mg/g) or hypertension lisinopril, enalapril, losartan, valsartan Pregnancy; bilateral renal artery stenosis; hyperkalemia; do NOT combine ACE + ARB SGLT2 inhibitor CKD (eGFR \u2265 20), heart failure empagliflozin, dapagliflozin Do not initiate if eGFR &lt; 20; risk of genital mycotic infection, DKA Metformin First-line glycemic control metformin eGFR &lt; 30 (contraindicated); hold around iodinated contrast\n\nMetformin is first-line glucose-lowering therapy. Kidney-function gates:\n- **Do not initiate** metformin when eGFR is below **45 mL/min/1.73m\u00b2**.\n- Metformin is **contraindicated** below eGFR **30 mL/min/1.73m\u00b2**; stop it at that level.\n- Between 30 and 45, continue with caution and dose review but do not start it new.\n\nCP-GLY-1. Target HbA1c is &lt; 7.0% for most adults. A1c between 8.0% and 9.0% warrants therapy review; A1c &gt; 9.0% is classified poorly controlled and triggers escalation within 3 months. CP-GLY-2. Metformin is first-line glucose-lowering therapy. Metformin is contraindicated when eGFR &lt; 30 mL/min/1.73m\u00b2; use with caution and do not initiate at eGFR 30\u201345. CP-GLY-3. For patients with established CKD (eGFR \u2265 20) or heart failure, add an SGLT2 inhibitor regardless of A1c, for organ protection.\n\nCP-ESC-1 (statin gap). A patient aged 40\u201375 with diabetes and no statin dispensed in the year (SPD gap) should be started on a moderate-to-high intensity statin , after confirming no contraindication (pregnancy, active hepatic disease). CP-ESC-2 (kidney gap). A patient missing eGFR or uACR (KED gap) should have the missing component ordered. If uACR \u2265 30 mg/g, start an ACE inhibitor or ARB (not both). CP-ESC-3 (combined cardiorenal). A patient with diabetes and chronic kidney disease (N18.*) and heart failure (I50.*) is a cardiorenal priority: ensure statin, ACE/ARB, and an SGLT2 inhibitor (if eGFR \u2265 20), and monitor A1c every 3 months. Escalation rules reference measures (GSD/KED/SPD), labs (eGFR, uACR, A1c), diagnosis families (E10/E11/E13, N18, I50) and drug classes \u2014 the relationships this protocol contributes to the knowledge graph.\n\nThese agents are indicated for **cardiorenal protection even when A1c is already at goal**:\n- Type 2 diabetes **plus atherosclerotic cardiovascular disease (ASCVD)**: add a GLP-1 RA or an SGLT2\n  inhibitor to reduce major adverse cardiovascular events.\n- Type 2 diabetes **plus heart failure**: add an **SGLT2 inhibitor** to reduce heart-failure hospitalization.\n- Type 2 diabetes **plus chronic kidney disease** (eGFR \u2265 20): add an **SGLT2 inhibitor** for renal protection.\nThe decision is **outcome-driven, not glucose-driven**: a patient at an A1c goal on ",
+      "latency_s": 18.5
     },
     {
       "arm": "genie_ontology",
@@ -170,17 +384,19 @@
       "sufficient": false,
       "answer": "INSUFFICIENT CONTEXT",
       "n_docs": 1,
-      "latency_s": 16.3
+      "context": "Genie Ontology Page \u2014 eGFR \u2014 Estimated Glomerular Filtration Rate\n**eGFR (estimated glomerular filtration rate)** estimates how well the kidneys filter blood. It is one of the\ntwo components of the **KED** numerator (the other is **uACR**).\n\n- **Terminology:** LOINC. The demo value set `KED_EGFR` includes **`33914-3`** (MDRD-based eGFR, the code\n  Synthea emits) and **`98979-8`** (a newer CKD-EPI eGFR code). A measure must accept **all** valid LOINC\n  codes for the concept \u2014 relying on a single code would undercount.\n- eGFR tests are conformed into `silver_observation` and feed `gold_adherence_ked` (`egfr_flag`).\n\n> This multi-code value set is the concrete example of **value-set / terminology drift** \u2014 the \"right\" code\n> depends on vintage and source system. HEDIS-aligned demo, not NCQA-certified.",
+      "latency_s": 15.8
     },
     {
       "arm": "ontobricks",
       "qid": "def_metformin_egfr",
       "correct": true,
-      "grounded": true,
+      "grounded": false,
       "sufficient": true,
-      "answer": "Metformin (DRUGCLASS-BIGUANIDE) is contraindicated when eGFR < 30 (Threshold/eGFR_LT_30), as stated in context [5]: (DrugClass/DRUGCLASS-BIGUANIDE) -[contraindicatedWhen]-> (Threshold/eGFR_LT_30) [guideline].",
+      "answer": "Metformin (biguanide class) is contraindicated below an eGFR of 30, as stated in [5]: (DrugClass/DRUGCLASS-BIGUANIDE) -[contraindicatedWhen]-> (Threshold/eGFR_LT_30).",
       "n_docs": 16,
-      "latency_s": 17.6
+      "context": "(DrugClass/DRUGCLASS-BIGUANIDE) -[firstLineFor]-> (ValueSet/GLYCEMIC)  [guideline]\n\n(DrugClass/DRUGCLASS-STATIN) -[contraindicatedWith]-> (ValueSet/CONTRA_HEPATIC)  [guideline]\n\n(DrugClass/DRUGCLASS-ACE) -[contraindicatedWith]-> (ValueSet/CONTRA_PREGNANCY)  [guideline]\n\n(DrugClass/DRUGCLASS-STATIN) -[contraindicatedWith]-> (ValueSet/CONTRA_PREGNANCY)  [guideline]\n\n(DrugClass/DRUGCLASS-BIGUANIDE) -[contraindicatedWhen]-> (Threshold/eGFR_LT_30)  [guideline]\n\n(DrugClass/DRUGCLASS-ARB) -[contraindicatedWith]-> (ValueSet/CONTRA_PREGNANCY)  [guideline]\n\n(Measure/KED) -[monitoredBy]-> (part/LP-EGFR)  [guideline]\n\n(Measure/KED) -[monitoredBy]-> (part/LP-UACR)  [guideline]\n\n(Patient/5137a17d-0389-ebd7-06ab-f3cd0147b611) -[hasCareGap]-> (Measure/KED)  [member]\n\n(Patient/8b231bda-36f8-2146-6dc4-a9caf88cd117) -[hasCareGap]-> (Measure/KED)  [member]\n\n(Patient/034570f1-3c45-4241-f5b1-bfdf73ae4b5e) -[eligibleFor]-> (Measure/KED)  [member]\n\n(Patient/09c41063-a0d4-f12a-65ce-ab9a3e9be510) -[hasCareGap]-> (Measure/KED)  [member]\n\n(Patient/afe78780-aefc-78cc-abfd-efdeb9d9692b) -[eligibleFor]-> (Measure/KED)  [member]\n\n(Patient/c5b91bce-82fe-3295-b942-9229a3604cc7) -[eligibleFor]-> (Measure/KED)  [member]\n\n(Patient/65d50b54-13b8-13a6-d399-4f29915b0b42) -[eligibleFor]-> (Measure/KED)  [member]\n\n(Patient/73c74b9c-a1e9-823e-cd41-edfc39195596) -[eligibleFor]-> (Measure/KED)  [member]",
+      "latency_s": 17.8
     },
     {
       "arm": "closed_book",
@@ -190,17 +406,52 @@
       "sufficient": false,
       "answer": "INSUFFICIENT CONTEXT",
       "n_docs": 0,
+      "context": "(no context retrieved)",
+      "latency_s": 9.2
+    },
+    {
+      "arm": "metric_view",
+      "qid": "infer_rationale_path",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "context": "(no context retrieved)",
+      "latency_s": 9.5
+    },
+    {
+      "arm": "closure_sql",
+      "qid": "infer_rationale_path",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "context": "(no context retrieved)",
       "latency_s": 9.8
+    },
+    {
+      "arm": "rag",
+      "qid": "infer_rationale_path",
+      "correct": false,
+      "grounded": true,
+      "sufficient": true,
+      "answer": "**Connecting path:** Diagnosis \u2192 Measure eligibility \u2192 Escalation rule \u2192 Contraindication check\n\n1. **Diagnosis identification:** The patient has diabetes mellitus, identified by an ICD-10-CM code in the E10, E11, or E13 family (including descendants) \u2014 this diagnosis hierarchy defines membership in the diabetes population [3].\n\n2. **Measure eligibility:** Diabetes diagnosis plus age 40\u201375 makes the patient eligible for the **SPD (Statin Therapy) measure**, whose numerator requires a statin dispensed during the year, specifically a moderate-to-high intensity statin [2].\n\n3. **Gap identification:** If no statin was dispensed, the patient has an **SPD gap**.\n\n4. **Escalation rule (CP-ES",
+      "n_docs": 5,
+      "context": "CP-ESC-1 (statin gap). A patient aged 40\u201375 with diabetes and no statin dispensed in the year (SPD gap) should be started on a moderate-to-high intensity statin , after confirming no contraindication (pregnancy, active hepatic disease). CP-ESC-2 (kidney gap). A patient missing eGFR or uACR (KED gap) should have the missing component ordered. If uACR \u2265 30 mg/g, start an ACE inhibitor or ARB (not both). CP-ESC-3 (combined cardiorenal). A patient with diabetes and chronic kidney disease (N18.*) and heart failure (I50.*) is a cardiorenal priority: ensure statin, ACE/ARB, and an SGLT2 inhibitor (if eGFR \u2265 20), and monitor A1c every 3 months. Escalation rules reference measures (GSD/KED/SPD), labs (eGFR, uACR, A1c), diagnosis families (E10/E11/E13, N18, I50) and drug classes \u2014 the relationships this protocol contributes to the knowledge graph.\n\nMeasure Eligible ages Numerator (compliant when\u2026) Threshold / definition GSD \u2014 Glycemic Status Assessment 18\u201375 \u22651 HbA1c test in the measurement year Good control &lt; 8.0%; poor control &gt; 9.0%; general target &lt; 7.0% KED \u2014 Kidney Health Evaluation 18\u201385 BOTH an eGFR test AND a uACR test in the year Both components required; either alone is a gap BPD \u2014 Blood Pressure Control 18\u201375 Most recent BP reading controlled Controlled = systolic &lt; 140 mmHg AND diastolic &lt; 90 mmHg SPD \u2014 Statin Therapy 40\u201375 Dispensed a statin during the year Moderate-to-high intensity statin EED \u2014 Eye Exam 18\u201375 Retinal / diabetic eye exam in the year Dilated or retinal-imaging exam; biennial if prior exam normal and low risk A1c is identified by LOINC Component \"Hemoglobin A1c\" across methods (e.g. 4548-4 default, 17856-6 HPLC, 59261-8 IFCC). eGFR and uACR are the two required kidney components of KED.\n\nThis protocol governs quality measurement and care escalation for adults with diabetes mellitus , identified by an ICD-10-CM diagnosis in the E10 (type 1), E11 (type 2), or E13 (other specified) families, including all descendant codes (e.g. E11.21 Type 2 diabetes with diabetic nephropathy , E11.319 \u2026 with unspecified diabetic retinopathy ). Membership is by the diagnosis hierarchy, not an enumerated code list.\n\nA patient with **newly diagnosed type 2 diabetes** should have a dilated or retinal-imaging eye exam **within\n6 months of diagnosis** to detect background retinopathy that may already be present at diagnosis.\n\n**Statins and ACE inhibitors / ARBs are contraindicated in pregnancy.** A gap-closure recommendation that\nwould otherwise fire (e.g. \"start a statin for this 40-year-old with diabetes\") must be suppressed if the\npatient is pregnant. This is an exclusion the structured measure does not reason about on its own.",
+      "latency_s": 24.6
     },
     {
       "arm": "genie_ontology",
       "qid": "infer_rationale_path",
-      "correct": true,
-      "grounded": true,
+      "correct": false,
+      "grounded": false,
       "sufficient": true,
-      "answer": "**Clinical rationale path (Diabetes \u2192 Statin Therapy, per SPD measure):**\n\n1. **Diabetes diagnosis** places the patient in the \"diabetes cohort,\" identified via **subsumption over `rxnorm_closure`/ICD-10 hierarchy** rather than a flat code list [1].\n2. If the patient is **aged 40\u201375** as of the end of the measurement year, they enter the **SPD eligible population (denominator)** [1][2].\n3. SPD logic then checks whether a **statin was dispensed** during the measurement year. Because prescriptions carry RxNorm **clinical-drug** codes (e.g., `312961` Simvastatin 20 MG Oral Tablet) while the `SPD_STATIN` value set lists RxNorm **ingredients** (e.g., `36567` simvastatin, `83367` atorvastatin), the match is resolved by **subsumption** \u2014 ingredient \u2192 its clinical drugs \u2014 the same closure-join pattern used for the diabetes cohort over ICD-10 [1].\n4. This dispensing event becomes the **numerator/evidence**: `Compliance Status = MET` when `evidence_datetime IS NOT NULL` (a",
+      "answer": "**Clinical rationale path (per HEDIS SPD measure):**\n\n1. **Diabetes diagnosis** \u2192 patient is identified in the **diabetes cohort** via subsumption over `rxnorm_closure`/ICD-10 hierarchy (meaning derived from the hierarchy, not a flat code list) [1].\n2. **Diabetes cohort + age 40\u201375** \u2192 patient enters the SPD **eligible population (denominator)** [1][2].\n3. **Statin therapy requirement** \u2192 compliance is checked by matching dispensed prescriptions (RxNorm clinical-drug codes, e.g. `312961` Simvastatin 20 MG Oral Tablet) back up to RxNorm **ingredient** codes (e.g. `36567` simvastatin, `83367` atorvastatin) via the same **subsumption/closure-join pattern** (`rxnorm_closure`, ingredient \u2192 clinical drugs) [1].\n4. **Numerator (compliant):** if at least one statin is dispensed during the measurement year (`evidence_datetime IS NOT NULL`) \u2192 **MET**; if not \u2192 **NOT_MET** (care gap, reason = \"No statin dispensed in measurement year",
       "n_docs": 2,
-      "latency_s": 27.6
+      "context": "Genie Ontology Page \u2014 SPD \u2014 Statin Therapy for Patients With Diabetes\n**SPD (Statin Therapy for Patients With Diabetes)** is a HEDIS measure for statin use in diabetic patients.\n\n- **Eligible population (denominator):** patients aged **40\u201375** as of the end of the measurement year in the\n  **diabetes cohort**.\n- **Numerator (compliant):** dispensed **at least one statin** during the measurement year.\n\n**Why this exercises the ontology:** the `SPD_STATIN` value set lists RxNorm **ingredients** (e.g. `36567`\nsimvastatin, `83367` atorvastatin), but prescriptions carry RxNorm **clinical-drug** codes (e.g. `312961`\n*Simvastatin 20 MG Oral Tablet*). A flat match of ingredients against prescriptions finds **zero** statins.\nSPD instead resolves statins by **subsumption over `rxnorm_closure`** (ingredient \u2192 its clinical drugs) \u2014 the\nsame closure-join pattern used for the diabetes cohort over ICD-10. This is the medication-side companion to\nICD-10 subsumption: meaning comes from the hierarchy, not a flat code list.\n\n> HEDIS-aligned demo, not NCQA-certified.\n\nMetric view care_protocol_semantic.spd_compliance_metrics [certified, Clinical Domain]. HEDIS SPD (Statin Therapy) compliance for the diabetes population aged 40-75. Denominator = eligible diabetes patients; numerator = dispensed a statin in the measurement year (statins resolved from RxNorm ingredients to clinical drugs via subsumption). HEDIS-aligned demo, not NCQA-certified. Dimensions: Compliance Status = CASE WHEN evidence_datetime IS NOT NULL THEN 'MET' ELSE 'NOT_MET' END (MET = a statin was dispensed in the measurement year; NOT_MET = no statin (care gap).); Gap Reason = CASE WHEN evidence_datetime IS NOT NULL THEN 'Met' ELSE 'No statin dispensed in measurement year' END (Why the patient is a care gap (NOT_MET); 'Met' when compliant. Group care gaps by reason.); Age Band = CASE WHEN age < 55 THEN '40-54' WHEN age < 65 THEN '55-64' ELSE '65-75' END (Age band at the end of the measurement year (SPD eligible population is 40-75).). Measures: Eligible Patients = COUNT(1) (Diabetes patients aged 40-75 eligible for SPD (the measure denominator). One row per patient.); On Statin Patients = COUNT(1) FILTER (WHERE evidence_datetime IS NOT NULL) (Eligible patients dispensed a statin in the measurement year (the numerator).); SPD Compliance Rate = MEASURE(`On Statin Patients`) / MEASURE(`Eligible Patients`) (Share of eligible diabetes patients dispensed a statin in the measurement year. Numerator / denominator; re-aggregates at any grain.).",
+      "latency_s": 28.3
     },
     {
       "arm": "ontobricks",
@@ -208,9 +459,10 @@
       "correct": true,
       "grounded": false,
       "sufficient": false,
-      "answer": "**Clinical rationale path:**\n\n1. A patient with a diabetes diagnosis (e.g., icd/E11.9, Type 2 diabetes, or related subtypes like E11.22, E11.319 \u2014 all subClassOf icd/E11 [1,6,9,11,12,16,17,19,20]) has an active diabetes condition.\n\n2. Diabetes patients are linked to the **Statin Therapy for Diabetes (SPD)** measure: statins are the drug class **recommendedFor** Measure/SPD \u2014 (DrugClass/DRUGCLASS-STATIN) -[recommendedFor]-> (Measure/SPD) [5].\n\n3. Statin ingredients (e.g., ing/36567, ing/301542, ing/83367) belong to DRUGCLASS-STATIN via -[inDrugClass]-> relationships [4,10,14].\n\n**Connecting path:**\nPatient --[hasDiagnosis]--> Diabetes ICD code (icd/E11.x) \u2192 (clinical association via Measure/SPD) \u2190 DRUGCLASS-STATIN --[recommendedFor]--> Measure/SPD \u2190 Statin ingredients --[inDrugClass]--> D",
+      "answer": "**Clinical rationale path:**\n\nA patient's diabetes diagnosis (e.g., **E11.9** - Type 2 diabetes mellitus without complications, or any E11.x subtype) places them in the diabetic population targeted by the **Statin Therapy for Diabetes (SPD)** measure.\n\nConnecting path:\n1. Patient --[hasDiagnosis]--> **icd/E11.9** (or related E11.x code) [21, 23, 24, 26]\n2. **icd/E11.9** --[subClassOf]--> **icd/E11** (Type 2 diabetes mellitus) [12]\n3. Diabetic patients are **[eligibleFor]**--> **Measure/SPD** [28]\n4. **DrugClass/DRUGCLASS-STATIN** --[recommendedFor]--> **Measure/SPD** [5]\n\n**Rationale:** Because the patient has a Type 2 diabetes diagnosis (E11-series ICD code), they fall under the SPD measure population. The SPD measure's clinical guideline recommends statin-class medications (e.g., ingredients 36567, 301542, 83367, which are classified under DRUGCLASS-STATIN per [",
       "n_docs": 28,
-      "latency_s": 32.1
+      "context": "(icd/E11.65) -[subClassOf]-> (icd/E11)  [guideline]\n\n(icd/E11.31) -[subClassOf]-> (icd/E11.3)  [guideline]\n\n(icd/E10.2) -[subClassOf]-> (icd/E10)  [guideline]\n\n(ing/36567) -[inDrugClass]-> (DrugClass/DRUGCLASS-STATIN)  [guideline]\n\n(DrugClass/DRUGCLASS-STATIN) -[recommendedFor]-> (Measure/SPD)  [guideline]\n\n(icd/E11.22) -[subClassOf]-> (icd/E11.2)  [guideline]\n\n(DrugClass/DRUGCLASS-STATIN) -[contraindicatedWith]-> (ValueSet/CONTRA_HEPATIC)  [guideline]\n\n(icd/E10.21) -[subClassOf]-> (icd/E10.2)  [guideline]\n\n(icd/E11.2) -[subClassOf]-> (icd/E11)  [guideline]\n\n(ing/301542) -[inDrugClass]-> (DrugClass/DRUGCLASS-STATIN)  [guideline]\n\n(icd/E11.29) -[subClassOf]-> (icd/E11.2)  [guideline]\n\n(icd/E11.9) -[subClassOf]-> (icd/E11)  [guideline]\n\n(icd/E11.319) -[subClassOf]-> (icd/E11.31)  [guideline]\n\n(ing/83367) -[inDrugClass]-> (DrugClass/DRUGCLASS-STATIN)  [guideline]\n\n(DrugClass/DRUGCLASS-STATIN) -[contraindicatedWith]-> (ValueSet/CONTRA_PREGNANCY)  [guideline]\n\n(icd/E11.3) -[subClassOf]-> (icd/E11)  [guideline]\n\n(icd/E11.21) -[subClassOf]-> (icd/E11.2)  [guideline]\n\n(icd/E10.9) -[subClassOf]-> (icd/E10)  [guideline]\n\n(icd/E11.40) -[subClassOf]-> (icd/E11.4)  [guideline]\n\n(icd/E11.4) -[subClassOf]-> (icd/E11)  [guideline]\n\n(Patient/a2e0f188-1de6-5394-4c60-1a37764cd941) -[hasDiagnosis]-> (icd/E11.22)  [member]\n\n(Patient/9fa7888d-5a43-e1d1-177d-362b4549f6cc) -[hasCareGap]-> (Measure/SPD)  [member]\n\n(Patient/0e17a222-f81d-90c7-7d48-f515ee5153b4) -[hasDiagnosis]-> (icd/E11.9)  [member]\n\n(Patient/0745e29c-e376-1ddd-03f9-9e90a667cf8b) -[hasDiagnosis]-> (icd/E11.9)  [member]\n\n(Patient/08b7ab43-f54e-dbfd-07a6-bcee3d66ad75) -[hasDiagnosis]-> (icd/E11.319)  [member]\n\n(Patient/d3b33197-6ee2-16b4-65fe-83283e1f87e7) -[hasDiagnosis]-> (icd/E11.9)  [member]\n\n(Patient/72a2edc1-e2c1-aff9-1706-0544247452b6) -[hasDiagnosis]-> (icd/E11.319)  [member]\n\n(Patient/0a25b264-ad91-bf3c-cd8c-29dd2c9dbf2a) -[eligibleFor]-> (Measure/SPD)  [member]",
+      "latency_s": 29.6
     },
     {
       "arm": "closed_book",
@@ -220,7 +472,41 @@
       "sufficient": false,
       "answer": "INSUFFICIENT CONTEXT",
       "n_docs": 0,
-      "latency_s": 9.8
+      "context": "(no context retrieved)",
+      "latency_s": 9.4
+    },
+    {
+      "arm": "metric_view",
+      "qid": "op_worst_clinic_annual",
+      "correct": true,
+      "grounded": true,
+      "sufficient": true,
+      "answer": "CLINIC-04, with a Step-3 adherence rate of 0.443 (44.3%) across 79 closed obligations \u2014 the lowest among all clinics in the MY2026 year-to-date data [1].",
+      "n_docs": 1,
+      "context": "Governed metric view result \u2014 Protocol Step-3 adherence by clinic, MY2026 year-to-date (closed windows), lowest first:\nclinic | step3_adherence_rate | closed_obligations\nCLINIC-04 | 0.443 | 79\nCLINIC-07 | 0.465 | 86\nCLINIC-01 | 0.481 | 79\nCLINIC-03 | 0.507 | 69\nCLINIC-02 | 0.525 | 59\nCLINIC-05 | 0.531 | 81\nCLINIC-06 | 0.595 | 74\nCLINIC-08 | 0.6 | 105",
+      "latency_s": 17.1
+    },
+    {
+      "arm": "closure_sql",
+      "qid": "op_worst_clinic_annual",
+      "correct": true,
+      "grounded": true,
+      "sufficient": true,
+      "answer": "CLINIC-04, with a Step-3 adherence rate of 0.443 (79 closed obligations) \u2014 the lowest among all clinics listed [1].",
+      "n_docs": 1,
+      "context": "Result of a fixed-shape governed SQL query (closure / edge / gold tables):\nclinic_id | step3_adherence_rate | closed_obligations\nCLINIC-04 | 0.443 | 79\nCLINIC-07 | 0.465 | 86\nCLINIC-01 | 0.481 | 79\nCLINIC-03 | 0.507 | 69\nCLINIC-02 | 0.525 | 59\nCLINIC-05 | 0.531 | 81\nCLINIC-06 | 0.595 | 74\nCLINIC-08 | 0.6 | 105",
+      "latency_s": 15.5
+    },
+    {
+      "arm": "rag",
+      "qid": "op_worst_clinic_annual",
+      "correct": false,
+      "grounded": true,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 5,
+      "context": "A single population A1c threshold is **not** appropriate for every adult with diabetes. The target range is\nindividualized by comorbidity burden and life expectancy:\n| Patient profile | Target A1c range |\n|---|---|\n| No or minimal microvascular complications, >10 years life expectancy | 6.0\u20137.0% |\n| Moderate comorbidity, 5\u201310 years life expectancy | 7.0\u20138.0% |\n| Marked comorbidity or end-stage disease, <5 years life expectancy | 8.0\u20139.0% |\nThis is the key difference from the GSD quality **measure**, which only records whether an A1c test happened\nand buckets the latest value as good control (<8.0%) or poor control (>9.0%). The measure answers *\"was a test\ndone and what was the value?\"*; the protocol answers *\"what should this specific patient's target be?\"*.\n\nCP-ESC-1 (statin gap). A patient aged 40\u201375 with diabetes and no statin dispensed in the year (SPD gap) should be started on a moderate-to-high intensity statin , after confirming no contraindication (pregnancy, active hepatic disease). CP-ESC-2 (kidney gap). A patient missing eGFR or uACR (KED gap) should have the missing component ordered. If uACR \u2265 30 mg/g, start an ACE inhibitor or ARB (not both). CP-ESC-3 (combined cardiorenal). A patient with diabetes and chronic kidney disease (N18.*) and heart failure (I50.*) is a cardiorenal priority: ensure statin, ACE/ARB, and an SGLT2 inhibitor (if eGFR \u2265 20), and monitor A1c every 3 months. Escalation rules reference measures (GSD/KED/SPD), labs (eGFR, uACR, A1c), diagnosis families (E10/E11/E13, N18, I50) and drug classes \u2014 the relationships this protocol contributes to the knowledge graph.\n\nDocument CP-DM-2025.1 \u00b7 Effective measurement year 2025 \u00b7 SYNTHETIC / DEMO guidance for the Care Protocol Context &amp; Ontology project. HEDIS-aligned, not NCQA-certified. Not for clinical use.\n\n> Synthetic payer memo for the Care Protocol Context & Ontology demo. HEDIS-aligned, not NCQA-certified, not\n> for clinical use. This memo **supersedes** the MY2025 glycemic-status guidance for measurement year 2026.\n\nThese are **measurement** changes. The underlying clinical care protocol (A1c targets, cardiorenal\npharmacotherapy, screening cadence) is unchanged. Updating a measure value set is not the same as updating the\nstandard of care \u2014 the demo deliberately distinguishes the two.",
+      "latency_s": 14.3
     },
     {
       "arm": "genie_ontology",
@@ -230,7 +516,8 @@
       "sufficient": false,
       "answer": "INSUFFICIENT CONTEXT",
       "n_docs": 4,
-      "latency_s": 25.3
+      "context": "Genie Ontology Page \u2014 Care Gap (Numerator, Denominator, MET / NOT_MET)\nHEDIS measures are expressed as a **denominator** and a **numerator**, and compliance is the ratio.\n\n- **Denominator (eligible):** the patients a measure applies to (e.g. the diabetes cohort in an age band).\n- **Numerator (compliant):** the eligible patients who received the required care (e.g. an A1c test for GSD;\n  both eGFR and uACR for KED).\n- **Status:** a patient is **MET** when in the numerator, otherwise **NOT_MET** \u2014 a **care gap** (eligible but\n  missing the required care). Closing care gaps raises the measure's compliance rate.\n- **Compliance rate** = compliant \u00f7 eligible, exposed as a governed measure in the metric views\n  (`GSD Compliance Rate`, `KED Compliance Rate`). Each gold row keeps **record-level evidence** (the test\n  date/code/value) so a gap, or a met status, is fully traceable.\n\n> HEDIS-aligned demo, not NCQA-certified.\n\nGenie Ontology Page \u2014 HbA1c (A1c) \u2014 Hemoglobin A1c\n**HbA1c (A1c)** is a blood test that reflects average blood glucose over roughly the prior 2\u20133 months. It is\nthe primary marker of **glycemic control** in diabetes and the basis of the **GSD** measure numerator.\n\n- **Terminology:** LOINC. The canonical code is **`4548-4`** (Hemoglobin A1c/Hemoglobin.total in Blood);\n  the demo value set `GSD_A1C_TEST` also includes related A1c LOINC codes.\n- **Interpretation (demo bands):** **< 8%** good control; **> 9%** poor control.\n- A1c results are conformed into `silver_observation` (one row per lab result) and feed `gold_adherence_gsd`.\n\n> Codes are literal and attributed to LOINC. HEDIS-aligned demo, not NCQA-certified.\n\nMetric view care_protocol_semantic.protocol_adherence_metrics [certified, Clinical Domain]. Diabetes care-protocol Step 3 adherence: after an A1c result >= 9% (poor control), was there a follow-up A1c within 90 days? The process-adherence layer that reveals WHICH step slipped. HEDIS-aligned demo, not NCQA-certified. Dimensions: Adherence Status = CASE WHEN followup_within_90d THEN 'MET' WHEN window_closed THEN 'NOT_MET' ELSE 'OPEN' END (MET = a follow-up A1c within 90 days of the >= 9% result; NOT_MET = the 90-day window closed with none; OPEN = window still open (year-to-date) and no follow-up yet -- still closable.); Follow-up Type = COALESCE(followup_type, 'none') (What satisfied the step: recheck (a follow-up A1c), or none.). Measures: Trigger Events = COUNT(1) FILTER (WHERE window_closed) (Closed Step-3 obligations: A1c >= 9% results whose 90-day window has closed (the denominator). Open windows are excluded -- counting early successes but not yet-unknown misses would inflate recent rates.); Followed Up In Time = COUNT(1) FILTER (WHERE window_closed AND followup_within_90d) (Obligations met: a follow-up A1c within 90 days of the >= 9% result (the numerator).); Protocol Step 3 Adherence Rate = MEASURE(`Followed Up In Time`) / MEASURE(`Trigger Events`) (Share of closed Step-3 obligations followed up within 90 days. Drops when",
+      "latency_s": 18.8
     },
     {
       "arm": "ontobricks",
@@ -240,7 +527,8 @@
       "sufficient": false,
       "answer": "INSUFFICIENT CONTEXT",
       "n_docs": 11,
-      "latency_s": 15.9
+      "context": "(Measure/GSD) -[monitoredBy]-> (part/LP-HBA1C)  [guideline]\n\n(Measure/GSD) -[hasThreshold]-> (Threshold/a1c_poor_gt_9)  [guideline]\n\n(Measure/GSD) -[hasThreshold]-> (Threshold/a1c_good_lt_8)  [guideline]\n\n(Patient/af1496fe-6956-964a-5837-959f605a4039) -[eligibleFor]-> (Measure/GSD)  [member]\n\n(Patient/a41aacba-0ff1-45dd-4460-66e2e8f8f40e) -[hasCareGap]-> (Measure/GSD)  [member]\n\n(Patient/75c725dd-9d09-e359-3380-eb62fd4b2053) -[eligibleFor]-> (Measure/GSD)  [member]\n\n(Patient/feae5f6e-fb16-1332-8832-605528a42b10) -[eligibleFor]-> (Measure/GSD)  [member]\n\n(Patient/154d0889-73e2-f50d-5059-7a99e2295652) -[hasCareGap]-> (Measure/GSD)  [member]\n\n(Patient/cba1bf3a-cb74-709d-6476-d1da36142b3a) -[hasCareGap]-> (Measure/GSD)  [member]\n\n(Patient/5dce9bc8-8af3-bcd2-189e-55d2b18fbf66) -[hasCareGap]-> (Measure/GSD)  [member]\n\n(Patient/48354911-78f5-d8c2-673d-3896bd97d5ed) -[eligibleFor]-> (Measure/GSD)  [member]",
+      "latency_s": 15.4
     },
     {
       "arm": "closed_book",
@@ -250,7 +538,41 @@
       "sufficient": false,
       "answer": "INSUFFICIENT CONTEXT",
       "n_docs": 0,
-      "latency_s": 9.6
+      "context": "(no context retrieved)",
+      "latency_s": 9.3
+    },
+    {
+      "arm": "metric_view",
+      "qid": "op_clinic_drift",
+      "correct": false,
+      "grounded": true,
+      "sufficient": true,
+      "answer": "**CLINIC-08** has the largest drop: trailing-3-month adherence of 0.324 vs. its own baseline of 0.600, a drift of **-0.276** (a decrease of 27.6 percentage points) [1].",
+      "n_docs": 1,
+      "context": "Governed metric view result \u2014 Protocol Step-3 drift by clinic: latest trailing-3-month adherence vs the clinic's own baseline:\nclinic | trailing_3mo | own_baseline | drift\nCLINIC-08 | 0.324 | 0.6 | -0.276\nCLINIC-03 | 0.433 | 0.507 | -0.074\nCLINIC-02 | 0.474 | 0.525 | -0.052\nCLINIC-01 | 0.484 | 0.481 | 0.003\nCLINIC-06 | 0.615 | 0.595 | 0.021\nCLINIC-05 | 0.576 | 0.531 | 0.045\nCLINIC-04 | 0.542 | 0.443 | 0.099\nCLINIC-07 | 0.655 | 0.465 | 0.19",
+      "latency_s": 21.8
+    },
+    {
+      "arm": "closure_sql",
+      "qid": "op_clinic_drift",
+      "correct": false,
+      "grounded": false,
+      "sufficient": true,
+      "answer": "**CLINIC-08** has the largest drop in Step-3 adherence, falling from a baseline of **0.600** to a trailing 3-month rate of **0.324**, a decline of **-0.276** (27.6 percentage points) versus its own historical baseline [1].",
+      "n_docs": 1,
+      "context": "Result of a fixed-shape governed SQL query (closure / edge / gold tables):\nclinic_id | trailing_3mo | own_baseline | drift\nCLINIC-08 | 0.324 | 0.6 | -0.276\nCLINIC-03 | 0.433 | 0.507 | -0.074\nCLINIC-02 | 0.474 | 0.525 | -0.052\nCLINIC-01 | 0.484 | 0.481 | 0.003\nCLINIC-06 | 0.615 | 0.595 | 0.021\nCLINIC-05 | 0.576 | 0.531 | 0.045\nCLINIC-04 | 0.542 | 0.443 | 0.099\nCLINIC-07 | 0.655 | 0.465 | 0.19",
+      "latency_s": 21.0
+    },
+    {
+      "arm": "rag",
+      "qid": "op_clinic_drift",
+      "correct": false,
+      "grounded": true,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 5,
+      "context": "> Synthetic care-protocol guidance for the Care Protocol Context & Ontology demo. Paraphrased from\n> public-domain clinical guidance. HEDIS-aligned, not NCQA-certified, not for clinical use.\n\n> Synthetic care-protocol guidance for the Care Protocol Context & Ontology demo. Facts only; HEDIS-aligned,\n> not NCQA-certified, not for clinical use.\n\n> Synthetic care-protocol guidance for the Care Protocol Context & Ontology demo. Facts are paraphrased from\n> the public-domain VA/DoD diabetes CPG. HEDIS-aligned, not NCQA-certified, not for clinical use.\n\n> Synthetic care-protocol guidance for the Care Protocol Context & Ontology demo. HEDIS-aligned, not\n> NCQA-certified, not for clinical use.\n\n**Re:** Alex Tracer (MRN TRC-0003) \u00b7 **Date of service:** 2025-04-18 \u00b7 **Referring:** Riverside Diabetes Clinic\n> Synthetic patient-specific correspondence for the Care Protocol Context & Ontology demo. No real PHI.\n> **Restricted document:** visible to the care-team access scope only, not to population quality analytics.",
+      "latency_s": 14.3
     },
     {
       "arm": "genie_ontology",
@@ -260,7 +582,8 @@
       "sufficient": false,
       "answer": "INSUFFICIENT CONTEXT",
       "n_docs": 3,
-      "latency_s": 19.0
+      "context": "Genie Ontology Page \u2014 Care Gap (Numerator, Denominator, MET / NOT_MET)\nHEDIS measures are expressed as a **denominator** and a **numerator**, and compliance is the ratio.\n\n- **Denominator (eligible):** the patients a measure applies to (e.g. the diabetes cohort in an age band).\n- **Numerator (compliant):** the eligible patients who received the required care (e.g. an A1c test for GSD;\n  both eGFR and uACR for KED).\n- **Status:** a patient is **MET** when in the numerator, otherwise **NOT_MET** \u2014 a **care gap** (eligible but\n  missing the required care). Closing care gaps raises the measure's compliance rate.\n- **Compliance rate** = compliant \u00f7 eligible, exposed as a governed measure in the metric views\n  (`GSD Compliance Rate`, `KED Compliance Rate`). Each gold row keeps **record-level evidence** (the test\n  date/code/value) so a gap, or a met status, is fully traceable.\n\n> HEDIS-aligned demo, not NCQA-certified.\n\nMetric view care_protocol_semantic.protocol_adherence_metrics [certified, Clinical Domain]. Diabetes care-protocol Step 3 adherence: after an A1c result >= 9% (poor control), was there a follow-up A1c within 90 days? The process-adherence layer that reveals WHICH step slipped. HEDIS-aligned demo, not NCQA-certified. Dimensions: Adherence Status = CASE WHEN followup_within_90d THEN 'MET' WHEN window_closed THEN 'NOT_MET' ELSE 'OPEN' END (MET = a follow-up A1c within 90 days of the >= 9% result; NOT_MET = the 90-day window closed with none; OPEN = window still open (year-to-date) and no follow-up yet -- still closable.); Follow-up Type = COALESCE(followup_type, 'none') (What satisfied the step: recheck (a follow-up A1c), or none.). Measures: Trigger Events = COUNT(1) FILTER (WHERE window_closed) (Closed Step-3 obligations: A1c >= 9% results whose 90-day window has closed (the denominator). Open windows are excluded -- counting early successes but not yet-unknown misses would inflate recent rates.); Followed Up In Time = COUNT(1) FILTER (WHERE window_closed AND followup_within_90d) (Obligations met: a follow-up A1c within 90 days of the >= 9% result (the numerator).); Protocol Step 3 Adherence Rate = MEASURE(`Followed Up In Time`) / MEASURE(`Trigger Events`) (Share of closed Step-3 obligations followed up within 90 days. Drops when the step drifts.); Open Obligations = COUNT(1) FILTER (WHERE NOT followup_within_90d AND NOT window_closed) (A1c >= 9% results whose 90-day follow-up window is still open and not yet met -- the members still closable this year.); Avg Days To Follow-up = AVG(followup_days) (Average days from the high A1c to the recheck/therapy change (among those followed up).).\n\nMetric view care_protocol_semantic.protocol_drift_metrics [certified, Clinical Domain].  Dimensions: Month = date_trunc('MONTH', trigger_ts). Measures: Triggers (prior 2mo) = COUNT(1); Triggers (this month) = COUNT(1); Followed (prior 2mo) = COUNT(1) FILTER (WHERE followup_within_90d); Followed (this month) = COUNT(1) FILTER (WHERE followup_within_90d); ",
+      "latency_s": 21.0
     },
     {
       "arm": "ontobricks",
@@ -270,7 +593,8 @@
       "sufficient": false,
       "answer": "INSUFFICIENT CONTEXT",
       "n_docs": 0,
-      "latency_s": 10.7
+      "context": "(no context retrieved)",
+      "latency_s": 10.5
     },
     {
       "arm": "closed_book",
@@ -280,7 +604,41 @@
       "sufficient": false,
       "answer": "INSUFFICIENT CONTEXT",
       "n_docs": 0,
-      "latency_s": 9.8
+      "context": "(no context retrieved)",
+      "latency_s": 10.1
+    },
+    {
+      "arm": "metric_view",
+      "qid": "op_drift_rootcause",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "context": "(no context retrieved)",
+      "latency_s": 9.1
+    },
+    {
+      "arm": "closure_sql",
+      "qid": "op_drift_rootcause",
+      "correct": true,
+      "grounded": true,
+      "sufficient": true,
+      "answer": "Based on the context provided [1], CLINIC-08's protocol Step-3 adherence slipped due to a mid-year PCP (primary care physician) departure, with the patient panel subsequently covered by a locum (temporary) provider. The narrative specifically notes that \"the diabetes follow-up order set was not carried over cleanly,\" which caused timely A1c rechecks to degrade for several months before partially recovering.\n\nKey details from the record:\n- **Change type:** departure+locum\n- **Transition date:** 2026-05-15\n- **Adherence before:** 0.736\n- **Adherence after:** 0.303\n- **Recovery days:** 150",
+      "n_docs": 1,
+      "context": "Result of a fixed-shape governed SQL query (closure / edge / gold tables):\ntransition_date | clinic_id | change_type | recovery_days | adherence_before | adherence_after | narrative\n2026-05-15 | CLINIC-08 | departure+locum | 150 | 0.736 | 0.303 | Mid-year PCP departure at the clinic; panel covered by a locum. The diabetes follow-up order set was not carried over cleanly, so timely A1c rechecks degrade for a few months, then partially recover.",
+      "latency_s": 21.3
+    },
+    {
+      "arm": "rag",
+      "qid": "op_drift_rootcause",
+      "correct": false,
+      "grounded": true,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 5,
+      "context": "Document CP-DM-2025.1 \u00b7 Effective measurement year 2025 \u00b7 SYNTHETIC / DEMO guidance for the Care Protocol Context &amp; Ontology project. HEDIS-aligned, not NCQA-certified. Not for clinical use.\n\n> Synthetic payer memo for the Care Protocol Context & Ontology demo. HEDIS-aligned, not NCQA-certified, not\n> for clinical use. This memo **supersedes** the MY2025 glycemic-status guidance for measurement year 2026.\n\n> Synthetic care-protocol guidance for the Care Protocol Context & Ontology demo. Paraphrased from\n> public-domain clinical guidance. HEDIS-aligned, not NCQA-certified, not for clinical use.\n\nA single population A1c threshold is **not** appropriate for every adult with diabetes. The target range is\nindividualized by comorbidity burden and life expectancy:\n| Patient profile | Target A1c range |\n|---|---|\n| No or minimal microvascular complications, >10 years life expectancy | 6.0\u20137.0% |\n| Moderate comorbidity, 5\u201310 years life expectancy | 7.0\u20138.0% |\n| Marked comorbidity or end-stage disease, <5 years life expectancy | 8.0\u20139.0% |\nThis is the key difference from the GSD quality **measure**, which only records whether an A1c test happened\nand buckets the latest value as good control (<8.0%) or poor control (>9.0%). The measure answers *\"was a test\ndone and what was the value?\"*; the protocol answers *\"what should this specific patient's target be?\"*.\n\n> Synthetic care-protocol guidance for the Care Protocol Context & Ontology demo. HEDIS-aligned, not\n> NCQA-certified, not for clinical use.",
+      "latency_s": 14.9
     },
     {
       "arm": "genie_ontology",
@@ -290,7 +648,8 @@
       "sufficient": false,
       "answer": "INSUFFICIENT CONTEXT",
       "n_docs": 3,
-      "latency_s": 19.2
+      "context": "Genie Ontology Page \u2014 Care Gap (Numerator, Denominator, MET / NOT_MET)\nHEDIS measures are expressed as a **denominator** and a **numerator**, and compliance is the ratio.\n\n- **Denominator (eligible):** the patients a measure applies to (e.g. the diabetes cohort in an age band).\n- **Numerator (compliant):** the eligible patients who received the required care (e.g. an A1c test for GSD;\n  both eGFR and uACR for KED).\n- **Status:** a patient is **MET** when in the numerator, otherwise **NOT_MET** \u2014 a **care gap** (eligible but\n  missing the required care). Closing care gaps raises the measure's compliance rate.\n- **Compliance rate** = compliant \u00f7 eligible, exposed as a governed measure in the metric views\n  (`GSD Compliance Rate`, `KED Compliance Rate`). Each gold row keeps **record-level evidence** (the test\n  date/code/value) so a gap, or a met status, is fully traceable.\n\n> HEDIS-aligned demo, not NCQA-certified.\n\nMetric view care_protocol_semantic.protocol_adherence_metrics [certified, Clinical Domain]. Diabetes care-protocol Step 3 adherence: after an A1c result >= 9% (poor control), was there a follow-up A1c within 90 days? The process-adherence layer that reveals WHICH step slipped. HEDIS-aligned demo, not NCQA-certified. Dimensions: Adherence Status = CASE WHEN followup_within_90d THEN 'MET' WHEN window_closed THEN 'NOT_MET' ELSE 'OPEN' END (MET = a follow-up A1c within 90 days of the >= 9% result; NOT_MET = the 90-day window closed with none; OPEN = window still open (year-to-date) and no follow-up yet -- still closable.); Follow-up Type = COALESCE(followup_type, 'none') (What satisfied the step: recheck (a follow-up A1c), or none.). Measures: Trigger Events = COUNT(1) FILTER (WHERE window_closed) (Closed Step-3 obligations: A1c >= 9% results whose 90-day window has closed (the denominator). Open windows are excluded -- counting early successes but not yet-unknown misses would inflate recent rates.); Followed Up In Time = COUNT(1) FILTER (WHERE window_closed AND followup_within_90d) (Obligations met: a follow-up A1c within 90 days of the >= 9% result (the numerator).); Protocol Step 3 Adherence Rate = MEASURE(`Followed Up In Time`) / MEASURE(`Trigger Events`) (Share of closed Step-3 obligations followed up within 90 days. Drops when the step drifts.); Open Obligations = COUNT(1) FILTER (WHERE NOT followup_within_90d AND NOT window_closed) (A1c >= 9% results whose 90-day follow-up window is still open and not yet met -- the members still closable this year.); Avg Days To Follow-up = AVG(followup_days) (Average days from the high A1c to the recheck/therapy change (among those followed up).).\n\nMetric view care_protocol_semantic.protocol_drift_metrics [certified, Clinical Domain].  Dimensions: Month = date_trunc('MONTH', trigger_ts). Measures: Triggers (prior 2mo) = COUNT(1); Triggers (this month) = COUNT(1); Followed (prior 2mo) = COUNT(1) FILTER (WHERE followup_within_90d); Followed (this month) = COUNT(1) FILTER (WHERE followup_within_90d); ",
+      "latency_s": 19.4
     },
     {
       "arm": "ontobricks",
@@ -300,7 +659,8 @@
       "sufficient": false,
       "answer": "INSUFFICIENT CONTEXT",
       "n_docs": 0,
-      "latency_s": 10.2
+      "context": "(no context retrieved)",
+      "latency_s": 10.1
     }
   ]
 }

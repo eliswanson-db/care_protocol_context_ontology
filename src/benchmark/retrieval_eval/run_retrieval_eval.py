@@ -113,7 +113,7 @@ def run_cell(arm: str, q: dict) -> dict:
         context={"retrieved_documents": ctx}, model=JUDGE))
 
     return {"arm": arm, "qid": q["qid"], "correct": correct, "grounded": grounded,
-            "sufficient": sufficient, "answer": ans[:1500], "n_docs": len(docs)}
+            "sufficient": sufficient, "answer": ans[:1500], "n_docs": len(docs), "context": ctx[:3000]}
 
 
 def main():
