@@ -94,6 +94,16 @@ persist_benchmark) deploy to both; the ontology layer (seed job + Pages/Domains 
 (A1-off) vs native inferred ontology (A1-on) vs explicit graph (A5). Keep it reproducible so a fresh DMVM
 rebuilds the ON env.
 
+**Addendum (2026-11-04) — observed evidence: the inferred layer fires on BOTH workspaces, and ECT's is the on-topic one.**
+Genie One's raw response stream (`/api/2.0/data-rooms/tools/onechat/responses`, what `genie ask --raw` prints) carries the
+retrieved snippets in each tool output's metadata (`search_knowledge_snippets` → `knowledge_pages` + `knowledge_snippets`),
+so retrieval is now observable, not inferred. Same GSD patient question, run as Eli: **ECT returned 20 inferred snippets, all
+about this demo** (mined from the dev Genie spaces and metric views — some from the stale pre-relocation views, now dropped);
+**DMVM returned 6, all from other projects in the shared metastore** (epic_emr_demo, pharma_nba, an allergy view). As the
+app's service principal, DMVM returned 0 — snippet retrieval is identity-scoped. So "ECT ≈ ontology OFF" does not hold: the
+~1,000-snippet fetch threshold is not what separates the arms. The a1_off/a1_on contrast stays parked (2026-11-03); the
+Tracer's Genie Ontology click-in shows the live per-question trace so the demo states what was actually retrieved.
+
 **Addendum (2026-11-02) — the ON effect is the INTENT, not yet a verified result.** Probed DMVM directly
 (`genie ask --raw`) rather than assuming: `search_knowledge_snippets` fires but the stream exposes no snippet
 payload ("Found 4 results"), and Genie One grounds entirely in the **16 curated Pages + catalog assets found via
