@@ -2,7 +2,7 @@ import { AlertTriangle, Info } from "lucide-react";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { api, type A1Runs, type CapabilityMap } from "../api";
 import { Collapsible } from "../components/Collapsible";
-import { TIER, TierChip } from "../components/TierChip";
+import { SIMPLE_TIER, TIER, TierChip, simpleKey } from "../components/TierChip";
 import { SIMPLE_APPROACHES, SIMPLE_QIDS, useSettings } from "../settings";
 
 /** Simple mode: the same map cut to the simple questions x approaches, with the bars recounted from those cells. */
@@ -52,6 +52,7 @@ function armColor(id: string): string {
 }
 
 function Bar({ r }: { r: CapabilityMap["rollup"][number] }) {
+  const { simple } = useSettings();
   const e2e = r.kind === "end_to_end";
   const pct = (n: number) => (r.total ? (n / r.total) * 100 : 0);
   return (
@@ -63,6 +64,8 @@ function Bar({ r }: { r: CapabilityMap["rollup"][number] }) {
       <div className="relative flex h-7 flex-1 overflow-hidden rounded bg-surface-2">
         {e2e ? (
           <div className="h-full opacity-60" style={{ width: `${pct(r.reached)}%`, background: armColor(r.arm) }} />
+        ) : simple ? (
+          <div className="h-full" style={{ width: `${pct(r.answered)}%`, background: armColor(r.arm) }} />
         ) : (
           <>
             <div className="h-full" style={{ width: `${pct(r.tier1)}%`, background: armColor(r.arm) }} />
@@ -78,7 +81,7 @@ function Bar({ r }: { r: CapabilityMap["rollup"][number] }) {
           ) : (
             <span>
               <span className="font-semibold">✓ {r.answered}/{r.total} answered</span>
-              <span className="text-muted"> ({r.tier1} in context · {r.tier2} one query) · ✗ {r.wrong} wrong · {r.no_query} couldn't query</span>
+              {!simple && <span className="text-muted"> ({r.tier1} in context · {r.tier2} one query) · ✗ {r.wrong} wrong · {r.no_query} couldn't query</span>}
             </span>
           )}
         </div>
@@ -88,14 +91,17 @@ function Bar({ r }: { r: CapabilityMap["rollup"][number] }) {
 }
 
 function Ladder({ map }: { map: CapabilityMap }) {
+  const { simple } = useSettings();
   const ret = map.rollup.filter((r) => r.kind !== "end_to_end");
   const e2e = map.rollup.filter((r) => r.kind === "end_to_end");
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-3 text-[11px] font-semibold uppercase tracking-wide text-muted">
         <span>Retrieval alone — answered from what each approach retrieved</span>
+        {!simple && <>
         <span className="flex items-center gap-1 normal-case tracking-normal"><span className="h-2.5 w-4 rounded-sm bg-fg/70" /> in context</span>
         <span className="flex items-center gap-1 normal-case tracking-normal"><span className="h-2.5 w-4 rounded-sm bg-fg/30" /> one query from it</span>
+        </>}
       </div>
       {ret.map((r) => <Bar key={r.arm} r={r} />)}
       {map.floor && (
@@ -117,6 +123,7 @@ function Ladder({ map }: { map: CapabilityMap }) {
 }
 
 function Matrix({ map }: { map: CapabilityMap }) {
+  const { simple } = useSettings();
   return (
     <div className="overflow-x-auto rounded-lg border border-border">
       <table className="w-full border-collapse text-left text-xs">
@@ -150,7 +157,7 @@ function Matrix({ map }: { map: CapabilityMap }) {
                   </td>
                   {map.arms.map((a) => (
                     <td key={a.id} className={`px-2 py-2 text-center ${a.kind === "end_to_end" ? "border-l-2 border-border" : ""}`}
-                      title={q.evidence?.[a.id] ? `Retrieved:\n${q.evidence[a.id].context}${q.evidence[a.id].sql ? `\n\nOne query:\n${q.evidence[a.id].sql}` : ""}` : undefined}>
+                      title={q.evidence?.[a.id] ? `Retrieved:\n${q.evidence[a.id].context}${!simple && q.evidence[a.id].sql ? `\n\nOne query:\n${q.evidence[a.id].sql}` : ""}` : undefined}>
                       {a.kind === "end_to_end" ? (
                         <Verdict v={q.verdicts[a.id]} e2e />
                       ) : (
@@ -268,8 +275,11 @@ export function BenchmarkScorecard() {
           ) : (<>
           Seven questions, four stories: when Genie Ontology's retrieval beats RAG, when RAG does just as well, when the
           Ontobricks graph beats Genie Ontology, and when the graph looks like it should win but doesn't.{" "}</>)}
+          {simple ? (
+            <><span className="font-semibold text-success">✓ Answered</span> means what the approach retrieved was enough to answer.</>
+          ) : (<>
           <span className="font-semibold text-success">✓ Answered</span> means the answer was in the retrieved context, or the
-          context was enough to write one SQL query that returned it.
+          context was enough to write one SQL query that returned it.</>)}
         </p>
       </div>
 
@@ -284,11 +294,13 @@ export function BenchmarkScorecard() {
 
         <Collapsible title={simple ? "The three questions" : "The seven questions"}>
           <div className="mb-2 flex flex-wrap gap-2 text-[11px]">
-            {["tier1", "tier2", "wrong_answer", "query_failed", "no_query", "no_retrieval", "skipped"]
-              .filter((k) => map.classes.some((c) => c.questions.some((q) => Object.values(q.verdicts).includes(k))))
-              .map((k) => (
-              <span key={k} className={`rounded px-1.5 py-0.5 font-semibold ${TIER[k].cls}`}>{TIER[k].label}</span>
-            ))}
+            {(simple ? ["answered", "not_answered"] : ["tier1", "tier2", "wrong_answer", "query_failed", "no_query", "no_retrieval", "skipped"])
+              .filter((k) => map.classes.some((c) => c.questions.some((q) =>
+                Object.values(q.verdicts).some((v) => (simple ? simpleKey(v) : v) === k))))
+              .map((k) => {
+                const t = simple ? SIMPLE_TIER[k] : TIER[k];
+                return <span key={k} className={`rounded px-1.5 py-0.5 font-semibold ${t.cls}`}>{t.label}</span>;
+              })}
           </div>
           <Matrix map={map} />
           <p className="mt-2 text-[12px] text-muted">

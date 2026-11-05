@@ -369,7 +369,7 @@ export function RetrievalArena() {
                                 <pre className="mt-1 max-h-56 overflow-auto whitespace-pre-wrap rounded bg-surface-2 p-2 font-mono text-[10.5px] leading-4">{sc.context}</pre>
                               </details>
                             )}
-                            {!sc.skipped_search && <OneQuery s={sc} />}
+                            {!simple && !sc.skipped_search && <OneQuery s={sc} />}
                           </>
                         )}
                       </div>

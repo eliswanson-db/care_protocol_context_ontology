@@ -1,3 +1,5 @@
+import { useSettings } from "../settings";
+
 // One visual vocabulary for the retrieval verdicts, shared by the Arena and the Scorecard.
 // A cell is ANSWERED if the retrieved context either states the answer (tier 1) or lets the agent write one query
 // that returns it (tier 2). Otherwise it says WHY it wasn't.
@@ -12,6 +14,14 @@ export const TIER: Record<string, { label: string; short: string; cls: string; o
   pending: { label: "not scored", short: "pending", cls: "bg-surface-2 text-muted/60" },
 };
 
+// Simple mode collapses every verdict to answered / not answered, so no query outcome shows.
+export const SIMPLE_TIER: Record<string, { label: string; short: string; cls: string }> = {
+  answered: { label: "✓ Answered", short: "✓ answered", cls: "bg-success/20 text-success" },
+  not_answered: { label: "✗ Not answered", short: "✗ not answered", cls: "bg-surface-2 text-muted" },
+};
+export const simpleKey = (k: string) =>
+  k === "tier1" || k === "tier2" ? "answered" : k === "pending" || k === "skipped" ? k : "not_answered";
+
 export function tierKey(s?: { tier?: number | null; n_docs?: number; skipped_search?: boolean; sql?: string | null; sql_error?: string | null } | null): string {
   if (!s || s.tier == null) return "pending";
   if (s.tier === 1 || s.tier === 2) return `tier${s.tier}`;
@@ -22,7 +32,9 @@ export function tierKey(s?: { tier?: number | null; n_docs?: number; skipped_sea
 }
 
 export function TierChip({ k, short, runs, stable }: { k: string; short?: boolean; runs?: number[] | null; stable?: boolean | null }) {
-  const t = TIER[k] ?? { label: k, short: k, cls: "bg-surface-2 text-muted" };
+  const { simple } = useSettings();
+  const sk = simple ? simpleKey(k) : k;
+  const t = (simple ? SIMPLE_TIER[sk] : undefined) ?? TIER[sk] ?? { label: k, short: k, cls: "bg-surface-2 text-muted" };
   return (
     <span className="inline-flex flex-wrap items-center gap-1">
       <span className={`inline-block rounded px-1.5 py-0.5 text-[11px] font-semibold ${t.cls}`}>{short ? t.short : t.label}</span>
