@@ -40,11 +40,11 @@ from pyspark.sql.window import Window
 
 N_PANELS = 40
 N_CLINICS = 8                     # ~5 panels/clinic -> the disrupted clinic has enough triggers to show drift
-MY = 2025
+MY = 2026                         # current measurement year, year-to-date (data horizon = AS_OF, computed)
 MY_START, MY_END = f"{MY}-01-01", f"{MY}-12-31"
 A1C_TRIGGER = 9.0                 # poor control (the KP story's threshold)
 FOLLOWUP_DAYS = 90
-TRANSITION_DATE = f"{MY}-07-15"
+TRANSITION_DATE = f"{MY}-05-15"     # "PCP changed in the last 6 months"; leaves closed 90-day windows to measure
 GAP_RECOVERY_DAYS = 150
 
 FU_B0 = 0.20                      # baseline timely-follow-up ~ logistic(0.20) ≈ 55%
@@ -141,6 +141,9 @@ def main():
                  .select("loinc_code").distinct())
     a1c_list = [r["loinc_code"] for r in a1c_codes.collect()]
     obs = spark.table(f"{g}.bronze_order_results")
+    as_of = obs.agg(F.max("result_ts")).collect()[0][0]           # data horizon: the extract's last landed result
+    AS_OF = F.lit(as_of).cast("timestamp")
+    print(f"care_behavior: data horizon (AS_OF) = {as_of}; MY{MY} is year-to-date through it.")
     is_a1c = F.coalesce(F.col("loinc_code").isin(a1c_list), F.lit(False))
     non_a1c = obs.where(~is_a1c)
     raw = obs.where(is_a1c).withColumn("v", F.expr("try_cast(value as double)")).where(F.col("v").isNotNull())
@@ -192,6 +195,7 @@ def main():
     emitted = (need
                .withColumn("off_days", F.lit(14) + (u("off", "patient_id", "trigger_ts") * F.lit(71)).cast("int"))
                .withColumn("result_ts", F.expr("trigger_ts + make_interval(0,0,0, off_days, 0,0,0)").cast("timestamp"))
+               .where(F.col("result_ts") <= AS_OF)  # not happened yet -> the window is still open
                .withColumn("v_cal", F.round(F.least(F.lit(8.8), F.col("target") - F.lit(1.5)
                                                      + unorm("rcval", "patient_id", "trigger_ts") * F.lit(0.3)), 1))
                .select("patient_id", F.lit(None).cast("string").alias("encounter_id"), "result_ts", "loinc_code",
@@ -212,7 +216,7 @@ def main():
                                              F.first("encounter_id").alias("encounter_id")))
     cohort_big = (cohort_big
                   .withColumn("rx_start", F.greatest("rx_start", F.to_date(F.lit(MY_START))))
-                  .withColumn("rx_stop", F.least("rx_stop", F.to_date(F.lit(MY_END))))
+                  .withColumn("rx_stop", F.least("rx_stop", F.to_date(F.lit(MY_END)), F.to_date(AS_OF)))
                   .where(F.col("rx_stop") > F.col("rx_start"))
                   .join(adh.select("patient_id", "a_p"), "patient_id"))
     cycles = (cohort_big

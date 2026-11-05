@@ -18,7 +18,7 @@ CATALOG = os.environ.get("CARE_CATALOG", "eli_test_classic_catalog")
 SCHEMA = os.environ.get("CARE_SCHEMA", "care_protocol")
 SCHEMA_SEMANTIC = os.environ.get("CARE_SCHEMA_SEMANTIC", "care_protocol_semantic")
 SCHEMA_TERM = os.environ.get("CARE_SCHEMA_TERM", "care_protocol_terminology")
-MEASUREMENT_YEAR = int(os.environ.get("CARE_MEASUREMENT_YEAR", "2025"))
+MEASUREMENT_YEAR = int(os.environ.get("CARE_MEASUREMENT_YEAR", "2026"))
 # Which workspace arm this deployment represents (labeling only): ECT baseline vs DMVM ontology-ON.
 ARM = os.environ.get("CARE_ARM", "local")
 CONTEXT_RELEASE = os.environ.get("CARE_CONTEXT_RELEASE", "dev")

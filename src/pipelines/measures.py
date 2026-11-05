@@ -11,7 +11,12 @@ from pyspark.sql.window import Window
 CATALOG = spark.conf.get("care.catalog", "eli_test_classic_catalog")  # noqa: F821 (spark provided by SDP)
 BRONZE = f"{CATALOG}.care_protocol"
 TERM = f"{CATALOG}.care_protocol_terminology"
-MY = int(spark.conf.get("care.measurement_year", "2025"))  # noqa: F821
+MY = int(spark.conf.get("care.measurement_year", "2026"))  # noqa: F821
+
+
+def _as_of():
+    """Data horizon: the last landed observation. MY{MY} is year-to-date through it (nothing is dated later)."""
+    return spark.read.table(f"{BRONZE}.care_order_results").agg(F.max("result_ts")).collect()[0][0]  # noqa: F821
 
 
 def _roster():
@@ -351,8 +356,12 @@ def gold_protocol_adherence():
             # The trigger->recheck temporal MATCH (within 90d) is evidence assembly and stays here; the adherence
             # RATE, MET/UNMET status, and the trailing-window DRIFT are derived live in protocol_adherence_metrics.
             .withColumn("followup_within_90d", F.col("followup_ts").isNotNull())
+            # Year-to-date: a trigger whose 90-day window extends past the data horizon and has no follow-up yet
+            # is still OPEN (closable), not a miss. window_closed lets the metric view tell the two apart.
+            .withColumn("as_of_ts", F.lit(_as_of()).cast("timestamp"))
+            .withColumn("window_closed", F.datediff(F.col("as_of_ts"), F.col("trigger_ts")) >= FOLLOWUP_DAYS)
             .select("patient_id", "measure_id", "measurement_year", "trigger_ts", "trigger_a1c",
-                    "followup_ts", "followup_type", "followup_days", "followup_within_90d")
+                    "followup_ts", "followup_type", "followup_days", "followup_within_90d", "window_closed", "as_of_ts")
             .join(_roster(), "patient_id", "left"))
 
 
@@ -376,7 +385,7 @@ def gold_adherence_mad():
              .withColumn("stop_d", F.coalesce(F.to_date("stop_ts"), my_end))
              # clip each fill's coverage to the measurement year
              .withColumn("cov_start", F.greatest("start_d", F.lit(my_start)))
-             .withColumn("cov_end", F.least("stop_d", F.lit(my_end)))
+             .withColumn("cov_end", F.least("stop_d", F.lit(my_end), F.to_date(F.lit(_as_of()))))
              .where(F.col("cov_end") >= F.col("cov_start"))
              .withColumn("cov_days", F.datediff("cov_end", "cov_start") + F.lit(1)))
 
@@ -386,7 +395,8 @@ def gold_adherence_mad():
     denom = (agg.where(F.col("fills") >= 2).join(cohort, "patient_id").join(patients, "patient_id")
              .withColumn("age", (F.datediff(my_end, F.col("birth_date")) / 365.25).cast("int"))
              .where(F.col("age") >= 18)
-             .withColumn("period_days", F.datediff(my_end, F.col("first_fill")) + F.lit(1))
+             # PDC over the ELAPSED treatment period (year-to-date): days after the data horizon haven't happened.
+             .withColumn("period_days", F.datediff(F.least(my_end, F.to_date(F.lit(_as_of()))), F.col("first_fill")) + F.lit(1))
              .withColumn("covered_days", F.least(F.col("covered_raw"), F.col("period_days")))
              .withColumn("pdc", F.round(F.col("covered_days") / F.col("period_days"), 3)))
 

@@ -204,7 +204,7 @@
           "Compare Step-3 follow-up before vs after the mid-year transition, disrupted clinic vs rest."
         ],
         "sql": [
-          "SELECT CASE WHEN r.is_handoff THEN 'disrupted clinic' ELSE 'rest' END AS cohort, CASE WHEN p.trigger_ts < DATE'2025-07-15' THEN '1_pre' ELSE '2_post' END AS period, COUNT(*) AS triggers, ROUND(AVG(CAST(p.followup_within_90d AS INT)),3) AS followup_rate FROM eli_test_classic_catalog.care_protocol.gold_protocol_adherence p JOIN eli_test_classic_catalog.care_protocol.panel_roster r USING (patient_id) GROUP BY 1,2 ORDER BY 1,2"
+          "SELECT CASE WHEN r.is_handoff THEN 'disrupted clinic' ELSE 'rest' END AS cohort, CASE WHEN p.trigger_ts < DATE'2026-05-15' THEN '1_pre' ELSE '2_post' END AS period, COUNT(*) AS triggers, ROUND(AVG(CAST(p.followup_within_90d AS INT)),3) AS followup_rate FROM eli_test_classic_catalog.care_protocol.gold_protocol_adherence p JOIN eli_test_classic_catalog.care_protocol.panel_roster r USING (patient_id) GROUP BY 1,2 ORDER BY 1,2"
         ]
       }
     ],

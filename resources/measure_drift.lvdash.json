@@ -7,7 +7,7 @@
         "SELECT v.vs_year AS value_set_version, COUNT(DISTINCT o.patient_id) AS patients_with_egfr ",
         "FROM (SELECT DISTINCT measurement_year AS vs_year FROM eli_test_classic_catalog.care_protocol_terminology.value_set_segment WHERE segment_id='KED_EGFR') v ",
         "LEFT JOIN (SELECT measurement_year AS vs_year, code FROM eli_test_classic_catalog.care_protocol_terminology.value_set_segment WHERE segment_id='KED_EGFR') vs ON vs.vs_year = v.vs_year ",
-        "LEFT JOIN (SELECT patient_id, loinc_code FROM eli_test_classic_catalog.care_protocol.silver_observation WHERE year(result_ts)=2025) o ON o.loinc_code = vs.code ",
+        "LEFT JOIN (SELECT patient_id, loinc_code FROM eli_test_classic_catalog.care_protocol.silver_observation WHERE year(result_ts)=2026) o ON o.loinc_code = vs.code ",
         "GROUP BY v.vs_year ORDER BY v.vs_year"
       ]
     },
@@ -19,7 +19,7 @@
         "  SELECT v.vs_year AS value_set_version, COUNT(DISTINCT o.patient_id) AS patients_with_egfr ",
         "  FROM (SELECT DISTINCT measurement_year AS vs_year FROM eli_test_classic_catalog.care_protocol_terminology.value_set_segment WHERE segment_id='KED_EGFR') v ",
         "  LEFT JOIN (SELECT measurement_year AS vs_year, code FROM eli_test_classic_catalog.care_protocol_terminology.value_set_segment WHERE segment_id='KED_EGFR') vs ON vs.vs_year = v.vs_year ",
-        "  LEFT JOIN (SELECT patient_id, loinc_code FROM eli_test_classic_catalog.care_protocol.silver_observation WHERE year(result_ts)=2025) o ON o.loinc_code = vs.code ",
+        "  LEFT JOIN (SELECT patient_id, loinc_code FROM eli_test_classic_catalog.care_protocol.silver_observation WHERE year(result_ts)=2026) o ON o.loinc_code = vs.code ",
         "  GROUP BY v.vs_year ",
         ") ",
         "SELECT MAX(CASE WHEN value_set_version='2025' THEN patients_with_egfr END) AS coverage_2025, ",

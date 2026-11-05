@@ -8,26 +8,42 @@ LANGUAGE YAML
 AS $$
 version: 0.1
 source: {catalog}.{schema}.gold_protocol_adherence
+filter: window_closed   # closed 90-day windows only (unbiased: open windows hold early successes but not misses)
 dimensions:
   - name: Clinic
     expr: clinic_id
   - name: Month
     expr: "date_trunc('MONTH', trigger_ts)"
 measures:
-  - name: Triggers (trailing 3mo)
+  # Trailing window = this month + the prior two (a window measure's "trailing N" excludes the current month).
+  - name: Triggers (prior 2mo)
     expr: COUNT(1)
     window:
       - order: Month
-        range: trailing 3 month
+        range: trailing 2 month
         semiadditive: last
-  - name: Followed (trailing 3mo)
+  - name: Triggers (this month)
+    expr: COUNT(1)
+    window:
+      - order: Month
+        range: current
+        semiadditive: last
+  - name: Followed (prior 2mo)
     expr: COUNT(1) FILTER (WHERE followup_within_90d)
     window:
       - order: Month
-        range: trailing 3 month
+        range: trailing 2 month
         semiadditive: last
+  - name: Followed (this month)
+    expr: COUNT(1) FILTER (WHERE followup_within_90d)
+    window:
+      - order: Month
+        range: current
+        semiadditive: last
+  - name: Triggers (trailing 3mo)
+    expr: "coalesce(MEASURE(`Triggers (prior 2mo)`), 0) + coalesce(MEASURE(`Triggers (this month)`), 0)"
   - name: Adherence (trailing 3mo)
-    expr: "try_divide(MEASURE(`Followed (trailing 3mo)`), MEASURE(`Triggers (trailing 3mo)`))"
+    expr: "try_divide(coalesce(MEASURE(`Followed (prior 2mo)`), 0) + coalesce(MEASURE(`Followed (this month)`), 0), coalesce(MEASURE(`Triggers (prior 2mo)`), 0) + coalesce(MEASURE(`Triggers (this month)`), 0))"
   - name: Triggers (all-time)
     expr: COUNT(1)
     window:

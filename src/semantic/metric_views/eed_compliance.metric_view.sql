@@ -11,7 +11,7 @@ comment: "HEDIS EED (Eye Exam) compliance for the diabetes population aged 18-75
 dimensions:
   - name: Measurement Year
     expr: measurement_year
-    comment: "HEDIS measurement year the metrics are computed for (e.g. 2025)."
+    comment: "HEDIS measurement year the metrics are computed for (e.g. 2026)."
     synonyms: [year, reporting year, MY]
     display_name: Measurement Year
   - name: Compliance Status

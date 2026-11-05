@@ -18,6 +18,6 @@ env:
   - name: CARE_CATALOG
     value: "eli_test_classic_catalog"
   - name: CARE_MEASUREMENT_YEAR
-    value: "2025"
+    value: "2026"
   - name: CARE_ARM
     value: "dmvm"

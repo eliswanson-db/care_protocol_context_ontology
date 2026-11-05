@@ -34,16 +34,24 @@ MY = int(dbutils.widgets.get("measurement_year"))
 # COMMAND ----------
 
 import pandas as pd
-MEASURES = ["gsd", "ked", "bpd", "spd", "eed", "mad"]
+# The compliance rules live in the certified metric views (gold is an evidence base) -- read the governed numbers.
+VIEWS = {  # measure -> (metric view, numerator measure, rate measure)
+    "gsd": ("gsd_compliance_metrics", "Compliant Patients", "GSD Compliance Rate"),
+    "ked": ("ked_compliance_metrics", "Compliant Patients", "KED Compliance Rate"),
+    "bpd": ("bpd_compliance_metrics", "Controlled Patients", "BPD Compliance Rate"),
+    "spd": ("spd_compliance_metrics", "On Statin Patients", "SPD Compliance Rate"),
+    "eed": ("eed_compliance_metrics", "Eye Exam Patients", "EED Compliance Rate"),
+    "mad": ("mad_compliance_metrics", "Adherent Patients", "MAD Adherence Rate"),
+}
 rows = []
-for m in MEASURES:
+for m, (view, num, rate) in VIEWS.items():
     r = spark.sql(f"""
         SELECT '{m.upper()}' AS measure,
-               COUNT_IF(eligible_flag)                              AS eligible,
-               COUNT_IF(eligible_flag AND numerator_flag)           AS compliant,
-               ROUND(COUNT_IF(eligible_flag AND numerator_flag) / NULLIF(COUNT_IF(eligible_flag),0), 4) AS rate
-        FROM {CATALOG}.care_protocol.gold_adherence_{m}
-        WHERE measurement_year = {MY}
+               MEASURE(`Eligible Patients`)  AS eligible,
+               MEASURE(`{num}`)              AS compliant,
+               ROUND(MEASURE(`{rate}`), 4)   AS rate
+        FROM {CATALOG}.care_protocol_semantic.{view}
+        WHERE `Measurement Year` = {MY}
     """).toPandas()
     rows.append(r)
 scorecard = pd.concat(rows, ignore_index=True)

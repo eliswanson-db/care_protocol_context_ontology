@@ -47,7 +47,7 @@ QUERIES = [
     "SELECT loinc_code, long_common_name FROM {cat}.{sch_term}.loinc WHERE concept = 'A1C'",
     # --- labs feeding the measures ---
     "SELECT loinc_code, COUNT(*) AS results, COUNT(DISTINCT patient_id) AS patients FROM {cat}.{sch}.silver_observation GROUP BY loinc_code ORDER BY results DESC LIMIT 15",
-    "SELECT COUNT(*) AS a1c_results FROM {cat}.{sch}.silver_observation WHERE loinc_code = '4548-4' AND year(result_ts) = 2025",
+    "SELECT COUNT(*) AS a1c_results FROM {cat}.{sch}.silver_observation WHERE loinc_code = '4548-4' AND year(result_ts) = 2026",
     "SELECT icd10_code, COUNT(*) AS diagnoses FROM {cat}.{sch}.silver_condition GROUP BY icd10_code ORDER BY diagnoses DESC LIMIT 15",
 ]
 

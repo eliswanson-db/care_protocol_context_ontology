@@ -12,7 +12,9 @@ The **measurement year (MY)** is the calendar year a HEDIS measure is computed f
 the numerator window (e.g. "an A1c test **in the measurement year**"), and value-set versions are all
 evaluated relative to the MY.
 
-- In this demo the MY is **2025** (configured via the pipeline setting `care.measurement_year`).
+- In this demo the MY is **2026**, reported **year-to-date** through the data horizon (the last landed
+  result, Oct 30 2026), configured via the pipeline setting `care.measurement_year`. A Step-3 obligation
+  whose 90-day window has not closed yet is **OPEN** (still closable), not a miss.
 - Age is evaluated at **period_end** (Dec 31 of the MY); the numerator window is `period_start`–`period_end`
   (Jan 1 – Dec 31).
 - Value sets carry a `measurement_year`, so a measure's definition can change year over year — the basis of

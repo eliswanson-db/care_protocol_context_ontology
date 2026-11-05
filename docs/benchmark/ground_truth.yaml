@@ -41,7 +41,7 @@ classes:
         question: "What is the overall GSD compliance rate?"
         gold: "MEASURE(`GSD Compliance Rate`) FROM gsd_compliance_metrics"
         gold_value_500: 0.8667
-        gold_value_25k: 0.8071   # 2442 eligible
+        gold_value_25k: 0.7424   # MY2026 YTD (as of 2026-10-30): 1781 / 2399 eligible
         how_asked: "Genie One -> metric-view synonym match -> MEASURE() SQL"
         min_approach: metric_view
         also_solvable_by: []
@@ -51,7 +51,7 @@ classes:
         question: "How many patients are eligible for the KED measure?"
         gold: "COUNT(*) FROM gold_adherence_ked"
         gold_value_500: 51
-        gold_value_25k: 2808
+        gold_value_25k: 2802   # MY2026 (ages at 2026-12-31)
         how_asked: "Genie One -> metric view / COUNT"
         min_approach: metric_view
         graph_strictly_needed: false
@@ -147,7 +147,7 @@ classes:
         question: "Which diabetics 40-75 have a statin care gap AND no contraindication (not pregnant, no active hepatic disease)?"
         gold: "gold_adherence_spd NOT_MET AND age 40-75 AND patient has NO dx in CONTRA_PREGNANCY/CONTRA_HEPATIC (via icd10_closure)"
         gold_value_500: 32
-        gold_value_25k: 1609   # 1799 SPD gaps age 40-75; contraindication (pregnancy/hepatic) removes 190. PINNED 2026-10-30.
+        gold_value_25k: 1667   # MY2026 YTD SPD gaps age 40-75 minus contraindications. Re-pinned 2026-11-04.
         how_asked: "Genie One -> multi-join (SPD gold + icd10_closure for contraindication subtrees + protocol_edges); OR Ontobricks MCP"
         min_approach: closure_sql
         also_solvable_by: [graph_ontobricks]
@@ -228,7 +228,7 @@ classes:
       - id: op_worst_clinic_annual
         question: "Which clinic has the lowest protocol Step-3 (A1c follow-up) adherence overall this year?"
         gold: "min annual follow-up rate over gold_protocol_adherence grouped by clinic_id"
-        gold_value_25k: "CLINIC-01 (0.412)"   # re-pinned 2026-11-04 after the calibrated A1c regen
+        gold_value_25k: "CLINIC-04 (0.443)"   # MY2026 YTD, closed 90-day windows only; re-pinned 2026-11-04
         how_asked: "Genie One -> protocol_adherence_metrics with the Clinic dimension, ranked"
         min_approach: metric_view
         graph_strictly_needed: false
@@ -240,7 +240,7 @@ classes:
       - id: op_clinic_drift
         question: "Which clinic's protocol Step-3 adherence has recently DROPPED, and by how much versus its own history?"
         gold: "trailing-3-month rate per clinic vs that clinic's own prior pooled baseline (self-referential), censoring-aware"
-        gold_value_25k: "CLINIC-08 (trailing-3mo 0.256 vs own baseline 0.433 at Oct 2025; drift -0.176, 2x any other clinic). The annual ranking flags CLINIC-01 (0.412, drift ~0) instead."   # re-pinned 2026-11-04
+        gold_value_25k: "CLINIC-08 (trailing May-Jul 0.324 vs own YTD baseline 0.600; drift -0.276, ~4x any other clinic). CLINIC-08 is the BEST clinic YTD (0.600), so the annual ranking hides it."   # MY2026, closed windows; re-pinned 2026-11-04
         how_asked: "Genie One -> protocol_watch_findings (precomputed by the watch job); OR recompute the trailing-vs-own-baseline window from gold_protocol_adherence"
         min_approach: metric_view   # the watch findings table / a window query over the metric-view grain
         also_solvable_by: [closure_sql]
@@ -252,9 +252,9 @@ classes:
           self-referential comparison. This is why the Weekly Protocol Watch (ADR-0011) exists -- "nobody asked;
           Genie noticed." Right-censoring and small-N gating matter (an un-gated window flags early-N noise).
       - id: op_drift_rootcause
-        question: "Why did CLINIC-08's protocol Step-3 adherence slip in Q3?"
+        question: "Why did CLINIC-08's protocol Step-3 adherence slip this year?"
         gold: "a mid-year PCP handoff (panel_pcp_transition) on CLINIC-08 -- the highest-complexity clinic -- dropped the A1c-recheck order set; the effect is confounded with that clinic's higher case-mix"
-        gold_value_25k: "explanation: PCP transition 2025-07-15 on CLINIC-08; recovery ~150d; case-mix confound (complexity ~4.55 vs ~4.12)"
+        gold_value_25k: "explanation: PCP transition 2026-05-15 on CLINIC-08; recovery ~150d; case-mix confound (complexity ~4.55 vs ~4.12)"
         how_asked: "Genie One -> join the drift finding to panel_pcp_transition + clinic case-mix + the care-protocol PDF (which step), then reason"
         min_approach: closure_sql   # multi-join drift x transition x case-mix; RAG adds the protocol-step citation
         also_solvable_by: [rag, graph_ontobricks]

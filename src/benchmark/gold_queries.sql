@@ -16,7 +16,7 @@
 -- Placeholders {catalog} / {schema} (medallion+semantic) / {tschema} (terminology) are substituted by the
 -- runner. Defaults: {schema}=care_protocol, {tschema}=care_protocol_terminology (ADR-0001).
 --
--- Values below are the 25k gold, measurement year 2025, recomputed 2026-10-30 against the ect target AFTER
+-- Values below are the 25k gold, measurement year 2026 (year-to-date), recomputed 2026-10-30 against the ect target AFTER
 -- the generative care-behavior regen (ADR-0012). Each `-- expect:` is the authoritative hand-verified value.
 
 -- =========================================================================================
@@ -24,7 +24,7 @@
 -- =========================================================================================
 
 -- @id: kpi_gsd_rate
--- class: 1_simple_kpi  min_approach: metric_view  expect: 0.8071
+-- class: 1_simple_kpi  min_approach: metric_view  expect: 0.7424
 -- Overall GSD compliance rate = numerator / eligible. A metric view (MEASURE) answers this directly;
 -- the raw ratio here is the same number computed from the gold table.
 SELECT ROUND(SUM(CASE WHEN evidence_datetime IS NOT NULL THEN 1 ELSE 0 END)
@@ -32,7 +32,7 @@ SELECT ROUND(SUM(CASE WHEN evidence_datetime IS NOT NULL THEN 1 ELSE 0 END)
 FROM {catalog}.{schema}.gold_adherence_gsd;
 
 -- @id: kpi_ked_eligible
--- class: 1_simple_kpi  min_approach: metric_view  expect: 2808
+-- class: 1_simple_kpi  min_approach: metric_view  expect: 2802
 SELECT COUNT(*) AS ked_eligible
 FROM {catalog}.{schema}.gold_adherence_ked;
 
@@ -126,7 +126,7 @@ WHERE o.loinc_code IN (
 -- =========================================================================================
 
 -- @id: proto_statin_gap_safe
--- class: 6_protocol_multihop  min_approach: closure_sql  expect: 1609
+-- class: 6_protocol_multihop  min_approach: closure_sql  expect: 1667
 -- Diabetics 40-75 with a statin care gap (SPD NOT_MET) AND no contraindication: not pregnant and no active
 -- hepatic disease. Contraindication codes come from value_set_segment (CONTRA_PREGNANCY Z34/O26/O15/O00,
 -- CONTRA_HEPATIC K70/K74); a patient is excluded if any dx falls under one of those ICD categories.

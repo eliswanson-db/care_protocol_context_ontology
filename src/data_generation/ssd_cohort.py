@@ -36,7 +36,7 @@ import argparse
 from pyspark.sql import SparkSession, functions as F
 from pyspark.sql.window import Window
 
-MY = 2025
+MY = 2026  # current measurement year, year-to-date; events never exceed the data horizon (~day 302)
 MY_START, MY_END = f"{MY}-01-01", f"{MY}-12-31"
 N_CLINICS = 8
 N_PANELS = 40
@@ -111,7 +111,7 @@ def main():
     desc_map = F.create_map(*sum(([F.lit(c), F.lit(d)] for (c, d) in scd_list), []))
     ap_pick = (u("ssd_ap", "patient_id") * F.lit(n_scd)).cast("int")
     # Dispensing date: a deterministic day within the measurement year (reproducible from the seed).
-    ap_off = (u("ssd_apday", "patient_id") * F.lit(300)).cast("int")
+    ap_off = (u("ssd_apday", "patient_id") * F.lit(270)).cast("int")
     smi = (smi.withColumn("antipsychotic_rxnorm", code_map[ap_pick])
            .withColumn("antipsychotic_desc", desc_map[F.col("antipsychotic_rxnorm")])
            .withColumn("antipsychotic_ts", F.to_timestamp(F.date_add(F.to_date(F.lit(MY_START)), ap_off))))
@@ -141,7 +141,7 @@ def main():
            .withColumn("screened", u("ssd_screen", "patient_id") < F.col("p_screen"))
            .withColumn("screen_loinc", F.when(F.col("screened"),
                                               F.when(u("ssd_test", "patient_id") < F.lit(0.5), F.lit(hba1c)).otherwise(F.lit(glucose))))
-           .withColumn("sc_off", (u("ssd_scday", "patient_id") * F.lit(360)).cast("int"))
+           .withColumn("sc_off", (u("ssd_scday", "patient_id") * F.lit(295)).cast("int"))
            .withColumn("screen_ts", F.when(F.col("screened"),
                                            F.to_timestamp(F.date_add(F.to_date(F.lit(MY_START)), F.col("sc_off")))))
            .drop("sc_off", "p_screen"))

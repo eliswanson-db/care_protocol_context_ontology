@@ -12,7 +12,7 @@
 # MAGIC
 # MAGIC | Layer | Asset |
 # MAGIC |---|---|
-# MAGIC | Gold measure | `care_protocol.gold_adherence_gsd` (eligibility, status, gap_reason) |
+# MAGIC | Gold evidence | `care_protocol.gold_adherence_gsd` (eligibility + latest A1c evidence; the verdict rule lives in `gsd_compliance_metrics`) |
 # MAGIC | Gold measure | `care_protocol.gold_adherence_mad` (medication PDC), `gold_adherence_spd` (statin) |
 # MAGIC | Terminology | `care_protocol_terminology.icd10_closure` (diabetic-kidney comorbidity via subsumption) |
 # MAGIC | Semantic | `care_protocol_semantic.gsd_compliance_metrics` (the governed rate this rolls up to) |
@@ -33,7 +33,7 @@ print(f"catalog={CATALOG} measurement_year={MY}")
 # MAGIC ## 1 · Feature assembly from the Gold + terminology layers
 # MAGIC Non-leaky features only — we deliberately **exclude** the A1c result (which mechanically determines GSD
 # MAGIC status) and predict from *context*: age, diabetic-kidney comorbidity (resolved by ICD-10 subsumption, not a
-# MAGIC flat code list), medication adherence (PDC), and statin therapy. Target = `status = 'NOT_MET'`.
+# MAGIC flat code list), medication adherence (PDC), and statin therapy. Target = no A1c evidence in the measurement year (the GSD care gap).
 
 # COMMAND ----------
 
@@ -46,11 +46,11 @@ WITH kidney AS (            -- diabetic kidney complication via the ICD-10 closu
 ),
 mad AS (SELECT patient_id, pdc FROM {CATALOG}.care_protocol.gold_adherence_mad WHERE measurement_year = {MY})
 SELECT g.patient_id, g.age, g.clinic_id, g.panel_id,
-       CASE WHEN g.status = 'NOT_MET' THEN 1 ELSE 0 END                 AS gap,
+       CASE WHEN g.evidence_datetime IS NULL THEN 1 ELSE 0 END         AS gap,        -- GSD rule (mirrors gsd_compliance_metrics)
        CASE WHEN k.patient_id IS NOT NULL THEN 1 ELSE 0 END             AS kidney_comorbidity,
        COALESCE(m.pdc, 0.0)                                             AS mad_pdc,
        CASE WHEN m.patient_id IS NULL THEN 1 ELSE 0 END                 AS mad_missing,
-       CASE WHEN s.numerator_flag THEN 1 ELSE 0 END                     AS on_statin
+       CASE WHEN s.evidence_datetime IS NOT NULL THEN 1 ELSE 0 END     AS on_statin   -- SPD rule (mirrors spd_compliance_metrics)
 FROM {CATALOG}.care_protocol.gold_adherence_gsd g
 LEFT JOIN kidney k ON k.patient_id = g.patient_id
 LEFT JOIN mad    m ON m.patient_id = g.patient_id

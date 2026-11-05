@@ -34,7 +34,7 @@ MY = int(dbutils.widgets.get("measurement_year"))
 import numpy as np, pandas as pd
 mad = spark.sql(f"""
     SELECT patient_id, clinic_id, panel_id, age, fills, covered_days, period_days, pdc,
-           CASE WHEN numerator_flag THEN 1 ELSE 0 END AS adherent
+           CASE WHEN pdc >= 0.8 THEN 1 ELSE 0 END AS adherent   -- MAD rule (mirrors mad_compliance_metrics)
     FROM {CATALOG}.care_protocol.gold_adherence_mad
     WHERE measurement_year = {MY} AND eligible_flag
 """).toPandas()

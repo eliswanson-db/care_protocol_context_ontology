@@ -9,7 +9,7 @@ resources:
       serverless: true
       configuration:
         care.catalog: ${var.catalog}
-        care.measurement_year: "2025"
+        care.measurement_year: "2026"
       libraries:
         - file:
             path: ../src/pipelines/measures.py

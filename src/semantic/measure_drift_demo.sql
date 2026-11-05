@@ -6,7 +6,7 @@
 -- even though the underlying lab data is identical. This is measure drift from terminology, not from data.
 -- Run on a SQL warehouse (read-only). Replace eli_test_classic_catalog if your catalog differs.
 
--- eGFR coverage (distinct patients with a matching eGFR test in 2025) under each value-set VERSION.
+-- eGFR coverage (distinct patients with a matching eGFR test in MY2026, year-to-date) under each value-set VERSION.
 -- LEFT JOIN from the versions so a version that matches nothing still shows as 0 (not an absent row):
 WITH versions AS (
   SELECT DISTINCT measurement_year AS vs_year
@@ -21,7 +21,7 @@ vs AS (
 egfr_obs AS (
   SELECT patient_id, loinc_code
   FROM eli_test_classic_catalog.care_protocol.silver_observation
-  WHERE year(result_ts) = 2025
+  WHERE year(result_ts) = 2026
 )
 SELECT
   v.vs_year                                  AS value_set_version,

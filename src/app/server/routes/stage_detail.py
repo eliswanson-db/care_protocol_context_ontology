@@ -174,7 +174,9 @@ def _protocol(pid, my, log):
             {"label": "Does this rule apply to this patient?", "kind": "kv", "data": {
                 "Diagnosis": f"{dx} (a descendant of the E10/E11/E13 roots — see Closure)",
                 "Age at end of MY": age, "Eligible window": "18–75",
-                "In scope": "yes" if in_window else "no"}},
+                "In scope": "yes" if in_window else "no",
+                "MY2026 update": "Payer memo (MY2026): a CGM-derived GMI (LOINC 97506-0) also satisfies the GSD "
+                                 "numerator — the protocol text is v2025.1, the value set carries the MY2026 change"}},
         ],
         "warnings": warn,
     }

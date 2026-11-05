@@ -141,7 +141,7 @@ resources:
               - "--seed"
               - "20261029"
               - "--intensity"
-              - "1.0"
+              - "0.5"   # MY2026: the May handoff -> ~15-pt drop in closed-window adherence (deck: "-14 pts at Bayview")
           environment_key: serverless
       environments:
         - environment_key: serverless
@@ -409,11 +409,11 @@ resources:
         - task_key: care_gap_risk
           notebook_task:
             notebook_path: ../src/notebooks/care_gap_risk_model.py
-            base_parameters: {catalog: "${var.catalog}", measurement_year: "2025"}
+            base_parameters: {catalog: "${var.catalog}", measurement_year: "2026"}
         - task_key: measure_trend_forecast
           notebook_task:
             notebook_path: ../src/notebooks/measure_trend_forecast.py
-            base_parameters: {catalog: "${var.catalog}", measurement_year: "2025"}
+            base_parameters: {catalog: "${var.catalog}", measurement_year: "2026"}
         - task_key: comorbidity_cohort_analytics
           notebook_task:
             notebook_path: ../src/notebooks/comorbidity_cohort_analytics.py
@@ -421,4 +421,4 @@ resources:
         - task_key: adherence_segmentation
           notebook_task:
             notebook_path: ../src/notebooks/adherence_segmentation.py
-            base_parameters: {catalog: "${var.catalog}", measurement_year: "2025"}
+            base_parameters: {catalog: "${var.catalog}", measurement_year: "2026"}
