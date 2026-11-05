@@ -56,7 +56,7 @@ const DETAIL: Record<string, string> = {
   cohort: "membership earned by subsumption, not a list",
   gold: "per-patient evidence — facts, no verdict",
   metric: "certified rule → MET / NOT_MET, live",
-  page: "the Page + metadata Genie grounds on",
+  page: "Pages + inferred snippets + assets Genie retrieves (live)",
   ontobricks: "live triples + subClassOf* closure",
   raw: "Synthea CSV — SNOMED, no ICD-10 yet",
   rag: "protocol passages, hybrid + doc RLS",
@@ -100,7 +100,7 @@ function summary(stage: Stage): string {
       return `${(d?.patient_status as string) ?? "—"} · clinic ${pct}`;
     }
     case "page":
-      return "GSD Page";
+      return "live Genie One trace";
     case "ontobricks":
       return "live graph";
     case "raw":

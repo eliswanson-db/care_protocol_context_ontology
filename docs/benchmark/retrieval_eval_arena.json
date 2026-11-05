@@ -1,0 +1,306 @@
+{
+  "judge": "databricks:/databricks-claude-sonnet-5",
+  "agent": "databricks-claude-sonnet-5",
+  "rows": [
+    {
+      "arm": "closed_book",
+      "qid": "kpi_gsd_rate",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "latency_s": 13.3
+    },
+    {
+      "arm": "genie_ontology",
+      "qid": "kpi_gsd_rate",
+      "correct": false,
+      "grounded": true,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 4,
+      "latency_s": 27.6
+    },
+    {
+      "arm": "ontobricks",
+      "qid": "kpi_gsd_rate",
+      "correct": false,
+      "grounded": true,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 11,
+      "latency_s": 17.3
+    },
+    {
+      "arm": "closed_book",
+      "qid": "sub_kidney",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "latency_s": 9.4
+    },
+    {
+      "arm": "genie_ontology",
+      "qid": "sub_kidney",
+      "correct": false,
+      "grounded": true,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 2,
+      "latency_s": 18.2
+    },
+    {
+      "arm": "ontobricks",
+      "qid": "sub_kidney",
+      "correct": false,
+      "grounded": true,
+      "sufficient": false,
+      "answer": "",
+      "n_docs": 33,
+      "latency_s": 22.8
+    },
+    {
+      "arm": "closed_book",
+      "qid": "med_on_statin",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "latency_s": 10.2
+    },
+    {
+      "arm": "genie_ontology",
+      "qid": "med_on_statin",
+      "correct": false,
+      "grounded": true,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 3,
+      "latency_s": 18.8
+    },
+    {
+      "arm": "ontobricks",
+      "qid": "med_on_statin",
+      "correct": false,
+      "grounded": true,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 28,
+      "latency_s": 17.1
+    },
+    {
+      "arm": "closed_book",
+      "qid": "vintage_egfr_2026",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "latency_s": 10.1
+    },
+    {
+      "arm": "genie_ontology",
+      "qid": "vintage_egfr_2026",
+      "correct": false,
+      "grounded": true,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 4,
+      "latency_s": 20.7
+    },
+    {
+      "arm": "ontobricks",
+      "qid": "vintage_egfr_2026",
+      "correct": false,
+      "grounded": true,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 11,
+      "latency_s": 17.5
+    },
+    {
+      "arm": "closed_book",
+      "qid": "proto_cardiorenal",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "latency_s": 9.8
+    },
+    {
+      "arm": "genie_ontology",
+      "qid": "proto_cardiorenal",
+      "correct": false,
+      "grounded": true,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 2,
+      "latency_s": 17.8
+    },
+    {
+      "arm": "ontobricks",
+      "qid": "proto_cardiorenal",
+      "correct": false,
+      "grounded": true,
+      "sufficient": false,
+      "answer": "INS",
+      "n_docs": 45,
+      "latency_s": 23.3
+    },
+    {
+      "arm": "closed_book",
+      "qid": "def_metformin_egfr",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "latency_s": 9.8
+    },
+    {
+      "arm": "genie_ontology",
+      "qid": "def_metformin_egfr",
+      "correct": false,
+      "grounded": true,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 1,
+      "latency_s": 16.3
+    },
+    {
+      "arm": "ontobricks",
+      "qid": "def_metformin_egfr",
+      "correct": true,
+      "grounded": true,
+      "sufficient": true,
+      "answer": "Metformin (DRUGCLASS-BIGUANIDE) is contraindicated when eGFR < 30 (Threshold/eGFR_LT_30), as stated in context [5]: (DrugClass/DRUGCLASS-BIGUANIDE) -[contraindicatedWhen]-> (Threshold/eGFR_LT_30) [guideline].",
+      "n_docs": 16,
+      "latency_s": 17.6
+    },
+    {
+      "arm": "closed_book",
+      "qid": "infer_rationale_path",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "latency_s": 9.8
+    },
+    {
+      "arm": "genie_ontology",
+      "qid": "infer_rationale_path",
+      "correct": true,
+      "grounded": true,
+      "sufficient": true,
+      "answer": "**Clinical rationale path (Diabetes \u2192 Statin Therapy, per SPD measure):**\n\n1. **Diabetes diagnosis** places the patient in the \"diabetes cohort,\" identified via **subsumption over `rxnorm_closure`/ICD-10 hierarchy** rather than a flat code list [1].\n2. If the patient is **aged 40\u201375** as of the end of the measurement year, they enter the **SPD eligible population (denominator)** [1][2].\n3. SPD logic then checks whether a **statin was dispensed** during the measurement year. Because prescriptions carry RxNorm **clinical-drug** codes (e.g., `312961` Simvastatin 20 MG Oral Tablet) while the `SPD_STATIN` value set lists RxNorm **ingredients** (e.g., `36567` simvastatin, `83367` atorvastatin), the match is resolved by **subsumption** \u2014 ingredient \u2192 its clinical drugs \u2014 the same closure-join pattern used for the diabetes cohort over ICD-10 [1].\n4. This dispensing event becomes the **numerator/evidence**: `Compliance Status = MET` when `evidence_datetime IS NOT NULL` (a",
+      "n_docs": 2,
+      "latency_s": 27.6
+    },
+    {
+      "arm": "ontobricks",
+      "qid": "infer_rationale_path",
+      "correct": true,
+      "grounded": false,
+      "sufficient": false,
+      "answer": "**Clinical rationale path:**\n\n1. A patient with a diabetes diagnosis (e.g., icd/E11.9, Type 2 diabetes, or related subtypes like E11.22, E11.319 \u2014 all subClassOf icd/E11 [1,6,9,11,12,16,17,19,20]) has an active diabetes condition.\n\n2. Diabetes patients are linked to the **Statin Therapy for Diabetes (SPD)** measure: statins are the drug class **recommendedFor** Measure/SPD \u2014 (DrugClass/DRUGCLASS-STATIN) -[recommendedFor]-> (Measure/SPD) [5].\n\n3. Statin ingredients (e.g., ing/36567, ing/301542, ing/83367) belong to DRUGCLASS-STATIN via -[inDrugClass]-> relationships [4,10,14].\n\n**Connecting path:**\nPatient --[hasDiagnosis]--> Diabetes ICD code (icd/E11.x) \u2192 (clinical association via Measure/SPD) \u2190 DRUGCLASS-STATIN --[recommendedFor]--> Measure/SPD \u2190 Statin ingredients --[inDrugClass]--> D",
+      "n_docs": 28,
+      "latency_s": 32.1
+    },
+    {
+      "arm": "closed_book",
+      "qid": "op_worst_clinic_annual",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "latency_s": 9.8
+    },
+    {
+      "arm": "genie_ontology",
+      "qid": "op_worst_clinic_annual",
+      "correct": false,
+      "grounded": true,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 4,
+      "latency_s": 25.3
+    },
+    {
+      "arm": "ontobricks",
+      "qid": "op_worst_clinic_annual",
+      "correct": false,
+      "grounded": true,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 11,
+      "latency_s": 15.9
+    },
+    {
+      "arm": "closed_book",
+      "qid": "op_clinic_drift",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "latency_s": 9.6
+    },
+    {
+      "arm": "genie_ontology",
+      "qid": "op_clinic_drift",
+      "correct": false,
+      "grounded": true,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 3,
+      "latency_s": 19.0
+    },
+    {
+      "arm": "ontobricks",
+      "qid": "op_clinic_drift",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "latency_s": 10.7
+    },
+    {
+      "arm": "closed_book",
+      "qid": "op_drift_rootcause",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "latency_s": 9.8
+    },
+    {
+      "arm": "genie_ontology",
+      "qid": "op_drift_rootcause",
+      "correct": false,
+      "grounded": true,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 3,
+      "latency_s": 19.2
+    },
+    {
+      "arm": "ontobricks",
+      "qid": "op_drift_rootcause",
+      "correct": false,
+      "grounded": null,
+      "sufficient": false,
+      "answer": "INSUFFICIENT CONTEXT",
+      "n_docs": 0,
+      "latency_s": 10.2
+    }
+  ]
+}

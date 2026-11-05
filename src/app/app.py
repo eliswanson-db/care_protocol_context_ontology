@@ -11,7 +11,7 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from server.routes import benchmark, drift, genie, health, ontobricks, ontology, rag, retrieval, stage_detail, tracer
+from server.routes import arena, benchmark, drift, genie, health, ontobricks, ontology, rag, retrieval, stage_detail, tracer
 
 app = FastAPI(title="Care Protocol Context")
 
@@ -23,6 +23,7 @@ app.include_router(rag.router, prefix="/api")
 app.include_router(retrieval.router, prefix="/api")
 app.include_router(ontobricks.router, prefix="/api")
 app.include_router(benchmark.router, prefix="/api")
+app.include_router(arena.router, prefix="/api")
 app.include_router(drift.router, prefix="/api")
 app.include_router(ontology.router, prefix="/api")
 

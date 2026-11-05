@@ -15,6 +15,7 @@ Run order: AFTER the `measures` pipeline (metric views read gold_adherence_*). S
 import argparse
 import glob
 import os
+import re
 
 
 def main():
@@ -40,7 +41,15 @@ def main():
                            .replace("{schema}", args.schema))
         print(f"Applying metric view from {os.path.basename(path)} ...")
         spark.sql(ddl)  # noqa: F821 (spark provided by the serverless runtime)
-        print(f"  OK: {os.path.basename(path)}")
+        # CREATE OR REPLACE VIEW drops the view's tags, so governance is re-applied on every run: the
+        # certification system tag + the governed `Clinical Domain` tag (key-only policy). Without this each
+        # `semantic` run silently un-certifies every metric view.
+        m = re.search(r"CREATE OR REPLACE VIEW\s+([\w.]+)", ddl)
+        if m:
+            view = m.group(1)
+            spark.sql(f"SET TAG ON TABLE {view} `system.certification_status` = `certified`")  # noqa: F821
+            spark.sql(f"SET TAG ON TABLE {view} `Clinical Domain`")  # noqa: F821
+        print(f"  OK: {os.path.basename(path)} (certified, Clinical Domain)")
 
     print(f"Applied {len(files)} metric view(s) into {args.catalog}.{args.semantic_schema} "
           f"(sources in {args.catalog}.{args.schema}).")

@@ -36,86 +36,46 @@ EXPERIMENT = os.environ.get("CARE_EVAL_EXPERIMENT", "/Shared/care_protocol_retri
 # graph is the only arm that should reach, and the aggregate-COUNT classes (2/4/6) where a triple neighbourhood
 # legitimately should NOT (it carries membership + typed edges, but doesn't aggregate -- that's closure's job).
 QUESTIONS = [
-    {
-        "qid": "kpi_gsd_rate",
-        "cls": "1_simple_kpi",
-        "question": "What is the overall GSD compliance rate?",
-        "expected_facts": ["The overall GSD compliance rate is approximately 80.7 percent (0.8071)."],
-        "wins": "metric_view",
-    },
-    {
-        "qid": "sub_kidney",
-        "cls": "2_icd_subsumption",
-        "question": "How many patients have diabetes WITH kidney complications?",
-        "expected_facts": ["1881 distinct patients have diabetes with a kidney complication."],
-        "wins": "closure_sql",
-    },
-    {
-        "qid": "med_on_statin",
-        "cls": "4_rxnorm_subsumption",
-        "question": "How many diabetic patients are on any statin?",
-        "expected_facts": ["1651 diabetic patients are on a statin (any member of the statin drug class)."],
-        "wins": "closure_sql",
-    },
-    {
-        "qid": "med_is_statin",
-        "cls": "4_rxnorm_subsumption",
-        "question": "Is a patient prescribed 'Simvastatin 20 MG Oral Tablet' on a statin?",
-        "expected_facts": ["Yes -- simvastatin belongs to the statin drug class, so the patient is on a statin."],
-        "wins": "closure_sql",
-    },
-    {
-        "qid": "proto_cardiorenal",
-        "cls": "6_protocol_multihop",
-        "question": ("Identify cardiorenal patients (diabetes AND chronic kidney disease AND heart failure) and "
-                     "whether each is on a statin plus an ACE/ARB plus an SGLT2."),
-        "expected_facts": ["There are 10 cardiorenal patients (diabetes AND chronic kidney disease AND heart failure)."],
-        "wins": "closure_sql",
-    },
-    {
-        "qid": "def_controlled_bp",
-        "cls": "7_definition_provenance",
-        "question": "What does 'controlled' blood pressure mean for the BPD measure, and where is it defined?",
-        # The substantive gold is the THRESHOLD; provenance ("where defined") is captured by the
-        # sufficiency/groundedness judges, not gated as a correctness fact.
-        "expected_facts": [
-            "Controlled blood pressure for the BPD measure means systolic < 140 mmHg AND diastolic < 90 mmHg.",
-        ],
-        "wins": "rag",
-    },
-    {
-        "qid": "def_metformin_egfr",
-        "cls": "7_definition_provenance",
-        "question": "Below what eGFR is metformin contraindicated, and where is that stated?",
-        "expected_facts": ["Metformin (a biguanide) is contraindicated when eGFR is below 30 (eGFR < 30)."],
-        "wins": "graph",
-    },
-    {
-        "qid": "infer_rationale_path",
-        "cls": "8_graph_native",
-        "question": ("Explain the clinical rationale connecting a diabetes diagnosis to statin therapy -- "
-                     "show the connecting path."),
-        "expected_facts": [
-            "A diabetes diagnosis makes a patient eligible for the SPD statin-use measure, and the statin drug "
-            "class is recommended for SPD -- that recommendation path connects diabetes to statin therapy.",
-        ],
-        "wins": "graph",
-    },
-    {
-        "qid": "infer_defined_class",
-        "cls": "8_graph_native",
-        "question": ("Which patients qualify as 'high cardiorenal risk' as DEFINED by the protocol ontology "
-                     "(diabetes AND CKD AND on a drug class flagged for review)?"),
-        # Gold is a REFUSAL: no such defined class exists in clinicaldomain, so the correct answer is to say so.
-        "expected_facts": [
-            "The protocol ontology does not define a 'high cardiorenal risk' class, so the correct response is "
-            "that this class is undefined and no patient list can be produced for it.",
-        ],
-        "wins": "graph",
-    },
+    {"qid": "kpi_gsd_rate", "cls": "1_simple_kpi", "wins": "metric_view",
+     "question": "What is the overall GSD compliance rate?",
+     "expected_facts": ["The overall GSD compliance rate for measurement year 2026 (year-to-date) is about 74.2 percent (0.7424)."]},
+    {"qid": "sub_kidney", "cls": "2_icd_subsumption", "wins": "closure_sql",
+     "question": "How many patients have diabetes WITH kidney complications?",
+     "expected_facts": ["1881 distinct patients have diabetes with a kidney complication."]},
+    {"qid": "med_on_statin", "cls": "4_rxnorm_subsumption", "wins": "closure_sql",
+     "question": "How many diabetic patients are on any statin?",
+     "expected_facts": ["1651 diabetic patients are on a statin (any member of the statin drug class)."]},
+    {"qid": "vintage_egfr_2026", "cls": "5_value_set_vintage", "wins": "metric_view",
+     "question": "Under the 2026 KED eGFR definition, how many patients have a qualifying eGFR test?",
+     "expected_facts": ["0 patients have a qualifying eGFR test under the 2026 KED definition (the MDRD code was dropped)."]},
+    {"qid": "proto_cardiorenal", "cls": "6_protocol_multihop", "wins": "closure_sql",
+     "question": ("Identify cardiorenal patients (diabetes + CKD + heart failure) and whether each is on "
+                  "statin + ACE/ARB + SGLT2."),
+     "expected_facts": ["There are 10 cardiorenal patients (diabetes AND chronic kidney disease AND heart failure)."]},
+    {"qid": "def_metformin_egfr", "cls": "7_definition_provenance", "wins": "rag",
+     "question": "Below what eGFR is metformin contraindicated, and where is that stated?",
+     "expected_facts": ["Metformin (a biguanide) is contraindicated when eGFR is below 30 (eGFR < 30)."]},
+    {"qid": "infer_rationale_path", "cls": "8_graph_native", "wins": "graph",
+     "question": ("Explain the clinical rationale connecting a patient's diabetes diagnosis to their statin "
+                  "therapy (show the connecting path)."),
+     "expected_facts": [
+         "A diabetes diagnosis makes a patient eligible for the SPD statin-use measure, and the statin drug "
+         "class is recommended for SPD -- that recommendation path connects diabetes to statin therapy."]},
+    {"qid": "op_worst_clinic_annual", "cls": "9_operational_temporal", "wins": "metric_view",
+     "question": "Which clinic has the lowest protocol Step-3 (A1c follow-up) adherence overall this year?",
+     "expected_facts": ["CLINIC-04 has the lowest Step-3 adherence year-to-date (about 44.3%)."]},
+    {"qid": "op_clinic_drift", "cls": "9_operational_temporal", "wins": "metric_view",
+     "question": ("Which clinic's protocol Step-3 adherence has recently DROPPED, and by how much versus its "
+                  "own history?"),
+     "expected_facts": ["CLINIC-08 dropped the most: about 32% over the trailing three months versus its own "
+                        "baseline of about 60%."]},
+    {"qid": "op_drift_rootcause", "cls": "9_operational_temporal", "wins": "closure_sql",
+     "question": "Why did CLINIC-08's protocol Step-3 adherence slip this year?",
+     "expected_facts": ["CLINIC-08's Step-3 adherence slipped after a primary-care (PCP) handoff on 2026-05-15; "
+                        "the follow-up order set was not carried over."]},
 ]
 
-ARMS = ["closed_book", "metric_view", "closure_sql", "rag", "ontobricks"]
+ARMS = ["closed_book", "metric_view", "closure_sql", "rag", "genie_ontology", "ontobricks"]
 
 
 def _yes(feedback) -> bool:
@@ -153,10 +113,17 @@ def run_cell(arm: str, q: dict) -> dict:
         context={"retrieved_documents": ctx}, model=JUDGE))
 
     return {"arm": arm, "qid": q["qid"], "correct": correct, "grounded": grounded,
-            "sufficient": sufficient, "answer": ans[:300], "n_docs": len(docs)}
+            "sufficient": sufficient, "answer": ans[:1500], "n_docs": len(docs)}
 
 
 def main():
+    import argparse
+    global ARMS
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--arms", default=",".join(ARMS), help="comma-separated subset of " + ",".join(ARMS))
+    ap.add_argument("--out", default="retrieval_eval.json", help="file name under docs/benchmark/")
+    args = ap.parse_args()
+    ARMS = [a for a in args.arms.split(",") if a]
     # Judges authenticate to Databricks via the model URI regardless of the trace store, so if the SP cannot
     # create the workspace experiment we fall back to a LOCAL trace store -- the matrix is still produced.
     try:
@@ -207,8 +174,7 @@ def main():
                (f"necessary: {', '.join(gains)}" if gains else "no arm answered")
         print(f"  {q['qid']:<20} closed_book={'✓' if base else '·'}  -> {note}")
 
-    out = os.path.join(os.path.dirname(__file__), "..", "..", "..", "docs", "benchmark",
-                       "retrieval_eval.json")
+    out = os.path.join(os.path.dirname(__file__), "..", "..", "..", "docs", "benchmark", args.out)
     out = os.path.normpath(out)
     json.dump({"judge": JUDGE, "agent": agent.AGENT_MODEL, "rows": rows}, open(out, "w"), indent=2, default=str)
     print(f"\nPer-cell detail -> {out}")

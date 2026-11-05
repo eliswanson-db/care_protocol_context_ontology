@@ -40,6 +40,31 @@ export interface StageDetail {
   queries: { label: string; sql: string }[];
   warnings: string[];
   latency_s: number;
+  pending?: boolean;
+}
+
+export interface CtxDoc {
+  page_content: string;
+  metadata: Record<string, any>;
+}
+export interface Scored {
+  correct: boolean;
+  grounded: boolean | null;
+  sufficient: boolean;
+  answer: string;
+  n_docs: number;
+}
+export interface ArenaContext {
+  qid: string;
+  question: string;
+  ontology: { docs: CtxDoc[]; latency_s: number; error?: string; scored?: Scored };
+  graph: { docs: CtxDoc[]; latency_s: number; error?: string; graph_table: string; scored?: Scored };
+  closed_book?: Scored;
+  scored_meta?: { agent: string; judge: string };
+  genie_one: {
+    snapshot?: string; pages_cited?: string[]; snippet_searches?: string[]; tables_queried?: string[];
+    sql_queries?: number; tool_calls?: number; latency_s?: number; used_ontobricks_mcp?: boolean;
+  };
 }
 
 export interface Stage {
@@ -259,6 +284,7 @@ export const api = {
   retrieval: (pid: string) => get<RetrievalResult>(`/api/patient/${pid}/retrieval`),
   ontobricks: (pid: string) => get<OntobricksResult>(`/api/patient/${pid}/ontobricks`),
   ontobricksCareEdges: () => get<OntobricksCareEdges>("/api/ontobricks/care_edges"),
+  arenaContext: (qid: string) => get<ArenaContext>(`/api/arena/${qid}/context`),
   capabilityMap: () => get<CapabilityMap>("/api/benchmark/capability_map"),
   a1Runs: () => get<A1Runs>("/api/benchmark/a1_runs"),
   drift: () => get<Drift>("/api/drift"),

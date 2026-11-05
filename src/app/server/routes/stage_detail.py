@@ -32,6 +32,7 @@ from ..config import (
     CATALOG, MEASUREMENT_YEAR, ONTOBRICKS_CATALOG, ONTOBRICKS_NS, ONTOBRICKS_SCHEMA, get_ontobricks_table,
     SCHEMA, SCHEMA_SEMANTIC, SCHEMA_TERM,
 )
+from ..config import get_workspace_client
 from ..warehouse import run_sql
 
 router = APIRouter()
@@ -364,34 +365,91 @@ def _metric(pid, my, log):
 
 
 def _page(pid, my, log):
-    raw = _q(f"""SELECT value FROM read_files('{PAGES_VOL}/gsd.md', format => 'text', wholeText => true)""",
-             None, log, "Read the Genie Ontology Page from the UC volume")
-    text = raw[0]["value"] if raw else ""
-    front, body = {}, text
-    if text.startswith("---"):
-        _, fm, body = text.split("---", 2)
-        front = yaml.safe_load(fm) or {}
-    meta = _q(f"DESCRIBE TABLE EXTENDED {MV_GSD} AS JSON", None, log,
-              "Modeled metadata Genie indexes (metric-view comments + synonyms)")
-    cols = json.loads(meta[0]["json_metadata"]).get("columns", [])
-    pick = {"GSD Compliance Rate", "Compliance Status", "Poor Control Patients"}
-    indexed = [{"field": c["name"], "comment": (c.get("comment") or "")[:140],
-                "synonyms": ", ".join((c.get("metadata") or {}).get("synonyms", [])[:6])}
-               for c in cols if c["name"] in pick]
+    """Everything Genie Ontology retrieved for THIS patient's question, from a live Genie One run (background)."""
+    from ..genie_trace import get_trace
+    question = f"Is patient {pid} compliant with GSD for MY {my}, and why? Cite any ontology page you used."
+    log.append({"label": "Live Genie One run — retrieval captured from the response stream's tool outputs",
+                "sql": f"POST /api/2.0/data-rooms/tools/onechat/responses\n  input: {question!r}"})
+    r = get_trace(question)
+    if r["status"] == "running":
+        return {"pending": True, "what": "Running Genie One live and capturing everything it retrieves (~30-60s).",
+                "takeaway": "", "source": None, "sections": []}
+    if r["status"] == "error":
+        return {"what": "Live Genie One retrieval", "takeaway": "Genie One could not be run from here.",
+                "source": None, "sections": [], "warnings": [r["error"]]}
+    t = r["trace"]
+    snips = [x for ss in t["snippet_searches"] for x in ss["snippets"]]
+    pages = [x for ss in t["snippet_searches"] for x in ss["pages"]]
+    on_snip = sum(1 for x in snips if x["on_topic"])
+    on_page = sum(1 for x in pages if x["on_topic"])
+    stale = [a["asset"] for a in t["assets_read"] if a["stale"]]
+    host = (get_workspace_client().config.host or "").replace("https://", "").split(".")[0]
+
+    def row(component, layer, what, n, detail):
+        return {"component": component, "layer": layer, "what Genie retrieved": what, "count": n, "detail": detail}
+    checklist = [
+        row("Inferred knowledge snippets", "learned", "snippets Genie mined from Genie agents, metric views, usage",
+            len(snips), f"{on_snip} about this demo, {len(snips) - on_snip} from other projects" if snips else "none returned"),
+        row("Ontology Pages (ranked)", "modeled", "Pages matched to the question", len(pages),
+            f"{on_page} in Clinical Domain" if pages else "none"),
+        row("Ontology Pages (read in full)", "modeled", "Page bodies Genie opened", len(t["pages_read"]), ""),
+        row("UC asset search", "metadata", "tables / metric views found by comments + synonyms",
+            len(t["asset_searches"]), "; ".join(str(a["result"]) for a in t["asset_searches"])),
+        row("Assets read", "metadata", "metric views, tables, Genie agents inspected", len(t["assets_read"]),
+            f"{len(stale)} stale (pre-relocation copy)" if stale else ""),
+        row("Skills loaded", "instructions", "Genie skills (content not in the stream)", len(t["skills"]),
+            ", ".join(t["skills"])),
+        row("Conversation memory", "memory", "prior turns fetched (episodic)", t["memory_fetches"], ""),
+        row("Genie agents consulted", "delegation", "Genie spaces it handed the question to", len(t["agents"]),
+            ", ".join(a["name"] for a in t["agents"])),
+        row("SQL executed", "query", "statements it ran", len(t["sql"]), ""),
+        row("MCP tools", "external", "e.g. the Ontobricks MCP", len(t["mcp"]), ", ".join(m["tool"] for m in t["mcp"])),
+    ]
+    warns = []
+    if snips and on_snip == 0:
+        warns.append(f"None of the {len(snips)} inferred snippets is about this demo — the inferred layer on this "
+                     f"workspace ({host}) surfaced other projects' metric views and Genie spaces for this question.")
+    stale_snips = sum(1 for x in snips if x.get("stale"))
+    if stale_snips:
+        warns.append(f"{stale_snips} inferred snippet(s) were mined from stale pre-relocation metric views, so they "
+                     f"may describe rules that no longer hold.")
+    if stale:
+        warns.append(f"Genie read stale pre-relocation view(s): {', '.join(stale)}. The certified views live in "
+                     f"{SCHEMA_SEMANTIC}; the old copies still exist in the base schema (ADR-0013).")
+    sections = [
+        {"label": "What Genie Ontology retrieved — every component", "kind": "table", "rows": checklist},
+        {"label": f"Inferred snippets ({len(snips)})", "kind": "table",
+         "rows": [{"about this demo": "✓" if x["on_topic"] else "—", "headline": x["headline"], "type": x["type"],
+                   "source": x["source"] + (" (stale copy)" if x.get("stale") else ""), "relevance": x["relevance"]}
+                  for x in snips],
+         "empty": "Genie's snippet search returned no inferred snippets."},
+    ]
+    top = next((x for x in snips if x["on_topic"]), None)
+    if top:
+        sections.append({"label": f"Top on-topic snippet — from {top['source']}", "kind": "quote", "text": top["content"]})
+    sections += [
+        {"label": f"Ontology Pages ranked ({len(pages)})", "kind": "table",
+         "rows": [{"page": x["name"], "domain": x["domain"], "relevance": x["relevance"],
+                   "certified": "✓" if x["certified"] else "—"} for x in pages]},
+    ]
+    for pr in t["pages_read"][:2]:
+        sections.append({"label": "Page body, as Genie read it", "kind": "markdown", "text": pr["body"]})
+    if t["assets_read"]:
+        sections.append({"label": "Assets read", "kind": "table",
+                         "rows": [{"asset": a["asset"], "type": a["type"], "note": "stale copy" if a["stale"] else ""}
+                                  for a in t["assets_read"]]})
+    if t["sql"]:
+        sections.append({"label": f"SQL Genie ran ({len(t['sql'])})", "kind": "code", "text": "\n\n".join(t["sql"][:3])})
     return {
-        "what": "Human-modeled context Genie One prioritizes: the Page + the metric view's descriptions.",
-        "takeaway": (f"Genie grounds GSD in this Page (domain: {front.get('domain', '—')}, owner: "
-                     f"{front.get('owner', '—')}) and the metric view's comments/synonyms — "
-                     f"\"{(front.get('synonyms') or [''])[-1]}\" resolves to GSD."),
-        "source": f"{PAGES_VOL}/gsd.md",
-        "sections": [
-            {"label": "Page front matter", "kind": "kv", "data": {
-                "name": front.get("name"), "domain": front.get("domain"),
-                "synonyms": ", ".join(front.get("synonyms", [])),
-                "related assets": ", ".join(a.split(".")[-1] for a in front.get("related_assets", []))}},
-            {"label": "Page body (as Genie reads it)", "kind": "markdown", "text": body.strip()},
-            {"label": "Metric-view metadata indexed alongside the Page", "kind": "table", "rows": indexed},
-        ],
+        "what": "Everything Genie One retrieved from the Genie Ontology for this patient's question — captured live "
+                "from the tool outputs in its response stream, not reconstructed.",
+        "takeaway": (f"Genie retrieved {len(snips)} inferred snippets ({on_snip} about this demo), {len(pages)} Pages "
+                     f"({len(t['pages_read'])} read in full), {len(t['assets_read'])} assets, and ran "
+                     f"{len(t['sql'])} SQL statements" + (f" via {len(t['agents'])} Genie agent" if t["agents"] else "")
+                     + f" — on workspace {host}, in {r.get('latency_s')}s."),
+        "source": f"Genie One on {host} · cached {int((time.time() - r['t']) // 60)} min ago",
+        "sections": sections,
+        "warnings": warns,
     }
 
 
@@ -613,7 +671,7 @@ _STAGES = {"protocol": ("Source — care-protocol document", _protocol),
            "cohort": ("Cohort — measure denominators", _cohort),
            "gold": ("Gold — per-patient evidence", _gold),
            "metric": ("Semantic — certified metric view", _metric),
-           "page": ("Retrieval — Genie Ontology Page", _page),
+           "page": ("Retrieval — Genie Ontology (live Genie One run)", _page),
            "ontobricks": ("Retrieval — Ontobricks graph (live)", _ontobricks),
            "raw": ("Source — raw EHR extract", _raw),
            "rag": ("Retrieval — RAG index (A4 Lakebase)", _rag),

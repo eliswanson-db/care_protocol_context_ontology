@@ -142,24 +142,18 @@ def rag(question: str, qid: str) -> list[dict]:
     return docs
 
 
-# --- ontobricks: A5 graph arm. Eli owns the modeling (ADR-0005); this is only the retrieval PLUMBING. --------
-# Reads the published Ontobricks triplestore's subject/predicate/object tables directly:
-#   <base>_graph    = asserted triples (the TBox + ABox Eli published)
-#   <base>_inferred = entailed triples (OWL-reasoner output -- the graph-native payload a closure join can't make)
-# The real arm IS published and live: `eswanson_demo.ontobricks.triplestore_clinicaldomain_v2_graph`
-# (~55M asserted triples; v2_inferred has the reasoner output). The app queries it via routes/ontobricks.py;
-# this provider binds to the same table for the eval harness so the scored benchmark is 1:1 with the app.
-#
-# RETRIEVAL STRATEGY -- entity-linked subgraph (mirrors routes/ontobricks.py), NOT a blind term-LIKE dump:
-#   1. ENTITY-LINK the question's clinical terms to IRI *nodes* via `_LEXICON` (a synonym->node map -- the
-#      standard graph-RAG NER/EL layer; it points at ENTITIES, never at answer edges, so retrieval returns
-#      whatever edges those nodes actually have).
-#   2. Return their typed 1-hop NEIGHBOURHOOD: first the small cross-vocabulary guideline/structural TBox
-#      (recommendedFor / inDrugClass / contraindicated* / monitoredBy / hasThreshold / subClassOf / ...) -- the
-#      graph's genuine lift -- then a small SAMPLE of patient membership edges (hasDiagnosis / eligibleFor / ...).
-# Consequence, by design and honestly: the graph surfaces a typed PATH or a cross-vocab DEFINITION (its lift),
-# but a triple neighbourhood does NOT aggregate, so it legitimately fails to produce a cohort COUNT (that is
-# closure_sql's job). The eval scores that distinction instead of asserting "graph reaches everywhere".
+# --- ontobricks + genie_ontology: the two "knowledge" arms. The retrieval logic lives in ONE place --------------
+# (src/app/server/context_retrieval.py) and is shared with the app's Retrieval Arena, so the Arena shows exactly
+# the context scored here. Ontobricks is Eli-owned (ADR-0005); this is only retrieval plumbing.
+#   ontobricks      entity-linked typed 1-hop subgraph from the live triplestore (latest published version).
+#   genie_ontology  Genie Ontology's MODELED layer: Genie Pages (synonym/keyword match) + certified metric views.
+#                   Genie's own snippet search is semantic and its payload isn't exposed by the API, so this is a
+#                   transparent stand-in over the same content; inferred snippets are not included.
+import sys as _sys  # noqa: E402
+
+_sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "app")))
+from server.context_retrieval import graph_context, ontology_context  # noqa: E402
+
 ONTOBRICKS_CATALOG = os.environ.get("CARE_ONTOBRICKS_CATALOG", "eswanson_demo")
 ONTOBRICKS_SCHEMA = os.environ.get("CARE_ONTOBRICKS_SCHEMA", "ontobricks")
 ONTOBRICKS_TABLE = os.environ.get("CARE_ONTOBRICKS_TABLE")  # None -> the latest published clinicaldomain version
@@ -176,100 +170,24 @@ def _latest_ontobricks() -> str:
 _ONS = "https://care-protocol.example/ontology/"
 
 # The cross-vocabulary guideline + structural predicates -- the graph's lift over a closure join.
-_GUIDELINE_PREDS = ["recommendedFor", "inDrugClass", "contraindicatedWith", "contraindicatedWhen",
-                    "monitoredBy", "hasThreshold", "firstLineFor", "definedBy", "subClassOf"]
-# Patient-level ABox predicates -- sampled (not exhaustively dumped) so the agent sees membership exists.
-_MEMBER_PREDS = ["hasDiagnosis", "eligibleFor", "prescribed", "hasCareGap"]
-
-# Synonym -> IRI-node anchors (local names). Entity-linking only: every value is a NODE in the graph, verified
-# against the live clinicaldomain_v2 TBox -- never a question-specific answer edge.
-_LEXICON: dict[str, list[str]] = {
-    "diabetes": ["icd/E10", "icd/E11", "icd/E13"], "diabetic": ["icd/E10", "icd/E11", "icd/E13"],
-    "kidney": ["icd/N18", "icd/N17", "Measure/KED", "ValueSet/COMORBID_CKD"],
-    "nephropathy": ["icd/N18", "icd/E11.2"], "renal": ["icd/N18", "Measure/KED"],
-    "ckd": ["icd/N18", "ValueSet/COMORBID_CKD"], "retinopathy": ["icd/E11.3", "icd/E10.3"],
-    "heart failure": ["icd/I50", "ValueSet/COMORBID_HF"],
-    "cardiorenal": ["icd/I50", "icd/N18", "icd/E11", "ValueSet/COMORBID_HF", "ValueSet/COMORBID_CKD"],
-    "statin": ["DrugClass/DRUGCLASS-STATIN", "Measure/SPD"],
-    "simvastatin": ["DrugClass/DRUGCLASS-STATIN", "Measure/SPD"],
-    "metformin": ["DrugClass/DRUGCLASS-BIGUANIDE", "Threshold/eGFR_LT_30"],
-    "biguanide": ["DrugClass/DRUGCLASS-BIGUANIDE"], "sglt2": ["DrugClass/DRUGCLASS-SGLT2"],
-    "ace inhibitor": ["DrugClass/DRUGCLASS-ACE"], "ace": ["DrugClass/DRUGCLASS-ACE"],
-    "arb": ["DrugClass/DRUGCLASS-ARB"],
-    "albuminuria": ["ValueSet/ALBUMINURIA", "DrugClass/DRUGCLASS-ACE", "DrugClass/DRUGCLASS-ARB"],
-    "uacr": ["ValueSet/ALBUMINURIA"], "pregnan": ["ValueSet/CONTRA_PREGNANCY"],
-    "hepatic": ["ValueSet/CONTRA_HEPATIC"], "contraindicat": ["ValueSet/CONTRA_PREGNANCY", "ValueSet/CONTRA_HEPATIC"],
-    "a1c": ["Measure/GSD", "part/LP-HBA1C"], "hba1c": ["Measure/GSD", "part/LP-HBA1C"],
-    "glycemic": ["Measure/GSD", "ValueSet/GLYCEMIC"],
-    "egfr": ["part/LP-EGFR", "Measure/KED", "Threshold/eGFR_LT_30"],
-    "blood pressure": ["Measure/BPD"], "systolic": ["Measure/BPD", "Threshold/systolic_lt_140"],
-    "diastolic": ["Measure/BPD", "Threshold/diastolic_lt_90"],
-}
-_MEASURE_CODES = {"gsd": "Measure/GSD", "ked": "Measure/KED", "bpd": "Measure/BPD",
-                  "spd": "Measure/SPD", "eed": "Measure/EED"}
-
-
-def _link_entities(question: str) -> tuple[set[str], set[str]]:
-    """Resolve the question to (exact IRIs, icd-subtree prefixes). ICD anchors expand down the hierarchy by
-    local-name prefix (E11 -> E11.21 etc.), which is exactly the subsumption the graph's subClassOf encodes."""
-    q = question.lower()
-    exact: set[str] = set()
-    prefixes: set[str] = set()
-    for term, anchors in _LEXICON.items():
-        if term in q:
-            for a in anchors:
-                (prefixes if a.startswith("icd/") else exact).add(a)
-    for code, iri in _MEASURE_CODES.items():  # bare measure codes (word-boundary)
-        if re.search(rf"\b{code}\b", q):
-            exact.add(iri)
-    for m in re.findall(r"\b([A-TV-Z][0-9]{2}(?:\.[0-9]{1,3})?)\b", question):  # raw ICD-10 codes in the prompt
-        prefixes.add("icd/" + m)
-    return exact, prefixes
-
-
-def _ns(names) -> str:
-    return ", ".join(f"'{_ONS}{n}'" for n in sorted(names))
 
 
 @mlflow.trace(span_type="RETRIEVER", name="ontobricks")
 def ontobricks(question: str, qid: str) -> list[dict]:
-    exact, prefixes = _link_entities(question)
-    if not exact and not prefixes:
-        return []  # nothing in the question linked to a graph entity -> arm has nothing to retrieve
-    g, s, base = ONTOBRICKS_CATALOG, ONTOBRICKS_SCHEMA, _latest_ontobricks()
-    graph = f"{g}.{s}.{base}_graph"
-
-    def _match(col: str) -> str:
-        cl = []
-        if exact:
-            cl.append(f"{col} IN ({_ns(exact)})")
-        for p in sorted(prefixes):
-            cl.append(f"{col} LIKE '{_ONS}{p}%'")  # p is from the lexicon or a regex-validated ICD code
-        return "(" + " OR ".join(cl) + ")"
-
-    guideline_in = ", ".join(f"'{_ONS}{p}'" for p in _GUIDELINE_PREDS)
-    member_in = ", ".join(f"'{_ONS}{p}'" for p in _MEMBER_PREDS)
-    # Tier 1: the cross-vocab guideline/structural neighbourhood of the linked entities (the graph's lift).
-    # Tier 2: a small sample of patient membership edges pointing at those entities (shows members, not a count).
-    sql = (
-        f"(SELECT subject, predicate, object, 'guideline' AS tier FROM {graph} "
-        f"  WHERE predicate IN ({guideline_in}) AND ({_match('subject')} OR {_match('object')}) LIMIT 55) "
-        f"UNION ALL "
-        f"(SELECT subject, predicate, object, 'member' AS tier FROM {graph} "
-        f"  WHERE predicate IN ({member_in}) AND {_match('object')} LIMIT 8)")
+    graph = f"{ONTOBRICKS_CATALOG}.{ONTOBRICKS_SCHEMA}.{_latest_ontobricks()}_graph"
     try:
-        rows = run_sql(sql)
+        return graph_context(question, run_sql, graph)
     except Exception as e:  # noqa: BLE001
         return [_doc(f"[Ontobricks query failed: {type(e).__name__}: {str(e)[:140]}]", source="ontobricks_error")]
-    if not rows:
-        return []
 
-    def _short(iri: str) -> str:
-        return iri[len(_ONS):] if iri and iri.startswith(_ONS) else (iri or "").rsplit("/", 1)[-1]
 
-    # One doc = one triple so the judges can cite specific edges; the triple is pre-shortened for readability.
-    return [_doc(f"({_short(r['subject'])}) -[{_short(r['predicate'])}]-> ({_short(r['object'])})  [{r['tier']}]",
-                 source="ontobricks", tier=r["tier"], triplestore=base) for r in rows]
+@mlflow.trace(span_type="RETRIEVER", name="genie_ontology")
+def genie_ontology(question: str, qid: str) -> list[dict]:
+    try:
+        return ontology_context(question, run_sql, CATALOG, SCHEMA, SCHEMA_SEMANTIC)
+    except Exception as e:  # noqa: BLE001
+        return [_doc(f"[Genie Ontology retrieval failed: {type(e).__name__}: {str(e)[:140]}]",
+                     source="genie_ontology_error")]
 
 
 # The arms, in display order. closed_book first = the floor every other arm's lift is measured against.
@@ -278,5 +196,6 @@ PROVIDERS = {
     "metric_view": metric_view,
     "closure_sql": closure_sql,
     "rag": rag,
+    "genie_ontology": genie_ontology,
     "ontobricks": ontobricks,
 }

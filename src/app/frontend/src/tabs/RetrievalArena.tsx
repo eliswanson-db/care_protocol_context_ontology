@@ -1,6 +1,6 @@
-import { AlertTriangle, Clock } from "lucide-react";
+import { AlertTriangle, Clock, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { api, type A1Runs, type CapabilityMap, type CapQuestion, type OntobricksCareEdges } from "../api";
+import { api, type A1Runs, type ArenaContext, type CapabilityMap, type CapQuestion, type CtxDoc, type Scored } from "../api";
 import { Collapsible } from "../components/Collapsible";
 import { GenieMarkdown } from "../components/GenieMarkdown";
 
@@ -22,9 +22,9 @@ function Verdict({ v }: { v: string }) {
 const APPROACHES = [
   { id: "metric_view", label: "Metric View", resolves: "build-time (baked into the metric view)" },
   { id: "closure", label: "Closure", resolves: "query-time (join the closure / edge table)" },
-  { id: "genie_ontology", label: "Genie + Ontology", resolves: "LLM over governed metadata + Pages" },
+  { id: "genie_ontology", label: "Genie One + Ontology", resolves: "end-to-end: ontology retrieval + SQL" },
   { id: "rag", label: "RAG", resolves: "hybrid retrieval over the protocol docs" },
-  { id: "graph", label: "Ontobricks graph", resolves: "graph traversal (modeled)" },
+  { id: "graph", label: "Ontobricks graph", resolves: "graph traversal (live triplestore)" },
 ] as const;
 
 const LENS: Record<string, string> = {
@@ -35,22 +35,129 @@ const LENS: Record<string, string> = {
   graph: "var(--lens-graph)",
 };
 
+function AgentVerdict({ s }: { s?: Scored }) {
+  if (!s) return <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[11px] text-muted">not scored yet</span>;
+  return (
+    <span className="flex flex-wrap items-center gap-1">
+      <span className={`rounded px-1.5 py-0.5 text-[11px] font-semibold ${s.correct ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"}`}>
+        {s.correct ? "answers it ✓" : "can't answer from this"}
+      </span>
+      <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[10.5px] text-muted">
+        grounded {s.grounded === null ? "—" : s.grounded ? "✓" : "✗"} · sufficient {s.sufficient ? "✓" : "✗"}
+      </span>
+    </span>
+  );
+}
+
+function OntologyDoc({ d }: { d: CtxDoc }) {
+  const m = d.metadata;
+  if (m.kind === "page")
+    return (
+      <div className="rounded-md border border-border bg-surface-2 p-2.5">
+        <div className="text-[12.5px] font-semibold">Page · {m.page}</div>
+        <div className="mt-0.5 text-[11px] text-muted">matched on: {(m.matched_on || []).join(", ")}</div>
+        <GenieMarkdown md={(m.body || "").replace(/^>\s?/gm, "")}
+          className="mt-1.5 max-h-36 space-y-1 overflow-auto text-[12px] leading-5 text-fg/85" />
+      </div>
+    );
+  return (
+    <div className="rounded-md border border-border bg-surface-2 p-2.5">
+      <div className="flex flex-wrap items-center gap-1.5 text-[12.5px] font-semibold">
+        Metric view · {m.asset}
+        {m.certified && <span className="rounded bg-success/15 px-1.5 py-0.5 text-[10px] font-semibold text-success">✓ certified</span>}
+        {m.clinical_domain && <span className="rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">Clinical Domain</span>}
+      </div>
+      <div className="mt-0.5 text-[11px] text-muted">matched on: {(m.matched_on || []).join(", ")}</div>
+      <div className="mt-1.5 max-h-36 overflow-auto font-mono text-[11px] leading-5 text-fg/85">{d.page_content}</div>
+    </div>
+  );
+}
+
+function GraphDocs({ docs: raw }: { docs: CtxDoc[] }) {
+  const linked = raw[0]?.metadata?.linked_entities as string[] | undefined;
+  // display order only: cross-vocabulary guideline edges, then the is-a hierarchy, then patient membership
+  const rank = (d: CtxDoc) => (d.metadata.tier !== "guideline" ? 2 : d.metadata.predicate === "subClassOf" ? 1 : 0);
+  const docs = [...raw].sort((a, b) => rank(a) - rank(b));
+  return (
+    <div className="space-y-1.5">
+      {linked && <div className="text-[11px] text-muted">linked entities: <span className="font-mono">{linked.join(", ")}</span></div>}
+      <div className="max-h-72 overflow-auto rounded-md border border-border">
+        <table className="w-full text-left text-[11px]">
+          <thead className="sticky top-0 bg-surface-2 text-muted"><tr>
+            <th className="px-2 py-1 font-semibold">subject</th><th className="px-2 py-1 font-semibold">predicate</th>
+            <th className="px-2 py-1 font-semibold">object</th><th className="px-2 py-1 font-semibold">tier</th>
+          </tr></thead>
+          <tbody>
+            {docs.map((d, i) => (
+              <tr key={i} className="border-t border-border">
+                <td className="whitespace-nowrap px-2 py-1 font-mono">{d.metadata.subject}</td>
+                <td className="whitespace-nowrap px-2 py-1 font-mono text-primary">{d.metadata.predicate}</td>
+                <td className="whitespace-nowrap px-2 py-1 font-mono">{d.metadata.object}</td>
+                <td className="whitespace-nowrap px-2 py-1 text-muted">{d.metadata.tier}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function RetrievalColumn({ title, subtitle, color, side, empty }: {
+  title: string; subtitle: string; color: string;
+  side: { docs: CtxDoc[]; latency_s: number; error?: string; scored?: Scored }; empty: string;
+}) {
+  const isGraph = side.docs[0]?.metadata?.kind === "triple";
+  return (
+    <div className="flex flex-col rounded-xl border border-t-[3px] border-border bg-surface p-3" style={{ borderTopColor: color }}>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: color }} />
+        <span className="text-[14px] font-semibold">{title}</span>
+        <span className="ml-auto"><AgentVerdict s={side.scored} /></span>
+      </div>
+      <p className="mt-1 text-[12px] leading-snug text-muted">{subtitle}</p>
+      <div className="mt-2 text-[10.5px] text-muted">
+        <span className="rounded bg-primary/15 px-1.5 py-0.5 font-semibold text-primary">live · {side.docs.length} retrieved</span>
+        <span className="ml-1.5">{side.latency_s}s</span>
+      </div>
+      <div className="mt-2 flex-1 space-y-2">
+        {side.error ? (
+          <div className="rounded-md border border-destructive/40 bg-destructive/10 px-2 py-1.5 text-[12px] text-destructive">{side.error}</div>
+        ) : side.docs.length === 0 ? (
+          <div className="rounded-md border border-dashed border-border bg-surface-2 px-2.5 py-3 text-[12px] text-muted">{empty}</div>
+        ) : isGraph ? (
+          <GraphDocs docs={side.docs} />
+        ) : (
+          side.docs.map((d, i) => <OntologyDoc key={i} d={d} />)
+        )}
+      </div>
+      {side.scored && (
+        <div className="mt-3 border-t border-border pt-2.5">
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">Fixed agent's answer from this context alone</div>
+          <GenieMarkdown md={side.scored.answer} className="mt-1 max-h-40 space-y-1 overflow-auto text-[12px] leading-5 text-fg/90" />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function RetrievalArena() {
   const [map, setMap] = useState<CapabilityMap | null>(null);
   const [runs, setRuns] = useState<A1Runs | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sel, setSel] = useState<string | null>(null);
 
-  const [obStatus, setObStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
-  const [ob, setOb] = useState<OntobricksCareEdges | null>(null);
-  const [obError, setObError] = useState<string | null>(null);
-  const queryGraph = () => {
-    setObStatus("loading");
-    setObError(null);
-    api.ontobricksCareEdges()
-      .then((r) => { setOb(r); setObStatus("done"); })
-      .catch((e) => { setObError(String(e)); setObStatus("error"); });
-  };
+  const [ctx, setCtx] = useState<ArenaContext | null>(null);
+  const [ctxErr, setCtxErr] = useState<string | null>(null);
+  useEffect(() => {
+    if (!sel) return;
+    let live = true;
+    setCtx(null); setCtxErr(null);
+    api.arenaContext(sel)
+      .then((r) => live && setCtx(r))
+      .catch((e) => live && setCtxErr(String(e)));
+    return () => { live = false; };
+  }, [sel]);
 
   useEffect(() => {
     Promise.all([api.capabilityMap(), api.a1Runs()])
@@ -137,92 +244,77 @@ export function RetrievalArena() {
                 </div>
               </Collapsible>
 
-              <Collapsible title="Genie + Ontology vs the graph" hint="the two reasoning engines, side by side">
+              <Collapsible title="Retrieval — Genie Ontology vs the graph"
+                hint="what each knowledge layer returns for this question, fed to the same fixed agent">
+                {!ctx && !ctxErr && (
+                  <div className="flex items-center gap-2 text-[13px] text-muted">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Retrieving from the Genie Ontology and the live graph…
+                  </div>
+                )}
+                {ctxErr && <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-[12px] text-destructive">{ctxErr}</div>}
+                {ctx && (
+                  <>
+                    <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                      <RetrievalColumn title="Genie Ontology (modeled layer)" color={LENS.genie_ontology} side={ctx.ontology}
+                        subtitle="Genie Pages matched by their synonyms, plus the certified metric views they link to or that match directly — definitions and governed rules, read from where Genie grounds."
+                        empty="No Page or certified metric view matches this question." />
+                      <RetrievalColumn title="Ontobricks graph" color={LENS.graph} side={ctx.graph}
+                        subtitle={`Clinical terms in the question linked to graph nodes, then their typed one-hop edges from ${ctx.graph.graph_table.split(".").pop()} (live).`}
+                        empty="No clinical entity in the question links to a graph node — the graph holds no operational or temporal data." />
+                    </div>
+                    <p className="mt-2.5 text-[12px] text-muted">
+                      Both columns use the same retrieval code the eval scores, and the same fixed agent
+                      ({ctx.scored_meta?.agent ?? "—"}) answers from each context alone; judged by {ctx.scored_meta?.judge ?? "—"}.
+                      {ctx.closed_book && <> With no retrieval at all it {ctx.closed_book.correct ? "already answers" : "cannot answer"} this question.</>}
+                      {" "}Genie's own snippet search is semantic and its payload isn't exposed, so the Genie column is the modeled
+                      content Genie grounds on (inferred snippets not included). Neither layer holds computed numbers — turning a
+                      definition into a count is Genie One's SQL step, below.
+                    </p>
+                  </>
+                )}
+              </Collapsible>
+
+              <Collapsible title="Genie One end-to-end" hint="the product front door: its own retrieval + SQL, recorded run" defaultOpen={false}>
                 <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                   <div className="flex flex-col rounded-xl border border-t-[3px] border-border bg-surface p-3" style={{ borderTopColor: LENS.genie_ontology }}>
                     <div className="flex items-center gap-2">
-                      <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: LENS.genie_ontology }} />
-                      <span className="text-[14px] font-semibold">Genie + Ontology</span>
+                      <span className="text-[14px] font-semibold">Genie One's answer</span>
                       <span className="ml-auto"><Verdict v={q.verdicts.genie_ontology} /></span>
                     </div>
                     {off && off.answer ? (
                       <>
-                        <div className="mt-2">
-                          <GenieMarkdown md={off.answer} className="max-h-60 space-y-1 overflow-auto rounded-md border border-border bg-surface-2 p-2.5 text-[12px] leading-5 text-fg/90" />
-                        </div>
-                        <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
-                          <span className="flex items-center gap-1 text-muted"><Clock className="h-3 w-3" />{off.latency_s}s</span>
-                          <span className={`rounded px-1.5 py-0.5 font-semibold ${off.ontology_used ? "bg-success/15 text-success" : "bg-surface-2 text-muted"}`}>
-                            {off.ontology_used ? "ontology consulted" : "no ontology signal"}
-                          </span>
-                          {(off.tool_names || []).slice(0, 6).map((t, i) => (
-                            <span key={i} className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-muted">{t}</span>
-                          ))}
-                        </div>
+                        <GenieMarkdown md={off.answer} className="mt-2 max-h-72 space-y-1 overflow-auto rounded-md border border-border bg-surface-2 p-2.5 text-[12px] leading-5 text-fg/90" />
+                        <div className="mt-2 flex items-center gap-1 text-[11px] text-muted"><Clock className="h-3 w-3" />{off.latency_s}s</div>
                       </>
                     ) : (
-                      <div className="mt-2 rounded-md border border-dashed border-border bg-surface-2 px-2 py-3 text-[12px] text-muted">
-                        No recorded Genie answer for this question.
-                      </div>
+                      <div className="mt-2 rounded-md border border-dashed border-border bg-surface-2 px-2 py-3 text-[12px] text-muted">No recorded Genie answer for this question.</div>
                     )}
                   </div>
-
-                  <div className="flex flex-col rounded-xl border border-t-[3px] border-border bg-surface p-3" style={{ borderTopColor: LENS.graph }}>
-                    <div className="flex items-center gap-2">
-                      <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: LENS.graph }} />
-                      <span className="text-[14px] font-semibold">Ontobricks graph</span>
-                      <span className="ml-auto"><Verdict v={q.verdicts.graph} /></span>
-                    </div>
-                    <p className="mt-2 text-[13px] leading-5 text-fg/85">
-                      Live traversal over the published <span className="font-mono">clinicaldomain_v2</span> triplestore — the typed,
-                      cross-vocabulary knowledge edges a closure join can't express.
+                  <div className="flex flex-col rounded-xl border border-border bg-surface p-3">
+                    <div className="text-[14px] font-semibold">What Genie One retrieved on this run</div>
+                    {ctx?.genie_one?.tool_calls ? (
+                      <dl className="mt-2 grid grid-cols-[9rem_1fr] gap-x-3 gap-y-1.5 text-[12.5px]">
+                        <dt className="text-muted">Pages cited</dt><dd>{(ctx.genie_one.pages_cited || []).join(", ") || "—"}</dd>
+                        <dt className="text-muted">Snippet searches</dt><dd className="italic">{(ctx.genie_one.snippet_searches || []).map((x) => `"${x}"`).join("; ") || "—"}</dd>
+                        <dt className="text-muted">Governed tables</dt><dd className="font-mono text-[11.5px]">{(ctx.genie_one.tables_queried || []).join(", ") || "—"}</dd>
+                        <dt className="text-muted">Work</dt><dd>{ctx.genie_one.tool_calls} tool calls · {ctx.genie_one.sql_queries} SQL queries{ctx.genie_one.used_ontobricks_mcp ? " · used the Ontobricks MCP" : ""}</dd>
+                        <dt className="text-muted">Recording</dt><dd className="font-mono text-[11.5px]">{ctx.genie_one.snapshot}</dd>
+                      </dl>
+                    ) : (
+                      <div className="mt-2 text-[12px] text-muted">{ctx ? "No recorded trail for this question." : "Loading…"}</div>
+                    )}
+                    <p className="mt-3 text-[11.5px] text-muted">
+                      Genie One retrieves from the same ontology (Pages, certified metric views, snippets), then writes and runs
+                      SQL — that last step is what turns a definition into a number.
                     </p>
-                    <div className="mt-2">
-                      {obStatus === "error" ? (
-                        <div className="rounded-md border border-destructive/40 bg-destructive/10 px-2 py-1.5 text-[12px] text-destructive">{obError}</div>
-                      ) : obStatus !== "done" || !ob ? (
-                        <button
-                          onClick={queryGraph}
-                          disabled={obStatus === "loading"}
-                          className="rounded-md bg-primary px-3 py-1.5 text-[12px] font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
-                        >
-                          {obStatus === "loading" ? "Traversing ~55M triples…" : "Query the graph ▸"}
-                        </button>
-                      ) : (
-                        <div className="space-y-1.5">
-                          <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
-                            <span className="rounded bg-primary/15 px-1.5 py-0.5 font-semibold text-primary">live · {ob.triples.length} edges</span>
-                            <span className="rounded bg-surface-2 px-1.5 py-0.5 text-muted">{ob.latency_s}s · {ob.source}</span>
-                          </div>
-                          <div className="max-h-56 overflow-auto rounded-md border border-border">
-                            <table className="w-full text-left text-[11px]">
-                              <thead className="sticky top-0 bg-surface-2 text-muted"><tr>
-                                <th className="px-2 py-1 font-semibold">subject</th>
-                                <th className="px-2 py-1 font-semibold">predicate</th>
-                                <th className="px-2 py-1 font-semibold">object</th>
-                              </tr></thead>
-                              <tbody>
-                                {ob.triples.map((t, i) => (
-                                  <tr key={i} className="border-t border-border">
-                                    <td className="whitespace-nowrap px-2 py-1 font-mono">{t.subject}</td>
-                                    <td className="whitespace-nowrap px-2 py-1 font-mono text-primary">{t.predicate}</td>
-                                    <td className="whitespace-nowrap px-2 py-1 font-mono">{t.object}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      )}
-                    </div>
                   </div>
                 </div>
               </Collapsible>
 
               <p className="text-[12px] text-muted">
-                One rubric across all five. Metric view / closure / Genie are hand-verified (Genie = the authoritative
-                recorded run); RAG / graph carry the designed-capability verdict from the ground-truth hypotheses. The
-                Genie answer shown is a recorded run — non-deterministic, as-of.
+                The five cards use one rubric: metric view / closure / Genie One are hand-verified (Genie One = the authoritative
+                recorded run); RAG and graph are scored as retrieval-as-context. The retrieval section compares the two knowledge
+                layers like-for-like; Genie One's answer is end-to-end and non-deterministic, as-of the recording.
               </p>
             </div>
           </>

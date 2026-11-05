@@ -188,13 +188,24 @@ export function NodeDetail({ stage, patientId, onClose }: { stage: Stage; patien
   const [showSql, setShowSql] = useState(false);
   const accent = TIER[stage.key] ?? "var(--primary)";
 
+  const [waiting, setWaiting] = useState<string | null>(null);
   useEffect(() => {
     let live = true;
-    setD(null); setErr(null); setShowSql(false);
-    api.stage(patientId, stage.key)
-      .then((r) => live && setD(r))
-      .catch((e) => live && setErr(String(e)));
-    return () => { live = false; };
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    setD(null); setErr(null); setShowSql(false); setWaiting(null);
+    const t0 = Date.now();
+    const poll = () =>
+      api.stage(patientId, stage.key)
+        .then((r) => {
+          if (!live) return;
+          if (r.pending) {  // long live run (Genie One): keep polling until the trace is ready
+            setWaiting(`${r.what} ${Math.round((Date.now() - t0) / 1000)}s…`);
+            timer = setTimeout(poll, 3000);
+          } else { setWaiting(null); setD(r); }
+        })
+        .catch((e) => live && setErr(String(e)));
+    poll();
+    return () => { live = false; if (timer) clearTimeout(timer); };
   }, [patientId, stage.key]);
 
   return (
@@ -212,7 +223,7 @@ export function NodeDetail({ stage, patientId, onClose }: { stage: Stage; patien
       {!d && !err && (
         <div className="mt-4 flex items-center gap-2 text-[14px] text-muted">
           <Loader2 className="h-4 w-4 animate-spin" style={{ color: accent }} />
-          Retrieving this patient's {stage.key === "ontobricks" ? "edges from the live triplestore (~5s)" : "data at this layer"}…
+          {waiting ?? `Retrieving this patient's ${stage.key === "ontobricks" ? "edges from the live triplestore (~5s)" : "data at this layer"}…`}
         </div>
       )}
       {err && (
