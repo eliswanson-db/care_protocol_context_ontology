@@ -45,6 +45,8 @@ function AgentVerdict({ s }: { s?: Scored }) {
 
 /** The single SQL query the retrieved context let the agent write, run against the warehouse, and its result. */
 function OneQuery({ s }: { s: Scored }) {
+  // Tier 1: the answer is in the retrieved context itself, so the query step doesn't apply.
+  if (s.tier === 1) return <div className="mt-1.5 text-[10.5px] text-muted">No query needed: the answer is in what it retrieved.</div>;
   if (!s.sql) return <div className="mt-1.5 text-[10.5px] text-muted">No query: the context didn't say enough to write one.</div>;
   return (
     <details className="mt-1.5 text-[11px]">

@@ -68,6 +68,11 @@ def _as_text(content) -> str:
     return str(content).strip()
 
 
+import re as _re
+
+_LOOKS_LIKE_SQL = _re.compile(r"^\s*(\(\s*)*(select|with)\b", _re.I)
+
+
 class HarnessError(RuntimeError):
     """An infrastructure failure (auth, truncation, endpoint error) -- retried, and never scored as a result."""
 
@@ -99,7 +104,9 @@ def write_sql(question: str, context_docs: list[dict]) -> str | None:
         sql = sql.strip("`").split("\n", 1)[-1] if "\n" in sql else ""
         sql = sql.rsplit("```", 1)[0]
     sql = sql.strip().rstrip(";").strip()
-    return None if not sql or sql.upper().startswith("NO_QUERY") else sql
+    if not sql or sql.upper().startswith("NO_QUERY") or not _LOOKS_LIKE_SQL.match(sql):
+        return None  # empty, an explicit NO_QUERY, or prose instead of SQL
+    return sql
 
 
 # --- Schema-aided tier: semantic context + the shared physical schema + a few tries with the error fed back. --------
@@ -133,4 +140,6 @@ def write_sql_with_schema(question: str, context_docs: list[dict], schema: str, 
         sql = sql.strip("`").split("\n", 1)[-1] if "\n" in sql else ""
         sql = sql.rsplit("```", 1)[0]
     sql = sql.strip().rstrip(";").strip()
-    return None if not sql or sql.upper().startswith("NO_QUERY") else sql
+    if not sql or sql.upper().startswith("NO_QUERY") or not _LOOKS_LIKE_SQL.match(sql):
+        return None  # empty, an explicit NO_QUERY, or prose instead of SQL
+    return sql
