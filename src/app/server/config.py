@@ -36,7 +36,29 @@ LAKEBASE_SEARCH_EXT = os.environ.get("CARE_LAKEBASE_SEARCH_EXT", "1") == "1"
 # table directly. Defaults to the published clinical-domain v2 graph; override per workspace via env.
 ONTOBRICKS_CATALOG = os.environ.get("CARE_ONTOBRICKS_CATALOG", "eswanson_demo")
 ONTOBRICKS_SCHEMA = os.environ.get("CARE_ONTOBRICKS_SCHEMA", "ontobricks")
-ONTOBRICKS_TABLE = os.environ.get("CARE_ONTOBRICKS_TABLE", "triplestore_clinicaldomain_v2")
+# Each Ontobricks republish writes a NEW version (triplestore_clinicaldomain_v<N>); the app follows the latest unless
+# CARE_ONTOBRICKS_TABLE pins one. Re-discovered every 5 minutes, so a republish shows up without a redeploy.
+ONTOBRICKS_TABLE_PIN = os.environ.get("CARE_ONTOBRICKS_TABLE")
+ONTOBRICKS_PREFIX = os.environ.get("CARE_ONTOBRICKS_PREFIX", "triplestore_clinicaldomain_v")
+_ob_cache: dict = {"t": 0.0, "v": None}
+
+
+def get_ontobricks_table() -> str:
+    """Base name of the triplestore to query (append _graph / _inferred)."""
+    import re as _re
+    import time as _time
+    if ONTOBRICKS_TABLE_PIN:
+        return ONTOBRICKS_TABLE_PIN
+    if _ob_cache["v"] and _time.time() - _ob_cache["t"] < 300:
+        return _ob_cache["v"]
+    from .warehouse import run_sql  # local import: warehouse imports this module
+    rows = run_sql(f"SELECT table_name FROM {ONTOBRICKS_CATALOG}.information_schema.tables "
+                   f"WHERE table_schema = '{ONTOBRICKS_SCHEMA}'")
+    pat = _re.compile(rf"^{_re.escape(ONTOBRICKS_PREFIX)}(\d+)_graph$")
+    found = sorted((int(m.group(1)), m.group(0)[:-len("_graph")])
+                   for r in rows if (m := pat.match(r["table_name"])))
+    _ob_cache.update(t=_time.time(), v=found[-1][1] if found else f"{ONTOBRICKS_PREFIX}2")
+    return _ob_cache["v"]
 ONTOBRICKS_NS = os.environ.get("CARE_ONTOBRICKS_NS", "https://care-protocol.example/ontology/")
 
 

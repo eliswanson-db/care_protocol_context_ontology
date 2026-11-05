@@ -137,6 +137,8 @@ def main():
     ap.add_argument("--out", default="/tmp/capmap")
     ap.add_argument("--only_class", default="", help="optional: run one class, e.g. 6_protocol_multihop")
     ap.add_argument("--ids", default="", help="optional: comma-separated question ids to run")
+    ap.add_argument("--session_suffix", default="",
+                    help="optional: new Genie session names (capmap_<id>_<suffix>) so answers don't carry prior context")
     ap.add_argument("--smoke", action="store_true",
                     help="run the 5-question representative smoke subset (fast dev loop; Genie One is slow)")
     args = ap.parse_args()
@@ -163,7 +165,7 @@ def main():
                          "assets": [], "latency_s": 0.0, "matched": []})
             continue
         print(f"  A1 {q['id']} ...", flush=True)
-        text, assets, dt, tool_names, ontology_used = run_genie(q["question"], f"capmap_{q['id']}", args.profile)
+        text, assets, dt, tool_names, ontology_used = run_genie(q["question"], f"capmap_{q['id']}" + (f"_{args.session_suffix}" if args.session_suffix else ""), args.profile)
         ok, matched, primary = score(text, q["gold"])
         rows.append({**q, "arm": "A1", "answer_ok": ok, "primary": primary, "matched": matched,
                      "answer": text[:600], "assets": assets, "latency_s": dt,

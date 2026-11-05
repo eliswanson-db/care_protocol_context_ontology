@@ -29,7 +29,7 @@ import yaml
 from fastapi import APIRouter, HTTPException
 
 from ..config import (
-    CATALOG, MEASUREMENT_YEAR, ONTOBRICKS_CATALOG, ONTOBRICKS_NS, ONTOBRICKS_SCHEMA, ONTOBRICKS_TABLE,
+    CATALOG, MEASUREMENT_YEAR, ONTOBRICKS_CATALOG, ONTOBRICKS_NS, ONTOBRICKS_SCHEMA, get_ontobricks_table,
     SCHEMA, SCHEMA_SEMANTIC, SCHEMA_TERM,
 )
 from ..warehouse import run_sql
@@ -38,7 +38,6 @@ router = APIRouter()
 
 C, S, SM, ST = CATALOG, SCHEMA, SCHEMA_SEMANTIC, SCHEMA_TERM
 NS = ONTOBRICKS_NS
-GRAPH = f"{ONTOBRICKS_CATALOG}.{ONTOBRICKS_SCHEMA}.{ONTOBRICKS_TABLE}_graph"
 A1C_CODES = f"(SELECT code FROM {C}.{ST}.value_set_segment WHERE segment_id = 'GSD_A1C_TEST')"
 PAGES_VOL = f"/Volumes/{C}/{S}/ontology_pages"
 MV_GSD = f"{C}.{SM}.gsd_compliance_metrics"
@@ -397,6 +396,8 @@ def _page(pid, my, log):
 
 
 def _ontobricks(pid, my, log):
+    ONTOBRICKS_TABLE = get_ontobricks_table()           # latest published version (follows republishes)
+    GRAPH = f"{ONTOBRICKS_CATALOG}.{ONTOBRICKS_SCHEMA}.{ONTOBRICKS_TABLE}_graph"
     dx = _primary_dx(pid)["dx"]
     subj = f"{NS}Patient/{pid}"
     pp = ", ".join(f"'{NS}{x}'" for x in ("hasDiagnosis", "eligibleFor", "hasCareGap", "prescribed"))

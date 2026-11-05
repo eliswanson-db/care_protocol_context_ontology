@@ -162,7 +162,17 @@ def rag(question: str, qid: str) -> list[dict]:
 # closure_sql's job). The eval scores that distinction instead of asserting "graph reaches everywhere".
 ONTOBRICKS_CATALOG = os.environ.get("CARE_ONTOBRICKS_CATALOG", "eswanson_demo")
 ONTOBRICKS_SCHEMA = os.environ.get("CARE_ONTOBRICKS_SCHEMA", "ontobricks")
-ONTOBRICKS_TABLE = os.environ.get("CARE_ONTOBRICKS_TABLE", "triplestore_clinicaldomain_v2")
+ONTOBRICKS_TABLE = os.environ.get("CARE_ONTOBRICKS_TABLE")  # None -> the latest published clinicaldomain version
+
+
+def _latest_ontobricks() -> str:
+    if ONTOBRICKS_TABLE:
+        return ONTOBRICKS_TABLE
+    rows = run_sql(f"SELECT table_name FROM {ONTOBRICKS_CATALOG}.information_schema.tables "
+                   f"WHERE table_schema = '{ONTOBRICKS_SCHEMA}'")
+    found = sorted((int(m.group(1)), m.group(0)[:-len("_graph")]) for r in rows
+                   if (m := re.match(r"^triplestore_clinicaldomain_v(\d+)_graph$", r["table_name"])))
+    return found[-1][1] if found else "triplestore_clinicaldomain_v2"
 _ONS = "https://care-protocol.example/ontology/"
 
 # The cross-vocabulary guideline + structural predicates -- the graph's lift over a closure join.
@@ -226,7 +236,7 @@ def ontobricks(question: str, qid: str) -> list[dict]:
     exact, prefixes = _link_entities(question)
     if not exact and not prefixes:
         return []  # nothing in the question linked to a graph entity -> arm has nothing to retrieve
-    g, s, base = ONTOBRICKS_CATALOG, ONTOBRICKS_SCHEMA, ONTOBRICKS_TABLE
+    g, s, base = ONTOBRICKS_CATALOG, ONTOBRICKS_SCHEMA, _latest_ontobricks()
     graph = f"{g}.{s}.{base}_graph"
 
     def _match(col: str) -> str:

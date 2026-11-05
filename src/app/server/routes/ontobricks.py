@@ -15,13 +15,17 @@ import time
 
 from fastapi import APIRouter, HTTPException
 
-from ..config import ONTOBRICKS_CATALOG, ONTOBRICKS_NS, ONTOBRICKS_SCHEMA, ONTOBRICKS_TABLE
+from ..config import ONTOBRICKS_CATALOG, ONTOBRICKS_NS, ONTOBRICKS_SCHEMA, get_ontobricks_table
 from ..warehouse import run_sql
 
 router = APIRouter()
 
 NS = ONTOBRICKS_NS
-GRAPH = f"{ONTOBRICKS_CATALOG}.{ONTOBRICKS_SCHEMA}.{ONTOBRICKS_TABLE}_graph"
+
+
+def _graph() -> tuple[str, str]:
+    t = get_ontobricks_table()
+    return t, f"{ONTOBRICKS_CATALOG}.{ONTOBRICKS_SCHEMA}.{t}_graph"
 
 _PATIENT_PREDS = ["hasDiagnosis", "eligibleFor", "prescribed", "hasCareGap"]
 # The cross-vocabulary GUIDELINE edges — the graph's lift over a closure join (not ABox plumbing like hasIngredient).
@@ -56,6 +60,7 @@ def _triples(rows: list[dict]) -> list[dict]:
 @router.get("/patient/{patient_id}/ontobricks")
 def patient_graph(patient_id: str):
     subj = f"{NS}Patient/{patient_id}"
+    ONTOBRICKS_TABLE, GRAPH = _graph()
     t0 = time.time()
     try:
         rows = run_sql(
@@ -81,6 +86,7 @@ def patient_graph(patient_id: str):
 
 @router.get("/ontobricks/care_edges")
 def care_edges():
+    ONTOBRICKS_TABLE, GRAPH = _graph()
     t0 = time.time()
     try:
         rows = run_sql(
