@@ -181,6 +181,35 @@ SELECT COUNT(*) AS conflicts FROM (
   JOIN {catalog}.{schema}.bronze_pat_enc_dx dx ON dx.patient_id = m.patient_id AND dx.icd10_code LIKE concat(v.code, '%')
   WHERE m.patient_id = 'fa93c75f-1541-10c2-ea84-f947c8561ce5');
 
+-- @id: graph_patient_gaps
+-- class: 8_graph_native  min_approach: graph  expect: EED,KED
+-- Patient 00f63646-fc2f-16a9-53e5-951816dfefe3 (MY2026): eligible for all five measures; open care gaps by each
+-- measure's live rule (the rules live in the metric views). Compliant on BPD, GSD, SPD.
+SELECT array_join(array_sort(collect_list(m)), ',') AS open_gaps FROM (
+  SELECT 'GSD' AS m FROM {catalog}.{schema}.gold_adherence_gsd WHERE patient_id = '00f63646-fc2f-16a9-53e5-951816dfefe3'
+    AND measurement_year = 2026 AND eligible_flag AND evidence_datetime IS NULL
+  UNION ALL SELECT 'KED' FROM {catalog}.{schema}.gold_adherence_ked WHERE patient_id = '00f63646-fc2f-16a9-53e5-951816dfefe3'
+    AND measurement_year = 2026 AND eligible_flag AND (egfr_datetime IS NULL OR uacr_datetime IS NULL)
+  UNION ALL SELECT 'BPD' FROM {catalog}.{schema}.gold_adherence_bpd WHERE patient_id = '00f63646-fc2f-16a9-53e5-951816dfefe3'
+    AND measurement_year = 2026 AND eligible_flag AND NOT (systolic < 140 AND diastolic < 90)
+  UNION ALL SELECT 'SPD' FROM {catalog}.{schema}.gold_adherence_spd WHERE patient_id = '00f63646-fc2f-16a9-53e5-951816dfefe3'
+    AND measurement_year = 2026 AND eligible_flag AND evidence_datetime IS NULL
+  UNION ALL SELECT 'EED' FROM {catalog}.{schema}.gold_adherence_eed WHERE patient_id = '00f63646-fc2f-16a9-53e5-951816dfefe3'
+    AND measurement_year = 2026 AND eligible_flag AND evidence_datetime IS NULL);
+
+-- @id: graph_statin_contra_cohort
+-- class: 8_graph_native  min_approach: graph  expect: 198
+-- Patients prescribed any statin who also have a diagnosis under a value set the protocol lists as a statin
+-- contraindication (protocol_edges DRUGCLASS-STATIN contraindicatedWith -> value_set_segment codes, ICD prefix).
+-- All 198 are via CONTRA_PREGNANCY (no CONTRA_HEPATIC dx in the data). The same traversal over the Ontobricks graph
+-- (prescribed -> hasIngredient -> inDrugClass; hasDiagnosis -> subClassOf <- contains <- contraindicatedWith) = 198.
+SELECT COUNT(DISTINCT m.patient_id) AS statin_with_contraindication
+FROM {catalog}.{schema}.bronze_order_med m
+JOIN {catalog}.{tschema}.rxnorm_closure c ON m.rxnorm_code = c.descendant_code AND c.ancestor_code = 'DRUGCLASS-STATIN'
+JOIN {catalog}.{tschema}.protocol_edges e ON e.subject = 'DRUGCLASS-STATIN' AND e.predicate = 'contraindicatedWith'
+JOIN {catalog}.{tschema}.value_set_segment v ON v.segment_id = e.object
+JOIN {catalog}.{schema}.bronze_pat_enc_dx dx ON dx.patient_id = m.patient_id AND dx.icd10_code LIKE concat(v.code, '%');
+
 -- @id: op_worst_clinic_annual
 -- class: 9_operational_temporal  min_approach: metric_view  expect: CLINIC-04
 -- Lowest protocol Step-3 adherence year-to-date, closed 90-day windows only (open windows aren't misses yet).

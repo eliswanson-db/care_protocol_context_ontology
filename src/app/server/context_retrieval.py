@@ -88,6 +88,23 @@ def _iri_list(nodes) -> str:
     return ", ".join("'" + (n if n.startswith("http") else ONTO_NS + n).replace("'", "") + "'" for n in sorted(nodes))
 
 
+_SCHEMA_CACHE: dict[str, str] = {}
+
+
+def graph_schema(run_sql, graph: str) -> str:
+    """The graph's predicate vocabulary (predicate: subject type -> object type, triple count), read from the graph
+    itself. The graph's counterpart to the closure arm's table cards and the metric views' YAML; cached per graph."""
+    if graph not in _SCHEMA_CACHE:
+        rows = run_sql(
+            f"SELECT regexp_extract(predicate, '([^/#]+)$', 1) AS p, regexp_extract(subject, 'ontology/([^/]+)/', 1) AS st, "
+            f"coalesce(nullif(regexp_extract(object, 'ontology/([^/]+)/', 1), ''), 'literal') AS ot, count(*) AS n "
+            f"FROM {graph} GROUP BY 1, 2, 3 ORDER BY 1, 4 DESC")
+        lines = [f"{r['p']}: {r['st'] or '?'} -> {r['ot']} ({int(r['n']):,})" for r in rows
+                 if r["p"] not in ("type", "label")]
+        _SCHEMA_CACHE[graph] = "; ".join(lines)
+    return _SCHEMA_CACHE[graph]
+
+
 def graph_context(question: str, run_sql, graph: str) -> list[dict]:
     """k-hop subgraph around the question's linked entities (standard graph-RAG retrieval). `graph` =
     catalog.schema.<base>_graph.
@@ -146,7 +163,8 @@ def graph_context(question: str, run_sql, graph: str) -> list[dict]:
     header = {"page_content": (f"Source: Ontobricks triple table {graph} (columns subject, predicate, object). "
                                f"Node IRIs are {ONTO_NS}<Type>/<id> (e.g. {ONTO_NS}Patient/<patient_id>, "
                                f"{ONTO_NS}icd/E11.9, {ONTO_NS}DrugClass/DRUGCLASS-STATIN); predicate IRIs are "
-                               f"{ONTO_NS}<predicate>. Triples below are shown with that prefix removed."),
+                               f"{ONTO_NS}<predicate>. Triples below are shown with that prefix removed.\n"
+                               f"Graph schema (predicate: subject type -> object type, count): {graph_schema(run_sql, graph)}"),
               "metadata": {"source": "ontobricks", "kind": "provenance", "graph": graph, "linked_entities": linked}}
     order = sorted(seen, key=lambda k: (seen[k], tiers[k] != "patient"))
     return [header] + [

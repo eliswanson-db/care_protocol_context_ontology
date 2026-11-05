@@ -242,7 +242,7 @@ export function BenchmarkScorecard() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">When each layer earns its place</h1>
         <p className="mt-1.5 text-[15px] text-muted">
-          The five retrieval approaches on the same 10 questions, each scored only on the context it retrieves, in three tiers:{" "}
+          The five retrieval approaches on the same {map.floor?.total ?? ""} questions, each scored only on the context it retrieves, in three tiers:{" "}
           <span className="font-semibold text-fg">1</span> the answer is in that context;{" "}
           <span className="font-semibold text-fg">2</span> the context gives what's needed for one SQL query that returns the answer (we run it);{" "}
           <span className="font-semibold text-fg">3</span> neither. Same tiers as the Arena. Genie One's end-to-end answer sits in a separate column for contrast.
@@ -280,13 +280,17 @@ export function BenchmarkScorecard() {
             <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted" />
             <span>
               <span className="font-semibold">What this run surfaced (2026-11-05).</span>{" "}
-              On the graph-native question (a patient's own diagnosis vs. the protocol's contraindication rule), the graph
-              was the only approach whose context held the patient's records and the rule together. Closure had the rule but no
-              patient data. Genie One still answered it end-to-end, from the relational closure/edge tables.
-              Genie Ontology's inferred snippets on ECT name metric views at their old <span className="font-mono">care_protocol.*</span>{" "}
-              location, so queries built from them fail. <span className="font-mono">protocol_drift_metrics</span> has no UC comment and
-              wasn't retrieved for the drift question. The published graph has no names for drugs, codes or value sets
-              (e.g. "metformin" is only <span className="font-mono">rx/6809</span>).
+              Five questions were built so the closure / edge tables wouldn't suffice (they hold no patient data and no
+              measure business logic), and closure is tier 3 on all five. The graph reached its two through one query each:
+              the patient's gaps and the 198-patient statin-contraindication cohort. Its context lists the gap edges, but
+              a missing gap edge doesn't assert compliance, so that one is tier 2, not tier 1. Genie Ontology on ECT
+              answered all three definition questions from its own retrieval; DMVM answered two, from the Pages, since its
+              snippets there come from other projects. Given its own schema, the graph's single query also hit the
+              subsumption counts (1,881 and 1,651), because the graph carries the patient layer.{" "}
+              <span className="font-semibold">Limits seen:</span> the graph has no ACE/ARB drug-class edges (it reported
+              0 of 10 cardiorenal patients on ACE/ARB; the answer is 8). It has no value-set versions (its vintage 0 is right but
+              not grounded) and no names for drugs or codes. Genie Ontology's snippets cite pre-Nov-4 columns and locations, and{" "}
+              <span className="font-mono">protocol_drift_metrics</span> has no UC comment, so it wasn't retrieved.
             </span>
           </div>
         </Collapsible>

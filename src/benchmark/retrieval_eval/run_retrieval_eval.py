@@ -49,7 +49,9 @@ QUESTIONS = [
     {"qid": "proto_cardiorenal", "cls": "6_protocol_multihop", "wins": "closure_sql",
      "question": ("Identify cardiorenal patients (diabetes + CKD + heart failure) and whether each is on "
                   "statin + ACE/ARB + SGLT2."),
-     "expected_facts": ["There are 10 cardiorenal patients (diabetes AND chronic kidney disease AND heart failure)."]},
+     "expected_facts": ["There are 10 cardiorenal patients (diabetes AND chronic kidney disease AND heart failure).",
+                        "All 10 are on a statin, 8 of the 10 are on an ACE inhibitor or ARB, and none is on an SGLT2 "
+                        "inhibitor."]},
     {"qid": "def_metformin_egfr", "cls": "7_definition_provenance", "wins": "rag",
      "question": "Below what eGFR is metformin contraindicated, and where is that stated?",
      "expected_facts": ["Metformin (a biguanide) is contraindicated when eGFR is below 30 (eGFR < 30)."]},
@@ -68,6 +70,34 @@ QUESTIONS = [
          "Yes: the patient is prescribed RxNorm 314231, which belongs to the statin drug class.",
          "The patient has diagnosis ICD-10 Z34.90, which falls under Z34, a code in the CONTRA_PREGNANCY value set.",
          "The care-protocol rule is that the statin drug class is contraindicated with CONTRA_PREGNANCY."]},
+    # --- Built so the closure / edge tables should NOT suffice (they hold no patient data and no measure business
+    # logic) while the graph (patient layer) or Genie Ontology (definitions in snippets + Pages) holds the answer.
+    # Every gold was verified against current data; the graph's patient layer agrees with gold on all five measures.
+    {"qid": "graph_patient_gaps", "cls": "8_graph_native", "wins": "graph",
+     "question": ("Patient 00f63646-fc2f-16a9-53e5-951816dfefe3: which diabetes quality measures are they eligible "
+                  "for, and on which of those do they have an open care gap?"),
+     "expected_facts": ["The patient is eligible for all five measures: GSD, KED, BPD, SPD and EED.",
+                        "The patient has open care gaps on KED and EED.",
+                        "The patient has no care gap on GSD, BPD and SPD."]},
+    {"qid": "graph_statin_contra_cohort", "cls": "8_graph_native", "wins": "graph",
+     "question": ("How many patients are prescribed a statin even though one of their own diagnoses is a statin "
+                  "contraindication under the care protocol?"),
+     "expected_facts": ["198 patients are prescribed a statin while having a diagnosis in a statin-contraindication "
+                        "value set (all via CONTRA_PREGNANCY)."]},
+    {"qid": "onto_ked_definition", "cls": "10_semantic_definition", "wins": "genie_ontology",
+     "question": "Who is eligible for the KED measure, and what does a patient need to count as compliant?",
+     "expected_facts": ["KED applies to diabetic patients aged 18 to 85.",
+                        "To be compliant a patient needs BOTH an eGFR test and a uACR test in the measurement year."]},
+    {"qid": "onto_poor_control_denominator", "cls": "10_semantic_definition", "wins": "genie_ontology",
+     "question": ("Is the GSD poor-control rate calculated over all eligible patients or only some of them, and what "
+                  "A1c level counts as poor control?"),
+     "expected_facts": ["The GSD poor-control rate is computed only among A1c-tested patients, not all eligible patients.",
+                        "Poor control means the latest A1c in the measurement year is above 9.0%."]},
+    {"qid": "onto_age_and_window", "cls": "10_semantic_definition", "wins": "genie_ontology",
+     "question": ("For these diabetes quality measures, at what point in time is a patient's age evaluated for "
+                  "eligibility, and in what window must the required care happen?"),
+     "expected_facts": ["Age is evaluated at the end of the measurement year (period end, December 31).",
+                        "The required care must happen within the measurement year (January 1 to December 31)."]},
     {"qid": "op_worst_clinic_annual", "cls": "9_operational_temporal", "wins": "metric_view",
      "question": "Which clinic has the lowest protocol Step-3 (A1c follow-up) adherence overall this year?",
      "expected_facts": ["CLINIC-04 has the lowest Step-3 adherence year-to-date (about 44.3%)."]},
