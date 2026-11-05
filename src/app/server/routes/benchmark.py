@@ -70,11 +70,15 @@ def capability_map():
         e = by.get((a["eval_arm"], r["question_id"]))
         if not e or e.get("tier") is None:
             return "pending"
-        if e["tier"] == 3 and e.get("skipped_search"):
+        if e["tier"] in (1, 2):
+            return f"tier{e['tier']}"
+        if e.get("skipped_search"):
             return "skipped"
-        if e["tier"] == 3 and not e.get("n_docs"):
+        if not e.get("n_docs"):
             return "no_retrieval"
-        return f"tier{e['tier']}"
+        if not e.get("sql"):
+            return "no_query"
+        return "query_failed" if e.get("sql_error") else "wrong_answer"
 
     def evidence(a, r):
         e = by.get((a.get("eval_arm"), r["question_id"])) or {}
@@ -103,7 +107,10 @@ def capability_map():
         rollup.append({
             "arm": a["id"], "label": a["label"], "kind": a["kind"],
             "tier1": sum(v == "tier1" for v in vals), "tier2": sum(v == "tier2" for v in vals),
-            "tier3": sum(v in ("tier3", "no_retrieval", "skipped") for v in vals),
+            "tier3": sum(v in ("no_query", "wrong_answer", "query_failed", "no_retrieval", "skipped") for v in vals),
+            "answered": sum(v in ("tier1", "tier2") for v in vals),
+            "wrong": sum(v in ("wrong_answer", "query_failed") for v in vals),
+            "no_query": sum(v in ("no_query", "no_retrieval", "skipped") for v in vals),
             "skipped": sum(v == "skipped" for v in vals),
             "unstable": sum(1 for r in rows if a["kind"] == "retrieval"
                             and not (by.get((a["eval_arm"], r["question_id"])) or {}).get("stable", True)),

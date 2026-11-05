@@ -2,7 +2,7 @@
   "judge": "databricks:/databricks-claude-sonnet-5",
   "agent": "databricks-claude-sonnet-5",
   "scoring": "tiers-v1",
-  "repeats": 3,
+  "repeats": 1,
   "rows": [
     {
       "arm": "closed_book",
@@ -1666,378 +1666,6 @@
           "sql": "",
           "sql_error": null,
           "facts_in_context": [
-            false
-          ],
-          "facts_in_result": null
-        }
-      ]
-    },
-    {
-      "arm": "closed_book",
-      "qid": "graph_contra_conflict",
-      "tier": 3,
-      "sufficient": false,
-      "query_correct": false,
-      "sql": null,
-      "sql_error": null,
-      "sql_result": null,
-      "n_docs": 0,
-      "skipped_search": false,
-      "facts_in_context": [
-        false,
-        false,
-        false
-      ],
-      "facts_in_result": null,
-      "context": "(no context retrieved)",
-      "latency_s": 12.8,
-      "tier_runs": [
-        3,
-        3,
-        3
-      ],
-      "stable": true,
-      "harness_errors": 0,
-      "runs": [
-        {
-          "tier": 3,
-          "sql": "",
-          "sql_error": null,
-          "facts_in_context": [
-            false,
-            false,
-            false
-          ],
-          "facts_in_result": null
-        },
-        {
-          "tier": 3,
-          "sql": "",
-          "sql_error": null,
-          "facts_in_context": [
-            false,
-            false,
-            false
-          ],
-          "facts_in_result": null
-        },
-        {
-          "tier": 3,
-          "sql": "",
-          "sql_error": null,
-          "facts_in_context": [
-            false,
-            false,
-            false
-          ],
-          "facts_in_result": null
-        }
-      ]
-    },
-    {
-      "arm": "metric_view",
-      "qid": "graph_contra_conflict",
-      "tier": 3,
-      "sufficient": false,
-      "query_correct": false,
-      "sql": null,
-      "sql_error": null,
-      "sql_result": null,
-      "n_docs": 3,
-      "skipped_search": false,
-      "facts_in_context": [
-        false,
-        false,
-        false
-      ],
-      "facts_in_result": null,
-      "context": "UC metric view eli_test_classic_catalog.care_protocol_semantic.ssd_compliance_metrics (query measures with MEASURE(`<measure name>`) FROM eli_test_classic_catalog.care_protocol_semantic.ssd_compliance_metrics):\nversion: 1.1\n\nsource: eli_test_classic_catalog.care_protocol.gold_adherence_ssd\n\ncomment: \"HEDIS SSD (Diabetes Screening for People With Schizophrenia or Bipolar Disorder\\\n  \\ Who Are Using Antipsychotic Medications). Cross-domain: SMI diagnosis + antipsychotic\\\n  \\ dispensing + glucose/HbA1c screen, ages 18-64. Denominator = eligible SMI-on-antipsychotic\\\n  \\ patients; numerator = patients with a glucose or HbA1c test in the measurement\\\n  \\ year. HEDIS-aligned demo, not NCQA-certified.\"\n\ndimensions:\n  - name: Measurement Year\n    expr: measurement_year\n    comment: HEDIS measurement year.\n    display_name: Measurement Year\n    synonyms:\n      - year\n      - reporting year\n      - MY\n\n  - name: Compliance Status\n    expr: CASE WHEN evidence_datetime IS NOT NULL THEN 'MET' ELSE 'NOT_MET' END\n    comment: MET = glucose or HbA1c screen found in the measurement year; NOT_MET\n      = no screen.\n    display_name: Compliance Status\n    synonyms:\n      - status\n      - screening status\n      - gap status\n\n  - name: Clinic\n    expr: clinic_id\n    comment: Clinic (site) the SSD patient is seen at.\n    display_name: Clinic\n    synonyms:\n      - clinic\n      - site\n      - location\n      - facility\n\n  - name: Panel\n    expr: panel_id\n    comment: Care panel the SSD patient belongs to.\n    display_name: Panel\n    synonyms:\n      - panel\n      - pcp panel\n      - provider panel\n      - care team\n\n  - name: Age Band\n    expr: CASE WHEN age < 35 THEN '18-34' WHEN age < 50 THEN '35-49' ELSE '50-64'\n      END\n    comment: Age band at the end of the measurement year (eligible population is 18-64).\n    display_name: Age Band\n    synonyms:\n      - age group\n      - age bracket\n\n  - name: Measure\n    expr: measure_id\n    comment: HEDIS measure code; this view reports SSD.\n    display_name: HEDIS Measure\n    synonyms:\n      - measure id\n      - hedis measure\n      - quality measure\n\nmeasures:\n  - name: Eligible Patients\n    expr: COUNT(1)\n    comment: SMI patients on antipsychotics aged 18-64 eligible for SSD (the denominator).\n    display_name: Eligible Patients\n    format:\n      type: number\n      decimal_places:\n        type: exact\n        places: 0\n    synonyms:\n      - denominator\n      - eligible population\n      - eligible count\n\n  - name: Screened Patients\n    expr: COUNT(1) FILTER (WHERE evidence_datetime IS NOT NULL)\n    comment: Eligible patients with a glucose or HbA1c screen in the measurement year\n      (the numerator).\n    display_name: Screened Patients\n    format:\n      type: number\n      decimal_places:\n        type: exact\n        places: 0\n    synonyms:\n      - numerator\n      - screened count\n      - patients screened\n\n  - name: SSD Compliance Rate\n    expr: MEASURE(`Screened Patients`) / MEASURE(`Eligible Patients`)\n    comment: Share of eligible SMI-on-antipsychotic patients screened for diabetes.\n      Numerator / denominator; re-aggregates at any grain.\n    display_name: SSD Compliance Rate\n    format:\n      type: percentage\n      decimal_places:\n        type: max\n        places: 1\n    synonyms:\n      - compliance rate\n      - screening rate\n      - ssd rate\n      - met rate\n\nUC metric view eli_test_classic_catalog.care_protocol_semantic.spd_compliance_metrics (query measures with MEASURE(`<measure name>`) FROM eli_test_classic_catalog.care_protocol_semantic.spd_compliance_metrics):\nversion: 1.1\n\nsource: eli_test_classic_catalog.care_protocol.gold_adherence_spd\n\ncomment: \"HEDIS SPD (Statin Therapy) compliance for the diabetes population aged 40-75.\\\n  \\ Denominator = eligible diabetes patients; numerator = dispensed a statin in the\\\n  \\ measurement year (statins resolved from RxNorm ingredients to clinical drugs via\\\n  \\ subsumption). HEDIS-aligned demo, not NCQA-certified.\"\n\ndimensions:\n  - name: Measurement Year\n    expr: measurement_year\n    comment: HEDIS measurement year the metrics are computed for (e.g. 2026).\n    display_name: Measurement Year\n    synonyms:\n      - year\n      - reporting year\n      - MY\n\n  - name: Compliance Status\n    expr: CASE WHEN evidence_datetime IS NOT NULL THEN 'MET' ELSE 'NOT_MET' END\n    comment: MET = a statin was dispensed in the measurement year; NOT_MET = no statin\n      (care gap).\n    display_name: Compliance Status\n    synonyms:\n      - status\n      - met status\n      - adherence status\n      - gap status\n\n  - name: Clinic\n    expr: clinic_id\n    comment: Clinic (site) the patient's panel belongs to. Enables care-gap and compliance\n      rates by site.\n    display_name: Clinic\n    synonyms:\n      - clinic\n      - site\n      - location\n      - facility\n\n  - name: Panel\n    expr: panel_id\n    comment: PCP panel the patient belongs to.\n    display_name: Panel\n    synonyms:\n      - panel\n      - pcp panel\n      - provider panel\n      - care team\n\n  - name: Gap Reason\n    expr: CASE WHEN evidence_datetime IS NOT NULL THEN 'Met' ELSE 'No statin dispensed\n      in measurement year' END\n    comment: Why the patient is a care gap (NOT_MET); 'Met' when compliant. Group\n      care gaps by reason.\n    display_name: Gap Reason\n    synonyms:\n      - gap reason\n      - reason\n      - care gap reason\n      - why gap\n\n  - name: Age Band\n    expr: CASE WHEN age < 55 THEN '40-54' WHEN age < 65 THEN '55-64' ELSE '65-75'\n      END\n    comment: Age band at the end of the measurement year (SPD eligible population\n      is 40-75).\n    display_name: Age Band\n    synonyms:\n      - age group\n      - age bracket\n      - age range\n\n  - name: Measure\n    expr: measure_id\n    comment: HEDIS measure code; this view reports SPD (Statin Therapy).\n    display_name: HEDIS Measure\n    synonyms:\n      - measure id\n      - hedis measure\n      - quality measure\n\nmeasures:\n  - name: Eligible Patients\n    expr: COUNT(1)\n    comment: Diabetes patients aged 40-75 eligible for SPD ",
-      "latency_s": 19.5,
-      "tier_runs": [
-        3,
-        3,
-        3
-      ],
-      "stable": true,
-      "harness_errors": 0,
-      "runs": [
-        {
-          "tier": 3,
-          "sql": "",
-          "sql_error": null,
-          "facts_in_context": [
-            false,
-            false,
-            false
-          ],
-          "facts_in_result": null
-        },
-        {
-          "tier": 3,
-          "sql": "",
-          "sql_error": null,
-          "facts_in_context": [
-            false,
-            false,
-            false
-          ],
-          "facts_in_result": null
-        },
-        {
-          "tier": 3,
-          "sql": "",
-          "sql_error": null,
-          "facts_in_context": [
-            false,
-            false,
-            false
-          ],
-          "facts_in_result": null
-        }
-      ]
-    },
-    {
-      "arm": "closure_sql",
-      "qid": "graph_contra_conflict",
-      "tier": 3,
-      "sufficient": false,
-      "query_correct": false,
-      "sql": null,
-      "sql_error": null,
-      "sql_result": null,
-      "n_docs": 12,
-      "skipped_search": false,
-      "facts_in_context": [
-        true,
-        false,
-        true
-      ],
-      "facts_in_result": null,
-      "context": "Table eli_test_classic_catalog.care_protocol_terminology.icd10_closure: Transitive closure of icd10_hier; select a whole subtree with one equality (WHERE ancestor_code=X). Built once by build_closure.py.\nColumns: ancestor_code (ICD-10-CM code of the ancestor (broader) concept, e.g. E11 (Type 2 diabetes mellitus).); ancestor_name (Name of the ancestor concept.); descendant_code (ICD-10-CM code of the descendant (narrower) concept, e.g. E11.21. A single equality join on this column subsumes the whole subtree.); descendant_name (Name of the descendant concept.); depth (Hierarchy distance from ancestor to descendant (0 = self). Enables subsumption queries without recursive CTEs.)\n\nTable eli_test_classic_catalog.care_protocol_terminology.icd10_hier: ICD-10-CM adjacency list (code, parent_code, name). Source tree for icd10_closure. Curated demo subset (diabetes), ADR-0007.\nColumns: code (ICD-10-CM code of this concept (the child node of a direct parent/child edge).); parent_code (ICD-10-CM code of the immediate parent concept. Direct edges only; transitively expanded (all depths) into icd10_closure.); name (Human-readable name of the ICD-10-CM concept.)\n\nTable eli_test_classic_catalog.care_protocol_terminology.loinc: LOINC code subset (loinc_code, long_common_name, concept) for demo measures: A1c, eGFR, uACR, BP, BMI, PHQ. LOINC (c) Regenstrief, used under LOINC License.\nColumns: loinc_code (LOINC code (e.g. 4548-4 = Hemoglobin A1c / HbA1c in blood).); long_common_name (LOINC long common name for the lab test.); concept (Short semantic concept label grouping related LOINC codes (e.g. A1C, EGFR, UACR, BP).)\n\nTable eli_test_classic_catalog.care_protocol_terminology.loinc_parts: LOINC multiaxial Part edges (loinc_code, predicate, part): typed axes has_component/has_system/has_method. A graph (not a tree): 'all A1c regardless of method' = terms sharing Component LP-HBA1C. Curated demo subset (LOINC License), ADR-0010.\nColumns: loinc_code (LOINC code being decomposed into its semantic Parts (e.g. 4548-4 Hemoglobin A1c).); loinc_name (LOINC long common name of the code.); predicate (LOINC Part axis / relationship: has_component, has_system, has_method, etc.); part (LOINC Part code on the object side of the predicate (e.g. LP-HBA1C, LP-SYS-BLD).); part_name (Human-readable Part name. Enables semantic grouping of labs across code vintages/methods (e.g. all HbA1c components regardless of method).)\n\nTable eli_test_classic_catalog.care_protocol_terminology.protocol_edges: Care-protocol knowledge edges (subject, predicate, object, value) from the care-protocol PDF: recommendedFor/contraindicatedWith/monitoredBy/hasThreshold. The clinical, cross-vocabulary relationships for the graph (OWL/Ontobricks) and class-6 multi-hop questions. ADR-0010.\nColumns: subject (Subject of a care-protocol edge, typically a drug class (e.g. DRUGCLASS-STATIN, DRUGCLASS-SGLT2, DRUGCLASS-ACE).); predicate (Edge relationship: recommendedFor, firstLineFor, contraindicatedWith, or contraindicatedWhen.); object (Object of the edge: a measure, condition, comorbidity, or contraindication (e.g. SPD, ALBUMINURIA, COMORBID_CKD, CONTRA_PREGNANCY, eGFR_LT_30).); value (Optional numeric threshold attached to the edge (e.g. 30 for eGFR_LT_30); null when not applicable.); source (Citation into the care-protocol document (section/version, e.g. CP-DM-2025.1 sec2). Record-level provenance for the recommendation.)\n\nTable eli_test_classic_catalog.care_protocol_terminology.rxnorm_closure: Transitive closure of rxnorm_hier; select a whole subtree with one equality (WHERE ancestor_code=X). Built once by build_closure.py.\nColumns: ancestor_code (RxNorm ingredient rxcui (e.g. 36567 simvastatin). Join a value set of ingredients here to subsume all clinical drugs.); ancestor_name; descendant_code (RxNorm clinical-drug rxcui (e.g. 312961 Simvastatin 20 MG) subsumed by the ingredient, matching prescription codes in bronze_order_med.); descendant_name; depth\n\nTable eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier: RxNorm adjacency (code, parent_code, name): statin ingredient -> clinical drug. Source tree for rxnorm_closure, so SPD resolves ingredient value sets to the clinical-drug codes actually prescribed (subsumption). Curated demo subset, ADR-0007.\nColumns: code (RxNorm rxcui of this concept (child node of the edge), typically a clinical drug.); parent_code (RxNorm rxcui of the immediate parent concept (e.g. the ingredient). Transitively expanded into rxnorm_closure.); name (Human-readable RxNorm concept name.)\n\nTable eli_test_classic_catalog.care_protocol_terminology.rxnorm_statin: RxNorm statin ingredients (rxcui, ingredient) for the Statin Therapy (SPD) measure.\nColumns: rxcui (RxNorm ingredient rxcui for a statin (e.g. 36567 simvastatin). Joined to rxnorm_closure to subsume every statin clinical drug for the SPD numerator.); ingredient (Statin ingredient name (e.g. simvastatin, atorvastatin).)\n\nTable eli_test_classic_catalog.care_protocol_terminology.value_set_segment: Cross-branch demo value sets / cohorts (the segment table; not NCQA/VSAC). Named sets spanning the hierarchy, incl. CARDIORENAL_COHORT (diabetes+CKD+HF).\nColumns: segment_id (Value-set segment identifier, e.g. GSD_A1C_TEST (A1c lab codes), KED_EGFR, SPD_STATIN.); segment_name (Human-readable value-set name.); code (A member code of the value set (LOINC, ICD-10-CM, or RxNorm depending on code_system).); code_system (Terminology the code belongs to: LOINC, ICD10CM, or RXNORM.); measurement_year (HEDIS measurement year the value-set version applies to (drift demo: value sets change across years).); owner (Steward/owner of the value-set segment.)\n\nRows from eli_test_classic_catalog.care_protocol_terminology.protocol_edges:\nsubject | predicate | object | value | source\nDRUGCLASS-STATIN | recommendedFor | SPD | None | CP-DM-2025.1 sec2/sec6\nDRUGCLASS-STATIN | contraindicatedWith | CONTRA_PREGNANCY | None | CP sec4\nDRUGCLASS-STATIN | contraindicatedWith | CONTRA_HEPATIC | None ",
-      "latency_s": 24.0,
-      "tier_runs": [
-        3,
-        3,
-        3
-      ],
-      "stable": true,
-      "harness_errors": 0,
-      "runs": [
-        {
-          "tier": 3,
-          "sql": "",
-          "sql_error": null,
-          "facts_in_context": [
-            true,
-            false,
-            true
-          ],
-          "facts_in_result": null
-        },
-        {
-          "tier": 3,
-          "sql": "",
-          "sql_error": null,
-          "facts_in_context": [
-            false,
-            false,
-            true
-          ],
-          "facts_in_result": null
-        },
-        {
-          "tier": 3,
-          "sql": "",
-          "sql_error": null,
-          "facts_in_context": [
-            false,
-            false,
-            true
-          ],
-          "facts_in_result": null
-        }
-      ]
-    },
-    {
-      "arm": "rag",
-      "qid": "graph_contra_conflict",
-      "tier": 3,
-      "sufficient": false,
-      "query_correct": false,
-      "sql": null,
-      "sql_error": null,
-      "sql_result": null,
-      "n_docs": 5,
-      "skipped_search": false,
-      "facts_in_context": [
-        false,
-        false,
-        true
-      ],
-      "facts_in_result": null,
-      "context": "CP-ESC-1 (statin gap). A patient aged 40\u201375 with diabetes and no statin dispensed in the year (SPD gap) should be started on a moderate-to-high intensity statin , after confirming no contraindication (pregnancy, active hepatic disease). CP-ESC-2 (kidney gap). A patient missing eGFR or uACR (KED gap) should have the missing component ordered. If uACR \u2265 30 mg/g, start an ACE inhibitor or ARB (not both). CP-ESC-3 (combined cardiorenal). A patient with diabetes and chronic kidney disease (N18.*) and heart failure (I50.*) is a cardiorenal priority: ensure statin, ACE/ARB, and an SGLT2 inhibitor (if eGFR \u2265 20), and monitor A1c every 3 months. Escalation rules reference measures (GSD/KED/SPD), labs (eGFR, uACR, A1c), diagnosis families (E10/E11/E13, N18, I50) and drug classes \u2014 the relationships this protocol contributes to the knowledge graph.\n\nThis protocol governs quality measurement and care escalation for adults with diabetes mellitus , identified by an ICD-10-CM diagnosis in the E10 (type 1), E11 (type 2), or E13 (other specified) families, including all descendant codes (e.g. E11.21 Type 2 diabetes with diabetic nephropathy , E11.319 \u2026 with unspecified diabetic retinopathy ). Membership is by the diagnosis hierarchy, not an enumerated code list.\n\nDrug class Indicated for Example agents (RxNorm ingredient) Contraindications / cautions Statin SPD: all diabetics 40\u201375; cardiovascular risk reduction atorvastatin, simvastatin, rosuvastatin, pravastatin, lovastatin, fluvastatin Pregnancy; active hepatic disease / unexplained persistent transaminase elevation ACE inhibitor or ARB Albuminuria (uACR \u2265 30 mg/g) or hypertension lisinopril, enalapril, losartan, valsartan Pregnancy; bilateral renal artery stenosis; hyperkalemia; do NOT combine ACE + ARB SGLT2 inhibitor CKD (eGFR \u2265 20), heart failure empagliflozin, dapagliflozin Do not initiate if eGFR &lt; 20; risk of genital mycotic infection, DKA Metformin First-line glycemic control metformin eGFR &lt; 30 (contraindicated); hold around iodinated contrast\n\nThe EED quality measure records whether a retinal exam was **performed in the measurement year** (with a\nbiennial-lookback allowance). It cannot express:\n1. The **6-month urgency** window for a newly diagnosed patient.\n2. The **risk stratification** that shortens the interval to annual for patients with retinopathy.\nA document-retrieval arm that reads this protocol can answer *\"how soon does a newly diagnosed patient need an\neye exam?\"*; a metric view over structured encounters cannot.\n\n> Synthetic care-protocol guidance for the Care Protocol Context & Ontology demo. HEDIS-aligned, not\n> NCQA-certified, not for clinical use.",
-      "latency_s": 19.6,
-      "tier_runs": [
-        3,
-        3,
-        3
-      ],
-      "stable": true,
-      "harness_errors": 0,
-      "runs": [
-        {
-          "tier": 3,
-          "sql": "",
-          "sql_error": null,
-          "facts_in_context": [
-            false,
-            false,
-            true
-          ],
-          "facts_in_result": null
-        },
-        {
-          "tier": 3,
-          "sql": "",
-          "sql_error": null,
-          "facts_in_context": [
-            false,
-            false,
-            false
-          ],
-          "facts_in_result": null
-        },
-        {
-          "tier": 3,
-          "sql": "",
-          "sql_error": null,
-          "facts_in_context": [
-            false,
-            false,
-            true
-          ],
-          "facts_in_result": null
-        }
-      ]
-    },
-    {
-      "arm": "genie_ontology",
-      "qid": "graph_contra_conflict",
-      "tier": 3,
-      "sufficient": false,
-      "query_correct": false,
-      "sql": null,
-      "sql_error": null,
-      "sql_result": null,
-      "n_docs": 4,
-      "skipped_search": false,
-      "facts_in_context": [
-        false,
-        false,
-        false
-      ],
-      "facts_in_result": null,
-      "context": "Ontology Page \u2014 Inquiry Category [Medical Affairs]: Topic classification of a medical inquiry (efficacy, safety, dosing, off-label) for routing and demand analysis.\n\nOntology Page \u2014 Inquiry Category [Medical Affairs]: Topic classification of a medical inquiry (e.g. efficacy, safety, dosing, off-label) for routing and analysis.\n\nOntology Page \u2014 US Core Medication [mkgs_fhir]: US Core profile for representing medication products referenced by prescriptions and administration records.\n\nOntology Page \u2014 Cardiometabolic condition [Health Payers]: Customer-defined group: cardiovascular plus endocrine/metabolic conditions.",
-      "latency_s": 16.8,
-      "tier_runs": [
-        3,
-        3,
-        3
-      ],
-      "stable": true,
-      "harness_errors": 0,
-      "runs": [
-        {
-          "tier": 3,
-          "sql": "",
-          "sql_error": null,
-          "facts_in_context": [
-            false,
-            false,
-            false
-          ],
-          "facts_in_result": null
-        },
-        {
-          "tier": 3,
-          "sql": "",
-          "sql_error": null,
-          "facts_in_context": [
-            false,
-            false,
-            false
-          ],
-          "facts_in_result": null
-        },
-        {
-          "tier": 3,
-          "sql": "",
-          "sql_error": null,
-          "facts_in_context": [
-            false,
-            false,
-            false
-          ],
-          "facts_in_result": null
-        }
-      ]
-    },
-    {
-      "arm": "genie_ontology_dmvm",
-      "qid": "graph_contra_conflict",
-      "tier": 3,
-      "sufficient": false,
-      "query_correct": false,
-      "sql": null,
-      "sql_error": null,
-      "sql_result": null,
-      "n_docs": 6,
-      "skipped_search": false,
-      "facts_in_context": [
-        false,
-        false,
-        false
-      ],
-      "facts_in_result": null,
-      "context": "Inferred snippet (business_logic) from test space tables: The curated diagnosis-name cohort identifies five specific standardized diagnosis names, not broader category groupings.\nThe example diagnosis-name filter INCLUDES exactly `dim_diagnosis.diagnosis_name IN ('Type 2 diabetes mellitus without complications', 'Essential (primary) hypertension', 'ST elevation MI involving left main coronary artery', 'General adult medical exam without abnormal findings', 'Cerebral infarction, unspecified')`. The direction is INCLUDE, not exclude. These are diagnosis names from the standardized diagnosis dimension and should not be substituted for broader CCS categories unless the question explicitly asks for names. For encounter analysis, apply the filter after joining `fact_encounter.primary_diagnosis_key = dim_diagnosis.diagnosis_key`.\n\nInferred snippet (business_logic) from clinical_genie_space_tables: A reusable diagnosis-name filter includes five specific diagnoses for common clinical reporting examples.\nTo filter for notable diagnosis names in `dim_diagnosis`, INCLUDE exactly these five values: `'Type 2 diabetes mellitus without complications'`, `'Essential (primary) hypertension'`, `'ST elevation MI involving left main coronary artery'`, `'General adult medical exam without abnormal findings'`, and `'Cerebral infarction, unspecified'`. The exact SQL pattern is `dim_diagnosis.diagnosis_name IN (...)` using the complete list. This is an inclusion filter, not a list of values to exclude. The corresponding CCS category filter is separate and should not be assumed to be interchangeable with diagnosis name filtering.\n\nOntology Page \u2014 Statine [Research and Development]: \u00ab Statine \u00bb d\u00e9signe la classe des hypolip\u00e9miants inhibiteurs de l'HMG-CoA r\u00e9ductase, classe ATC C10AA (atorvastatine, rosuvastati\n\nOntology Page \u2014 Cardiometabolic condition [Health Payers]: Customer-defined group: cardiovascular plus endocrine/metabolic conditions.\n\nOntology Page \u2014 Inquiry Category [Medical Affairs]: Topic classification of a medical inquiry (efficacy, safety, dosing, off-label) for routing and demand analysis.\n\nOntology Page \u2014 SPD \u2014 Statin Therapy for Patients With Diabetes [Clinical Domain]: SPD (Statin Therapy for Patients With Diabetes) is a HEDIS measure for statin use in diabetic patients.",
-      "latency_s": 19.3,
-      "tier_runs": [
-        3,
-        3,
-        3
-      ],
-      "stable": true,
-      "harness_errors": 0,
-      "runs": [
-        {
-          "tier": 3,
-          "sql": "",
-          "sql_error": null,
-          "facts_in_context": [
-            false,
-            false,
-            false
-          ],
-          "facts_in_result": null
-        },
-        {
-          "tier": 3,
-          "sql": "",
-          "sql_error": null,
-          "facts_in_context": [
-            false,
-            false,
-            false
-          ],
-          "facts_in_result": null
-        },
-        {
-          "tier": 3,
-          "sql": "",
-          "sql_error": null,
-          "facts_in_context": [
-            false,
-            false,
             false
           ],
           "facts_in_result": null
@@ -5110,84 +4738,6 @@
     },
     {
       "arm": "ontobricks",
-      "qid": "graph_contra_conflict",
-      "tier": 1,
-      "sufficient": true,
-      "query_correct": false,
-      "sql": "WITH base AS (\n  SELECT\n    'https://care-protocol.example/ontology/Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5' AS patient_iri\n)\nSELECT\n  rx.object        AS prescribed_drug,\n  ing.object        AS ingredient,\n  dc.object         AS drug_class,\n  dc2.object        AS contraindicated_valueset,\n  vs.object         AS contraindicated_icd_parent,\n  diag.object       AS patient_diagnosis,\n  patient.patient_iri AS patient\nFROM base patient\nJOIN eswanson_demo.ontobricks.triplestore_clinicaldomain_v3_graph rx\n  ON rx.subject = patient.patient_iri AND rx.predicate = 'prescribed'\nJOIN eswanson_demo.ontobricks.triplestore_clinicaldomain_v3_graph ing\n  ON ing.subject = rx.object AND ing.predicate = 'hasIngredient'\nJOIN eswanson_demo.ontobricks.triplestore_clinicaldomain_v3_graph dc\n  ON dc.subject = ing.object AND dc.predicate = 'inDrugClass'\nJOIN eswanson_demo.ontobricks.triplestore_clinicaldomain_v3_graph dc2\n  ON dc2.subject = dc.object AND dc2.predicate = 'contraindicatedWith'\nJOIN eswanson_demo.ontobricks.triplestore_clinicaldomain_v3_graph vs\n  ON vs.subject = dc2.object AND vs.predicate = 'contains'\nJOIN eswanson_demo.ontobricks.triplestore_clinicaldomain_v3_graph sub\n  ON sub.predicate = 'subClassOf' AND sub.object = vs.object\nJOIN eswanson_demo.ontobricks.triplestore_clinicaldomain_v3_graph diag\n  ON diag.subject = patient.patient_iri AND diag.predicate = 'hasDiagnosis' AND diag.object = sub.subject",
-      "sql_error": null,
-      "sql_result": "(query returned no rows)",
-      "n_docs": 101,
-      "skipped_search": false,
-      "facts_in_context": [
-        true,
-        true,
-        true
-      ],
-      "facts_in_result": [
-        false,
-        false,
-        false
-      ],
-      "context": "Source: Ontobricks triple table eswanson_demo.ontobricks.triplestore_clinicaldomain_v3_graph (columns subject, predicate, object). Node IRIs are https://care-protocol.example/ontology/<Type>/<id> (e.g. https://care-protocol.example/ontology/Patient/<patient_id>, https://care-protocol.example/ontology/icd/E11.9, https://care-protocol.example/ontology/DrugClass/DRUGCLASS-STATIN); predicate IRIs are https://care-protocol.example/ontology/<predicate>. Triples below are shown with that prefix removed.\nGraph schema (predicate: subject type -> object type, count): ageAtPeriodEnd: Patient -> literal (2,399); contains: ValueSet -> icd (20); contraindicatedWhen: DrugClass -> Threshold (2); contraindicatedWith: DrugClass -> ValueSet (4); definedBy: ValueSet -> Threshold (1); eligibleFor: Patient -> Measure (13,133); firstLineFor: DrugClass -> ValueSet (1); hasCareGap: Patient -> Measure (6,744); hasComponent: loinc -> part (9); hasDiagnosis: Patient -> icd (17,871); hasIngredient: rx -> ing (42); hasMethod: loinc -> part (5); hasObservation: Patient -> obs (15,094,152); hasSystem: loinc -> part (9); hasThreshold: Measure -> Threshold (4); icd10Code: Pregnancy -> literal (704); icd10Code: Condition -> literal (39); icd10Code: DiabetesDiagnosis -> literal (7); icd10Code: ChronicKidneyDisease -> literal (5); icd10Code: HeartFailure -> literal (1); inDrugClass: ing -> DrugClass (3); loincCode: LabTest -> literal (308); monitoredBy: Measure -> part (4); ofTest: obs -> loinc (15,094,152); prescribed: Patient -> rx (156,532); recommendedFor: DrugClass -> ValueSet (4); recommendedFor: DrugClass -> Measure (1); resultValue: Observation -> literal (9,426,773); rxnormCode: Medication -> literal (48); subClassOf: icd -> icd (27); thresholdValue: Threshold -> literal (7); valueSetId: ValueSet -> literal (21)\n\n(Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5) -[eligibleFor]-> (Measure/EED)  [patient, hop 1]\n\n(Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5) -[eligibleFor]-> (Measure/SPD)  [patient, hop 1]\n\n(Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5) -[prescribed]-> (rx/1535362)  [patient, hop 1]\n\n(Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5) -[ageAtPeriodEnd]-> (41)  [patient, hop 1]\n\n(Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5) -[prescribed]-> (rx/849574)  [patient, hop 1]\n\n(Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5) -[prescribed]-> (rx/389221)  [patient, hop 1]\n\n(Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5) -[eligibleFor]-> (Measure/KED)  [patient, hop 1]\n\n(Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5) -[eligibleFor]-> (Measure/BPD)  [patient, hop 1]\n\n(Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5) -[prescribed]-> (rx/856987)  [patient, hop 1]\n\n(Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5) -[prescribed]-> (rx/1870230)  [patient, hop 1]\n\n(Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5) -[prescribed]-> (rx/1049630)  [patient, hop 1]\n\n(Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5) -[hasDiagnosis]-> (icd/E11.9)  [patient, hop 1]\n\n(Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5) -[hasDiagnosis]-> (icd/Z34.90)  [patient, hop 1]\n\n(Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5) -[prescribed]-> (rx/314231)  [patient, hop 1]\n\n(Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5) -[prescribed]-> (rx/313521)  [patient, hop 1]\n\n(Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5) -[eligibleFor]-> (Measure/GSD)  [patient, hop 1]\n\n(Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5) -[prescribed]-> (rx/1649987)  [patient, hop 1]\n\n(Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5) -[prescribed]-> (rx/206905)  [patient, hop 1]\n\n(Measure/GSD) -[monitoredBy]-> (part/LP-HBA1C)  [guideline, hop 1]\n\n(Measure/GSD) -[hasThreshold]-> (Threshold/a1c_poor_gt_9)  [guideline, hop 1]\n\n(DrugClass/DRUGCLASS-STATIN) -[contraindicatedWith]-> (ValueSet/CONTRA_HEPATIC)  [guideline, hop 1]\n\n(icd/Z34.90) -[subClassOf]-> (icd/Z34)  [guideline, hop 1]\n\n(DrugClass/DRUGCLASS-ACE) -[contraindicatedWith]-> (ValueSet/CONTRA_PREGNANCY)  [guideline, hop 1]\n\n(ing/301542) -[inDrugClass]-> (DrugClass/DRUGCLASS-STATIN)  [guideline, hop 1]\n\n(ValueSet/CONTRA_PREGNANCY) -[contains]-> (icd/O26)  [guideline, hop 1]\n\n(DrugClass/DRUGCLASS-STATIN) -[contraindicatedWith]-> (ValueSet/CONTRA_PREGNANCY)  [guideline, hop 1]\n\n(rx/314231) -[hasIngredient]-> (ing/36567)  [guideline, hop 1]\n\n(ing/36567) -[inDrugClass]-> (DrugClass/DRUGCLASS-STATIN)  [guideline, hop 1]\n\n(DrugClass/DRUGCLASS-STATIN) -[recommendedFor]-> (Measure/SPD)  [guideline, hop 1]\n\n(icd/E11.9) -[subClassOf]-> (icd/E11)  [guideline, hop 1]\n\n(Measure/BPD) -[monitoredBy]-> (part/BP)  [guideline, hop 1]\n\n(Measure/BPD) -[hasThreshold]-> (Threshold/systolic_lt_140)  [guideline, hop 1]\n\n(ing/83367) -[inDrugClass]-> (DrugClass/DRUGCLASS-STATIN)  [guideline, hop 1]\n\n(ValueSet/CONTRA_HEPATIC) -[contains]-> (icd/K70)  [guideline, hop 1]\n\n(ValueSet/CONTRA_PREGNANCY) -[contains]-> (icd/Z34)  [guideline, hop 1]\n\n(ValueSet/CONTRA_PREGNANCY) -[contains]-> (icd/O00)  [guideline, hop 1]\n\n(DrugClass/DRUGCLASS-ARB) -[contraindicatedWith]-> (ValueSet/CONTRA_PREGNANCY)  [guideline, hop 1]\n\n(Measure/KED) -[monitoredBy]-> (part/LP-EGFR)  [guideline, hop 1]\n\n(ValueSet/CONTRA_PREGNANCY) -[contains]-> (icd/O15)  [guideline, hop 1]\n\n(Measure/GSD) -[hasThreshold]-> (Threshold/a1c_good_lt_8)  [guideline, hop 1]\n\n(ValueSet/CONTRA_HEPATIC) -[contains]-> (icd/K74)  [guideline, hop 1]\n\n(Measure/BPD) -[hasThreshold]-> (Threshold/diastolic_lt_90)  [guideline, hop 1]\n\n(Measure/KED) -[monitoredBy]-> (part/LP-UACR)  [guideline, hop 1]\n\n(Threshold/diastolic_lt_90) -[thresholdValue]-> (90)  [guideline, hop 2]\n\n(icd/O15.9) -[subClassOf]-> (icd/O15)  [guideline, hop 2]\n\n(icd/E11.65) -[subClassOf]-> (icd/E11)  [guideline, hop 2]\n\n(ValueSet/EXCL_PREEXISTING_DM) -[contains]-> (icd/E11)  [guideline, hop 2]\n\n(rx/617310) -[hasIngredient]-> (ing/83367)  [guideline, hop 2]\n\n(rx/312961) -[hasIngredient]-> (ing/36567)  [guideline, hop 2]\n\n(rx/259255) -[hasIngredient]-> (ing/83367)  [guideline, hop 2]\n\n(loinc/4548-4) -[hasComponent]-> (part/LP-HBA1C)  [guideline, hop 2]\n\n(rx/859747) ",
-      "latency_s": 51.6,
-      "tier_runs": [
-        1,
-        1,
-        2
-      ],
-      "stable": false,
-      "harness_errors": 0,
-      "runs": [
-        {
-          "tier": 1,
-          "sql": "WITH base AS (\n  SELECT\n    'https://care-protocol.example/ontology/Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5' AS patient_iri\n)\nSELECT\n  rx.object        AS prescribed_drug,\n  ing.object        AS ingredient,\n  dc.object         AS drug_class,\n  dc2.object        AS contraindicated_valueset,\n  vs.object         AS contraindicated_icd_parent,\n  diag.object       AS patient_diagnosis,\n  patient.patient_iri AS patient\nFROM base patient\nJOIN eswanson_demo.ontobricks.triplestore_clinicaldomain_v3_graph rx\n  ON rx.subject = patient.patient_iri AND rx.predicate = 'prescribed'\nJOIN eswanson_demo.ontobricks.triplestore_clinicaldomain_v3_graph ing\n  ON ing.subject = rx.object AND ing.predicate = 'hasIngredient'\nJOIN eswanson_demo.ontobricks.triplestore_clinicaldomain_v3_graph dc\n  ON dc.subject = ing.object AND dc.predicate = 'inDrugClass'\nJOIN eswanson_demo.ontobricks.triplestore_clinicaldomain_v3_graph dc2\n  ON dc2.subject = dc.object AND dc2.predicate = 'contraindicatedWith'\nJOIN eswanson_demo.ontobricks.triplestore_clinicaldomain_v3_graph vs\n  ON vs.subject = dc2.object AND vs.predicate = 'contains'\nJOIN eswanson_demo.ontobricks.triplestore_clinicaldomain_v3_graph sub\n  ON sub.predicate = 'subClassOf' AND sub.object = vs.object\nJOIN eswanson_demo.ontobricks.triplestore_clinicaldomain_v3_graph diag\n  ON diag.subject = patient.patient_iri AND diag.predicate = 'hasDiagnosis' AND diag.object = sub.subject",
-          "sql_error": null,
-          "facts_in_context": [
-            true,
-            true,
-            true
-          ],
-          "facts_in_result": [
-            false,
-            false,
-            false
-          ]
-        },
-        {
-          "tier": 1,
-          "sql": "WITH patient AS (\n  SELECT 'https://care-protocol.example/ontology/Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5' AS iri\n),\nrx AS (\n  SELECT t.object AS rx\n  FROM eswanson_demo.ontobricks.triplestore_clinicaldomain_v3_graph t\n  JOIN patient p ON t.subject = p.iri\n  WHERE t.predicate = 'https://care-protocol.example/ontology/prescribed'\n),\nstatin_rx AS (\n  SELECT r.rx, t2.object AS drugclass\n  FROM rx r\n  JOIN eswanson_demo.ontobricks.triplestore_clinicaldomain_v3_graph t1\n    ON t1.subject = r.rx AND t1.predicate = 'https://care-protocol.example/ontology/hasIngredient'\n  JOIN eswanson_demo.ontobricks.triplestore_clinicaldomain_v3_graph t2\n    ON t2.subject = t1.object AND t2.predicate = 'https://care-protocol.example/ontology/inDrugClass'\n  WHERE t2.object = 'https://care-protocol.example/ontology/DrugClass/DRUGCLASS-STATIN'\n),\ncontra AS (\n  SELECT t.object AS valueset\n  FROM eswanson_demo.ontobricks.triplestore_clinicaldomain_v3_graph t\n  WHERE t.subject = 'https://care-protocol.example/ontology/DrugClass/DRUGCLASS-STATIN'\n    AND t.predicate = 'https://care-protocol.example/ontology/contraindicatedWith'\n),\nvs_icd AS (\n  SELECT c.valueset, t.object AS icd\n  FROM contra c\n  JOIN eswanson_demo.ontobricks.triplestore_clinicaldomain_v3_graph t\n    ON t.subject = c.valueset AND t.predicate = 'https://care-protocol.example/ontology/contains'\n),\ndiag AS (\n  SELECT t.object AS icd\n  FROM eswanson_demo.ontobricks.triplestore_clinicaldomain_v3_graph t\n  JOIN patient p ON t.subject = p.",
-          "sql_error": null,
-          "facts_in_context": [
-            true,
-            true,
-            true
-          ],
-          "facts_in_result": [
-            true,
-            true,
-            true
-          ]
-        },
-        {
-          "tier": 2,
-          "sql": "WITH base AS (\n  SELECT * FROM eswanson_demo.ontobricks.triplestore_clinicaldomain_v3_graph\n),\npatient_rx AS (\n  SELECT object AS rx FROM base\n  WHERE subject = 'https://care-protocol.example/ontology/Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5'\n    AND predicate = 'https://care-protocol.example/ontology/prescribed'\n),\nrx_ing AS (\n  SELECT subject AS rx, object AS ing FROM base\n  WHERE predicate = 'https://care-protocol.example/ontology/hasIngredient'\n),\ning_class AS (\n  SELECT subject AS ing, object AS drugclass FROM base\n  WHERE predicate = 'https://care-protocol.example/ontology/inDrugClass'\n),\nclass_contra AS (\n  SELECT subject AS drugclass, object AS valueset FROM base\n  WHERE predicate = 'https://care-protocol.example/ontology/contraindicatedWith'\n),\ncontra_icd AS (\n  SELECT subject AS valueset, object AS icd FROM base\n  WHERE predicate = 'https://care-protocol.example/ontology/contains'\n),\npatient_diag AS (\n  SELECT object AS icd FROM base\n  WHERE subject = 'https://care-protocol.example/ontology/Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5'\n    AND predicate = 'https://care-protocol.example/ontology/hasDiagnosis'\n),\ndiag_parent AS (\n  SELECT subject AS child_icd, object AS parent_icd FROM base\n  WHERE predicate = 'https://care-protocol.example/ontology/subClassOf'\n)\n\nSELECT\n  pr.rx AS drug,\n  pd.icd AS diagnosis,\n  ic.drugclass AS drug_class,\n  cc.valueset AS contraindication_valueset,\n  ci.icd AS contraindicated_icd_rule,\n  concat(\n    'Patient -prescribed-> ', pr.r",
-          "sql_error": null,
-          "facts_in_context": [
-            true,
-            false,
-            true
-          ],
-          "facts_in_result": [
-            true,
-            true,
-            true
-          ]
-        }
-      ]
-    },
-    {
-      "arm": "ontobricks",
       "qid": "graph_patient_gaps",
       "tier": 2,
       "sufficient": false,
@@ -6110,6 +5660,371 @@
             false
           ],
           "facts_in_result": null
+        }
+      ]
+    },
+    {
+      "arm": "closed_book",
+      "qid": "graph_contra_conflict",
+      "tier": 3,
+      "sufficient": false,
+      "query_correct": false,
+      "sql": null,
+      "sql_error": null,
+      "sql_result": null,
+      "n_docs": 0,
+      "skipped_search": false,
+      "facts_in_context": [
+        false,
+        false,
+        false
+      ],
+      "facts_in_result": null,
+      "context": "(no context retrieved)",
+      "tier_schema": null,
+      "schema_sql": null,
+      "schema_sql_error": null,
+      "schema_attempts": 0,
+      "schema_facts": null,
+      "schema_result": null,
+      "latency_s": 18.3,
+      "tier_schema_runs": [],
+      "schema_rep": {
+        "schema_sql": null,
+        "schema_sql_error": null,
+        "schema_result": null,
+        "schema_attempts": 0
+      },
+      "tier_runs": [
+        3
+      ],
+      "stable": true,
+      "harness_errors": 0,
+      "runs": [
+        {
+          "tier": 3,
+          "sql": "",
+          "sql_error": null,
+          "facts_in_context": [
+            false,
+            false,
+            false
+          ],
+          "facts_in_result": null
+        }
+      ]
+    },
+    {
+      "arm": "metric_view",
+      "qid": "graph_contra_conflict",
+      "tier": 3,
+      "sufficient": false,
+      "query_correct": false,
+      "sql": null,
+      "sql_error": null,
+      "sql_result": null,
+      "n_docs": 3,
+      "skipped_search": false,
+      "facts_in_context": [
+        false,
+        false,
+        false
+      ],
+      "facts_in_result": null,
+      "context": "UC metric view eli_test_classic_catalog.care_protocol_semantic.ssd_compliance_metrics (query measures with MEASURE(`<measure name>`) FROM eli_test_classic_catalog.care_protocol_semantic.ssd_compliance_metrics):\nversion: 1.1\n\nsource: eli_test_classic_catalog.care_protocol.gold_adherence_ssd\n\ncomment: \"HEDIS SSD (Diabetes Screening for People With Schizophrenia or Bipolar Disorder\\\n  \\ Who Are Using Antipsychotic Medications). Cross-domain: SMI diagnosis + antipsychotic\\\n  \\ dispensing + glucose/HbA1c screen, ages 18-64. Denominator = eligible SMI-on-antipsychotic\\\n  \\ patients; numerator = patients with a glucose or HbA1c test in the measurement\\\n  \\ year. HEDIS-aligned demo, not NCQA-certified.\"\n\ndimensions:\n  - name: Measurement Year\n    expr: measurement_year\n    comment: HEDIS measurement year.\n    display_name: Measurement Year\n    synonyms:\n      - year\n      - reporting year\n      - MY\n\n  - name: Compliance Status\n    expr: CASE WHEN evidence_datetime IS NOT NULL THEN 'MET' ELSE 'NOT_MET' END\n    comment: MET = glucose or HbA1c screen found in the measurement year; NOT_MET\n      = no screen.\n    display_name: Compliance Status\n    synonyms:\n      - status\n      - screening status\n      - gap status\n\n  - name: Clinic\n    expr: clinic_id\n    comment: Clinic (site) the SSD patient is seen at.\n    display_name: Clinic\n    synonyms:\n      - clinic\n      - site\n      - location\n      - facility\n\n  - name: Panel\n    expr: panel_id\n    comment: Care panel the SSD patient belongs to.\n    display_name: Panel\n    synonyms:\n      - panel\n      - pcp panel\n      - provider panel\n      - care team\n\n  - name: Age Band\n    expr: CASE WHEN age < 35 THEN '18-34' WHEN age < 50 THEN '35-49' ELSE '50-64'\n      END\n    comment: Age band at the end of the measurement year (eligible population is 18-64).\n    display_name: Age Band\n    synonyms:\n      - age group\n      - age bracket\n\n  - name: Measure\n    expr: measure_id\n    comment: HEDIS measure code; this view reports SSD.\n    display_name: HEDIS Measure\n    synonyms:\n      - measure id\n      - hedis measure\n      - quality measure\n\nmeasures:\n  - name: Eligible Patients\n    expr: COUNT(1)\n    comment: SMI patients on antipsychotics aged 18-64 eligible for SSD (the denominator).\n    display_name: Eligible Patients\n    format:\n      type: number\n      decimal_places:\n        type: exact\n        places: 0\n    synonyms:\n      - denominator\n      - eligible population\n      - eligible count\n\n  - name: Screened Patients\n    expr: COUNT(1) FILTER (WHERE evidence_datetime IS NOT NULL)\n    comment: Eligible patients with a glucose or HbA1c screen in the measurement year\n      (the numerator).\n    display_name: Screened Patients\n    format:\n      type: number\n      decimal_places:\n        type: exact\n        places: 0\n    synonyms:\n      - numerator\n      - screened count\n      - patients screened\n\n  - name: SSD Compliance Rate\n    expr: MEASURE(`Screened Patients`) / MEASURE(`Eligible Patients`)\n    comment: Share of eligible SMI-on-antipsychotic patients screened for diabetes.\n      Numerator / denominator; re-aggregates at any grain.\n    display_name: SSD Compliance Rate\n    format:\n      type: percentage\n      decimal_places:\n        type: max\n        places: 1\n    synonyms:\n      - compliance rate\n      - screening rate\n      - ssd rate\n      - met rate\n\nUC metric view eli_test_classic_catalog.care_protocol_semantic.spd_compliance_metrics (query measures with MEASURE(`<measure name>`) FROM eli_test_classic_catalog.care_protocol_semantic.spd_compliance_metrics):\nversion: 1.1\n\nsource: eli_test_classic_catalog.care_protocol.gold_adherence_spd\n\ncomment: \"HEDIS SPD (Statin Therapy) compliance for the diabetes population aged 40-75.\\\n  \\ Denominator = eligible diabetes patients; numerator = dispensed a statin in the\\\n  \\ measurement year (statins resolved from RxNorm ingredients to clinical drugs via\\\n  \\ subsumption). HEDIS-aligned demo, not NCQA-certified.\"\n\ndimensions:\n  - name: Measurement Year\n    expr: measurement_year\n    comment: HEDIS measurement year the metrics are computed for (e.g. 2026).\n    display_name: Measurement Year\n    synonyms:\n      - year\n      - reporting year\n      - MY\n\n  - name: Compliance Status\n    expr: CASE WHEN evidence_datetime IS NOT NULL THEN 'MET' ELSE 'NOT_MET' END\n    comment: MET = a statin was dispensed in the measurement year; NOT_MET = no statin\n      (care gap).\n    display_name: Compliance Status\n    synonyms:\n      - status\n      - met status\n      - adherence status\n      - gap status\n\n  - name: Clinic\n    expr: clinic_id\n    comment: Clinic (site) the patient's panel belongs to. Enables care-gap and compliance\n      rates by site.\n    display_name: Clinic\n    synonyms:\n      - clinic\n      - site\n      - location\n      - facility\n\n  - name: Panel\n    expr: panel_id\n    comment: PCP panel the patient belongs to.\n    display_name: Panel\n    synonyms:\n      - panel\n      - pcp panel\n      - provider panel\n      - care team\n\n  - name: Gap Reason\n    expr: CASE WHEN evidence_datetime IS NOT NULL THEN 'Met' ELSE 'No statin dispensed\n      in measurement year' END\n    comment: Why the patient is a care gap (NOT_MET); 'Met' when compliant. Group\n      care gaps by reason.\n    display_name: Gap Reason\n    synonyms:\n      - gap reason\n      - reason\n      - care gap reason\n      - why gap\n\n  - name: Age Band\n    expr: CASE WHEN age < 55 THEN '40-54' WHEN age < 65 THEN '55-64' ELSE '65-75'\n      END\n    comment: Age band at the end of the measurement year (SPD eligible population\n      is 40-75).\n    display_name: Age Band\n    synonyms:\n      - age group\n      - age bracket\n      - age range\n\n  - name: Measure\n    expr: measure_id\n    comment: HEDIS measure code; this view reports SPD (Statin Therapy).\n    display_name: HEDIS Measure\n    synonyms:\n      - measure id\n      - hedis measure\n      - quality measure\n\nmeasures:\n  - name: Eligible Patients\n    expr: COUNT(1)\n    comment: Diabetes patients aged 40-75 eligible for SPD ",
+      "tier_schema": null,
+      "schema_sql": null,
+      "schema_sql_error": null,
+      "schema_attempts": 0,
+      "schema_facts": null,
+      "schema_result": null,
+      "latency_s": 21.9,
+      "tier_schema_runs": [],
+      "schema_rep": {
+        "schema_sql": null,
+        "schema_sql_error": null,
+        "schema_result": null,
+        "schema_attempts": 0
+      },
+      "tier_runs": [
+        3
+      ],
+      "stable": true,
+      "harness_errors": 0,
+      "runs": [
+        {
+          "tier": 3,
+          "sql": "",
+          "sql_error": null,
+          "facts_in_context": [
+            false,
+            false,
+            false
+          ],
+          "facts_in_result": null
+        }
+      ]
+    },
+    {
+      "arm": "closure_sql",
+      "qid": "graph_contra_conflict",
+      "tier": 3,
+      "sufficient": false,
+      "query_correct": false,
+      "sql": null,
+      "sql_error": null,
+      "sql_result": null,
+      "n_docs": 12,
+      "skipped_search": false,
+      "facts_in_context": [
+        false,
+        false,
+        true
+      ],
+      "facts_in_result": null,
+      "context": "Table eli_test_classic_catalog.care_protocol_terminology.icd10_closure: Transitive closure of icd10_hier; select a whole subtree with one equality (WHERE ancestor_code=X). Built once by build_closure.py.\nColumns: ancestor_code (ICD-10-CM code of the ancestor (broader) concept, e.g. E11 (Type 2 diabetes mellitus).); ancestor_name (Name of the ancestor concept.); descendant_code (ICD-10-CM code of the descendant (narrower) concept, e.g. E11.21. A single equality join on this column subsumes the whole subtree.); descendant_name (Name of the descendant concept.); depth (Hierarchy distance from ancestor to descendant (0 = self). Enables subsumption queries without recursive CTEs.)\n\nTable eli_test_classic_catalog.care_protocol_terminology.icd10_hier: ICD-10-CM adjacency list (code, parent_code, name). Source tree for icd10_closure. Curated demo subset (diabetes), ADR-0007.\nColumns: code (ICD-10-CM code of this concept (the child node of a direct parent/child edge).); parent_code (ICD-10-CM code of the immediate parent concept. Direct edges only; transitively expanded (all depths) into icd10_closure.); name (Human-readable name of the ICD-10-CM concept.)\n\nTable eli_test_classic_catalog.care_protocol_terminology.loinc: LOINC code subset (loinc_code, long_common_name, concept) for demo measures: A1c, eGFR, uACR, BP, BMI, PHQ. LOINC (c) Regenstrief, used under LOINC License.\nColumns: loinc_code (LOINC code (e.g. 4548-4 = Hemoglobin A1c / HbA1c in blood).); long_common_name (LOINC long common name for the lab test.); concept (Short semantic concept label grouping related LOINC codes (e.g. A1C, EGFR, UACR, BP).)\n\nTable eli_test_classic_catalog.care_protocol_terminology.loinc_parts: LOINC multiaxial Part edges (loinc_code, predicate, part): typed axes has_component/has_system/has_method. A graph (not a tree): 'all A1c regardless of method' = terms sharing Component LP-HBA1C. Curated demo subset (LOINC License), ADR-0010.\nColumns: loinc_code (LOINC code being decomposed into its semantic Parts (e.g. 4548-4 Hemoglobin A1c).); loinc_name (LOINC long common name of the code.); predicate (LOINC Part axis / relationship: has_component, has_system, has_method, etc.); part (LOINC Part code on the object side of the predicate (e.g. LP-HBA1C, LP-SYS-BLD).); part_name (Human-readable Part name. Enables semantic grouping of labs across code vintages/methods (e.g. all HbA1c components regardless of method).)\n\nTable eli_test_classic_catalog.care_protocol_terminology.protocol_edges: Care-protocol knowledge edges (subject, predicate, object, value) from the care-protocol PDF: recommendedFor/contraindicatedWith/monitoredBy/hasThreshold. The clinical, cross-vocabulary relationships for the graph (OWL/Ontobricks) and class-6 multi-hop questions. ADR-0010.\nColumns: subject (Subject of a care-protocol edge, typically a drug class (e.g. DRUGCLASS-STATIN, DRUGCLASS-SGLT2, DRUGCLASS-ACE).); predicate (Edge relationship: recommendedFor, firstLineFor, contraindicatedWith, or contraindicatedWhen.); object (Object of the edge: a measure, condition, comorbidity, or contraindication (e.g. SPD, ALBUMINURIA, COMORBID_CKD, CONTRA_PREGNANCY, eGFR_LT_30).); value (Optional numeric threshold attached to the edge (e.g. 30 for eGFR_LT_30); null when not applicable.); source (Citation into the care-protocol document (section/version, e.g. CP-DM-2025.1 sec2). Record-level provenance for the recommendation.)\n\nTable eli_test_classic_catalog.care_protocol_terminology.rxnorm_closure: Transitive closure of rxnorm_hier; select a whole subtree with one equality (WHERE ancestor_code=X). Built once by build_closure.py.\nColumns: ancestor_code (RxNorm ingredient rxcui (e.g. 36567 simvastatin). Join a value set of ingredients here to subsume all clinical drugs.); ancestor_name; descendant_code (RxNorm clinical-drug rxcui (e.g. 312961 Simvastatin 20 MG) subsumed by the ingredient, matching prescription codes in bronze_order_med.); descendant_name; depth\n\nTable eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier: RxNorm adjacency (code, parent_code, name): statin ingredient -> clinical drug. Source tree for rxnorm_closure, so SPD resolves ingredient value sets to the clinical-drug codes actually prescribed (subsumption). Curated demo subset, ADR-0007.\nColumns: code (RxNorm rxcui of this concept (child node of the edge), typically a clinical drug.); parent_code (RxNorm rxcui of the immediate parent concept (e.g. the ingredient). Transitively expanded into rxnorm_closure.); name (Human-readable RxNorm concept name.)\n\nTable eli_test_classic_catalog.care_protocol_terminology.rxnorm_statin: RxNorm statin ingredients (rxcui, ingredient) for the Statin Therapy (SPD) measure.\nColumns: rxcui (RxNorm ingredient rxcui for a statin (e.g. 36567 simvastatin). Joined to rxnorm_closure to subsume every statin clinical drug for the SPD numerator.); ingredient (Statin ingredient name (e.g. simvastatin, atorvastatin).)\n\nTable eli_test_classic_catalog.care_protocol_terminology.value_set_segment: Cross-branch demo value sets / cohorts (the segment table; not NCQA/VSAC). Named sets spanning the hierarchy, incl. CARDIORENAL_COHORT (diabetes+CKD+HF).\nColumns: segment_id (Value-set segment identifier, e.g. GSD_A1C_TEST (A1c lab codes), KED_EGFR, SPD_STATIN.); segment_name (Human-readable value-set name.); code (A member code of the value set (LOINC, ICD-10-CM, or RxNorm depending on code_system).); code_system (Terminology the code belongs to: LOINC, ICD10CM, or RXNORM.); measurement_year (HEDIS measurement year the value-set version applies to (drift demo: value sets change across years).); owner (Steward/owner of the value-set segment.)\n\nRows from eli_test_classic_catalog.care_protocol_terminology.protocol_edges:\nsubject | predicate | object | value | source\nDRUGCLASS-STATIN | recommendedFor | SPD | None | CP-DM-2025.1 sec2/sec6\nDRUGCLASS-STATIN | contraindicatedWith | CONTRA_PREGNANCY | None | CP sec4\nDRUGCLASS-STATIN | contraindicatedWith | CONTRA_HEPATIC | None ",
+      "tier_schema": null,
+      "schema_sql": null,
+      "schema_sql_error": null,
+      "schema_attempts": 0,
+      "schema_facts": null,
+      "schema_result": null,
+      "latency_s": 26.8,
+      "tier_schema_runs": [],
+      "schema_rep": {
+        "schema_sql": null,
+        "schema_sql_error": null,
+        "schema_result": null,
+        "schema_attempts": 0
+      },
+      "tier_runs": [
+        3
+      ],
+      "stable": true,
+      "harness_errors": 0,
+      "runs": [
+        {
+          "tier": 3,
+          "sql": "",
+          "sql_error": null,
+          "facts_in_context": [
+            false,
+            false,
+            true
+          ],
+          "facts_in_result": null
+        }
+      ]
+    },
+    {
+      "arm": "rag",
+      "qid": "graph_contra_conflict",
+      "tier": 3,
+      "sufficient": false,
+      "query_correct": false,
+      "sql": null,
+      "sql_error": null,
+      "sql_result": null,
+      "n_docs": 5,
+      "skipped_search": false,
+      "facts_in_context": [
+        false,
+        false,
+        true
+      ],
+      "facts_in_result": null,
+      "context": "CP-ESC-1 (statin gap). A patient aged 40\u201375 with diabetes and no statin dispensed in the year (SPD gap) should be started on a moderate-to-high intensity statin , after confirming no contraindication (pregnancy, active hepatic disease). CP-ESC-2 (kidney gap). A patient missing eGFR or uACR (KED gap) should have the missing component ordered. If uACR \u2265 30 mg/g, start an ACE inhibitor or ARB (not both). CP-ESC-3 (combined cardiorenal). A patient with diabetes and chronic kidney disease (N18.*) and heart failure (I50.*) is a cardiorenal priority: ensure statin, ACE/ARB, and an SGLT2 inhibitor (if eGFR \u2265 20), and monitor A1c every 3 months. Escalation rules reference measures (GSD/KED/SPD), labs (eGFR, uACR, A1c), diagnosis families (E10/E11/E13, N18, I50) and drug classes \u2014 the relationships this protocol contributes to the knowledge graph.\n\nThis protocol governs quality measurement and care escalation for adults with diabetes mellitus , identified by an ICD-10-CM diagnosis in the E10 (type 1), E11 (type 2), or E13 (other specified) families, including all descendant codes (e.g. E11.21 Type 2 diabetes with diabetic nephropathy , E11.319 \u2026 with unspecified diabetic retinopathy ). Membership is by the diagnosis hierarchy, not an enumerated code list.\n\nDrug class Indicated for Example agents (RxNorm ingredient) Contraindications / cautions Statin SPD: all diabetics 40\u201375; cardiovascular risk reduction atorvastatin, simvastatin, rosuvastatin, pravastatin, lovastatin, fluvastatin Pregnancy; active hepatic disease / unexplained persistent transaminase elevation ACE inhibitor or ARB Albuminuria (uACR \u2265 30 mg/g) or hypertension lisinopril, enalapril, losartan, valsartan Pregnancy; bilateral renal artery stenosis; hyperkalemia; do NOT combine ACE + ARB SGLT2 inhibitor CKD (eGFR \u2265 20), heart failure empagliflozin, dapagliflozin Do not initiate if eGFR &lt; 20; risk of genital mycotic infection, DKA Metformin First-line glycemic control metformin eGFR &lt; 30 (contraindicated); hold around iodinated contrast\n\nThe EED quality measure records whether a retinal exam was **performed in the measurement year** (with a\nbiennial-lookback allowance). It cannot express:\n1. The **6-month urgency** window for a newly diagnosed patient.\n2. The **risk stratification** that shortens the interval to annual for patients with retinopathy.\nA document-retrieval arm that reads this protocol can answer *\"how soon does a newly diagnosed patient need an\neye exam?\"*; a metric view over structured encounters cannot.\n\n> Synthetic care-protocol guidance for the Care Protocol Context & Ontology demo. HEDIS-aligned, not\n> NCQA-certified, not for clinical use.",
+      "tier_schema": null,
+      "schema_sql": null,
+      "schema_sql_error": null,
+      "schema_attempts": 0,
+      "schema_facts": null,
+      "schema_result": null,
+      "latency_s": 23.6,
+      "tier_schema_runs": [],
+      "schema_rep": {
+        "schema_sql": null,
+        "schema_sql_error": null,
+        "schema_result": null,
+        "schema_attempts": 0
+      },
+      "tier_runs": [
+        3
+      ],
+      "stable": true,
+      "harness_errors": 0,
+      "runs": [
+        {
+          "tier": 3,
+          "sql": "",
+          "sql_error": null,
+          "facts_in_context": [
+            false,
+            false,
+            true
+          ],
+          "facts_in_result": null
+        }
+      ]
+    },
+    {
+      "arm": "genie_ontology",
+      "qid": "graph_contra_conflict",
+      "tier": 3,
+      "sufficient": false,
+      "query_correct": false,
+      "sql": null,
+      "sql_error": null,
+      "sql_result": null,
+      "n_docs": 0,
+      "skipped_search": true,
+      "facts_in_context": [
+        false,
+        false,
+        false
+      ],
+      "facts_in_result": null,
+      "context": "(no context retrieved)",
+      "tier_schema": null,
+      "schema_sql": null,
+      "schema_sql_error": null,
+      "schema_attempts": 0,
+      "schema_facts": null,
+      "schema_result": null,
+      "latency_s": 17.9,
+      "tier_schema_runs": [],
+      "schema_rep": {
+        "schema_sql": null,
+        "schema_sql_error": null,
+        "schema_result": null,
+        "schema_attempts": 0
+      },
+      "tier_runs": [
+        3
+      ],
+      "stable": true,
+      "harness_errors": 0,
+      "runs": [
+        {
+          "tier": 3,
+          "sql": "",
+          "sql_error": null,
+          "facts_in_context": [
+            false,
+            false,
+            false
+          ],
+          "facts_in_result": null
+        }
+      ]
+    },
+    {
+      "arm": "genie_ontology_dmvm",
+      "qid": "graph_contra_conflict",
+      "tier": 3,
+      "sufficient": false,
+      "query_correct": false,
+      "sql": null,
+      "sql_error": null,
+      "sql_result": null,
+      "n_docs": 4,
+      "skipped_search": false,
+      "facts_in_context": [
+        false,
+        false,
+        false
+      ],
+      "facts_in_result": null,
+      "context": "Ontology Page \u2014 US Core Medication [mkgs_fhir]: US Core profile for representing medication products referenced by prescriptions and administration records.\n\nOntology Page \u2014 SPD \u2014 Statin Therapy for Patients With Diabetes [Clinical Domain]: SPD (Statin Therapy for Patients With Diabetes) is a HEDIS measure for statin use in diabetic patients.\n\nOntology Page \u2014 Statine [Research and Development]: \u00ab Statine \u00bb d\u00e9signe la classe des hypolip\u00e9miants inhibiteurs de l'HMG-CoA r\u00e9ductase, classe ATC C10AA (atorvastatine, rosuvastati\n\nOntology Page \u2014 US Core MedicationRequest [mkgs_fhir]: US Core profile for recording medication prescriptions and orders for a patient.",
+      "tier_schema": null,
+      "schema_sql": null,
+      "schema_sql_error": null,
+      "schema_attempts": 0,
+      "schema_facts": null,
+      "schema_result": null,
+      "latency_s": 20.8,
+      "tier_schema_runs": [],
+      "schema_rep": {
+        "schema_sql": null,
+        "schema_sql_error": null,
+        "schema_result": null,
+        "schema_attempts": 0
+      },
+      "tier_runs": [
+        3
+      ],
+      "stable": true,
+      "harness_errors": 0,
+      "runs": [
+        {
+          "tier": 3,
+          "sql": "",
+          "sql_error": null,
+          "facts_in_context": [
+            false,
+            false,
+            false
+          ],
+          "facts_in_result": null
+        }
+      ]
+    },
+    {
+      "arm": "ontobricks",
+      "qid": "graph_contra_conflict",
+      "tier": 1,
+      "sufficient": true,
+      "query_correct": false,
+      "sql": "WITH triples AS (\n  SELECT subject, predicate, object\n  FROM eswanson_demo.ontobricks.triplestore_clinicaldomain_v3_graph\n),\npatient_diag AS (\n  SELECT object AS icd\n  FROM triples\n  WHERE predicate = 'https://care-protocol.example/ontology/hasDiagnosis'\n    AND subject = 'https://care-protocol.example/ontology/Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5'\n),\ndiag_parent AS (\n  SELECT t.object AS icd\n  FROM triples t\n  JOIN patient_diag pd ON t.subject = pd.icd\n  WHERE t.predicate = 'https://care-protocol.example/ontology/subClassOf'\n),\ndiag_all AS (\n  SELECT icd FROM patient_diag\n  UNION\n  SELECT icd FROM diag_parent\n),\ncontra_vs AS (\n  SELECT subject AS drugclass, object AS valueset\n  FROM triples\n  WHERE predicate = 'https://care-protocol.example/ontology/contraindicatedWith'\n),\nvs_icd AS (\n  SELECT subject AS valueset, object AS icd\n  FROM triples\n  WHERE predicate = 'https://care-protocol.example/ontology/contains'\n),\nmatched AS (\n  SELECT cv.drugclass, cv.valueset, da.icd\n  FROM contra_vs cv\n  JOIN vs_icd vi ON cv.valueset = vi.valueset\n  JOIN diag_all da ON vi.icd = da.icd\n),\npatient_rx AS (\n  SELECT object AS rx\n  FROM triples\n  WHERE predicate = 'https://care-protocol.example/ontology/prescribed'\n    AND subject = 'https://care-protocol.example/ontology/Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5'\n),\nrx_ing AS (\n  SELECT subject AS rx, object AS ing\n  FROM triples\n  WHERE predicate = 'https://care-protocol.example/ontology/hasIngredient'\n),\ning_class AS (\n  SELECT subject AS ing, object AS drugclass\n  FROM triples\n  WHERE predicate = 'https://care-protocol.example/ontology/inDrugClass'\n),\npatient_rx_class AS (\n  SELECT pr.rx, ic.drugclass\n  FROM patient_rx pr\n  JOIN rx_ing ri ON pr.rx = ri.rx\n  JOIN ing_class ic ON ri.ing = ic.ing\n)\nSELECT\n  prc.rx AS drug,\n  m.icd AS diagnosis,\n  m.valueset AS protocol_rule\nFROM patient_rx_class prc\nJOIN matched m ON prc.drugclass = m.drugclass\nWHERE prc.drugclass = 'https://care-protocol.example/ontology/DrugClass/DRUGCLASS-STATIN'",
+      "sql_error": null,
+      "sql_result": "drug | diagnosis | protocol_rule\nhttps://care-protocol.example/ontology/rx/314231 | https://care-protocol.example/ontology/icd/Z34 | https://care-protocol.example/ontology/ValueSet/CONTRA_PREGNANCY",
+      "n_docs": 101,
+      "skipped_search": false,
+      "facts_in_context": [
+        true,
+        true,
+        true
+      ],
+      "facts_in_result": [
+        false,
+        true,
+        true
+      ],
+      "context": "Source: Ontobricks triple table eswanson_demo.ontobricks.triplestore_clinicaldomain_v3_graph (columns subject, predicate, object). Node IRIs are https://care-protocol.example/ontology/<Type>/<id> (e.g. https://care-protocol.example/ontology/Patient/<patient_id>, https://care-protocol.example/ontology/icd/E11.9, https://care-protocol.example/ontology/DrugClass/DRUGCLASS-STATIN); predicate IRIs are https://care-protocol.example/ontology/<predicate>. Triples below are shown with that prefix removed.\nGraph schema (predicate: subject type -> object type, count): ageAtPeriodEnd: Patient -> literal (2,399); contains: ValueSet -> icd (20); contraindicatedWhen: DrugClass -> Threshold (2); contraindicatedWith: DrugClass -> ValueSet (4); definedBy: ValueSet -> Threshold (1); eligibleFor: Patient -> Measure (13,133); firstLineFor: DrugClass -> ValueSet (1); hasCareGap: Patient -> Measure (6,744); hasComponent: loinc -> part (9); hasDiagnosis: Patient -> icd (17,871); hasIngredient: rx -> ing (42); hasMethod: loinc -> part (5); hasObservation: Patient -> obs (15,094,152); hasSystem: loinc -> part (9); hasThreshold: Measure -> Threshold (4); icd10Code: Pregnancy -> literal (704); icd10Code: Condition -> literal (39); icd10Code: DiabetesDiagnosis -> literal (7); icd10Code: ChronicKidneyDisease -> literal (5); icd10Code: HeartFailure -> literal (1); inDrugClass: ing -> DrugClass (3); loincCode: LabTest -> literal (308); monitoredBy: Measure -> part (4); ofTest: obs -> loinc (15,094,152); prescribed: Patient -> rx (156,532); recommendedFor: DrugClass -> ValueSet (4); recommendedFor: DrugClass -> Measure (1); resultValue: Observation -> literal (9,426,773); rxnormCode: Medication -> literal (48); subClassOf: icd -> icd (27); thresholdValue: Threshold -> literal (7); valueSetId: ValueSet -> literal (21)\n\n(Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5) -[eligibleFor]-> (Measure/EED)  [patient, hop 1]\n\n(Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5) -[eligibleFor]-> (Measure/SPD)  [patient, hop 1]\n\n(Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5) -[prescribed]-> (rx/1535362)  [patient, hop 1]\n\n(Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5) -[ageAtPeriodEnd]-> (41)  [patient, hop 1]\n\n(Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5) -[prescribed]-> (rx/849574)  [patient, hop 1]\n\n(Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5) -[prescribed]-> (rx/389221)  [patient, hop 1]\n\n(Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5) -[eligibleFor]-> (Measure/KED)  [patient, hop 1]\n\n(Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5) -[eligibleFor]-> (Measure/BPD)  [patient, hop 1]\n\n(Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5) -[prescribed]-> (rx/856987)  [patient, hop 1]\n\n(Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5) -[prescribed]-> (rx/1870230)  [patient, hop 1]\n\n(Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5) -[prescribed]-> (rx/1049630)  [patient, hop 1]\n\n(Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5) -[hasDiagnosis]-> (icd/E11.9)  [patient, hop 1]\n\n(Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5) -[hasDiagnosis]-> (icd/Z34.90)  [patient, hop 1]\n\n(Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5) -[prescribed]-> (rx/314231)  [patient, hop 1]\n\n(Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5) -[prescribed]-> (rx/313521)  [patient, hop 1]\n\n(Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5) -[eligibleFor]-> (Measure/GSD)  [patient, hop 1]\n\n(Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5) -[prescribed]-> (rx/1649987)  [patient, hop 1]\n\n(Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5) -[prescribed]-> (rx/206905)  [patient, hop 1]\n\n(Measure/GSD) -[monitoredBy]-> (part/LP-HBA1C)  [guideline, hop 1]\n\n(Measure/GSD) -[hasThreshold]-> (Threshold/a1c_poor_gt_9)  [guideline, hop 1]\n\n(DrugClass/DRUGCLASS-STATIN) -[contraindicatedWith]-> (ValueSet/CONTRA_HEPATIC)  [guideline, hop 1]\n\n(icd/Z34.90) -[subClassOf]-> (icd/Z34)  [guideline, hop 1]\n\n(DrugClass/DRUGCLASS-ACE) -[contraindicatedWith]-> (ValueSet/CONTRA_PREGNANCY)  [guideline, hop 1]\n\n(ing/301542) -[inDrugClass]-> (DrugClass/DRUGCLASS-STATIN)  [guideline, hop 1]\n\n(ValueSet/CONTRA_PREGNANCY) -[contains]-> (icd/O26)  [guideline, hop 1]\n\n(DrugClass/DRUGCLASS-STATIN) -[contraindicatedWith]-> (ValueSet/CONTRA_PREGNANCY)  [guideline, hop 1]\n\n(rx/314231) -[hasIngredient]-> (ing/36567)  [guideline, hop 1]\n\n(ing/36567) -[inDrugClass]-> (DrugClass/DRUGCLASS-STATIN)  [guideline, hop 1]\n\n(DrugClass/DRUGCLASS-STATIN) -[recommendedFor]-> (Measure/SPD)  [guideline, hop 1]\n\n(icd/E11.9) -[subClassOf]-> (icd/E11)  [guideline, hop 1]\n\n(Measure/BPD) -[monitoredBy]-> (part/BP)  [guideline, hop 1]\n\n(Measure/BPD) -[hasThreshold]-> (Threshold/systolic_lt_140)  [guideline, hop 1]\n\n(ing/83367) -[inDrugClass]-> (DrugClass/DRUGCLASS-STATIN)  [guideline, hop 1]\n\n(ValueSet/CONTRA_HEPATIC) -[contains]-> (icd/K70)  [guideline, hop 1]\n\n(ValueSet/CONTRA_PREGNANCY) -[contains]-> (icd/Z34)  [guideline, hop 1]\n\n(ValueSet/CONTRA_PREGNANCY) -[contains]-> (icd/O00)  [guideline, hop 1]\n\n(DrugClass/DRUGCLASS-ARB) -[contraindicatedWith]-> (ValueSet/CONTRA_PREGNANCY)  [guideline, hop 1]\n\n(Measure/KED) -[monitoredBy]-> (part/LP-EGFR)  [guideline, hop 1]\n\n(ValueSet/CONTRA_PREGNANCY) -[contains]-> (icd/O15)  [guideline, hop 1]\n\n(Measure/GSD) -[hasThreshold]-> (Threshold/a1c_good_lt_8)  [guideline, hop 1]\n\n(ValueSet/CONTRA_HEPATIC) -[contains]-> (icd/K74)  [guideline, hop 1]\n\n(Measure/BPD) -[hasThreshold]-> (Threshold/diastolic_lt_90)  [guideline, hop 1]\n\n(Measure/KED) -[monitoredBy]-> (part/LP-UACR)  [guideline, hop 1]\n\n(Threshold/diastolic_lt_90) -[thresholdValue]-> (90)  [guideline, hop 2]\n\n(icd/O15.9) -[subClassOf]-> (icd/O15)  [guideline, hop 2]\n\n(icd/E11.65) -[subClassOf]-> (icd/E11)  [guideline, hop 2]\n\n(ValueSet/EXCL_PREEXISTING_DM) -[contains]-> (icd/E11)  [guideline, hop 2]\n\n(rx/617310) -[hasIngredient]-> (ing/83367)  [guideline, hop 2]\n\n(rx/312961) -[hasIngredient]-> (ing/36567)  [guideline, hop 2]\n\n(rx/259255) -[hasIngredient]-> (ing/83367)  [guideline, hop 2]\n\n(loinc/4548-4) -[hasComponent]-> (part/LP-HBA1C)  [guideline, hop 2]\n\n(rx/859747) ",
+      "tier_schema": null,
+      "schema_sql": null,
+      "schema_sql_error": null,
+      "schema_attempts": 0,
+      "schema_facts": null,
+      "schema_result": null,
+      "latency_s": 74.6,
+      "tier_schema_runs": [],
+      "schema_rep": {
+        "schema_sql": null,
+        "schema_sql_error": null,
+        "schema_result": null,
+        "schema_attempts": 0
+      },
+      "tier_runs": [
+        1
+      ],
+      "stable": true,
+      "harness_errors": 0,
+      "runs": [
+        {
+          "tier": 1,
+          "sql": "WITH triples AS (\n  SELECT subject, predicate, object\n  FROM eswanson_demo.ontobricks.triplestore_clinicaldomain_v3_graph\n),\npatient_diag AS (\n  SELECT object AS icd\n  FROM triples\n  WHERE predicate = 'https://care-protocol.example/ontology/hasDiagnosis'\n    AND subject = 'https://care-protocol.example/ontology/Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5'\n),\ndiag_parent AS (\n  SELECT t.object AS icd\n  FROM triples t\n  JOIN patient_diag pd ON t.subject = pd.icd\n  WHERE t.predicate = 'https://care-protocol.example/ontology/subClassOf'\n),\ndiag_all AS (\n  SELECT icd FROM patient_diag\n  UNION\n  SELECT icd FROM diag_parent\n),\ncontra_vs AS (\n  SELECT subject AS drugclass, object AS valueset\n  FROM triples\n  WHERE predicate = 'https://care-protocol.example/ontology/contraindicatedWith'\n),\nvs_icd AS (\n  SELECT subject AS valueset, object AS icd\n  FROM triples\n  WHERE predicate = 'https://care-protocol.example/ontology/contains'\n),\nmatched AS (\n  SELECT cv.drugclass, cv.valueset, da.icd\n  FROM contra_vs cv\n  JOIN vs_icd vi ON cv.valueset = vi.valueset\n  JOIN diag_all da ON vi.icd = da.icd\n),\npatient_rx AS (\n  SELECT object AS rx\n  FROM triples\n  WHERE predicate = 'https://care-protocol.example/ontology/prescribed'\n    AND subject = 'https://care-protocol.example/ontology/Patient/fa93c75f-1541-10c2-ea84-f947c8561ce5'\n),\nrx_ing AS (\n  SELECT subject AS rx, object AS ing\n  FROM triples\n  WHERE predicate = 'https://care-protocol.example/ontology/hasIngredient'\n),\ning_class AS (\n  SELECT s",
+          "sql_error": null,
+          "facts_in_context": [
+            true,
+            true,
+            true
+          ],
+          "facts_in_result": [
+            false,
+            true,
+            true
+          ]
         }
       ]
     }

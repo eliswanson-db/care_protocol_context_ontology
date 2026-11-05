@@ -293,3 +293,27 @@ def warm() -> None:
     """Populate the per-run metadata caches (metric-view definitions, terminology table cards) before parallel use."""
     _metric_views()
     _term_cards()
+    schema_pack()
+
+
+# --- Physical schema pack: the SAME for every arm (incl. closed_book) in the schema-aided tier. Names + types only
+# -- no comments (comments are semantic context, which is what the arms are being compared on). The benchmark's own
+# tables are excluded so no answers leak.
+_SCHEMA_PACK: str | None = None
+
+
+def schema_pack() -> str:
+    global _SCHEMA_PACK
+    if _SCHEMA_PACK is None:
+        rows = run_sql(
+            f"SELECT table_schema, table_name, column_name, data_type FROM {CATALOG}.information_schema.columns "
+            f"WHERE table_schema IN ('{SCHEMA}', '{SCHEMA_SEMANTIC}', '{SCHEMA_TERM}') "
+            f"AND table_name NOT LIKE '\\\\_\\\\_%' AND table_name NOT LIKE 'event_log%' "
+            f"AND table_name NOT LIKE 'benchmark%' AND table_name <> 'tracer_registry' "
+            f"ORDER BY table_schema, table_name, ordinal_position")
+        tabs: dict[str, list[str]] = {}
+        for r in rows:
+            tabs.setdefault(f"{CATALOG}.{r['table_schema']}.{r['table_name']}", []).append(
+                f"`{r['column_name']}` {r['data_type']}")
+        _SCHEMA_PACK = "\n".join(f"{t}({', '.join(c)})" for t, c in tabs.items())
+    return _SCHEMA_PACK

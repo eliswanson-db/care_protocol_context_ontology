@@ -63,7 +63,7 @@ QUESTIONS = [
     {"qid": "graph_contra_conflict", "cls": "8_graph_native", "wins": "graph",
      "question": ("Patient fa93c75f-1541-10c2-ea84-f947c8561ce5 is on a statin. Does any of their own recorded "
                   "diagnoses contraindicate it under this care protocol? Name the drug, the diagnosis and the "
-                  "protocol rule, and show the connecting path."),
+                  "protocol rule."),
      # Facts are stated in codes + the rule (what the question turns on), not display names: the published
      # graph carries no labels for drugs / ICD codes / value sets, and every arm is held to the same facts.
      "expected_facts": [
@@ -111,6 +111,8 @@ QUESTIONS = [
      "expected_facts": ["CLINIC-08's Step-3 adherence slipped after a primary-care (PCP) handoff on 2026-05-15; "
                         "the follow-up order set was not carried over."]},
 ]
+
+SCHEMA_TIER = False  # --schema-tier: also score with the shared physical schema pack (diagnostic)
 
 ARMS = ["closed_book", "metric_view", "closure_sql", "rag", "genie_ontology", "genie_ontology_dmvm", "ontobricks"]
 
@@ -167,11 +169,42 @@ def run_cell(arm: str, q: dict) -> dict:
             for f in q["expected_facts"]]
         query_correct = all(fact_t2)
     tier = 1 if sufficient else (2 if query_correct else 3)
+
+    # Schema-aided tier (diagnostic): the same context + the SAME physical schema for every arm + up to 3 tries with
+    # the SQL error fed back. closed_book here is the floor "an agent with only the schema"; an arm's lift over it is
+    # the value of its semantics.
+    s_sql, s_rows, s_err, s_attempts, s_facts, previous = None, None, None, 0, None, []
+    for s_attempts in (range(1, 4) if SCHEMA_TIER else ()):
+        s_sql = agent.write_sql_with_schema(q["question"], docs, providers.schema_pack(), previous)
+        if not s_sql:
+            break
+        try:
+            s_rows, s_err = run_readonly(s_sql), None
+            break
+        except Exception as e:  # noqa: BLE001
+            s_err = f"{type(e).__name__}: {str(e)[:300]}"
+            previous.append((s_sql, s_err))
+    s_ok = False
+    if s_rows is not None:
+        s_res = _render_rows(s_rows)
+        s_facts = [_yes(meets_guidelines(
+            name="schema_query_result_correct",
+            guidelines=("The query_result rows establish the following fact. Allow formatting differences (a rate "
+                        "as a fraction or percent, rounding to 3 significant figures, a count given as the number of "
+                        "returned rows, codes with or without a prefix). Answer 'no' if the result is empty, shows a "
+                        "different value, or answers a different question. FACT: " + f),
+            context={"question": q["question"], "query": s_sql, "query_result": s_res}, model=JUDGE))
+            for f in q["expected_facts"]]
+        s_ok = all(s_facts)
+    tier_s = (1 if sufficient else (2 if s_ok else 3)) if SCHEMA_TIER else None
     skipped = providers.genie_skipped(arm, q["qid"])
     return {"arm": arm, "qid": q["qid"], "tier": tier, "sufficient": sufficient, "query_correct": query_correct,
             "sql": sql, "sql_error": sql_error, "sql_result": _render_rows(sql_rows)[:2500] if sql_rows is not None else None,
             "n_docs": len(docs), "skipped_search": bool(skipped), "facts_in_context": fact_t1,
-            "facts_in_result": fact_t2, "context": ctx[:6000]}
+            "facts_in_result": fact_t2, "context": ctx[:6000],
+            "tier_schema": tier_s, "schema_sql": s_sql, "schema_sql_error": s_err, "schema_attempts": s_attempts,
+            "schema_facts": s_facts,
+            "schema_result": _render_rows(s_rows)[:2500] if s_rows is not None else None}
 
 
 def _render_rows(rows, limit: int = 40) -> str:
@@ -184,16 +217,18 @@ def _render_rows(rows, limit: int = 40) -> str:
 
 def main():
     import argparse
-    global ARMS
+    global ARMS, SCHEMA_TIER
     ap = argparse.ArgumentParser()
     ap.add_argument("--arms", default=",".join(ARMS), help="comma-separated subset of " + ",".join(ARMS))
     ap.add_argument("--out", default="retrieval_eval.json", help="file name under docs/benchmark/")
     ap.add_argument("--merge", action="store_true", help="replace only the (arm, question) rows run now in --out")
     ap.add_argument("--qids", default="", help="comma-separated subset of question ids")
     ap.add_argument("--workers", type=int, default=6)
-    ap.add_argument("--repeats", type=int, default=3, help="runs per cell; the majority tier is reported")
+    ap.add_argument("--repeats", type=int, default=1, help="runs per cell; the majority tier is reported")
+    ap.add_argument("--schema-tier", action="store_true", help="also score each arm with the shared physical schema")
     args = ap.parse_args()
     ARMS = [a for a in args.arms.split(",") if a]
+    SCHEMA_TIER = args.schema_tier
     # Judges authenticate to Databricks via the model URI regardless of the trace store, so if the SP cannot
     # create the workspace experiment we fall back to a LOCAL trace store -- the matrix is still produced.
     try:
@@ -246,6 +281,12 @@ def main():
             continue
         maj = max(sorted(set(tiers), reverse=True), key=tiers.count)
         rep = dict(next(r for r in rs if r["tier"] == maj))
+        ts = [r["tier_schema"] for r in rs if r.get("tier_schema") is not None]
+        tmaj = max(sorted(set(ts), reverse=True), key=ts.count) if ts else None
+        rep.update({"tier_schema": tmaj, "tier_schema_runs": ts,
+                    "schema_rep": next(({k: r.get(k) for k in ("schema_sql", "schema_sql_error", "schema_result",
+                                                                "schema_attempts")}
+                                        for r in rs if r.get("tier_schema") == tmaj), None)})
         rep.update({"tier_runs": tiers, "stable": len(set(tiers)) == 1,
                     "harness_errors": sum(r["tier"] is None for r in rs),
                     "runs": [{"tier": r["tier"], "sql": (r.get("sql") or "")[:1500], "sql_error": r.get("sql_error"),
@@ -258,6 +299,8 @@ def main():
     print("question".ljust(24) + "".join(a[:12].ljust(13) for a in ARMS))
     for q in QUESTIONS:
         if (ARMS[0], q["qid"]) in by:
+            if SCHEMA_TIER:
+                print("  +schema".ljust(24) + "".join(str(by[(a, q["qid"])].get("tier_schema")).ljust(13) for a in ARMS))
             print(q["qid"].ljust(24) + "".join((str(by[(a, q["qid"])]["tier"]) + ("" if by[(a, q["qid"])]["stable"]
                   else "~" + "".join(map(str, by[(a, q["qid"])]["tier_runs"])))).ljust(13) for a in ARMS))
 

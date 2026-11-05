@@ -57,9 +57,8 @@ function Bar({ r }: { r: CapabilityMap["rollup"][number] }) {
             </span>
           ) : (
             <span>
-              {r.tier1} answer in context · {r.tier2} via one query · {r.tier3} neither
-              {r.skipped ? ` (${r.skipped} search skipped)` : ""}
-              {r.unstable ? <span className="ml-1.5 text-warning">· {r.unstable} varied across runs</span> : null}
+              <span className="font-semibold">✓ {r.answered}/{r.total} answered</span>
+              <span className="text-muted"> ({r.tier1} in context · {r.tier2} one query) · ✗ {r.wrong} wrong · {r.no_query} couldn't query</span>
             </span>
           )}
         </div>
@@ -74,15 +73,15 @@ function Ladder({ map }: { map: CapabilityMap }) {
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-3 text-[11px] font-semibold uppercase tracking-wide text-muted">
-        <span>Retrieval alone — of {map.floor?.total ?? 10} questions</span>
-        <span className="flex items-center gap-1 normal-case tracking-normal"><span className="h-2.5 w-4 rounded-sm bg-fg/70" /> tier 1: answer in context</span>
-        <span className="flex items-center gap-1 normal-case tracking-normal"><span className="h-2.5 w-4 rounded-sm bg-fg/30" /> tier 2: one query from context</span>
+        <span>Retrieval alone — answered from what each approach retrieved</span>
+        <span className="flex items-center gap-1 normal-case tracking-normal"><span className="h-2.5 w-4 rounded-sm bg-fg/70" /> in context</span>
+        <span className="flex items-center gap-1 normal-case tracking-normal"><span className="h-2.5 w-4 rounded-sm bg-fg/30" /> one query from it</span>
       </div>
       {ret.map((r) => <Bar key={r.arm} r={r} />)}
       {map.floor && (
         <div className="flex items-center gap-3 text-[12px] text-muted">
           <div className="w-44 shrink-0 pl-4">No retrieval (floor)</div>
-          <div>{map.floor.tier1} in context · {map.floor.tier2} via one query — the same agent with an empty context</div>
+          <div>✓ {map.floor.tier1 + map.floor.tier2}/{map.floor.total} answered — the same agent with nothing retrieved</div>
         </div>
       )}
       {e2e.length > 0 && (
@@ -242,10 +241,8 @@ export function BenchmarkScorecard() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">When each layer earns its place</h1>
         <p className="mt-1.5 text-[15px] text-muted">
-          The five retrieval approaches on the same {map.floor?.total ?? ""} questions, each scored only on the context it retrieves, in three tiers:{" "}
-          <span className="font-semibold text-fg">1</span> the answer is in that context;{" "}
-          <span className="font-semibold text-fg">2</span> the context gives what's needed for one SQL query that returns the answer (we run it);{" "}
-          <span className="font-semibold text-fg">3</span> neither. Same tiers as the Arena. Genie One's end-to-end answer sits in a separate column for contrast.
+          Each approach is scored only on what it retrieves. <span className="font-semibold text-success">✓ Answered</span> means the answer is in
+          that context, or the context was enough to write one SQL query that returned it.
         </p>
       </div>
 
@@ -253,15 +250,14 @@ export function BenchmarkScorecard() {
         <Collapsible title="Ablation ladder — reach by arm">
           <Ladder map={map} />
           <p className="mt-2 text-[13px] text-muted">
-            Tier 2 is a deliberately narrow test: one query, written only from names that appear in the retrieved context,
-            with no schema given and no retries. Genie One is not held to that limit: it explores, then runs several
-            queries. That is the gap between the two parts of this chart.
+            Genie One is not on the same footing: on ECT it also loads a hand-written HEDIS skill built from this question
+            set, reads its conversation memory and table schemas, and runs several queries.
           </p>
         </Collapsible>
 
         <Collapsible title="Capability map — question × arm">
           <div className="mb-2 flex flex-wrap gap-2 text-[11px]">
-            {["tier1", "tier2", "tier3", "no_retrieval", "skipped"].map((k) => (
+            {["tier1", "tier2", "wrong_answer", "query_failed", "no_query", "no_retrieval", "skipped"].map((k) => (
               <span key={k} className={`rounded px-1.5 py-0.5 font-semibold ${TIER[k].cls}`}>{TIER[k].label}</span>
             ))}
           </div>
@@ -279,18 +275,13 @@ export function BenchmarkScorecard() {
           <div className="mt-3 flex items-start gap-2 rounded-lg border border-border bg-surface-2/60 p-3 text-[12.5px] leading-snug text-fg">
             <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted" />
             <span>
-              <span className="font-semibold">What this run surfaced (2026-11-05).</span>{" "}
-              Five questions were built so the closure / edge tables wouldn't suffice (they hold no patient data and no
-              measure business logic), and closure is tier 3 on all five. The graph reached its two through one query each:
-              the patient's gaps and the 198-patient statin-contraindication cohort. Its context lists the gap edges, but
-              a missing gap edge doesn't assert compliance, so that one is tier 2, not tier 1. Genie Ontology on ECT
-              answered all three definition questions from its own retrieval; DMVM answered two, from the Pages, since its
-              snippets there come from other projects. Given its own schema, the graph's single query also hit the
-              subsumption counts (1,881 and 1,651), because the graph carries the patient layer.{" "}
-              <span className="font-semibold">Limits seen:</span> the graph has no ACE/ARB drug-class edges (it reported
-              0 of 10 cardiorenal patients on ACE/ARB; the answer is 8). It has no value-set versions (its vintage 0 is right but
-              not grounded) and no names for drugs or codes. Genie Ontology's snippets cite pre-Nov-4 columns and locations, and{" "}
-              <span className="font-mono">protocol_drift_metrics</span> has no UC comment, so it wasn't retrieved.
+              <span className="font-semibold">Why most cells fail (2026-11-05).</span>{" "}
+              The usual failure is <span className="font-semibold">✗ no query</span>, not a wrong one. The context carries meaning
+              but not the table and column names needed to query. Metric views and the graph bring their own schema; closure,
+              RAG and Genie Ontology mostly don't. The agent wrote MEASURE() queries with no syntax errors. The genuine
+              content gaps: the KED metric view ignores value-set vintage (returns 2,453 under the 2026 code set; the answer is 0),{" "}
+              <span className="font-mono">protocol_drift_metrics</span> has no UC comment, no Page covers metformin, Genie
+              Ontology's snippets cite pre-Nov-4 columns, and the graph lacks ACE/ARB class edges and drug names.
             </span>
           </div>
         </Collapsible>

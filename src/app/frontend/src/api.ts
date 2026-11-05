@@ -232,6 +232,9 @@ export interface CapRollup {
   tier1: number;
   tier2: number;
   tier3: number;
+  answered: number;
+  wrong: number;
+  no_query: number;
   skipped: number;
   unstable: number;
   reached: number;

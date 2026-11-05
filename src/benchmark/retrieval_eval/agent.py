@@ -100,3 +100,37 @@ def write_sql(question: str, context_docs: list[dict]) -> str | None:
         sql = sql.rsplit("```", 1)[0]
     sql = sql.strip().rstrip(";").strip()
     return None if not sql or sql.upper().startswith("NO_QUERY") else sql
+
+
+# --- Schema-aided tier: semantic context + the shared physical schema + a few tries with the error fed back. --------
+_SQL_SCHEMA_SYSTEM = (
+    "You write Databricks SQL. You get a QUESTION, the CONTEXT retrieved by one retrieval approach (it may be empty), "
+    "and the physical SCHEMA (table and column names and types only). Use the CONTEXT for meaning -- definitions, "
+    "rules, codes, which asset answers what -- and the SCHEMA for exact names. Do not use outside knowledge of the "
+    "business rules or codes; if the meaning you need is not in the CONTEXT, you may only use what the names in the "
+    "SCHEMA make obvious. Metric views (care_protocol_semantic) are queried as "
+    "SELECT `Dim`, MEASURE(`Measure Name`) FROM <view> [WHERE `Dim` = ...] GROUP BY `Dim`; backtick names with "
+    "spaces. Write exactly ONE read-only SELECT (CTEs allowed) whose result answers the question, or reply exactly "
+    "NO_QUERY if you cannot. Reply with SQL only, no markdown."
+)
+
+
+@mlflow.trace(span_type="CHAT_MODEL", name="write_sql_with_schema")
+def write_sql_with_schema(question: str, context_docs: list[dict], schema: str, previous: list[tuple[str, str]]):
+    """One attempt; `previous` = [(sql, error)] from earlier failed attempts, fed back so the agent can fix them."""
+    ctx = "\n\n".join(f"[{i + 1}] {d.get('page_content', '')}".strip() for i, d in enumerate(context_docs)) \
+        or "(no context was retrieved)"
+    user = f"QUESTION:\n{question}\n\nCONTEXT:\n{ctx}\n\nSCHEMA:\n{schema}"
+    for sql, err in previous:
+        user += f"\n\nYOUR EARLIER QUERY FAILED:\n{sql}\nERROR: {err}\nFix it."
+    resp = _client().chat.completions.create(
+        model=AGENT_MODEL, max_tokens=16000,
+        messages=[{"role": "system", "content": _SQL_SCHEMA_SYSTEM}, {"role": "user", "content": user}])
+    if resp.choices[0].finish_reason == "length":
+        raise HarnessError("write_sql_with_schema hit max_tokens (output truncated)")
+    sql = _as_text(resp.choices[0].message.content).strip()
+    if sql.startswith("```"):
+        sql = sql.strip("`").split("\n", 1)[-1] if "\n" in sql else ""
+        sql = sql.rsplit("```", 1)[0]
+    sql = sql.strip().rstrip(";").strip()
+    return None if not sql or sql.upper().startswith("NO_QUERY") else sql
