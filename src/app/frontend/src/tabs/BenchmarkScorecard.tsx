@@ -178,7 +178,7 @@ export function BenchmarkScorecard() {
         <h1 className="text-2xl font-bold tracking-tight">When each layer earns its place</h1>
         <p className="mt-1.5 text-[15px] text-muted">
           The five retrieval approaches on the same hard questions, by capability class — one rubric per cell, a
-          correct refusal counts as correct. The variable-shape rationale path (class 8) is reached only by the graph.
+          correct refusal counts as correct. The graph returns a patient's rationale path by traversal; Genie now explains the general rule from Pages + edge tables.
         </p>
       </div>
 

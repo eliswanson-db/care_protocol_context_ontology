@@ -51,3 +51,12 @@ the graph arm injects *raw triples* and asks the LLM to count. The triplestore *
 edges, so a graph **query** (a COUNT traversal / SPARQL aggregate) could produce the same scalar. So the honest
 claim is **"graph-as-context can't aggregate,"** NOT "the graph can't count." A "graph-as-query" arm (give the
 graph the same precomputed-aggregate privilege closure gets) would also reach the counts.
+
+## Update 2026-11-04 (MY2026 re-record) — the class-8 claim is revised
+
+The "graph-NECESSARY / only arm that reaches the rationale path" finding no longer holds. In the MY2026 Genie One
+re-record (fresh sessions, `A1_off_ect_20261104.json` / `A1_on_dmvm_20261104.json`) both workspaces explained the
+path correctly (diabetes → cohort → SPD eligibility → STATIN `recommendedFor` SPD), grounded in the SPD Page and, on
+DMVM, the `protocol_edges` rule; the earlier run had timed out. The honest distinction now: the graph returns a
+specific patient's path by **generic traversal** (Rx → ingredient → class → measure) with no path-specific SQL;
+Genie explains the **general rule** from Pages + edge tables; closure SQL needs a hand-written join per path shape.

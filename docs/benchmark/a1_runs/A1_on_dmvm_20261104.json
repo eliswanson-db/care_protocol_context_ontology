@@ -1,0 +1,522 @@
+[
+  {
+    "id": "kpi_gsd_rate",
+    "cls": "1_simple_kpi",
+    "question": "What is the overall GSD compliance rate?",
+    "gold": "0.7424",
+    "min_approach": "metric_view",
+    "hypothesis": {
+      "rag": "insufficient",
+      "metric_view": "sufficient",
+      "closure_sql": "n/a",
+      "graph_ontobricks": "n/a"
+    },
+    "arm": "A1",
+    "answer_ok": true,
+    "primary": "0.7424",
+    "matched": [
+      "74",
+      "74.2"
+    ],
+    "answer": "## GSD Compliance Rate: 74.2%\n\nThe overall GSD (Glycemic Status Assessment) compliance rate is **74.2%**. Of 2,399 eligible diabetes patients, 1,781 had an A1c test in measurement year 2026, which is the only year currently in the data. [Query Result](https://fe-vm-vdm-classic-q6xfh3.cloud.databricks.com/one/chat/threads/ee31a3c9378742a0a28e18661eec2d57?o=3464092709171785#embed-query_845c72)\n\n<!-- begin-embedded:query_845c72 -->\n| Measurement Year | Eligible Patients | Compliant Patients | GSD Compliance Rate |\n| --- | --- | --- | --- |\n| 2026 | 2399 | 1781 | 0.7423926636098375 |\n<!-- end-embe",
+    "assets": [
+      [
+        "snippet_search",
+        "{\"query\": \"GSD compliance rate definition\"}"
+      ],
+      [
+        "knowledge_page",
+        "{\"asset\": \"knowledge_page.7644609a-924b-416d-80f0-461e4ab5ea20\", \"query\": null}"
+      ],
+      [
+        "sql",
+        "SELECT `Measurement Year`, MEASURE(`Eligible Patients`) AS `Eligible Patients`, MEASURE(`Compliant Patients`) AS `Compliant Patients`, MEASURE(`GSD Compliance Rate`) AS `GSD Compliance Rate`\nFROM `eli_test_classic_catalog`.`care_protocol_semantic`.`gsd_compliance_metrics`\nGROUP BY ALL ORDER BY `Meas"
+      ],
+      [
+        "page",
+        "Genie Ontology Page cited"
+      ],
+      [
+        "metric_view",
+        "metric view cited"
+      ]
+    ],
+    "latency_s": 33.7,
+    "tool_names": [
+      "episode_fetch",
+      "search_assets",
+      "search_knowledge_snippets",
+      "get_asset_info",
+      "get_asset_info",
+      "execute_sql_query"
+    ],
+    "ontology_used": true
+  },
+  {
+    "id": "sub_kidney",
+    "cls": "2_icd_subsumption",
+    "question": "How many patients have diabetes WITH kidney complications?",
+    "gold": "1881",
+    "min_approach": "closure_sql",
+    "hypothesis": {
+      "rag": "insufficient",
+      "metric_view": "insufficient",
+      "closure_sql": "sufficient",
+      "graph_ontobricks": "sufficient"
+    },
+    "arm": "A1",
+    "answer_ok": true,
+    "primary": "1881",
+    "matched": [
+      "1,881",
+      "1881"
+    ],
+    "answer": "## 1,881 patients have diabetes with kidney complications\n\nIn the care protocol condition data, **1,881 patients** have a diabetic kidney complication code. That's **62.1% of the 3,031 patients with diabetes**. [Query Result](https://fe-vm-vdm-classic-q6xfh3.cloud.databricks.com/one/chat/threads/847d2240d77f4c489a44edd4020354e3?o=3464092709171785#embed-query_20f5bd) [eli_test_classic_catalog.care_protocol.silver_condition](https://fe-vm-vdm-classic-q6xfh3.cloud.databricks.com/explore/data/eli_test_classic_catalog/care_protocol/silver_condition?isDbOne=true&utm_source=one-chat&o=346409270917178",
+    "assets": [
+      [
+        "snippet_search",
+        "{\"query\": \"diabetes with kidney complications definition ICD-10 codes diabetic kidney disease\"}"
+      ],
+      [
+        "knowledge_page",
+        "{\"asset\": \"knowledge_page.402e8af3-3e5a-4a46-aa36-22dcd8df5e64\", \"query\": null}"
+      ],
+      [
+        "sql",
+        "WITH p AS (\n  SELECT `patient_id`,\n    MAX(CASE WHEN `icd10_code` RLIKE '^E1[013]\\\\.2' THEN 1 ELSE 0 END) AS dkd_code,\n    MAX(CASE WHEN `icd10_code` RLIKE '^E1[013]' THEN 1 ELSE 0 END) AS diabetes,\n    MAX(CASE WHEN `icd10_code` LIKE 'N18%' THEN 1 ELSE 0 END) AS ckd\n  FROM `eli_test_classic_catalog"
+      ],
+      [
+        "sql",
+        "SELECT `icd10_code`, `description`, COUNT(DISTINCT `patient_id`) AS patients\nFROM `eli_test_classic_catalog`.`care_protocol`.`silver_condition`\nWHERE `icd10_code` RLIKE '^(E1[013]\\\\.2|N18)'\nGROUP BY ALL ORDER BY patients DESC"
+      ],
+      [
+        "page",
+        "Genie Ontology Page cited"
+      ]
+    ],
+    "latency_s": 39.7,
+    "tool_names": [
+      "episode_fetch",
+      "search_assets",
+      "search_knowledge_snippets",
+      "get_asset_info",
+      "get_asset_info",
+      "execute_sql_query",
+      "execute_sql_query"
+    ],
+    "ontology_used": true
+  },
+  {
+    "id": "med_on_statin",
+    "cls": "4_rxnorm_subsumption",
+    "question": "How many diabetic patients are on any statin?",
+    "gold": "1651",
+    "min_approach": "closure_sql",
+    "hypothesis": {
+      "rag": "insufficient",
+      "metric_view": "sufficient",
+      "closure_sql": "sufficient",
+      "graph_ontobricks": "sufficient"
+    },
+    "arm": "A1",
+    "answer_ok": true,
+    "primary": "1651",
+    "matched": [
+      "1,651"
+    ],
+    "answer": "## Diabetic patients on a statin\n\n**1,651 of the 3,031 diabetic patients (54.5%) have at least one statin order on record.** This count includes all ages and any order date, and it matches the figure from your earlier run. [Query Result](https://fe-vm-vdm-classic-q6xfh3.cloud.databricks.com/one/chat/threads/08b9fe8cb64f4bd1acab8502e261cbd7?o=3464092709171785#embed-query_32f14d) [Diabetic patients on statins](https://fe-vm-vdm-classic-q6xfh3.cloud.databricks.com/one/chat/threads/933de91262e1402d95a07b46c4dcd5eb?o=3464092709171785)\n\nNarrower counts:\n\n| Scope | Diabetic patients | On a statin |\n|",
+    "assets": [
+      [
+        "sql",
+        "WITH statin_drugs AS (\n  SELECT DISTINCT c.`descendant_code`\n  FROM `eli_test_classic_catalog`.`care_protocol_terminology`.`value_set_segment` v\n  JOIN `eli_test_classic_catalog`.`care_protocol_terminology`.`rxnorm_closure` c ON c.`ancestor_code` = v.`code`\n  WHERE v.`segment_id` = 'SPD_STATIN' AND "
+      ],
+      [
+        "sql",
+        "SELECT `measurement_year`, COUNT(DISTINCT `patient_id`) AS eligible_diabetics_40_75, COUNT(DISTINCT CASE WHEN `numerator_flag` THEN `patient_id` END) AS on_statin, ROUND(100.0*COUNT(DISTINCT CASE WHEN `numerator_flag` THEN `patient_id` END)/COUNT(DISTINCT `patient_id`),1) AS pct\nFROM `eli_test_class"
+      ],
+      [
+        "sql",
+        "SELECT `measurement_year`, COUNT(DISTINCT `patient_id`) AS eligible_diabetics_40_75, COUNT(DISTINCT CASE WHEN `evidence_code` IS NOT NULL THEN `patient_id` END) AS on_statin, ROUND(100.0*COUNT(DISTINCT CASE WHEN `evidence_code` IS NOT NULL THEN `patient_id` END)/COUNT(DISTINCT `patient_id`),1) AS pc"
+      ],
+      [
+        "sql",
+        "WITH statin_drugs AS (\n  SELECT DISTINCT c.`descendant_code`\n  FROM `eli_test_classic_catalog`.`care_protocol_terminology`.`value_set_segment` v\n  JOIN `eli_test_classic_catalog`.`care_protocol_terminology`.`rxnorm_closure` c ON c.`ancestor_code` = v.`code`\n  WHERE v.`segment_id` = 'SPD_STATIN' AND "
+      ]
+    ],
+    "latency_s": 46.8,
+    "tool_names": [
+      "episode_fetch",
+      "episode_fetch",
+      "execute_sql_query",
+      "execute_sql_query",
+      "get_asset_info",
+      "execute_sql_query",
+      "execute_sql_query"
+    ],
+    "ontology_used": false
+  },
+  {
+    "id": "vintage_egfr_2026",
+    "cls": "5_value_set_vintage",
+    "question": "Under the 2026 KED eGFR definition, how many patients have a qualifying eGFR test?",
+    "gold": "0",
+    "min_approach": "metric_view",
+    "hypothesis": {
+      "rag": "insufficient",
+      "metric_view": "sufficient",
+      "closure_sql": "sufficient",
+      "graph_ontobricks": "sufficient"
+    },
+    "arm": "A1",
+    "answer_ok": true,
+    "primary": "0",
+    "matched": [
+      "0"
+    ],
+    "answer": "## No patients have a qualifying eGFR test under the 2026 KED definition\n\n**0 patients** have a qualifying eGFR test under the 2026 KED eGFR definition. I re-ran the check on current data and got the same answer as your earlier conversation. [Query Result](https://fe-vm-vdm-classic-q6xfh3.cloud.databricks.com/one/chat/threads/ac32f053d8404a8f8f947a86f531e1bd?o=3464092709171785#embed-query_920e41) [Prior 2026 KED eGFR analysis](https://fe-vm-vdm-classic-q6xfh3.cloud.databricks.com/one/chat/threads/e78ce3850acd4f9b857555fff4a043a2?o=3464092709171785)\n\n<!-- begin-embedded:query_920e41 -->\n| value",
+    "assets": [
+      [
+        "knowledge_page",
+        "{\"asset\": \"knowledge_page.4ee5a80a-a4b7-47d5-93aa-f765943b8605\", \"query\": null}"
+      ],
+      [
+        "knowledge_page",
+        "{\"asset\": \"knowledge_page.150dfd59-85b9-4efd-8014-bb170bfe626e\", \"query\": null}"
+      ],
+      [
+        "sql",
+        "SELECT `segment_id`, `measurement_year`, `code`, `code_system` FROM `eli_test_classic_catalog`.`care_protocol_terminology`.`value_set_segment` WHERE `segment_id` = 'KED_EGFR' ORDER BY `measurement_year`, `code`"
+      ],
+      [
+        "sql",
+        "SELECT v.`measurement_year` AS value_set_version, CONCAT_WS(', ', COLLECT_SET(v.`code`)) AS codes_in_value_set, COUNT(DISTINCT o.`patient_id`) AS patients_with_qualifying_egfr_any_year, COUNT(DISTINCT CASE WHEN YEAR(o.`result_ts`) = 2026 THEN o.`patient_id` END) AS patients_with_qualifying_egfr_in_2"
+      ],
+      [
+        "sql",
+        "SELECT `loinc_code`, YEAR(`result_ts`) AS yr, COUNT(DISTINCT `patient_id`) AS patients, COUNT(*) AS obs FROM `eli_test_classic_catalog`.`care_protocol`.`silver_observation` WHERE `loinc_code` IN ('33914-3','98979-8') GROUP BY 1,2 ORDER BY 1,2"
+      ]
+    ],
+    "latency_s": 28.3,
+    "tool_names": [
+      "episode_fetch",
+      "get_asset_info",
+      "get_asset_info",
+      "execute_sql_query",
+      "execute_sql_query",
+      "execute_sql_query"
+    ],
+    "ontology_used": true
+  },
+  {
+    "id": "proto_cardiorenal",
+    "cls": "6_protocol_multihop",
+    "question": "Identify cardiorenal patients (diabetes + CKD + heart failure) and whether each is on statin + ACE/ARB + SGLT2.",
+    "gold": "10",
+    "min_approach": "closure_sql",
+    "hypothesis": {
+      "rag": "insufficient",
+      "metric_view": "insufficient",
+      "closure_sql": "sufficient",
+      "graph_ontobricks": "adds_value"
+    },
+    "arm": "A1",
+    "answer_ok": true,
+    "primary": "10",
+    "matched": [
+      "10"
+    ],
+    "answer": "## Cardiorenal patients and the statin + ACE/ARB + SGLT2 combination\n\n**10 patients have diabetes, CKD and heart failure. None of them takes all three drug classes. The reason is that no patient in this dataset has an SGLT2 inhibitor order.** All 10 have a statin order, and 8 also have an ACE inhibitor or ARB order. [Query Result](https://fe-vm-vdm-classic-q6xfh3.cloud.databricks.com/one/chat/threads/7b24f6de09fa4a70987ce9a5d51ec7e3?o=3464092709171785#embed-query_bd1c5c)\n\n<!-- begin-embedded:query_bd1c5c -->\n| patient_id | ckd_codes | hf_codes | on_statin | on_ace_arb | on_sglt2 | on_all_three",
+    "assets": [
+      [
+        "sql",
+        "WITH cond AS (SELECT DISTINCT `patient_id`, `icd10_code` FROM `eli_test_classic_catalog`.`care_protocol`.`silver_condition`),\ncr AS (\n SELECT d.`patient_id`,\n  CONCAT_WS(', ', ARRAY_SORT(COLLECT_SET(CASE WHEN c.`icd10_code` LIKE 'N18%' THEN c.`icd10_code` END))) AS ckd_codes,\n  CONCAT_WS(', ', ARRAY"
+      ],
+      [
+        "sql",
+        "SELECT 'closure' src, k.`descendant_code` code, k.`descendant_name` name, COUNT(DISTINCT m.`patient_id`) pts\nFROM `eli_test_classic_catalog`.`care_protocol_terminology`.`rxnorm_closure` k LEFT JOIN `eli_test_classic_catalog`.`care_protocol`.`care_order_med` m ON m.`rxnorm_code`=k.`descendant_code`\nW"
+      ]
+    ],
+    "latency_s": 31.0,
+    "tool_names": [
+      "episode_fetch",
+      "execute_sql_query",
+      "execute_sql_query"
+    ],
+    "ontology_used": false
+  },
+  {
+    "id": "def_metformin_egfr",
+    "cls": "7_definition_provenance",
+    "question": "Below what eGFR is metformin contraindicated, and where is that stated?",
+    "gold": "eGFR < 30",
+    "min_approach": "rag",
+    "hypothesis": {
+      "rag": "sufficient",
+      "metric_view": "adds_value",
+      "closure_sql": "insufficient",
+      "graph_ontobricks": "adds_value"
+    },
+    "arm": "A1",
+    "answer_ok": true,
+    "primary": "30",
+    "matched": [
+      "30"
+    ],
+    "answer": "## Metformin is contraindicated when eGFR is below 30 mL/min/1.73 m\u00b2\n\nThe FDA prescribing information for metformin lists this in **Section 4 (Contraindications)** as severe renal impairment, defined as eGFR below 30 mL/min/1.73 m\u00b2. [Approval Label_021748s031lbl.pdf](https://www.accessdata.fda.gov/drugsatfda_docs/label/2026/021748s031lbl.pdf)\n\nThe same label also says:\n- **eGFR 30\u201345:** don't start metformin.\n- **eGFR falls below 30:** stop metformin.\n- The other contraindications in Section 4 are hypersensitivity to metformin and acute or chronic metabolic acidosis, including diabetic ketoaci",
+    "assets": [
+      [
+        "snippet_search",
+        "{\"query\": \"metformin contraindication eGFR threshold renal impairment\"}"
+      ]
+    ],
+    "latency_s": 29.6,
+    "tool_names": [
+      "episode_fetch",
+      "search_assets",
+      "search_knowledge_snippets",
+      "web_search"
+    ],
+    "ontology_used": true,
+    "hand_verdict": "value correct (eGFR < 30) but cited the FDA label, not care-protocol CP-GLY-2"
+  },
+  {
+    "id": "infer_rationale_path",
+    "cls": "8_graph_native",
+    "question": "Explain the clinical rationale connecting a patient's diabetes diagnosis to their statin therapy (show the connecting path).",
+    "gold": "a path/explanation, not a count",
+    "min_approach": "graph_ontobricks",
+    "hypothesis": {
+      "rag": "insufficient",
+      "metric_view": "insufficient",
+      "closure_sql": "insufficient",
+      "graph_ontobricks": "necessary"
+    },
+    "arm": "A1",
+    "answer_ok": true,
+    "primary": null,
+    "matched": [],
+    "answer": "## How a diabetes diagnosis leads to statin therapy\n\nA care-protocol rule links the two: the **statin drug class is `recommendedFor` SPD (Statin Therapy for Patients With Diabetes)**, citing section *CP-DM-2025.1 sec2/sec6*. SPD covers patients in the Diabetes Cohort aged 40\u201375. Code hierarchies connect each end of that rule to the patient's record: on one side the ICD-10 diagnosis hierarchy, on the other the RxNorm drug hierarchy. [Query Result](https://fe-vm-vdm-classic-q6xfh3.cloud.databricks.com/one/chat/threads/526f4ca596f94117b839e29ba94e4325?o=3464092709171785#embed-query_7033f9) [SPD (",
+    "assets": [
+      [
+        "snippet_search",
+        "{\"query\": \"diabetes diagnosis to statin therapy clinical rationale relationship path\"}"
+      ],
+      [
+        "knowledge_page",
+        "{\"asset\": \"knowledge_page.90137b0e-d1a0-4667-aea0-8aff1f754984\", \"query\": null}"
+      ],
+      [
+        "sql",
+        "SELECT * FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges"
+      ],
+      [
+        "sql",
+        "WITH p AS (\n  SELECT patient_id, age, measurement_year, status, evidence_code, evidence_drug, evidence_datetime\n  FROM eli_test_classic_catalog.care_protocol.gold_adherence_spd\n  WHERE status = 'MET' AND eligible_flag ORDER BY patient_id LIMIT 1)\nSELECT p.patient_id, p.age, p.measurement_year,\n  sc."
+      ],
+      [
+        "sql",
+        "SELECT s.ingredient, s.rxcui AS ingredient_rxcui, COUNT(*) AS clinical_drug_count, CONCAT_WS('; ', COLLECT_LIST(c.descendant_name)) AS clinical_drugs\nFROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_statin s\nJOIN eli_test_classic_catalog.care_protocol_terminology.rxnorm_closure c ON c."
+      ],
+      [
+        "sql",
+        "WITH p AS (\n  SELECT patient_id, age, measurement_year, evidence_code, evidence_drug, evidence_datetime\n  FROM eli_test_classic_catalog.care_protocol.gold_adherence_spd\n  WHERE eligible_flag AND evidence_code IS NOT NULL ORDER BY patient_id LIMIT 1)\nSELECT p.patient_id, p.age, p.measurement_year,\n  "
+      ],
+      [
+        "page",
+        "Genie Ontology Page cited"
+      ]
+    ],
+    "latency_s": 61.8,
+    "tool_names": [
+      "episode_fetch",
+      "search_assets",
+      "search_knowledge_snippets",
+      "get_asset_info",
+      "get_asset_info",
+      "execute_sql_query",
+      "execute_sql_query",
+      "execute_sql_query",
+      "get_asset_info",
+      "get_asset_info",
+      "execute_sql_query"
+    ],
+    "ontology_used": true,
+    "hand_verdict": "reached: STATIN recommendedFor SPD (protocol_edges) + ICD-10 / RxNorm hierarchies"
+  },
+  {
+    "id": "op_worst_clinic_annual",
+    "cls": "9_operational_temporal",
+    "question": "Which clinic has the lowest protocol Step-3 (A1c follow-up) adherence overall this year?",
+    "gold": "CLINIC-04 (0.443)",
+    "min_approach": "metric_view",
+    "hypothesis": {
+      "rag": "insufficient",
+      "metric_view": "sufficient",
+      "closure_sql": "sufficient",
+      "graph_ontobricks": "n/a"
+    },
+    "arm": "A1",
+    "answer_ok": true,
+    "primary": "CLINIC-04",
+    "matched": [
+      "04",
+      "44",
+      "44.3",
+      "CLINIC-04"
+    ],
+    "answer": "## CLINIC-04 has the lowest Step-3 (A1c follow-up) adherence in 2026\n\n**CLINIC-04 is lowest at 44.3%.** Only 35 of its 79 closed follow-up obligations got a follow-up A1c within 90 days. [Query Result](https://fe-vm-vdm-classic-q6xfh3.cloud.databricks.com/one/chat/threads/96f17dd97e7243c0a64eff8f9a8272fc?o=3464092709171785#embed-query_af87f6) [eli_test_classic_catalog.care_protocol_semantic.protocol_adherence_metrics](https://fe-vm-vdm-classic-q6xfh3.cloud.databricks.com/explore/data/eli_test_classic_catalog/care_protocol_semantic/protocol_adherence_metrics?isDbOne=true&utm_source=one-chat&o=3",
+    "assets": [
+      [
+        "sql",
+        "SELECT `Measurement Year`, `Clinic`, MEASURE(`Trigger Events`) AS `trigger_events`, MEASURE(`Followed Up In Time`) AS `followed_up_in_time`, MEASURE(`Protocol Step 3 Adherence Rate`) AS `step3_adherence_rate`, MEASURE(`Avg Days To Follow-up`) AS `avg_days_to_followup`\nFROM `eli_test_classic_catalog`"
+      ],
+      [
+        "sql",
+        "SHOW CREATE TABLE `eli_test_classic_catalog`.`care_protocol`.`protocol_adherence_metrics`"
+      ],
+      [
+        "sql",
+        "SELECT `Measurement Year`, `Clinic`, MEASURE(`Trigger Events`) AS `trigger_events`, MEASURE(`Followed Up In Time`) AS `followed_up_in_time`, MEASURE(`Protocol Step 3 Adherence Rate`) AS `step3_adherence_rate`, MEASURE(`Avg Days To Follow-up`) AS `avg_days_to_followup`\nFROM `eli_test_classic_catalog`"
+      ],
+      [
+        "sql",
+        "SHOW CREATE TABLE `eli_test_classic_catalog`.`care_protocol_semantic`.`protocol_adherence_metrics`"
+      ],
+      [
+        "sql",
+        "SELECT `Clinic`, MEASURE(`Trigger Events`) AS `closed_obligations`, MEASURE(`Followed Up In Time`) AS `followed_up_in_time`, ROUND(MEASURE(`Protocol Step 3 Adherence Rate`)*100,1) AS `step3_adherence_pct`, MEASURE(`Open Obligations`) AS `open_obligations`, ROUND(MEASURE(`Avg Days To Follow-up`),0) A"
+      ],
+      [
+        "metric_view",
+        "metric view cited"
+      ]
+    ],
+    "latency_s": 42.0,
+    "tool_names": [
+      "episode_fetch",
+      "get_asset_info",
+      "execute_sql_query",
+      "execute_sql_query",
+      "execute_sql_query",
+      "execute_sql_query",
+      "execute_sql_query"
+    ],
+    "ontology_used": false
+  },
+  {
+    "id": "op_clinic_drift",
+    "cls": "9_operational_temporal",
+    "question": "Which clinic's protocol Step-3 adherence has recently DROPPED, and by how much versus its own history?",
+    "gold": "CLINIC-08 (trailing May-Jul 0.324 vs own YTD baseline 0.600; drift -0.276, ~4x any other clinic). CLINIC-08 is the BEST clinic YTD (0.600), so the annual ranking hides it.",
+    "min_approach": "metric_view",
+    "hypothesis": {
+      "rag": "insufficient",
+      "metric_view": "adds_value",
+      "closure_sql": "sufficient",
+      "graph_ontobricks": "n/a"
+    },
+    "arm": "A1",
+    "answer_ok": true,
+    "primary": "CLINIC-08",
+    "matched": [
+      "0.324",
+      "08",
+      "32",
+      "4",
+      "60",
+      "CLINIC-08"
+    ],
+    "answer": "## CLINIC-08's Step-3 adherence fell 43 points below its own history\n\n**CLINIC-08** had the biggest drop. In the 3 months ending July 2026, its protocol Step-3 adherence was **32% (12 of 37 trigger events)**. Over its own prior history (68 trigger events) it was **75%**, so the drop is **about 43 points**. The protocol watch rated it **HIGH** severity. CLINIC-08 is also well below the 52% peer baseline. [Query Result](https://fe-vm-vdm-classic-q6xfh3.cloud.databricks.com/one/chat/threads/578feef2c0934c8aba3fbb3c96f0bbcf?o=3464092709171785#embed-query_df811e) [eli_test_classic_catalog.care_prot",
+    "assets": [
+      [
+        "snippet_search",
+        "{\"query\": \"protocol Step-3 adherence drop versus own history clinic\"}"
+      ],
+      [
+        "sql",
+        "SELECT `as_of`, `finding_type`, `severity`, `clinic_id`, `measurement_year`, `month`, `t_trig`, `t_follow`, ROUND(`t_rate`,3) t_rate, ROUND(`baseline`,3) baseline, `baseline_n`, ROUND(`delta`,3) delta, `censored`, `drift_threshold_pp`, `min_triggers`, `narrative`\nFROM `eli_test_classic_catalog`.`car"
+      ],
+      [
+        "metric_view",
+        "metric view cited"
+      ]
+    ],
+    "latency_s": 27.2,
+    "tool_names": [
+      "episode_fetch",
+      "get_asset_info",
+      "get_asset_info",
+      "search_knowledge_snippets",
+      "execute_sql_query"
+    ],
+    "ontology_used": true
+  },
+  {
+    "id": "op_drift_rootcause",
+    "cls": "9_operational_temporal",
+    "question": "Why did CLINIC-08's protocol Step-3 adherence slip this year?",
+    "gold": "explanation: PCP transition 2026-05-15 on CLINIC-08; recovery ~150d; case-mix confound (complexity ~4.55 vs ~4.12)",
+    "min_approach": "closure_sql",
+    "hypothesis": {
+      "rag": "adds_value",
+      "metric_view": "insufficient",
+      "closure_sql": "sufficient",
+      "graph_ontobricks": "adds_value"
+    },
+    "arm": "A1",
+    "answer_ok": true,
+    "primary": "CLINIC-08",
+    "matched": [
+      "08",
+      "15",
+      "150",
+      "2026",
+      "CLINIC-08"
+    ],
+    "answer": "# CLINIC-08's Step-3 slip started with a PCP handoff on May 15, 2026\n\nCLINIC-08 met Step-3 (an A1c recheck within 90 days of an A1c above 9%) **74% of the time before May 15 (53 of 72) and 27% after (10 of 37)**. Over the same two periods, the other clinics improved from 48% to 56%. The PCP transition record lists a **mid-year PCP departure on May 15, 2026**. A locum took over the panel, and the diabetes follow-up order set wasn't carried over cleanly, so timely A1c rechecks dropped off. [Query Result](https://fe-vm-vdm-classic-q6xfh3.cloud.databricks.com/one/chat/threads/d7c6759a65e04dc49a945",
+    "assets": [
+      [
+        "snippet_search",
+        "{\"query\": \"protocol Step-3 adherence definition A1c follow-up clinic\"}"
+      ],
+      [
+        "sql",
+        "SELECT YEAR(`trigger_ts`) yr, MIN(`trigger_ts`) mn, MAX(`trigger_ts`) mx, COUNT(*) n, SUM(CASE WHEN `clinic_id`='CLINIC-08' THEN 1 ELSE 0 END) c08 FROM `eli_test_classic_catalog`.`care_protocol`.`gold_protocol_adherence` GROUP BY 1 ORDER BY 1"
+      ],
+      [
+        "sql",
+        "SELECT * FROM `eli_test_classic_catalog`.`care_protocol`.`panel_pcp_transition` LIMIT 20"
+      ],
+      [
+        "sql",
+        "SELECT CASE WHEN `clinic_id`='CLINIC-08' THEN 'CLINIC-08' ELSE 'All other clinics' END grp, QUARTER(`trigger_ts`) q,\n COUNT(*) triggers, SUM(CASE WHEN `followup_within_90d` THEN 1 ELSE 0 END) met,\n ROUND(AVG(CASE WHEN `followup_within_90d` THEN 1.0 ELSE 0 END),3) adherence\nFROM `eli_test_classic_cat"
+      ],
+      [
+        "sql",
+        "SELECT `month`, `finding_type`, `severity`, `t_trig`, `t_follow`, ROUND(`t_rate`,3) t_rate, ROUND(`baseline`,3) baseline, ROUND(`delta`,3) delta, `censored`, `narrative`, `as_of`\nFROM `eli_test_classic_catalog`.`care_protocol`.`protocol_watch_findings`\nWHERE `clinic_id`='CLINIC-08' ORDER BY `as_of` "
+      ],
+      [
+        "sql",
+        "SELECT CASE WHEN g.`clinic_id`='CLINIC-08' THEN 'CLINIC-08' ELSE 'All other clinics' END grp,\n CASE WHEN g.`trigger_ts` < '2026-05-15' THEN '1. Jan 1 \u2013 May 14 (before handoff)' ELSE '2. May 15 \u2013 Aug 7 (after handoff)' END period,\n COUNT(*) triggers, SUM(CASE WHEN g.`followup_within_90d` THEN 1 ELSE "
+      ],
+      [
+        "sql",
+        "SELECT `panel_id`, CASE WHEN `trigger_ts` < '2026-05-15' THEN '1. before handoff' ELSE '2. after handoff' END period, COUNT(*) triggers,\n SUM(CASE WHEN `followup_within_90d` THEN 1 ELSE 0 END) met,\n ROUND(AVG(CASE WHEN `followup_within_90d` THEN 1.0 ELSE 0 END),3) adherence,\n SUM(CASE WHEN `followup"
+      ]
+    ],
+    "latency_s": 64.4,
+    "tool_names": [
+      "episode_fetch",
+      "search_assets",
+      "search_knowledge_snippets",
+      "get_asset_info",
+      "execute_sql_query",
+      "execute_sql_query",
+      "execute_sql_query",
+      "execute_sql_query",
+      "execute_sql_query",
+      "execute_sql_query"
+    ],
+    "ontology_used": true
+  }
+]
