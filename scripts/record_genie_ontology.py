@@ -72,7 +72,10 @@ def main():
                 rec = {"queries": [s["query"] for s in t["snippet_searches"]],
                        "snippets": [x for s in t["snippet_searches"] for x in s["snippets"]],
                        "pages": [x for s in t["snippet_searches"] for x in s["pages"]],
-                       "pages_read": t["pages_read"], "attempts": n}
+                       "pages_read": t["pages_read"], "attempts": n,
+                       # Genie One's own end-to-end answer -- kept ONLY for hand-verifying its separate column;
+                       # never fed to any retrieval arm (genie_ontology_docs reads snippets + pages only).
+                       "genie_one_answer": (t.get("answer") or "")[:4000], "genie_one_sql": t.get("sql") or []}
                 if rec["queries"]:
                     return qid, rec
             rec["skipped_search"] = True                   # Genie One never ran its ontology search on any attempt

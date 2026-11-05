@@ -2,6 +2,7 @@ import { AlertTriangle, Clock, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { api, type A1Runs, type ArenaContext, type CapabilityMap, type CapQuestion, type CtxDoc, type Scored } from "../api";
 import { Collapsible } from "../components/Collapsible";
+import { TierChip, tierKey } from "../components/TierChip";
 import { GenieMarkdown } from "../components/GenieMarkdown";
 
 const VERDICT: Record<string, { label: string; cls: string }> = {
@@ -21,11 +22,11 @@ function Verdict({ v }: { v: string }) {
 // The five retrieval approaches, in the shared order: each card scores ONLY what that approach retrieves
 // (same question, same fixed agent, same judges) — `arm` is the retrieval_eval provider.
 const APPROACHES = [
-  { id: "metric_view", arm: "metric_view", label: "Metric View", how: "MEASURE() over a certified metric view" },
-  { id: "closure", arm: "closure_sql", label: "Closure / governed SQL", how: "fixed-shape SQL over closure, edge and gold tables" },
+  { id: "metric_view", arm: "metric_view", label: "Metric View", how: "definitions of the 3 most relevant certified metric views" },
+  { id: "closure", arm: "closure_sql", label: "Closure / edge tables", how: "terminology table cards + rows hit by the linked entities" },
   { id: "genie_ontology", arm: "genie_ontology", label: "Genie Ontology", how: "Genie's own retriever: inferred snippets + Pages (ECT, recorded)" },
   { id: "rag", arm: "rag", label: "RAG", how: "passage search over the care-protocol documents" },
-  { id: "graph", arm: "ontobricks", label: "Ontobricks graph", how: "entity-linked typed edges from the live graph" },
+  { id: "graph", arm: "ontobricks", label: "Ontobricks graph", how: "subgraph up to 3 hops around the linked entities (live)" },
 ] as const;
 
 const LENS: Record<string, string> = {
@@ -38,12 +39,22 @@ const LENS: Record<string, string> = {
 
 function AgentVerdict({ s }: { s?: Scored }) {
   if (!s) return <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[11px] text-muted">not scored yet</span>;
+  return <TierChip k={tierKey(s)} runs={s.tier_runs} stable={s.stable} />;
+}
+
+/** The single SQL query the retrieved context let the agent write, run against the warehouse, and its result. */
+function OneQuery({ s }: { s: Scored }) {
+  if (!s.sql) return <div className="mt-1.5 text-[10.5px] text-muted">No query: the context didn't say enough to write one.</div>;
   return (
-    <span className="flex flex-wrap items-center gap-1">
-      <span className={`rounded px-1.5 py-0.5 text-[11px] font-semibold ${s.sufficient ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"}`}>
-        {s.sufficient ? "context sufficient ✓" : s.n_docs ? "context insufficient" : "retrieved nothing"}
-      </span>
-    </span>
+    <details className="mt-1.5 text-[11px]">
+      <summary className="cursor-pointer font-semibold text-primary">
+        The one query it enabled {s.query_correct ? "✓ returned the answer" : s.sql_error ? "· failed" : "· wrong result"}
+      </summary>
+      <pre className="mt-1 max-h-44 overflow-auto whitespace-pre-wrap rounded bg-surface-2 p-2 font-mono text-[10.5px] leading-4">{s.sql}</pre>
+      <pre className={`mt-1 max-h-32 overflow-auto whitespace-pre-wrap rounded p-2 font-mono text-[10.5px] leading-4 ${s.sql_error ? "bg-destructive/10 text-destructive" : "bg-surface-2"}`}>
+        {s.sql_error ?? s.sql_result ?? ""}
+      </pre>
+    </details>
   );
 }
 
@@ -318,7 +329,7 @@ export function RetrievalArena() {
 
             <div className="space-y-6">
               <Collapsible title="Five approaches, one question"
-                hint="is the retrieved context alone enough to answer? one judge, every approach">
+                hint="1 · answer in the context   2 · enough for one query that returns it   3 · neither">
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
                   {APPROACHES.map((a) => {
                     const c = LENS[a.id];
@@ -337,9 +348,7 @@ export function RetrievalArena() {
                           ) : !sc ? (
                             <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[11px] text-muted">not scored</span>
                           ) : (
-                            <span className={`rounded px-1.5 py-0.5 text-[11.5px] font-semibold ${sc.sufficient ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"}`}>
-                              {sc.sufficient ? "context sufficient ✓" : sc.n_docs ? "context insufficient" : "retrieved nothing"}
-                            </span>
+                            <TierChip k={tierKey(sc)} runs={sc.tier_runs} stable={sc.stable} />
                           )}
                         </div>
                         {sc && (
@@ -351,6 +360,7 @@ export function RetrievalArena() {
                                 <pre className="mt-1 max-h-56 overflow-auto whitespace-pre-wrap rounded bg-surface-2 p-2 font-mono text-[10.5px] leading-4">{sc.context}</pre>
                               </details>
                             )}
+                            {!sc.skipped_search && <OneQuery s={sc} />}
                           </>
                         )}
                       </div>
@@ -358,10 +368,12 @@ export function RetrievalArena() {
                   })}
                 </div>
                 <p className="mt-2.5 text-[12px] text-muted">
-                  Each approach retrieves with its own method, and a judge ({ctx?.scored_meta?.judge ?? "—"}) decides whether that
-                  retrieved context alone holds every fact the gold answer needs. Structured approaches retrieve by running their best governed query where their representation can express
-                  the question, and nothing where it can't. Genie One's end-to-end answer (retrieval + its own SQL) is scored
-                  separately below.
+                  Each approach retrieves with its own method, and the scoring uses only that context. <span className="font-semibold text-fg">Tier 1</span>:
+                  a judge ({ctx?.scored_meta?.judge ?? "—"}) checks each gold fact separately and finds it stated in the context.{" "}
+                  <span className="font-semibold text-fg">Tier 2</span>: a fixed agent writes exactly one SQL query using only names that appear in the
+                  context (no schema is given), we run it, and the judge checks the result rows against the gold. <span className="font-semibold text-fg">Tier 3</span>:
+                  neither. Each cell runs {ctx?.scored_meta?.repeats ?? 3}× and the majority is shown, with "varied" marking cells that changed between runs.
+                  Genie One's end-to-end answer is scored separately below.
                 </p>
               </Collapsible>
 
@@ -378,14 +390,13 @@ export function RetrievalArena() {
                     <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                       <GenieOntologyColumn sides={ctx.ontology} color={LENS.genie_ontology} />
                       <RetrievalColumn title="Ontobricks graph" color={LENS.graph} side={ctx.graph}
-                        subtitle={`Clinical terms in the question linked to graph nodes, then their typed one-hop edges from ${ctx.graph.graph_table.split(".").pop()} (live).`}
+                        subtitle={`Clinical terms and patient ids in the question linked to graph nodes, then the subgraph up to 3 hops around them from ${ctx.graph.graph_table.split(".").pop()} (live).`}
                         empty="No clinical entity in the question links to a graph node — the graph holds no operational or temporal data." />
                     </div>
                     <p className="mt-2.5 text-[12px] text-muted">
                       Retrieval only, side by side. Genie Ontology's retrieval is identity-scoped (the app's service principal
-                      gets fewer snippets), so it is recorded as a user on each workspace; the graph is queried live. The verdict
-                      is the same judge as above: is the retrieved context alone sufficient? Neither layer holds computed
-                      numbers — turning a definition into a count is Genie One's SQL step, below.
+                      gets fewer snippets), so it is recorded as a user on each workspace; the graph is queried live. The tier is
+                      the same as above: answer in the context (1), enough for one query (2), or neither (3).
                     </p>
                   </>
                 )}
@@ -402,6 +413,11 @@ export function RetrievalArena() {
                       <>
                         <GenieMarkdown md={off.answer} className="mt-2 max-h-72 space-y-1 overflow-auto rounded-md border border-border bg-surface-2 p-2.5 text-[12px] leading-5 text-fg/90" />
                         <div className="mt-2 flex items-center gap-1 text-[11px] text-muted"><Clock className="h-3 w-3" />{off.latency_s}s</div>
+                      </>
+                    ) : ctx?.ontology?.ect?.genie_one_answer ? (
+                      <>
+                        <GenieMarkdown md={ctx.ontology.ect.genie_one_answer} className="mt-2 max-h-72 space-y-1 overflow-auto rounded-md border border-border bg-surface-2 p-2.5 text-[12px] leading-5 text-fg/90" />
+                        <div className="mt-2 text-[11px] text-muted">ECT, recorded {ctx.ontology.ect.recorded_at?.slice(0, 10)}</div>
                       </>
                     ) : (
                       <div className="mt-2 rounded-md border border-dashed border-border bg-surface-2 px-2 py-3 text-[12px] text-muted">No recorded Genie answer for this question.</div>

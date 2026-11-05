@@ -2,15 +2,8 @@ import { AlertTriangle, Info } from "lucide-react";
 import { Fragment, useEffect, useState } from "react";
 import { api, type A1Runs, type CapabilityMap } from "../api";
 import { Collapsible } from "../components/Collapsible";
+import { TIER, TierChip } from "../components/TierChip";
 
-// Retrieval columns: is the retrieved context alone sufficient (same judge as the Arena).
-// Genie One column: hand-verified end-to-end answer (retrieval + its own SQL).
-const VERDICT: Record<string, { label: string; cls: string }> = {
-  reached: { label: "sufficient", cls: "bg-success/15 text-success" },
-  not_reached: { label: "insufficient", cls: "bg-destructive/15 text-destructive" },
-  no_retrieval: { label: "nothing retrieved", cls: "bg-surface-2 text-muted" },
-  pending: { label: "pending", cls: "bg-surface-2 text-muted/60" },
-};
 const E2E: Record<string, { label: string; cls: string }> = {
   reached: { label: "right", cls: "bg-success/15 text-success" },
   correct_refusal: { label: "refused ✓", cls: "bg-primary/15 text-primary" },
@@ -21,7 +14,7 @@ const E2E: Record<string, { label: string; cls: string }> = {
 };
 
 function Verdict({ v, e2e }: { v: string; e2e?: boolean }) {
-  const s = (e2e ? E2E : VERDICT)[v] ?? { label: v, cls: "bg-surface-2 text-muted" };
+  const s = e2e ? E2E[v] ?? { label: v, cls: "bg-surface-2 text-muted" } : { label: TIER[v]?.short ?? v, cls: TIER[v]?.cls ?? "bg-surface-2 text-muted" };
   return <span className={`inline-block rounded px-1.5 py-0.5 text-[11px] font-semibold ${s.cls}`}>{s.label}</span>;
 }
 
@@ -40,15 +33,22 @@ function armColor(id: string): string {
 
 function Bar({ r }: { r: CapabilityMap["rollup"][number] }) {
   const e2e = r.kind === "end_to_end";
-  const pct = r.total ? Math.round((r.reached / r.total) * 100) : 0;
+  const pct = (n: number) => (r.total ? (n / r.total) * 100 : 0);
   return (
     <div className="flex items-center gap-3">
       <div className="flex w-44 shrink-0 items-center gap-1.5 text-[13px] font-medium">
         <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: armColor(r.arm) }} />
         {r.label}
       </div>
-      <div className="relative h-7 flex-1 overflow-hidden rounded bg-surface-2">
-        <div className={`h-full rounded ${e2e ? "opacity-60" : ""}`} style={{ width: `${pct}%`, background: armColor(r.arm) }} />
+      <div className="relative flex h-7 flex-1 overflow-hidden rounded bg-surface-2">
+        {e2e ? (
+          <div className="h-full opacity-60" style={{ width: `${pct(r.reached)}%`, background: armColor(r.arm) }} />
+        ) : (
+          <>
+            <div className="h-full" style={{ width: `${pct(r.tier1)}%`, background: armColor(r.arm) }} />
+            <div className="h-full opacity-45" style={{ width: `${pct(r.tier2)}%`, background: armColor(r.arm) }} />
+          </>
+        )}
         <div className="absolute inset-0 flex items-center px-2 text-[12px] font-medium">
           {e2e ? (
             <span>
@@ -57,9 +57,9 @@ function Bar({ r }: { r: CapabilityMap["rollup"][number] }) {
             </span>
           ) : (
             <span>
-              {r.reached}/{r.total} context sufficient
-              {r.not_reached ? ` · ${r.not_reached} insufficient` : ""}
-              {r.no_retrieval ? ` · ${r.no_retrieval} retrieved nothing` : ""}
+              {r.tier1} answer in context · {r.tier2} via one query · {r.tier3} neither
+              {r.skipped ? ` (${r.skipped} search skipped)` : ""}
+              {r.unstable ? <span className="ml-1.5 text-warning">· {r.unstable} varied across runs</span> : null}
             </span>
           )}
         </div>
@@ -73,12 +73,22 @@ function Ladder({ map }: { map: CapabilityMap }) {
   const e2e = map.rollup.filter((r) => r.kind === "end_to_end");
   return (
     <div className="space-y-2">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">Retrieval alone — is the context sufficient?</div>
+      <div className="flex flex-wrap items-center gap-3 text-[11px] font-semibold uppercase tracking-wide text-muted">
+        <span>Retrieval alone — of {map.floor?.total ?? 10} questions</span>
+        <span className="flex items-center gap-1 normal-case tracking-normal"><span className="h-2.5 w-4 rounded-sm bg-fg/70" /> tier 1: answer in context</span>
+        <span className="flex items-center gap-1 normal-case tracking-normal"><span className="h-2.5 w-4 rounded-sm bg-fg/30" /> tier 2: one query from context</span>
+      </div>
       {ret.map((r) => <Bar key={r.arm} r={r} />)}
+      {map.floor && (
+        <div className="flex items-center gap-3 text-[12px] text-muted">
+          <div className="w-44 shrink-0 pl-4">No retrieval (floor)</div>
+          <div>{map.floor.tier1} in context · {map.floor.tier2} via one query — the same agent with an empty context</div>
+        </div>
+      )}
       {e2e.length > 0 && (
         <>
           <div className="pt-3 text-[11px] font-semibold uppercase tracking-wide text-muted">
-            For contrast — Genie One end-to-end (its retrieval + the SQL it writes; hand-verified)
+            For contrast — Genie One end-to-end (its own retrieval + as many queries as it wants; hand-verified)
           </div>
           {e2e.map((r) => <Bar key={r.arm} r={r} />)}
         </>
@@ -97,7 +107,7 @@ function Matrix({ map }: { map: CapabilityMap }) {
             {map.arms.map((a) => (
               <th key={a.id} className={`px-2 py-2 text-center font-semibold whitespace-nowrap ${a.kind === "end_to_end" ? "border-l-2 border-border bg-surface" : ""}`}>
                 {a.label}
-                <div className="text-[10px] font-normal text-muted">{a.kind === "end_to_end" ? "answer, hand-verified" : "context alone"}</div>
+                <div className="text-[10px] font-normal text-muted">{a.kind === "end_to_end" ? "answer, hand-verified" : "retrieved context"}</div>
               </th>
             ))}
           </tr>
@@ -122,8 +132,12 @@ function Matrix({ map }: { map: CapabilityMap }) {
                   </td>
                   {map.arms.map((a) => (
                     <td key={a.id} className={`px-2 py-2 text-center ${a.kind === "end_to_end" ? "border-l-2 border-border" : ""}`}
-                      title={q.evidence?.[a.id] ? `Retrieved:\n${q.evidence[a.id]}` : undefined}>
-                      <Verdict v={q.verdicts[a.id]} e2e={a.kind === "end_to_end"} />
+                      title={q.evidence?.[a.id] ? `Retrieved:\n${q.evidence[a.id].context}${q.evidence[a.id].sql ? `\n\nOne query:\n${q.evidence[a.id].sql}` : ""}` : undefined}>
+                      {a.kind === "end_to_end" ? (
+                        <Verdict v={q.verdicts[a.id]} e2e />
+                      ) : (
+                        <TierChip k={q.verdicts[a.id]} short runs={q.evidence?.[a.id]?.tier_runs} stable={q.evidence?.[a.id]?.stable} />
+                      )}
                     </td>
                   ))}
                 </tr>
@@ -228,10 +242,10 @@ export function BenchmarkScorecard() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">When each layer earns its place</h1>
         <p className="mt-1.5 text-[15px] text-muted">
-          The five retrieval approaches on the same 10 questions, scored on one basis — the same one the Arena uses:
-          <span className="font-semibold text-fg"> is the context this approach retrieves, on its own, enough to answer?</span>{" "}
-          One judge ({map.scored_by?.judge?.replace("databricks:/", "") ?? "LLM judge"}) reads only the retrieved context and the
-          question. Genie One's end-to-end answer sits in a separate column for contrast.
+          The five retrieval approaches on the same 10 questions, each scored only on the context it retrieves, in three tiers:{" "}
+          <span className="font-semibold text-fg">1</span> the answer is in that context;{" "}
+          <span className="font-semibold text-fg">2</span> the context gives what's needed for one SQL query that returns the answer (we run it);{" "}
+          <span className="font-semibold text-fg">3</span> neither. Same tiers as the Arena. Genie One's end-to-end answer sits in a separate column for contrast.
         </p>
       </div>
 
@@ -239,37 +253,40 @@ export function BenchmarkScorecard() {
         <Collapsible title="Ablation ladder — reach by arm">
           <Ladder map={map} />
           <p className="mt-2 text-[13px] text-muted">
-            Closure/edge tables carry most questions because they hand back precomputed answers. Metric views carry the
-            KPIs they define. Genie Ontology's retrieval returns definitions (snippets and Pages), not the computed
-            values, so on its own it rarely suffices. Genie One gets most of them right because it writes SQL on top of
-            that retrieval.
+            Tier 2 is a deliberately narrow test: one query, written only from names that appear in the retrieved context,
+            with no schema given and no retries. Genie One is not held to that limit: it explores, then runs several
+            queries. That is the gap between the two parts of this chart.
           </p>
         </Collapsible>
 
         <Collapsible title="Capability map — question × arm">
           <div className="mb-2 flex flex-wrap gap-2 text-[11px]">
-            {Object.entries(VERDICT).map(([k, v]) => (
-              <span key={k} className={`rounded px-1.5 py-0.5 font-semibold ${v.cls}`}>{v.label}</span>
+            {["tier1", "tier2", "tier3", "no_retrieval", "skipped"].map((k) => (
+              <span key={k} className={`rounded px-1.5 py-0.5 font-semibold ${TIER[k].cls}`}>{TIER[k].label}</span>
             ))}
           </div>
           <Matrix map={map} />
           <p className="mt-2 text-[12px] text-muted">
-            Retrieval columns come from the judged retrieval eval (<span className="font-mono">retrieval_eval_arena.json</span>):
-            each approach's real retrieval for the question, live where it can be (metric views, closure SQL, RAG,
-            the Ontobricks triplestore) and recorded for Genie Ontology (its own snippet search on ECT). Hover a cell
-            to see what was retrieved. <span className="font-semibold text-fg">nothing retrieved</span> means the approach
-            returned no context for that question.
+            What each approach retrieves: <span className="font-semibold text-fg">metric view</span> = the YAML definitions of the 3
+            certified metric views most relevant to the question; <span className="font-semibold text-fg">closure / edge</span> = the
+            terminology table cards plus the rows the question's linked entities hit (same entity linker as the graph);{" "}
+            <span className="font-semibold text-fg">Genie Ontology</span> = its own snippet search + Pages, recorded on ECT;{" "}
+            <span className="font-semibold text-fg">RAG</span> = top-5 Lakebase passages; <span className="font-semibold text-fg">graph</span> = the
+            subgraph up to 3 hops around the linked entities in the live triplestore. Tier 1 is judged one gold fact at a time; tier 2's
+            query is executed and its rows judged. {map.scored_by?.repeats ?? 3} runs per cell, majority shown; hover a cell
+            for what was retrieved and the query.
           </p>
-          <div className="mt-3 flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/5 p-3 text-[12.5px] leading-snug text-fg">
-            <Info className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+          <div className="mt-3 flex items-start gap-2 rounded-lg border border-border bg-surface-2/60 p-3 text-[12.5px] leading-snug text-fg">
+            <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted" />
             <span>
-              <span className="font-semibold">What the misses mean.</span> The graph's entity-linked triples carry typed
-              definitions (<span className="font-mono">contraindicatedWhen</span>, <span className="font-mono">hasThreshold</span>),
-              which is enough for the metformin/eGFR rule. But a set of triples isn't a count or a rate, so it fails the
-              aggregate questions. A graph <span className="italic">query</span> (a COUNT traversal) would be a different
-              approach. Genie Ontology's snippets are on-topic on ECT but describe how to compute an answer, not the answer
-              itself. The exception is the rationale-path question, where the definitions <span className="italic">are</span>{" "}
-              the answer. Neither result is a verdict on Genie One, which adds SQL; see its separate column.
+              <span className="font-semibold">What this run surfaced (2026-11-05).</span>{" "}
+              On the graph-native question (a patient's own diagnosis vs. the protocol's contraindication rule), the graph
+              was the only approach whose context held the patient's records and the rule together. Closure had the rule but no
+              patient data. Genie One still answered it end-to-end, from the relational closure/edge tables.
+              Genie Ontology's inferred snippets on ECT name metric views at their old <span className="font-mono">care_protocol.*</span>{" "}
+              location, so queries built from them fail. <span className="font-mono">protocol_drift_metrics</span> has no UC comment and
+              wasn't retrieved for the drift question. The published graph has no names for drugs, codes or value sets
+              (e.g. "metformin" is only <span className="font-mono">rx/6809</span>).
             </span>
           </div>
         </Collapsible>

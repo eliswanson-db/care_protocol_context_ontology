@@ -166,6 +166,21 @@ WITH dm AS (SELECT DISTINCT patient_id FROM {catalog}.{schema}.bronze_pat_enc_dx
 SELECT COUNT(*) AS cardiorenal_cohort
 FROM dm JOIN ckd USING (patient_id) JOIN hf USING (patient_id);
 
+-- @id: graph_contra_conflict
+-- class: 8_graph_native  min_approach: graph  expect: 1
+-- Patient fa93c75f-1541-10c2-ea84-f947c8561ce5: medications whose drug class the care protocol contraindicates
+-- for one of the patient's OWN diagnoses. Path: prescribed rxnorm -> rxnorm_closure -> drug class ->
+-- protocol_edges contraindicatedWith -> value_set_segment code -> ICD prefix of the patient's dx.
+-- The single conflict: Simvastatin 10 MG (314231, DRUGCLASS-STATIN) x Z34.90 (pregnancy) via CONTRA_PREGNANCY, CP sec4.
+SELECT COUNT(*) AS conflicts FROM (
+  SELECT DISTINCT m.rxnorm_code, c.ancestor_code, e.object, dx.icd10_code
+  FROM {catalog}.{schema}.bronze_order_med m
+  JOIN {catalog}.{tschema}.rxnorm_closure c ON m.rxnorm_code = c.descendant_code
+  JOIN {catalog}.{tschema}.protocol_edges e ON e.subject = c.ancestor_code AND e.predicate = 'contraindicatedWith'
+  JOIN {catalog}.{tschema}.value_set_segment v ON v.segment_id = e.object
+  JOIN {catalog}.{schema}.bronze_pat_enc_dx dx ON dx.patient_id = m.patient_id AND dx.icd10_code LIKE concat(v.code, '%')
+  WHERE m.patient_id = 'fa93c75f-1541-10c2-ea84-f947c8561ce5');
+
 -- @id: op_worst_clinic_annual
 -- class: 9_operational_temporal  min_approach: metric_view  expect: CLINIC-04
 -- Lowest protocol Step-3 adherence year-to-date, closed 90-day windows only (open windows aren't misses yet).

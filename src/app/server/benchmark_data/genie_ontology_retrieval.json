@@ -1,5 +1,5 @@
 {
- "recorded_at": "2026-11-05T04:55:00+00:00",
+ "recorded_at": "2026-11-05T13:28:34+00:00",
  "workspaces": {
   "ect": {
    "host": "fevm-eli-test-classic",
@@ -878,218 +878,131 @@
      "pages_read": []
     },
     "def_metformin_egfr": {
-     "queries": [],
-     "snippets": [],
-     "pages": [],
-     "pages_read": [],
-     "attempts": 3,
-     "skipped_search": true
-    },
-    "infer_rationale_path": {
      "queries": [
-      "SPD statin therapy for patients with diabetes definition and diabetes cohort ICD-10 E10 E11 E13"
+      "metformin contraindication eGFR threshold care protocol"
      ],
      "snippets": [
       {
-       "headline": "Diabetes eligibility includes diagnoses subsumed under the E10, E11, and E13 ICD-10-CM hierarchy families.",
-       "type": "business_logic",
-       "source": "[dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
-       "relevance": 0.84,
-       "authority": 0.02,
-       "content": "The diabetes cohort is defined by subsumption over the ICD-10-CM hierarchy, specifically diagnoses under E10, E11, and E13. Use this governed cohort definition when interpreting any of the five measure populations. Do not infer diabetes eligibility from unrelated diagnosis codes or from measure status alone.",
-       "on_topic": true,
-       "stale": false
-      },
-      {
-       "headline": "SPD measures statin therapy among diabetic adults aged 40 through 75 who were dispensed a statin during the measurement year.",
-       "type": "metric_definition",
-       "source": "[dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
-       "relevance": 0.83,
-       "authority": 0.02,
-       "content": "SPD means Statin Therapy. The eligible population is diabetic patients aged 40-75, and compliance requires statin dispensing in the measurement year. Retrieve the governed rate with `SELECT MEASURE(`SPD Compliance Rate`) AS spd_rate FROM eli_test_classic_catalog.care_protocol.spd_compliance_metrics`. For patient-level detail or care gaps, use `eli_test_classic_catalog.care_protocol.gold_adherence_spd`.",
-       "on_topic": true,
-       "stale": false
-      },
-      {
-       "headline": "Statin Therapy measures whether eligible diabetic patients aged 40\u201375 received a statin during the measurement year.",
-       "type": "business_logic",
-       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
-       "relevance": 0.84,
-       "authority": 0.02,
-       "content": "SPD means Statin Therapy for diabetic patients aged 40-75. A patient meets SPD when a statin was dispensed in the measurement year, represented by `gold_adherence_spd.numerator_flag`. The patient-level SPD rate is `COUNT_IF(gold_adherence_spd.numerator_flag) / COUNT(*)`, where the denominator is all SPD-eligible rows at the grouping grain. For drug-level analysis, normalize the statin ingredient from the evidence drug name with `INITCAP(SPLIT(gold_adherence_spd.evidence_drug, ' ')[0])`.",
-       "on_topic": true,
-       "stale": false
-      },
-      {
-       "headline": "Diabetes quality reporting in this agent covers five HEDIS-aligned demo measures and is not NCQA-certified.",
-       "type": "business_logic",
-       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
-       "relevance": 0.78,
-       "authority": 0.02,
-       "content": "This Genie Agent covers five diabetes quality measures: GSD, KED, BPD, SPD, and EED. The measures are described as HEDIS-aligned demo content and explicitly are not NCQA-certified. The diabetes cohort is defined by subsumption over the ICD-10-CM hierarchy, using diagnoses under `E10`, `E11`, and `E13`. Analysts should treat these rules as the measure universe for this semantic layer rather than as certified HEDIS specifications.",
-       "on_topic": true,
-       "stale": false
-      },
-      {
-       "headline": "This agent covers five HEDIS-aligned diabetes quality measures, but its results are a demonstration rather than NCQA-certified reporting.",
-       "type": "business_logic",
-       "source": "[dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
-       "relevance": 0.72,
-       "authority": 0.02,
-       "content": "The agent answers questions about five HEDIS-aligned diabetes measures: GSD, KED, BPD, SPD, and EED. This is a HEDIS-aligned demo and is not NCQA-certified. The available data is organized into matching patient-level gold adherence tables and governed compliance metric views in the Care Protocol semantic layer.",
-       "on_topic": true,
-       "stale": false
-      },
-      {
-       "headline": "The target population consists of distinct patients with diabetes, chronic kidney disease, and heart failure diagnoses.",
-       "type": "business_logic",
-       "source": "Query history for eli_test_classic_catalog.care_protocol.bronze_order_med and eli_test_classic_catalog.care_protocol_terminology.rxnorm_closure",
-       "relevance": 0.75,
-       "authority": 0.012,
-       "content": "The clinical cohort is the set of DISTINCT `patient_id` values appearing in `eli_test_classic_catalog.care_protocol.bronze_pat_enc_dx` under all three diagnosis conditions: `icd10_code LIKE 'E11%' OR icd10_code LIKE 'E10%' OR icd10_code LIKE 'E13%'` for diabetes, `icd10_code LIKE 'N18%'` for chronic kidney disease, and `icd10_code LIKE 'I50%'` for heart failure. The three diagnosis subsets are joined with INNER JOIN on `patient_id`, so a patient must have at least one matching diagnosis in each subset. The cohort count is `COUNT(*)` over the resulting distinct patient list, not a count of diagnosis records.",
-       "on_topic": true,
-       "stale": false
-      },
-      {
-       "headline": "GSD measures whether diabetic adults aged 18 through 75 received an A1c test during the measurement year.",
-       "type": "metric_definition",
-       "source": "[dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
-       "relevance": 0.73,
-       "authority": 0.02,
-       "content": "GSD means Glycemic Status Assessment. Its eligible population is diabetic patients aged 18-75, and compliance requires an A1c test in the measurement year. Retrieve the rate with `SELECT MEASURE(`GSD Compliance Rate`) AS gsd_compliance_rate FROM eli_test_classic_catalog.care_protocol.gsd_compliance_metrics`. For patient-level evidence or care gaps, use `eli_test_classic_catalog.care_protocol.gold_adherence_gsd` instead of the metric view.",
-       "on_topic": true,
-       "stale": false
-      },
-      {
-       "headline": "EED measures retinal or diabetic eye examination among diabetic adults aged 18 through 75 during the measurement year.",
-       "type": "metric_definition",
-       "source": "[dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
-       "relevance": 0.72,
-       "authority": 0.02,
-       "content": "EED means Eye Exam. The eligible population is diabetic patients aged 18-75, and compliance requires a retinal or diabetic eye exam in the measurement year. Retrieve the governed rate with `SELECT MEASURE(`EED Compliance Rate`) AS eed_rate FROM eli_test_classic_catalog.care_protocol.eed_compliance_metrics`. For patient-level evidence or care gaps, use `eli_test_classic_catalog.care_protocol.gold_adherence_eed`.",
-       "on_topic": true,
-       "stale": false
-      },
-      {
-       "headline": "BPD measures blood-pressure control among diabetic adults aged 18 through 75 using the most recent reading.",
-       "type": "metric_definition",
-       "source": "[dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
-       "relevance": 0.71,
-       "authority": 0.02,
-       "content": "BPD means Blood Pressure control. The eligible population is diabetic patients aged 18-75, and compliance requires that the most recent blood-pressure reading is `<140/90`. Retrieve the governed rate with `SELECT MEASURE(`BPD Compliance Rate`) AS bpd_rate FROM eli_test_classic_catalog.care_protocol.bpd_compliance_metrics`. For patient-level detail or care gaps, use `eli_test_classic_catalog.care_protocol.gold_adherence_bpd`.",
-       "on_topic": true,
-       "stale": false
-      },
-      {
-       "headline": "Statin Therapy patients use Glycemic Status rows for clinic and panel attribution without dropping eligible patients.",
-       "type": "join_hint",
-       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
-       "relevance": 0.71,
-       "authority": 0.02,
-       "content": "Attach clinic or panel attribution to SPD patients by joining `eli_test_classic_catalog.care_protocol.gold_adherence_spd` to `eli_test_classic_catalog.care_protocol.gold_adherence_gsd` on `gold_adherence_spd.patient_id = gold_adherence_gsd.patient_id AND gold_adherence_spd.measurement_year = gold_adherence_gsd.measurement_year`. The curated relationship is many-to-one from SPD to GSD, and every SPD patient has a GSD row. Use this join only to bring `clinic_id` and `panel_id` onto SPD patient-level rows for clinic or panel breakdowns. Under the curated assumption, the join does not drop SPD patients.",
-       "on_topic": true,
-       "stale": false
-      },
-      {
-       "headline": "BPD, SPD, and EED gaps identify uncontrolled or unmeasured blood pressure, absent statin dispensing, and absent diabetic eye examinations.",
-       "type": "business_logic",
-       "source": "Query history for eli_test_classic_catalog.care_protocol.gold_adherence_gsd and eli_test_classic_catalog.care_protocol.gold_adherence_ked",
-       "relevance": 0.71,
-       "authority": 0.012,
-       "content": "Among rows included with `status = 'NOT_MET'`, BPD is assigned the gap reason `'BP not controlled / no reading'`, SPD is assigned `'No statin dispensed'`, and EED is assigned `'No diabetic eye exam'`. These exact labels are counted from `eli_test_classic_catalog.care_protocol.gold_adherence_bpd`, `eli_test_classic_catalog.care_protocol.gold_adherence_spd`, and `eli_test_classic_catalog.care_protocol.gold_adherence_eed` using `COUNT(*)` grouped by measure and gap reason. The query does not further split the BPD label into controlled versus missing-reading subcategories, so both conditions remain one combined category.",
-       "on_topic": true,
-       "stale": false
-      },
-      {
-       "headline": "Glycemic Status Assessment measures whether eligible diabetic patients aged 18\u201375 had an A1c test during the year.",
-       "type": "business_logic",
-       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
-       "relevance": 0.74,
-       "authority": 0.02,
-       "content": "GSD means Glycemic Status Assessment for diabetic patients aged 18-75. A patient meets GSD when they have an A1c test in the measurement year, represented in patient detail by `gold_adherence_gsd.numerator_flag`. The standard patient-level compliance formula is `COUNT_IF(gold_adherence_gsd.numerator_flag) / COUNT(*)`, where the denominator is all eligible rows in `eli_test_classic_catalog.care_protocol.gold_adherence_gsd` at the grouping grain. For the governed overall rate, query `SELECT MEASURE(`GSD Compliance Rate`) AS gsd_compliance_rate FROM eli_test_classic_catalog.care_protocol.gsd_compliance_metrics`.",
-       "on_topic": true,
-       "stale": false
-      },
-      {
-       "headline": "Statin, ACE inhibitor or ARB, and SGLT2 coverage are reported as separate patient counts within the clinical cohort.",
-       "type": "metric_definition",
-       "source": "Query history for eli_test_classic_catalog.care_protocol.bronze_order_med and eli_test_classic_catalog.care_protocol_terminology.rxnorm_closure",
-       "relevance": 0.72,
-       "authority": 0.012,
-       "content": "For the cohort from `eli_test_classic_catalog.care_protocol.bronze_pat_enc_dx`, the statin count includes distinct patients whose medication mapping has `c.ancestor_code = 'DRUGCLASS-STATIN'`. The ACE inhibitor or ARB count includes distinct patients whose mapping has `c.ancestor_code IN ('DRUGCLASS-ACE', 'DRUGCLASS-ARB')`, so either class qualifies. The SGLT2 count includes distinct patients whose mapping has `c.ancestor_code = 'DRUGCLASS-SGLT2'`. Each count comes from `eli_test_classic_catalog.care_protocol.bronze_order_med` INNER JOIN `eli_test_classic_catalog.care_protocol_terminology.rxnorm_closure` on `m.rxnorm_code = c.descendant_code`, and each is limited by `m.patient_id IN (SELECT patient_id FROM cr)`; these are separate overlapping coverage counts, not mutually exclusive medication groups.",
-       "on_topic": true,
-       "stale": false
-      },
-      {
-       "headline": "Clinic-level comparisons across diabetes measures use Glycemic Status attribution and report each measure\u2019s eligible clinic-attributed patients.",
-       "type": "metric_definition",
-       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
-       "relevance": 0.7,
-       "authority": 0.02,
-       "content": "For clinic-level comparisons across all five diabetes measures, the curated pattern uses GSD as the clinic attribution source. The union labels the complete measure set as `GSD`, `KED`, `BPD`, `SPD`, and `EED`, each carrying `measurement_year`, `clinic_id`, and `numerator_flag`; KED, BPD, SPD, and EED are joined to the GSD clinic CTE by `patient_id` and `measurement_year`. The clinic rates are `COUNT_IF(measure = '<MEASURE>' AND numerator_flag) / COUNT_IF(measure = '<MEASURE>')` for each measure. Because the KED branch uses an inner join to GSD, clinic-level KED rates represent clinic-attributed KED patients rather than all KED-eligible patients aged 18-85.",
-       "on_topic": true,
-       "stale": false
-      },
-      {
-       "headline": "Medication-class coverage is measured as distinct cohort patients with at least one mapped medication order.",
-       "type": "join_hint",
-       "source": "Query history for eli_test_classic_catalog.care_protocol.bronze_order_med and eli_test_classic_catalog.care_protocol_terminology.rxnorm_closure",
-       "relevance": 0.7,
-       "authority": 0.012,
-       "content": "Medication coverage counts use `COUNT(DISTINCT m.patient_id)` from `eli_test_classic_catalog.care_protocol.bronze_order_med`, restricted to patients in the diabetes-plus-kidney-disease-plus-heart-failure cohort defined from `eli_test_classic_catalog.care_protocol.bronze_pat_enc_dx`. A medication order is mapped to a drug class by an INNER JOIN to `eli_test_classic_catalog.care_protocol_terminology.rxnorm_closure` on `m.rxnorm_code = c.descendant_code`; the class is selected through `c.ancestor_code`. Because the metric counts distinct patients rather than orders, multiple qualifying medication orders for one patient contribute one covered patient.",
-       "on_topic": true,
-       "stale": false
-      },
-      {
-       "headline": "Eye Exam measures whether eligible diabetic patients aged 18\u201375 had a retinal or diabetic eye exam during the year.",
+       "headline": "Kidney Evaluation outreach for closing uACR gaps targets patients who already completed eGFR but lack uACR.",
        "type": "business_logic",
        "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
        "relevance": 0.73,
        "authority": 0.02,
-       "content": "EED means Eye Exam for diabetic patients aged 18-75. A patient meets EED when they had a retinal or diabetic eye exam in the measurement year, represented by `gold_adherence_eed.numerator_flag`. The standard patient-level EED compliance formula is `COUNT_IF(gold_adherence_eed.numerator_flag) / COUNT(*)`, where the denominator is all EED-eligible rows at the grouping grain. Use `MEASURE(`EED Compliance Rate`)` from `eli_test_classic_catalog.care_protocol.eed_compliance_metrics` for governed rate reporting.",
+       "content": "KED care gap outreach has a specific filter for patients who completed eGFR but are missing only uACR. INCLUDE those rows with `gold_adherence_ked.egfr_flag AND NOT gold_adherence_ked.uacr_flag`. This is distinct from the broad KED care gap filter `gold_adherence_ked.status = 'NOT_MET'`, which includes patients missing eGFR, missing uACR, or missing both. Use the specific filter for \u201cclose the uACR gap\u201d outreach and the broad status filter for total KED care gap lists/counts.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "eGFR patient coverage counts distinct observed patients matched to each version of the KED eGFR code set during 2025.",
+       "type": "metric_definition",
+       "source": "Query history for eli_test_classic_catalog.care_protocol.silver_observation and eli_test_classic_catalog.care_protocol_terminology.value_set_segment",
+       "relevance": 0.72,
+       "authority": 0.012,
+       "content": "The eGFR patient-coverage measure counts `COUNT(DISTINCT o.patient_id)` for observations in `eli_test_classic_catalog.care_protocol.silver_observation` where `YEAR(result_ts) = 2025`, grouped by value-set version. The matched observation codes are collected as a comma-separated distinct set with `concat_ws(', ', collect_set(o.loinc_code))`; this is a code-coverage result, not a count of observations. Value-set versions come from `eli_test_classic_catalog.care_protocol_terminology.value_set_segment` filtered with `segment_id = 'KED_EGFR'`, and each version is retained even when no 2025 patients match because the final joins are LEFT JOINs.",
        "on_topic": true,
        "stale": false
       }
      ],
      "pages": [
       {
-       "id": "c8324591-625b-44db-9f8b-c57e9ba5dd7b",
-       "name": "SPD \u2014 Statin Therapy for Patients With Diabetes",
-       "domain": "Clinical Domain",
-       "relevance": 1.0,
-       "certified": false,
-       "description": "SPD (Statin Therapy for Patients With Diabetes) is a HEDIS measure for statin use in diabetic patients.",
-       "on_topic": true
-      },
-      {
-       "id": "90137b0e-d1a0-4667-aea0-8aff1f754984",
-       "name": "SPD (Statin Therapy)",
-       "domain": "Clinical Domain",
-       "relevance": 0.67,
-       "certified": false,
-       "description": "Share of diabetic patients aged 40\u201375 dispensed at least one statin; statins resolved from RxNorm ingredients via subsumption.",
-       "on_topic": true
-      },
-      {
-       "id": "402e8af3-3e5a-4a46-aa36-22dcd8df5e64",
-       "name": "Diabetes Cohort",
-       "domain": "Clinical Domain",
+       "id": "17fa0ba1-a8cc-472d-ae53-6133c84aa611",
+       "name": "Cardiometabolic condition",
+       "domain": "Health Payers",
        "relevance": 0.5,
        "certified": false,
-       "description": "Patients with any ICD-10-CM diagnosis under E10, E11, or E13 (including all child codes); the base population for every diabetes measure.",
+       "description": "Customer-defined group: cardiovascular plus endocrine/metabolic conditions.",
+       "on_topic": false
+      },
+      {
+       "id": "4ae0fb88-3dc7-4b45-93e0-4491de7b9f08",
+       "name": "Care Gap",
+       "domain": "Clinical Domain",
+       "relevance": 0.45,
+       "certified": false,
+       "description": "Patient-level status: an eligible patient (in the denominator) missing a measure's required care is NOT_MET and has an open gap.",
        "on_topic": true
       },
       {
-       "id": "39acdaed-c7ba-42ae-b6f7-ce8134fdde42",
-       "name": "Diabetic beneficiary",
-       "domain": "Health Payers",
-       "relevance": 0.37,
+       "id": "576075c5-d2a3-4208-bc81-9d9fd686d173",
+       "name": "Escalation threshold",
+       "domain": "compliance_aml",
+       "relevance": 0.41,
        "certified": false,
-       "description": "A beneficiary with an active Type 2 diabetes (E11.9) condition.",
+       "description": "Overnight count at or above 125% of the 30-day baseline for a typology.",
+       "on_topic": false
+      },
+      {
+       "id": "f9a44abc-34bb-4ef6-be19-ee9deb28aaa6",
+       "name": "Deficiency Rate (metric)",
+       "domain": "medical affairs",
+       "relevance": 0.38,
+       "certified": false,
+       "description": "Share of serum measurements below the 20 ng/mL sufficiency threshold.",
        "on_topic": false
       }
      ],
-     "pages_read": []
+     "pages_read": [],
+     "attempts": 1,
+     "genie_one_answer": "## Metformin is contraindicated when eGFR is below 30\n\nThe care protocol says metformin should not be used when **eGFR is below 30**, meaning strictly less than 30. The rule comes from **section CP-GLY-2** of the care protocol. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/f22120b3d8a3483cbbe661009479cd4c?o=7474653847172668#embed-query_e4d2f4) This matches your earlier lookup of the same question. [Earlier metformin eGFR lookup](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/dffbcdfeaaca46f9aee16f57d8ede525?o=7474653847172668)\n\n### Where it's stated\n- **Table:** the protocol rules table, which records the protocol section each rule comes from. [eli_test_classic_catalog.care_protocol_terminology.protocol_edges](https://fevm-eli-test-classic.cloud.databricks.com/explore/data/eli_test_classic_catalog/care_protocol_terminology/protocol_edges?isDbOne=true&utm_source=one-chat&o=7474653847172668) [hedis-diabetes-quality](https://fevm-eli-test-classic.cloud.databricks.com/one/tools/skills/%2FWorkspace%2FUsers%2Feli.swanson%40databricks.com%2F.assistant%2Fskills%2Fhedis-diabetes-quality?isDbOne=true&utm_source=one-chat&o=7474653847172668)\n- **The rule as stored:** the biguanide drug class \u2192 contraindicated when \u2192 eGFR below 30. The threshold is 30 and the source is \"CP-GLY-2\". [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/f22120b3d8a3483cbbe661009479cd4c?o=7474653847172668#embed-query_e4d2f4)\n- **How it covers metformin:** the rule names the biguanide drug class, not metformin itself. In the drug hierarchy, metformin sits under the biguanide class. The product actually prescribed (24 HR Metformin hydrochloride 500 MG Extended Release Oral Tablet) sits under metformin. So the rule reaches metformin through that chain. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/f22120b3d8a3483cbbe661009479cd4c?o=7474653847172668#embed-query_228998)\n\n### Related rules\n- Section CP-GLY-2 also lists biguanides as **first-line therapy** for blood-sugar control.\n- SGLT2 inhibitors have a separate kidney-function cut-off: they're contraindicated below eGFR 20 (source \"CP sec4\"). [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/f22120b3d8a3483cbbe661009479cd4c?o=7474653847172668#embed-query_e4d2f4)\n\nThe table doesn't label protocol sections consistently, so the labels above are quoted exactly as stored. For the exact wording, check section CP-GLY-2 in the protocol document itself. This is synthetic demo data aligned to HEDIS, not certified by NCQA.",
+     "genie_one_sql": [
+      "SELECT `subject`, `predicate`, `object`, `value`, `source` FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE lower(`subject`) LIKE '%metformin%' OR lower(`subject`) LIKE '%biguanide%' OR lower(`object`) LIKE '%egfr%' ORDER BY `subject`, `predicate`",
+      "SELECT * FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE lower(`name`) LIKE '%metformin%' OR lower(`name`) LIKE '%biguanide%' OR upper(`code`) LIKE '%BIGUANIDE%' OR upper(`parent_code`) LIKE '%BIGUANIDE%'"
+     ]
+    },
+    "graph_contra_conflict": {
+     "queries": [
+      "statin contraindication CONTRA_PREGNANCY CONTRA_HEPATIC codes care protocol"
+     ],
+     "snippets": [],
+     "pages": [
+      {
+       "id": "6c11fcb6-9360-4e25-bf9c-3a18689471cf",
+       "name": "Inquiry Category",
+       "domain": "Medical Affairs",
+       "relevance": 0.5,
+       "certified": false,
+       "description": "Topic classification of a medical inquiry (efficacy, safety, dosing, off-label) for routing and demand analysis.",
+       "on_topic": false
+      },
+      {
+       "id": "2cc4c1af-c2a9-4b06-91ce-22763a17ab95",
+       "name": "Inquiry Category",
+       "domain": "Medical Affairs",
+       "relevance": 0.33,
+       "certified": false,
+       "description": "Topic classification of a medical inquiry (e.g. efficacy, safety, dosing, off-label) for routing and analysis.",
+       "on_topic": false
+      },
+      {
+       "id": "3ac68405-fd69-45d0-9816-d50adfb25eb5",
+       "name": "US Core Medication",
+       "domain": "mkgs_fhir",
+       "relevance": 0.26,
+       "certified": false,
+       "description": "US Core profile for representing medication products referenced by prescriptions and administration records.",
+       "on_topic": false
+      },
+      {
+       "id": "17fa0ba1-a8cc-472d-ae53-6133c84aa611",
+       "name": "Cardiometabolic condition",
+       "domain": "Health Payers",
+       "relevance": 0.25,
+       "certified": false,
+       "description": "Customer-defined group: cardiovascular plus endocrine/metabolic conditions.",
+       "on_topic": false
+      }
+     ],
+     "pages_read": [],
+     "attempts": 2,
+     "genie_one_answer": "## Statin contraindication check for this patient\n\n**Yes, on the codes. But the match is from past pregnancies, not a current one.** The patient's own **Simvastatin 10 MG Oral Tablet** order connects to their recorded diagnosis **Z34.90 \"Normal pregnancy\"** through the protocol rule **DRUGCLASS-STATIN `contraindicatedWith` CONTRA_PREGNANCY** (source \"CP sec4\"). [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/c43f1f5fe49540b2b5882db237244ce4?o=7474653847172668#embed-query_77a9c6) [hedis-diabetes-quality](https://fevm-eli-test-classic.cloud.databricks.com/one/tools/skills/%2FWorkspace%2FUsers%2Feli.swanson%40databricks.com%2F.assistant%2Fskills%2Fhedis-diabetes-quality?isDbOne=true&utm_source=one-chat&o=7474653847172668)\n\nEvery pregnancy on record ended years before the statin was ordered on 4 Mar 2026. So this is a historical match, not an active contraindication.\n\n### The connecting path\n\n| # | From | Link | To | Source |\n|---|---|---|---|---|\n| 1 | Patient | ordered (4 Mar 2026) | **Simvastatin 10 MG Oral Tablet** (RxNorm 314231) | `bronze_order_med` |\n| 2 | Simvastatin 10 MG Oral Tablet | rolls up to the ingredient | **simvastatin** (36567) | `rxnorm_closure` |\n| 3 | simvastatin | belongs to the drug class | **DRUGCLASS-STATIN** (HMG-CoA reductase inhibitor) | `rxnorm_closure` |\n| 4 | DRUGCLASS-STATIN | `contraindicatedWith` | **CONTRA_PREGNANCY** (CP sec4) | `protocol_edges` |\n| 5 | CONTRA_PREGNANCY | value set includes | **Z34** \"Encounter for supervision of normal pregnancy\" (along with O00, O15, O26) | `value_set_segment` |\n| 6 | Z34 | parent code, 1 level up, of | **Z34.90** \"Normal pregnancy, unspecified\" | `icd10_closure` |\n| 7 | Z34.90 | recorded for | **this patient** 4 times (onsets 2016-11-16 to 2020-12-09) | `bronze_pat_enc_dx` |\n\n<!-- begin-embedded:query_77a9c6 -->\n| drug | rxnorm_code | ingredient | drug_class | statin_order_ts | predicate | contraindication | protocol_source | segment_name | value_set_code | patient_dx_code | patient_dx | levels_below_value_set_code | n_dx_records | first_onset | last_onset |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n| Simvastatin 10 MG Oral Tablet | 314231 | simvastatin | DRUGCLASS-STATIN | 2026-03-04T10:44:21.000Z | contraindicatedWith | CONTRA_PREGNANCY | CP sec4 | Pregnancy (statin/ACE/ARB contraindication) | Z34 | Z34.90 | Normal pregnancy (finding) | 1 | 4 | 2016-11-16 | 2020-12-09 |\n<!-- end-embedded:query_77a9c6 -->\n\n[Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/c43f1f5fe49540b2b5882db237244ce4?o=7474653847172668#embed-query_680cde) [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/c43f1f5fe49540b2b5882db237244ce4?o=7474653847172668#embed-query_9fd343) [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/c43f1f5fe49540b2b5882db237244ce4?o=7474653847172668#embed-query_890f28) [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/c43f1f5fe49540b2b5882db237244ce4?o=7474653847172668#embed-query_444fe6)\n\n### Why it isn't an active contraindication\n- **Each pregnancy has an end date.** The source conditions record show four pregnancy episodes. The last one ran from 9 Dec 2020 to **14 Jul 2021**. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/c43f1f5fe49540b2b5882db237244ce4?o=7474653847172668#embed-query_e86be9)\n- **The patient later had a tubal ligation.** It is recorded as \"History of tubal ligation\" from 16 Sep 2021, with no end date, which makes a new pregnancy unlikely. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/c43f1f5fe49540b2b5882db237244ce4?o=7474653847172668#embed-query_e86be9)\n- **The protocol rule has no time window.** CONTRA_PREGNANCY lists codes only. If it's applied to any pregnancy ever recorded, it flags this patient. If it's applied to pregnancy that overlaps the st",
+     "genie_one_sql": [
+      "SELECT `subject`, `predicate`, `object`, `value`, `source` FROM `eli_test_classic_catalog`.`care_protocol_terminology`.`protocol_edges` ORDER BY `subject`, `predicate`",
+      "SELECT m.`rxnorm_code`, m.`description`, m.`start_ts`, r.`ancestor_code`, r.`ancestor_name`\nFROM `eli_test_classic_catalog`.`care_protocol`.`bronze_order_med` m\nJOIN `eli_test_classic_catalog`.`care_protocol_terminology`.`rxnorm_closure` r ON m.`rxnorm_code` = r.`descendant_code`\nWHERE m.`patient_id` = 'fa93c75f-1541-10c2-ea84-f947c8561ce5'\nORDER BY m.`start_ts`, r.`ancestor_code`",
+      "SELECT d.`icd10_code`, d.`description`, d.`onset_date`, c.`ancestor_code`, c.`ancestor_name`, c.`depth`\nFROM `eli_test_classic_catalog`.`care_protocol`.`bronze_pat_enc_dx` d\nLEFT JOIN `eli_test_classic_catalog`.`care_protocol_terminology`.`icd10_closure` c ON d.`icd10_code` = c.`descendant_code`\nWHERE d.`patient_id` = 'fa93c75f-1541-10c2-ea84-f947c8561ce5'\nORDER BY d.`icd10_code`, c.`depth`",
+      "SELECT `CODE`, `DESCRIPTION`, `START`, `STOP` FROM `eli_test_classic_catalog`.`care_protocol`.`raw_synthea_conditions` WHERE `PATIENT` = 'fa93c75f-1541-10c2-ea84-f947c8561ce5' ORDER BY `START`",
+      "SELECT `segment_id`, `segment_name`, `code`, `code_system`, `measurement_year` FROM `eli_test_classic_catalog`.`care_protocol_terminology`.`value_set_segment` WHERE upper(`segment_id`) LIKE '%CONTRA%' OR upper(`segment_id`) LIKE '%PREG%' OR upper(`segment_id`) LIKE '%HEPAT%' ORDER BY `segment_id`, `code`",
+      "WITH rx AS (\n  SELECT DISTINCT m.`patient_id`, m.`rxnorm_code`, m.`description` AS drug, m.`start_ts`, ing.`ancestor_name` AS ingredient\n  FROM `eli_test_classic_catalog`.`care_protocol`.`bronze_order_med` m\n  JOIN `eli_test_classic_catalog`.`care_protocol_terminology`.`rxnorm_closure` cls ON m.`rxnorm_code` = cls.`descendant_code` AND cls.`ancestor_code` = 'DRUGCLASS-STATIN'\n  LEFT JOIN `eli_test_classic_catalog`.`care_protocol_terminology`.`rxnorm_closure` ing ON m.`rxnorm_code` = ing.`descendant_code` AND ing.`ancestor_code` = '36567'\n  WHERE m.`patient_id` = 'fa93c75f-1541-10c2-ea84-f947c8561ce5'\n),\nrule AS (\n  SELECT `subject`, `predicate`, `object`, `source` FROM `eli_test_classic_catalog`.`care_protocol_terminology`.`protocol_edges`\n  WHERE `subject` = 'DRUGCLASS-STATIN' AND `predicate` = 'contraindicatedWith'\n),\nvs AS (\n  SELECT `segment_id`, `segment_name`, `code` FROM `eli_test_classic_catalog`.`care_protocol_terminology`.`value_set_segment` WHERE `code_system` = 'ICD10CM'\n),\ndx AS (\n  SELECT d.`patient_id`, d.`icd10_code`, d.`description`, d.`onset_date`, c.`ancestor_code`, c.`depth`\n  FROM `eli_test_classic_catalog`.`care_protocol`.`bronze_pat_enc_dx` d\n  JOIN `eli_test_classic_catalog`.`care_protocol_terminology`.`icd10_closure` c ON d.`icd10_code` = c.`descendant_code`\n  WHERE d.`patient_id` = 'fa93c75f-1541-10c2-ea84-f947c8561ce5'\n)\nSELECT rx.drug, rx.`rxnorm_code`, rx.ingredient, 'DRUGCLASS-STATIN' AS drug_class, rx.`start_ts` AS statin_order_ts,\n  rule.`predicate`, rule.`object` AS contraindication, rule.`source` AS protocol_source,\n  vs.`segment_name`, vs.`code` AS value_set_code,\n  dx.`icd10_code` AS patient_dx_code, dx.`description` AS patient_dx, dx.`depth` AS levels_below_value_set_code,\n  COUNT(*) AS n_dx_records, MIN(dx.`onset_date`) AS first_onset, MAX(dx.`onset_date`) AS last_onset\nFROM rx CROSS JOIN rule\nJOIN vs ON vs.`segment_id` = rule.`object`\nJOIN dx ON dx.`ancestor_code` = vs.`code`\nGROUP BY ALL"
+     ]
     },
     "op_worst_clinic_annual": {
      "queries": [
@@ -1950,57 +1863,84 @@
      ],
      "pages_read": []
     },
-    "infer_rationale_path": {
+    "graph_contra_conflict": {
      "queries": [
-      "clinical knowledge graph path diabetes to statin therapy rationale"
+      "statin contraindication care protocol rule diagnosis"
      ],
-     "snippets": [],
+     "snippets": [
+      {
+       "headline": "The curated diagnosis-name cohort identifies five specific standardized diagnosis names, not broader category groupings.",
+       "type": "business_logic",
+       "source": "test space tables",
+       "relevance": 0.7,
+       "authority": 0,
+       "content": "The example diagnosis-name filter INCLUDES exactly `dim_diagnosis.diagnosis_name IN ('Type 2 diabetes mellitus without complications', 'Essential (primary) hypertension', 'ST elevation MI involving left main coronary artery', 'General adult medical exam without abnormal findings', 'Cerebral infarction, unspecified')`. The direction is INCLUDE, not exclude. These are diagnosis names from the standardized diagnosis dimension and should not be substituted for broader CCS categories unless the question explicitly asks for names. For encounter analysis, apply the filter after joining `fact_encounter.primary_diagnosis_key = dim_diagnosis.diagnosis_key`.",
+       "on_topic": false,
+       "stale": false
+      },
+      {
+       "headline": "A reusable diagnosis-name filter includes five specific diagnoses for common clinical reporting examples.",
+       "type": "business_logic",
+       "source": "clinical_genie_space_tables",
+       "relevance": 0.71,
+       "authority": 0.024,
+       "content": "To filter for notable diagnosis names in `dim_diagnosis`, INCLUDE exactly these five values: `'Type 2 diabetes mellitus without complications'`, `'Essential (primary) hypertension'`, `'ST elevation MI involving left main coronary artery'`, `'General adult medical exam without abnormal findings'`, and `'Cerebral infarction, unspecified'`. The exact SQL pattern is `dim_diagnosis.diagnosis_name IN (...)` using the complete list. This is an inclusion filter, not a list of values to exclude. The corresponding CCS category filter is separate and should not be assumed to be interchangeable with diagnosis name filtering.",
+       "on_topic": false,
+       "stale": false
+      }
+     ],
      "pages": [
       {
-       "id": "90137b0e-d1a0-4667-aea0-8aff1f754984",
-       "name": "SPD (Statin Therapy)",
-       "domain": "Clinical Domain",
-       "relevance": 0.75,
+       "id": "85bd5a47-6821-4e54-bd6d-8fdc1a6dd884",
+       "name": "Statine",
+       "domain": "Research and Development",
+       "relevance": 0.58,
        "certified": false,
-       "description": "Share of diabetic patients aged 40\u201375 dispensed at least one statin; statins resolved from RxNorm ingredients via subsumption.",
-       "on_topic": true
+       "description": "\u00ab Statine \u00bb d\u00e9signe la classe des hypolip\u00e9miants inhibiteurs de l'HMG-CoA r\u00e9ductase, classe ATC C10AA (atorvastatine, rosuvastati",
+       "on_topic": false
+      },
+      {
+       "id": "17fa0ba1-a8cc-472d-ae53-6133c84aa611",
+       "name": "Cardiometabolic condition",
+       "domain": "Health Payers",
+       "relevance": 0.5,
+       "certified": false,
+       "description": "Customer-defined group: cardiovascular plus endocrine/metabolic conditions.",
+       "on_topic": false
+      },
+      {
+       "id": "6c11fcb6-9360-4e25-bf9c-3a18689471cf",
+       "name": "Inquiry Category",
+       "domain": "Medical Affairs",
+       "relevance": 0.33,
+       "certified": false,
+       "description": "Topic classification of a medical inquiry (efficacy, safety, dosing, off-label) for routing and demand analysis.",
+       "on_topic": false
       },
       {
        "id": "c8324591-625b-44db-9f8b-c57e9ba5dd7b",
        "name": "SPD \u2014 Statin Therapy for Patients With Diabetes",
        "domain": "Clinical Domain",
-       "relevance": 0.67,
+       "relevance": 0.3,
        "certified": false,
        "description": "SPD (Statin Therapy for Patients With Diabetes) is a HEDIS measure for statin use in diabetic patients.",
        "on_topic": true
-      },
-      {
-       "id": "6f77f71b-97a7-4469-9a9d-08bbf377fc76",
-       "name": "Has diabetes",
-       "domain": "Healthcare",
-       "relevance": 0.62,
-       "certified": false,
-       "description": "Whether a person has diabetes, defined differently by CMS, HRSA, CDC, VA, and IHS sources.",
-       "on_topic": false
-      },
-      {
-       "id": "d8400649-483f-4419-9dae-89dfd801f564",
-       "name": "Knowledge Graph",
-       "domain": "Field Operations",
-       "relevance": 0.31,
-       "certified": false,
-       "description": "A structured representation of entities and their relationships used to power search, discovery, and intelligent recommendations.",
-       "on_topic": false
       }
      ],
-     "pages_read": [
-      {
-       "page_id": "90137b0e-d1a0-4667-aea0-8aff1f754984",
-       "body": "## Definition\nHEDIS measure of statin use in patients with diabetes.\n\n## Measure specification\n* **Denominator:** **Diabetes Cohort**, aged **40\u201375** at the end of the measurement year.\n* **Numerator:** at least one statin dispensed during the measurement year.\n* **Value set:** `SPD_STATIN` (RxNorm **ingredients**, e.g. `36567` simvastatin, `83367` atorvastatin)\n\n## Why subsumption is required\nPrescriptions carry RxNorm **clinical-drug** codes (e.g. `312961` *Simvastatin 20 MG Oral Tablet*), not ingredients. A flat ingredient match finds **zero** statins, so SPD resolves ingredients to their clinical drugs through `rxnorm_closure` (see **Code Subsumption**).\n\n## Data\n* **Metric view:** `spd_compliance_metrics`\n* **Patient-level detail:** `gold_adherence_spd`\n\n---\n_HEDIS-aligned demo, not NCQA-certified._",
-       "name": "SPD (Statin Therapy)"
-      }
-     ],
-     "attempts": 1
+     "pages_read": [],
+     "attempts": 1,
+     "genie_one_answer": "## Yes: a recorded pregnancy diagnosis contraindicates this patient's statin\n\n**Simvastatin 10 MG Oral Tablet** (ordered 4 March 2026) conflicts with the patient's **Z34.90 \"Normal pregnancy\"** diagnosis. The rule is **protocol section CP sec4, \"statin class `contraindicatedWith` CONTRA_PREGNANCY\"**. The patient's other diagnosis, E11.9 type 2 diabetes, doesn't conflict with statins. It's the reason they're on one. [Query Result](https://fe-vm-vdm-classic-q6xfh3.cloud.databricks.com/one/chat/threads/ceced28428414c8e900d9fe9bb1753a9?o=3464092709171785#embed-query_52e871)\n\n<!-- begin-embedded:query_52e871 -->\n| dispensed_drug | rxcui | ingredient | drug_class | predicate | contraindication | protocol_rule | segment_name | value_set_code | patient_dx_code | patient_dx | depth | dx_records | first_onset | latest_onset | statin_order_datetime |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n| Simvastatin 10 MG Oral Tablet | 314231 | simvastatin | DRUGCLASS-STATIN | contraindicatedWith | CONTRA_PREGNANCY | CP sec4 | Pregnancy (statin/ACE/ARB contraindication) | Z34 | Z34.90 | Normal pregnancy (finding) | 1 | 4 | 2016-11-16 | 2020-12-09 | 2026-03-04T10:44:21.000Z |\n<!-- end-embedded:query_52e871 -->\n\n### Connecting path\n\n```\nSimvastatin 10 MG Oral Tablet (RxCUI 314231)        \u2190 patient's statin order, 2026-03-04   [gold_adherence_spd]\n  \u2514\u2500 is-a \u2500\u25b6 simvastatin (ingredient)                                                       [rxnorm_closure]\n       \u2514\u2500 is-a \u2500\u25b6 DRUGCLASS-STATIN\n            \u2514\u2500 contraindicatedWith \u2500\u25b6 CONTRA_PREGNANCY   (CP sec4)                          [protocol_edges]\n                 \u2514\u2500 value set includes \u2500\u25b6 ICD-10 Z34 \"Supervision of normal pregnancy\"      [value_set_segment]\n                      \u2514\u2500 parent of (depth 1) \u2500\u25b6 Z34.90                                       [icd10_closure]\n                           \u2514\u2500 recorded for the patient 4\u00d7, 2016-11-16 \u2192 2020-12-09          [silver_condition]\n```\n\nSources: the protocol rule [Query Result](https://fe-vm-vdm-classic-q6xfh3.cloud.databricks.com/one/chat/threads/ceced28428414c8e900d9fe9bb1753a9?o=3464092709171785#embed-query_ad45ae), the patient's diagnoses [Query Result](https://fe-vm-vdm-classic-q6xfh3.cloud.databricks.com/one/chat/threads/ceced28428414c8e900d9fe9bb1753a9?o=3464092709171785#embed-query_eca41a), the value set mapping [Query Result](https://fe-vm-vdm-classic-q6xfh3.cloud.databricks.com/one/chat/threads/ceced28428414c8e900d9fe9bb1753a9?o=3464092709171785#embed-query_700fdd) and the statin order [Query Result](https://fe-vm-vdm-classic-q6xfh3.cloud.databricks.com/one/chat/threads/ceced28428414c8e900d9fe9bb1753a9?o=3464092709171785#embed-query_f91f06). Prescriptions are traced up to the statin class through the drug-code hierarchy, the same way as in an earlier diabetes-to-statin trace. [Earlier diabetes-to-statin path trace](https://fe-vm-vdm-classic-q6xfh3.cloud.databricks.com/one/chat/threads/2d5c99b1e7cc4cacb5b3ef0b368cfa63?o=3464092709171785)\n\n### Other checks\n- **Hepatic disease (CP sec4):** The protocol's other statin contraindication covers liver disease codes K70 and K74. None of the patient's diagnoses fall under either.\n- **Diabetes (E11.9, recorded 2017-12-27):** This puts the patient in the SPD (statin therapy for patients with diabetes) group, where statins are recommended. At age 41 they're in the measure's eligible population.\n\n### Timing\nThe pregnancy records run from 2016 to 2020, more than 5 years before the 2026 statin order. The protocol rule and value set match on the diagnosis code alone and don't check whether it's recent. So the rule flags this patient, but a clinician should confirm whether she is pregnant now before treating it as an active conflict. The record has no end date or resolution for any of the pregnancies.",
+     "genie_one_sql": [
+      "SELECT * FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges",
+      "SELECT * FROM eli_test_classic_catalog.care_protocol.silver_condition WHERE patient_id = 'fa93c75f-1541-10c2-ea84-f947c8561ce5'",
+      "SELECT patient_id, age, measurement_year, eligible_flag, numerator_flag, status, evidence_code, evidence_drug, evidence_datetime FROM eli_test_classic_catalog.care_protocol.gold_adherence_spd WHERE patient_id = 'fa93c75f-1541-10c2-ea84-f947c8561ce5'",
+      "SELECT patient_id, age, measurement_year, eligible_flag, evidence_code, evidence_drug, evidence_datetime FROM eli_test_classic_catalog.care_protocol.gold_adherence_spd WHERE patient_id = 'fa93c75f-1541-10c2-ea84-f947c8561ce5'",
+      "SELECT * FROM eli_test_classic_catalog.care_protocol_terminology.icd10_closure WHERE descendant_code IN ('Z34.90','E11.9') OR upper(ancestor_code) LIKE 'CONTRA%' OR upper(ancestor_name) LIKE '%PREGNAN%'",
+      "SELECT table_schema, table_name, comment FROM eli_test_classic_catalog.information_schema.tables WHERE table_schema IN ('care_protocol_terminology','care_protocol') ORDER BY 1,2",
+      "SELECT table_schema, table_name, substr(comment,1,160) AS c FROM eli_test_classic_catalog.information_schema.tables WHERE table_schema IN ('care_protocol_terminology','care_protocol') AND table_name NOT LIKE '\\_\\_%' ORDER BY 1,2",
+      "SELECT * FROM eli_test_classic_catalog.care_protocol_terminology.value_set_segment",
+      "WITH rx AS (\n  SELECT p.patient_id, p.evidence_code, p.evidence_drug, p.evidence_datetime,\n         MAX(CASE WHEN rc.ancestor_code <> 'DRUGCLASS-STATIN' THEN rc.ancestor_name END) AS ingredient,\n         MAX(CASE WHEN rc.ancestor_code = 'DRUGCLASS-STATIN' THEN rc.ancestor_code END) AS drug_class\n  FROM eli_test_classic_catalog.care_protocol.gold_adherence_spd p\n  JOIN eli_test_classic_catalog.care_protocol_terminology.rxnorm_closure rc\n    ON rc.descendant_code = p.evidence_code AND rc.depth > 0\n  WHERE p.patient_id = 'fa93c75f-1541-10c2-ea84-f947c8561ce5'\n  GROUP BY ALL)\nSELECT rx.evidence_drug AS dispensed_drug, rx.evidence_code AS rxcui, rx.ingredient, rx.drug_class,\n       pe.predicate, pe.object AS contraindication, pe.source AS protocol_rule,\n       vs.segment_name, vs.code AS value_set_code,\n       sc.icd10_code AS patient_dx_code, sc.description AS patient_dx, ic.depth,\n       COUNT(*) AS dx_records, MIN(sc.onset_date) AS first_onset, MAX(sc.onset_date) AS latest_onset,\n       MAX(rx.evidence_datetime) AS statin_order_datetime\nFROM rx\nJOIN eli_test_classic_catalog.care_protocol_terminology.protocol_edges pe\n  ON pe.subject = rx.drug_class AND pe.predicate LIKE 'contraindicated%'\nJOIN eli_test_classic_catalog.care_protocol_terminology.value_set_segment vs\n  ON vs.segment_id = pe.object AND vs.code_system = 'ICD10CM'\nJOIN eli_test_classic_catalog.care_protocol_terminology.icd10_closure ic\n  ON ic.ancestor_code = vs.code\nJOIN eli_test_classic_catalog.care_protocol.silver_condition sc\n  ON sc.patient_id = rx.patient_id AND sc.icd10_code = ic.descendant_code\nGROUP BY ALL"
+     ]
     },
     "op_worst_clinic_annual": {
      "queries": [

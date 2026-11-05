@@ -48,10 +48,15 @@ export interface CtxDoc {
   metadata: Record<string, any>;
 }
 export interface Scored {
-  correct: boolean;
-  grounded: boolean | null;
+  tier: 1 | 2 | 3 | null;
+  tier_runs?: number[];
+  stable?: boolean;
   sufficient: boolean;
-  answer: string;
+  query_correct?: boolean;
+  sql?: string | null;
+  sql_result?: string | null;
+  sql_error?: string | null;
+  skipped_search?: boolean;
   n_docs: number;
   context?: string;
 }
@@ -59,11 +64,11 @@ export interface ArenaContext {
   qid: string;
   question: string;
   ontology: Record<string, { docs: CtxDoc[]; error?: string; queries: string[]; skipped_search?: boolean; host: string; identity: string;
-    recorded_at: string; scored?: Scored }>;
+    recorded_at: string; scored?: Scored; genie_one_answer?: string | null }>;
   graph: { docs: CtxDoc[]; latency_s: number; error?: string; graph_table: string; scored?: Scored };
   closed_book?: Scored;
   scored_all?: Record<string, Scored>;
-  scored_meta?: { agent: string; judge: string };
+  scored_meta?: { agent: string; judge: string; repeats?: number };
   genie_one: {
     snapshot?: string; pages_cited?: string[]; snippet_searches?: string[]; tables_queried?: string[];
     sql_queries?: number; tool_calls?: number; latency_s?: number; used_ontobricks_mcp?: boolean;
@@ -214,7 +219,7 @@ export interface CapQuestion {
   min_approach: string;
   note: string;
   verdicts: Record<string, string>;
-  evidence?: Record<string, string>;
+  evidence?: Record<string, { context: string; sql?: string | null; tier_runs?: number[] | null; stable?: boolean | null }>;
 }
 export interface CapClass {
   class_num: string;
@@ -224,6 +229,11 @@ export interface CapClass {
 export interface CapRollup {
   arm: string;
   label: string;
+  tier1: number;
+  tier2: number;
+  tier3: number;
+  skipped: number;
+  unstable: number;
   reached: number;
   diverged: number;
   not_reached: number;
@@ -239,7 +249,8 @@ export interface CapabilityMap {
   classes: CapClass[];
   rollup: CapRollup[];
   a1_on_source: string | null;
-  scored_by?: { judge?: string; agent?: string } | null;
+  scored_by?: { judge?: string; agent?: string; repeats?: number } | null;
+  floor?: { tier1: number; tier2: number; total: number };
 }
 
 export interface A1ArmSignals {

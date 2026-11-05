@@ -4,7 +4,7 @@ GET /api/arena/{qid}/context returns, for the question's text:
   * ontology  — Genie Ontology's OWN retrieval for it, per workspace (inferred snippets + Pages + Page bodies), recorded
                 as the user from Genie One's knowledge-snippet search (retrieval is identity-scoped); no Genie One answer
   * graph     — the Ontobricks typed subgraph for it, retrieved live from the latest published triplestore
-  * scored    — what ONE fixed agent answered from each context alone, with the three judges' verdicts
+  * scored    — each approach's tier from the judged eval: 1 answer in context, 2 one query from it, 3 neither
                 (docs/benchmark/retrieval_eval_arena.json, produced by the retrieval_eval harness from the SAME
                 retrieval code in server/context_retrieval.py)
   * genie_one — the trail of what Genie One itself retrieved on the recorded end-to-end run (Pages it fetched,
@@ -43,9 +43,10 @@ def _scored(qid: str) -> dict:
     if not os.path.isfile(path):
         return {}
     d = json.load(open(path))
-    out = {r["arm"]: {k: r.get(k) for k in ("correct", "grounded", "sufficient", "answer", "n_docs", "context")}
-           for r in d.get("rows", []) if r["qid"] == qid}
-    out["_meta"] = {"agent": d.get("agent"), "judge": d.get("judge")}
+    keys = ("tier", "tier_runs", "stable", "sufficient", "query_correct", "sql", "sql_result", "sql_error",
+            "skipped_search", "n_docs", "context")
+    out = {r["arm"]: {k: r.get(k) for k in keys} for r in d.get("rows", []) if r["qid"] == qid}
+    out["_meta"] = {"agent": d.get("agent"), "judge": d.get("judge"), "repeats": d.get("repeats")}
     return out
 
 
@@ -100,7 +101,9 @@ def arena_context(qid: str):
             onto[ws] = {"docs": genie_ontology_docs(r), "error": r.get("error"), "queries": r.get("queries", []),
                         "skipped_search": bool(r.get("skipped_search")),
                         "host": d.get("host"), "identity": d.get("identity"), "recorded_at": rec.get("recorded_at"),
-                        "scored": scored.get("genie_ontology" if ws == "ect" else f"genie_ontology_{ws}")}
+                        "scored": scored.get("genie_ontology" if ws == "ect" else f"genie_ontology_{ws}"),
+                        # Genie One's own end-to-end answer from the same recording (shown only in its own section)
+                        "genie_one_answer": r.get("genie_one_answer")}
     return {"qid": qid, "question": q,
             "ontology": onto,
             "graph": {**gr, "graph_table": graph, "scored": scored.get("ontobricks")},

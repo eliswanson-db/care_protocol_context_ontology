@@ -314,6 +314,21 @@ approach is sufficient / adds unique value / is necessary*, and **why**. Key cor
 - **Scale = 25k patients**; add a **care-protocol PDF** as the unstructured anchor. **Genie One** is the front
   door; components (RAG/closure/graph/Pages) plug in via MCP and are visualized in the app.
 
+**Addendum 2026-11-05 — retrieval tiers; arms retrieve, they don't run the answer key.** Until today the
+`metric_view` arm injected a hand-picked `MEASURE()` result per question, and `closure_sql` injected the
+**gold answer-key query's own result**. Both are the pre-wiring this ADR forbids. Now `metric_view` retrieves the
+YAML definitions of the 3 most relevant certified metric views, and `closure_sql` retrieves the terminology table
+cards plus the rows the question's linked entities hit. It uses the same entity linker as the graph, so
+closure vs graph differs only in the store. Each cell is scored in **tiers** from the same retrieved context:
+(1) every gold fact is explicitly in the context, judged per fact; (2) the agent writes ONE SQL query using only
+names in the context, we run it, and its rows are judged per fact; (3) neither. 3 runs per cell, majority
+reported. Class 8 now has a question built for the graph (`graph_contra_conflict`: a patient's own diagnosis vs
+the protocol's contraindication rule), which replaces the rationale-path question that prose could answer.
+Information-wise the graph adds nothing over `protocol_edges` + `value_set_segment` + closures (it is built from
+them); what differs is that patient facts, hierarchies and rules sit in one traversable store. First run: only
+the graph's context held the patient's records and the rule together (tier 1, 2 of 3 runs), while Genie One solved
+it end-to-end from the relational tables.
+
 ## ADR-0009 — A4 Lakebase = Autoscaling project; hybrid retrieval over the ontology corpus
 **Date:** 2026-10-30 · **Status:** accepted
 A4 (Lakebase hybrid retrieval) uses a **Lakebase Autoscaling** project, not the retired **Provisioned**

@@ -66,3 +66,37 @@ def _as_text(content) -> str:
                 parts.append(getattr(b, "text", "") or "")
         return "\n".join(p for p in parts if p).strip()
     return str(content).strip()
+
+
+class HarnessError(RuntimeError):
+    """An infrastructure failure (auth, truncation, endpoint error) -- retried, and never scored as a result."""
+
+
+# --- Tier 2: can the retrieved context alone get the agent to the answer with ONE query? -------------------------
+_SQL_SYSTEM = (
+    "You write Databricks SQL. You are given a QUESTION and the CONTEXT retrieved by one retrieval approach. "
+    "Write exactly ONE read-only SQL query (a single SELECT, CTEs allowed) whose result answers the question. "
+    "Use ONLY tables, views, columns and code values that appear in the CONTEXT; do not invent table or column "
+    "names and do not use outside knowledge of the schema. If the CONTEXT does not tell you enough to write such "
+    "a query, reply with exactly: NO_QUERY. Otherwise reply with the SQL only, no explanation, no markdown fences."
+)
+
+
+@mlflow.trace(span_type="CHAT_MODEL", name="write_sql")
+def write_sql(question: str, context_docs: list[dict]) -> str | None:
+    """One SQL query written from the retrieved context only (no schema dump, no retries). None = NO_QUERY."""
+    ctx = "\n\n".join(f"[{i + 1}] {d.get('page_content', '')}".strip() for i, d in enumerate(context_docs)) \
+        or "(no context was retrieved)"
+    msg = [{"role": "system", "content": _SQL_SYSTEM},
+           {"role": "user", "content": f"QUESTION:\n{question}\n\nCONTEXT:\n{ctx}"}]
+    # Reasoning tokens count against max_tokens on these endpoints, so the budget must be generous; a "length"
+    # finish means the SQL was cut off -- a harness failure, never a retrieval verdict.
+    resp = _client().chat.completions.create(model=AGENT_MODEL, messages=msg, max_tokens=16000)
+    if resp.choices[0].finish_reason == "length":
+        raise HarnessError("write_sql hit max_tokens (output truncated)")
+    sql = _as_text(resp.choices[0].message.content).strip()
+    if sql.startswith("```"):
+        sql = sql.strip("`").split("\n", 1)[-1] if "\n" in sql else ""
+        sql = sql.rsplit("```", 1)[0]
+    sql = sql.strip().rstrip(";").strip()
+    return None if not sql or sql.upper().startswith("NO_QUERY") else sql

@@ -30,8 +30,9 @@ BENCH_DIR = os.environ.get("CARE_BENCHMARK_DIR") or (
 # closure / genie_ontology are hand-verified (genie = the authoritative A1-off run; the ON/OFF experiment is
 # the separate observational section). rag / graph are the designed-capability verdicts from the ground-truth
 # hypotheses (ground_truth.yaml), carried into the matrix so every column uses the same question set + rubric.
-# The five retrieval approaches, scored on ONE basis: is the context this approach retrieves, on its own, sufficient
-# to answer (same judge for all; docs/benchmark/retrieval_eval_arena.json from the retrieval_eval harness).
+# The five retrieval approaches, scored on ONE basis from the same retrieved context (retrieval_eval harness,
+# docs/benchmark/retrieval_eval_arena.json): tier 1 = the answer is in the context; tier 2 = the context gives what's
+# needed for ONE SQL query that returns the answer (the query is run and its result judged); tier 3 = neither.
 # Genie One end-to-end (retrieval + its own SQL) is a different thing — kept as a separate, hand-verified column.
 ARMS = [
     {"id": "metric_view", "label": "Metric View", "eval_arm": "metric_view", "kind": "retrieval"},
@@ -49,7 +50,7 @@ def _eval_rows() -> dict:
     if not os.path.isfile(path):
         return {}
     d = json.load(open(path))
-    return {"meta": {"judge": d.get("judge"), "agent": d.get("agent")},
+    return {"meta": {"judge": d.get("judge"), "agent": d.get("agent"), "repeats": d.get("repeats")},
             "by": {(r["arm"], r["qid"]): r for r in d.get("rows", [])}}
 
 
@@ -67,15 +68,19 @@ def capability_map():
         if a["kind"] == "end_to_end":
             return r[a["csv_col"]]
         e = by.get((a["eval_arm"], r["question_id"]))
-        if not e:
+        if not e or e.get("tier") is None:
             return "pending"
-        if e.get("sufficient"):
-            return "reached"
-        return "not_reached" if e.get("n_docs") else "no_retrieval"
+        if e["tier"] == 3 and e.get("skipped_search"):
+            return "skipped"
+        if e["tier"] == 3 and not e.get("n_docs"):
+            return "no_retrieval"
+        return f"tier{e['tier']}"
 
     def evidence(a, r):
         e = by.get((a.get("eval_arm"), r["question_id"])) or {}
-        return (e.get("context") or "")[:600]
+        out = {"context": (e.get("context") or "")[:600], "sql": e.get("sql"), "tier_runs": e.get("tier_runs"),
+               "stable": e.get("stable")}
+        return out
 
     classes: list[dict] = []
     vmap: dict[str, dict] = {}
@@ -97,6 +102,11 @@ def capability_map():
         applicable = [v for v in vals if v not in ("not_applicable", "pending")]
         rollup.append({
             "arm": a["id"], "label": a["label"], "kind": a["kind"],
+            "tier1": sum(v == "tier1" for v in vals), "tier2": sum(v == "tier2" for v in vals),
+            "tier3": sum(v in ("tier3", "no_retrieval", "skipped") for v in vals),
+            "skipped": sum(v == "skipped" for v in vals),
+            "unstable": sum(1 for r in rows if a["kind"] == "retrieval"
+                            and not (by.get((a["eval_arm"], r["question_id"])) or {}).get("stable", True)),
             "reached": sum(v in _REACHED for v in vals),
             "diverged": sum(v == "diverged" for v in vals),
             "not_reached": sum(v == "not_reached" for v in vals),
@@ -106,8 +116,11 @@ def capability_map():
             "applicable": len(applicable),
             "total": len(vals),
         })
+    floor = [by.get(("closed_book", r["question_id"])) for r in rows]
+    floor_rollup = {"tier1": sum(1 for f in floor if f and f.get("tier") == 1),
+                    "tier2": sum(1 for f in floor if f and f.get("tier") == 2), "total": len(rows)}
     return {"arms": ARMS, "classes": classes, "rollup": rollup, "a1_on_source": None,
-            "scored_by": ev.get("meta")}
+            "scored_by": ev.get("meta"), "floor": floor_rollup}
 
 
 def _latest(pattern: str) -> str | None:

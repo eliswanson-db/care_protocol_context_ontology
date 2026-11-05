@@ -7,9 +7,8 @@ for the question, which a fixed agent then reasons over.
 
   genie_ontology_docs  Genie Ontology's OWN retrieval (recorded from Genie One's knowledge-snippet search):
                        inferred snippets + ranked Pages + Page bodies read. No Genie One answer or SQL.
-  graph_context     Ontobricks: entity-link the question's clinical terms to graph nodes, return their typed
-                    1-hop neighbourhood (cross-vocabulary guideline edges first, then a small sample of patient
-                    membership edges) from the live triplestore.
+  graph_context     Ontobricks: entity-link the question's clinical terms (and patient ids) to graph nodes, return
+                    the k-hop subgraph around them over the terminology + guideline layer, from the live triplestore.
 """
 from __future__ import annotations
 
@@ -52,8 +51,11 @@ MEASURE_CODES = {"gsd": "Measure/GSD", "ked": "Measure/KED", "bpd": "Measure/BPD
                  "spd": "Measure/SPD", "eed": "Measure/EED"}
 
 
+_UUID = r"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b"
+
+
 def link_entities(question: str) -> tuple[set[str], set[str]]:
-    """Resolve the question to (exact IRIs, icd-subtree prefixes)."""
+    """Resolve the question to (exact IRIs, icd-subtree prefixes). Patient ids in the question link to Patient nodes."""
     q = question.lower()
     exact: set[str] = set()
     prefixes: set[str] = set()
@@ -66,6 +68,8 @@ def link_entities(question: str) -> tuple[set[str], set[str]]:
             exact.add(iri)
     for m in re.findall(r"\b([A-TV-Z][0-9]{2}(?:\.[0-9]{1,3})?)\b", question):  # raw ICD-10 codes in the prompt
         prefixes.add("icd/" + m)
+    for m in re.findall(_UUID, q):
+        exact.add("Patient/" + m)
     return exact, prefixes
 
 
@@ -73,34 +77,84 @@ def _short(iri: str) -> str:
     return iri[len(ONTO_NS):] if iri and iri.startswith(ONTO_NS) else (iri or "").rsplit("/", 1)[-1]
 
 
+# Instance-data predicates that explode (15M observations) or carry no structure -- never traversed.
+_SKIP_PREDS = ["hasObservation", "ofTest", "resultValue", "type", "label"]
+# Patient-level edges (ABox). From a linked patient we take all of them (1 hop); otherwise only a small sample.
+_PATIENT_PREDS = ["hasDiagnosis", "prescribed", "eligibleFor", "hasCareGap", "ageAtPeriodEnd"]
+MAX_HOPS = 3
+
+
+def _iri_list(nodes) -> str:
+    return ", ".join("'" + (n if n.startswith("http") else ONTO_NS + n).replace("'", "") + "'" for n in sorted(nodes))
+
+
 def graph_context(question: str, run_sql, graph: str) -> list[dict]:
-    """Typed 1-hop neighbourhood of the question's linked entities. `graph` = catalog.schema.<base>_graph."""
+    """k-hop subgraph around the question's linked entities (standard graph-RAG retrieval). `graph` =
+    catalog.schema.<base>_graph.
+
+    Seeds = entity-linked nodes (lexicon terms, ICD codes, patient ids). From a linked PATIENT we take its own
+    record edges (diagnoses, prescriptions, measure eligibility/gaps). Then we expand up to MAX_HOPS over the
+    terminology + guideline layer in BOTH directions (subClassOf, contains, hasIngredient, inDrugClass,
+    recommendedFor, contraindicatedWith, ...), so a path such as patient -> drug -> class -> rule -> value set ->
+    code <- patient's diagnosis is retrievable without knowing it in advance. Unlinked questions retrieve nothing.
+    The first document names the triple table and IRI scheme (provenance) so the context is queryable."""
     exact, prefixes = link_entities(question)
     if not exact and not prefixes:
         return []
+    skip = ", ".join(f"'{ONTO_NS}{p}'" for p in _SKIP_PREDS + _PATIENT_PREDS)
+    pat_in = ", ".join(f"'{ONTO_NS}{p}'" for p in _PATIENT_PREDS)
+    seen: dict[tuple, int] = {}
+    tiers: dict[tuple, str] = {}
 
-    def _match(col: str) -> str:
-        cl = []
-        if exact:
-            cl.append(f"{col} IN ({', '.join(chr(39) + ONTO_NS + n + chr(39) for n in sorted(exact))})")
-        for p in sorted(prefixes):
-            cl.append(f"{col} LIKE '{ONTO_NS}{p}%'")  # p is from the lexicon or a regex-validated ICD code
-        return "(" + " OR ".join(cl) + ")"
+    def add(rows, hop, tier):
+        for r in rows:
+            k = (r["subject"], r["predicate"], r["object"])
+            if k not in seen:
+                seen[k] = hop
+                tiers[k] = tier
 
-    guideline_in = ", ".join(f"'{ONTO_NS}{p}'" for p in GUIDELINE_PREDS)
-    member_in = ", ".join(f"'{ONTO_NS}{p}'" for p in MEMBER_PREDS)
-    sql = (f"(SELECT subject, predicate, object, 'guideline' AS tier FROM {graph} "
-           f"  WHERE predicate IN ({guideline_in}) AND ({_match('subject')} OR {_match('object')}) LIMIT 55) "
-           f"UNION ALL "
-           f"(SELECT subject, predicate, object, 'member' AS tier FROM {graph} "
-           f"  WHERE predicate IN ({member_in}) AND {_match('object')} LIMIT 8)")
-    rows = run_sql(sql)
+    patients = {n for n in exact if n.startswith("Patient/")}
+    frontier = {ONTO_NS + n for n in exact - patients}
+    if patients:
+        rows = run_sql(f"SELECT subject, predicate, object FROM {graph} WHERE subject IN ({_iri_list(patients)}) "
+                       f"AND predicate IN ({pat_in}) LIMIT 80")
+        add(rows, 1, "patient")
+        frontier |= {r["object"] for r in rows if r["object"].startswith(ONTO_NS)}
+    else:
+        like = " OR ".join([f"object IN ({_iri_list(exact)})"] if exact else []
+                           + [f"object LIKE '{ONTO_NS}{p}%'" for p in sorted(prefixes)])
+        add(run_sql(f"SELECT subject, predicate, object FROM {graph} WHERE predicate IN ({pat_in}) AND ({like}) LIMIT 8"),
+            1, "member")
+    prefix_clause = " OR ".join(f"subject LIKE '{ONTO_NS}{p}%' OR object LIKE '{ONTO_NS}{p}%'" for p in sorted(prefixes))
+    visited: set[str] = set()
+    for hop in range(1, MAX_HOPS + 1):
+        todo = frontier - visited
+        if not todo and not (hop == 1 and prefix_clause):
+            break
+        conds = []
+        if todo:
+            lst = _iri_list(todo)
+            conds.append(f"subject IN ({lst}) OR object IN ({lst})")
+        if hop == 1 and prefix_clause:
+            conds.append(prefix_clause)
+        rows = run_sql(f"SELECT subject, predicate, object FROM {graph} WHERE predicate NOT IN ({skip}) "
+                       f"AND predicate NOT RLIKE '[#/](type|label|valueSetId)$' AND ({' OR '.join(conds)}) LIMIT 120")
+        visited |= todo
+        add(rows, hop, "guideline")
+        frontier |= {x for r in rows for x in (r["subject"], r["object"]) if x.startswith(ONTO_NS)}
     linked = sorted(exact | {p + "*" for p in prefixes})
-    return [{"page_content": f"({_short(r['subject'])}) -[{_short(r['predicate'])}]-> ({_short(r['object'])})  [{r['tier']}]",
-             "metadata": {"source": "ontobricks", "kind": "triple", "tier": r["tier"], "graph": graph,
-                          "subject": _short(r["subject"]), "predicate": _short(r["predicate"]),
-                          "object": _short(r["object"]), "linked_entities": linked}}
-            for r in rows]
+    header = {"page_content": (f"Source: Ontobricks triple table {graph} (columns subject, predicate, object). "
+                               f"Node IRIs are {ONTO_NS}<Type>/<id> (e.g. {ONTO_NS}Patient/<patient_id>, "
+                               f"{ONTO_NS}icd/E11.9, {ONTO_NS}DrugClass/DRUGCLASS-STATIN); predicate IRIs are "
+                               f"{ONTO_NS}<predicate>. Triples below are shown with that prefix removed."),
+              "metadata": {"source": "ontobricks", "kind": "provenance", "graph": graph, "linked_entities": linked}}
+    order = sorted(seen, key=lambda k: (seen[k], tiers[k] != "patient"))
+    return [header] + [
+        {"page_content": f"({_short(k[0])}) -[{_short(k[1])}]-> ({_short(k[2])})  [{tiers[k]}, hop {seen[k]}]",
+         "metadata": {"source": "ontobricks", "kind": "triple", "tier": tiers[k], "hop": seen[k], "graph": graph,
+                      "subject": _short(k[0]), "predicate": _short(k[1]), "object": _short(k[2]),
+                      "linked_entities": linked}}
+        for k in order]
 
 
 # ------------------------------------------------ Genie Ontology -----------------------------------------------

@@ -6,8 +6,8 @@ what makes the benchmark a retrieval eval rather than a reasoner leaderboard: we
 and vary the injected context one component at a time, with closed_book as the floor.
 
     closed_book    no retrieval                          -> the parametric-knowledge floor (necessity baseline)
-    metric_view    governed MEASURE() over a metric view -> build-time semantic resolution
-    closure_sql    fixed-shape SQL over closure/edge tbls -> query-time semantic resolution (reuses gold_queries.sql)
+    metric_view    the governed metric-view DEFINITIONS (YAML) most relevant to the question
+    closure_sql    closure / edge table cards + the rows the question's linked entities hit
     rag            Lakebase hybrid passages (A4)          -> unstructured text retrieval
 
 Every provider that actually retrieves is wrapped as an MLflow RETRIEVER span so RetrievalGroundedness and the
@@ -36,38 +36,120 @@ def _doc(content: str, **meta) -> dict:
     return {"page_content": content, "metadata": meta}
 
 
-# --- metric_view: a governed MEASURE() answers KPIs directly; nothing else. Registry is deliberately small --
-# so the arm visibly SUCCEEDS on the KPI and returns no context (insufficient) on discovery/definition classes.
-# (label, SQL) per question. The label makes the retrieved context self-describing so a grounded answer
-# doesn't have to INFER what the number is (an un-labelled bare value reads as ungrounded, correctly).
-_METRIC_SQL = {
-    "kpi_gsd_rate": (
-        "GSD Compliance Rate (MY2026, year-to-date)",
-        f"SELECT ROUND(MEASURE(`GSD Compliance Rate`), 4) AS gsd_compliance_rate, MEASURE(`Eligible Patients`) AS "
-        f"eligible, MEASURE(`Compliant Patients`) AS compliant "
-        f"FROM {CATALOG}.{SCHEMA_SEMANTIC}.gsd_compliance_metrics WHERE `Measurement Year` = 2026",
-    ),
-    "kpi_ked_eligible": (
-        "KED Eligible Patients",
-        f"SELECT MEASURE(`Eligible Patients`) AS ked_eligible "
-        f"FROM {CATALOG}.{SCHEMA_SEMANTIC}.ked_compliance_metrics",
-    ),
-    # Protocol Step-3 adherence by clinic (closed 90-day windows), lowest first.
-    "op_worst_clinic_annual": (
-        "Protocol Step-3 adherence by clinic, MY2026 year-to-date (closed windows), lowest first",
-        f"SELECT `Clinic` AS clinic, ROUND(MEASURE(`Protocol Step 3 Adherence Rate`), 3) AS step3_adherence_rate, "
-        f"MEASURE(`Trigger Events`) AS closed_obligations "
-        f"FROM {CATALOG}.{SCHEMA_SEMANTIC}.protocol_adherence_metrics GROUP BY ALL ORDER BY 2",
-    ),
-    # Window measures: grouping by Clinic alone returns each clinic's LATEST trailing-3-month window (semiadditive last).
-    "op_clinic_drift": (
-        "Protocol Step-3 drift by clinic: latest trailing-3-month adherence vs the clinic's own baseline",
-        f"SELECT `Clinic` AS clinic, ROUND(MEASURE(`Adherence (trailing 3mo)`), 3) AS trailing_3mo, "
-        f"ROUND(MEASURE(`Adherence (baseline)`), 3) AS own_baseline, "
-        f"ROUND(MEASURE(`Drift (trailing vs baseline)`), 3) AS drift "
-        f"FROM {CATALOG}.{SCHEMA_SEMANTIC}.protocol_drift_metrics GROUP BY ALL ORDER BY 4",
-    ),
-}
+# --- metric_view + closure_sql retrieve what their LAYER holds -- never a per-question answer query. -----------
+# (Earlier versions ran a hand-picked MEASURE() per question and, for closure, the gold answer-key query itself;
+# that measured the answer key, not retrieval.) The SAME entity linker as the graph arm drives closure lookups,
+# so closure-vs-graph differs only in the store (relational closure/edge tables vs one triple graph).
+import sys as _sys  # noqa: E402
+
+_sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "app")))
+from server.context_retrieval import genie_ontology_docs, graph_context, link_entities  # noqa: E402
+
+_STOP = set("the a an of to in on for and or is are was what which how many much does do did with by from this "
+            "that their its it as at be any each all whether under show give name own".split())
+
+
+def _tokens(text: str) -> set[str]:
+    return {w for w in re.findall(r"[a-z0-9]+", text.lower()) if len(w) > 2 and w not in _STOP}
+
+
+_MV_CACHE: dict[str, str] | None = None
+
+
+def _metric_views() -> dict[str, str]:
+    """{fqn: YAML definition} for every certified metric view in the semantic schema (live from UC)."""
+    global _MV_CACHE
+    if _MV_CACHE is None:
+        names = [r["table_name"] for r in run_sql(
+            f"SELECT table_name FROM {CATALOG}.information_schema.tables "
+            f"WHERE table_schema = '{SCHEMA_SEMANTIC}' AND table_type = 'METRIC_VIEW' ORDER BY table_name")]
+        _MV_CACHE = {}
+        for n in names:
+            fqn = f"{CATALOG}.{SCHEMA_SEMANTIC}.{n}"
+            row = run_sql(f"DESCRIBE TABLE EXTENDED {fqn} AS JSON")
+            meta = json.loads(list(row[0].values())[0]) if row else {}
+            _MV_CACHE[fqn] = meta.get("view_text") or ""
+    return _MV_CACHE
+
+
+MV_TOP_K = 3
+
+
+@mlflow.trace(span_type="RETRIEVER", name="metric_view")
+def metric_view(question: str, qid: str) -> list[dict]:
+    """The governed semantic layer: the definitions (YAML) of the K metric views most relevant to the question,
+    ranked by term overlap with each view's names, comments and synonyms. Definitions only -- no query results."""
+    qt = _tokens(question)
+    scored = sorted(((len(qt & _tokens(y)), fqn) for fqn, y in _metric_views().items()), reverse=True)
+    mvs = _metric_views()
+    return [_doc(f"UC metric view {fqn} (query measures with MEASURE(`<measure name>`) FROM {fqn}):\n{mvs[fqn]}",
+                 source="metric_view", view=fqn, score=sc)
+            for sc, fqn in scored[:MV_TOP_K] if sc > 0]
+
+
+_TERM_CARDS: list[dict] | None = None
+
+
+def _term_cards() -> list[dict]:
+    """One card per closure / edge table in the terminology schema: name, comment, columns (live UC metadata)."""
+    global _TERM_CARDS
+    if _TERM_CARDS is None:
+        tabs = run_sql(f"SELECT table_name, comment FROM {CATALOG}.information_schema.tables "
+                       f"WHERE table_schema = '{SCHEMA_TERM}' ORDER BY table_name")
+        cols = run_sql(f"SELECT table_name, column_name, comment FROM {CATALOG}.information_schema.columns "
+                       f"WHERE table_schema = '{SCHEMA_TERM}' ORDER BY table_name, ordinal_position")
+        _TERM_CARDS = []
+        for t in tabs:
+            cs = [c for c in cols if c["table_name"] == t["table_name"]]
+            body = "; ".join(f"{c['column_name']}" + (f" ({c['comment']})" if c.get("comment") else "") for c in cs)
+            _TERM_CARDS.append(_doc(f"Table {CATALOG}.{SCHEMA_TERM}.{t['table_name']}: {t.get('comment') or ''}\n"
+                                    f"Columns: {body}", source="closure_sql", kind="table", table=t["table_name"]))
+    return _TERM_CARDS
+
+
+def _q(v: str) -> str:
+    return "'" + v.replace("'", "") + "'"
+
+
+@mlflow.trace(span_type="RETRIEVER", name="closure_sql")
+def closure_sql(question: str, qid: str) -> list[dict]:
+    """Closure / edge tables: the table cards, plus the rows the question's linked entities hit (one expansion hop
+    through protocol_edges -> value sets / drug classes). No patient data lives here, so patient ids link nothing."""
+    exact, prefixes = link_entities(question)
+    T = f"{CATALOG}.{SCHEMA_TERM}"
+    ids = {n.split("/", 1)[1] for n in exact if not n.startswith("Patient/")}
+    icd = sorted({p.split("/", 1)[1] for p in prefixes})
+    docs = list(_term_cards())
+    if not ids and not icd:
+        return docs
+
+    def rows(label, sql):
+        rs = run_sql(sql)
+        if rs:
+            docs.append(_doc(f"Rows from {label}:\n{_render(rs, limit=25)}", source="closure_sql", kind="rows",
+                             table=label))
+        return rs
+
+    edges = rows(f"{T}.protocol_edges", f"SELECT subject, predicate, object, value, source FROM {T}.protocol_edges "
+                 f"WHERE subject IN ({', '.join(map(_q, ids or {''}))}) OR object IN ({', '.join(map(_q, ids or {''}))})") \
+        if ids else []
+    hop = ids | {e["subject"] for e in edges} | {e["object"] for e in edges}
+    sets = sorted(x for x in hop if x.isupper() and not x.startswith(("DRUGCLASS-", "LP-")))
+    classes = sorted(x for x in hop if x.startswith("DRUGCLASS-"))
+    parts = sorted(x for x in hop if x.startswith("LP-"))
+    if sets:
+        rows(f"{T}.value_set_segment", f"SELECT segment_id, segment_name, code, code_system, measurement_year "
+             f"FROM {T}.value_set_segment WHERE segment_id IN ({', '.join(map(_q, sets))}) LIMIT 40")
+    if classes:
+        rows(f"{T}.rxnorm_closure", f"SELECT ancestor_code, ancestor_name, descendant_code, descendant_name, depth "
+             f"FROM {T}.rxnorm_closure WHERE ancestor_code IN ({', '.join(map(_q, classes))}) ORDER BY 1, 5, 3 LIMIT 25")
+    if parts:
+        rows(f"{T}.loinc_parts", f"SELECT loinc_code, loinc_name, predicate, part FROM {T}.loinc_parts "
+             f"WHERE part IN ({', '.join(map(_q, parts))}) LIMIT 25")
+    if icd:
+        rows(f"{T}.icd10_closure", f"SELECT ancestor_code, ancestor_name, descendant_code, descendant_name, depth "
+             f"FROM {T}.icd10_closure WHERE ancestor_code IN ({', '.join(map(_q, icd))}) ORDER BY 1, 5, 3 LIMIT 25")
+    return docs
 
 
 def _render(rows: list[dict], limit: int = 12) -> str:
@@ -76,48 +158,6 @@ def _render(rows: list[dict], limit: int = 12) -> str:
     cols = list(rows[0].keys())
     lines = [" | ".join(cols)] + [" | ".join(str(r.get(c)) for c in cols) for r in rows[:limit]]
     return "\n".join(lines) + (f"\n... (+{len(rows) - limit} more rows)" if len(rows) > limit else "")
-
-
-@mlflow.trace(span_type="RETRIEVER", name="metric_view")
-def metric_view(question: str, qid: str) -> list[dict]:
-    entry = _METRIC_SQL.get(qid)
-    if not entry:
-        return []  # no certified metric view covers this question -> the arm is structurally insufficient
-    label, sql = entry
-    rows = run_sql(sql)
-    if not rows:
-        return []
-    return [_doc(f"Governed metric view result — {label}:\n{_render(rows)}", source="metric_view",
-                 measure=label, sql=sql[:300])]
-
-
-# --- closure_sql: reuse the hand-verified gold_queries.sql blocks (the closure/edge-table resolution arm) ----
-def _load_gold_sql() -> dict[str, str]:
-    """{id: sql} from gold_queries.sql, substituting catalog/schema placeholders (mirrors verify_gold.py)."""
-    raw = open(os.path.normpath(_GOLD_SQL)).read()
-    out = {}
-    for chunk in re.split(r"(?m)^-- @id:\s*", raw)[1:]:
-        lines = chunk.splitlines()
-        qid = lines[0].strip()
-        sql = "\n".join(ln for ln in lines[1:] if not ln.lstrip().startswith("--")).strip()
-        if sql:
-            out[qid] = sql.format(catalog=CATALOG, schema=SCHEMA, tschema=SCHEMA_TERM)
-    return out
-
-
-_GOLD = _load_gold_sql()
-
-
-@mlflow.trace(span_type="RETRIEVER", name="closure_sql")
-def closure_sql(question: str, qid: str) -> list[dict]:
-    sql = _GOLD.get(qid)
-    if not sql:
-        return []  # class 7/8 (definition / graph) have no scalar closure query -> arm insufficient here
-    rows = run_sql(sql)
-    if not rows:
-        return []
-    return [_doc(f"Result of a fixed-shape governed SQL query (closure / edge / gold tables):\n{_render(rows)}",
-                 source="closure_sql", sql=sql[:300])]
 
 
 # --- rag: A4 Lakebase hybrid retrieval over the care-protocol corpus (best-effort from local) ----------------
@@ -172,11 +212,6 @@ def rag(question: str, qid: str) -> list[dict]:
 #   genie_ontology  Genie Ontology's MODELED layer: Genie Pages (synonym/keyword match) + certified metric views.
 #                   Genie's own snippet search is semantic and its payload isn't exposed by the API, so this is a
 #                   transparent stand-in over the same content; inferred snippets are not included.
-import sys as _sys  # noqa: E402
-
-_sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "app")))
-from server.context_retrieval import genie_ontology_docs, graph_context  # noqa: E402
-
 ONTOBRICKS_CATALOG = os.environ.get("CARE_ONTOBRICKS_CATALOG", "eswanson_demo")
 ONTOBRICKS_SCHEMA = os.environ.get("CARE_ONTOBRICKS_SCHEMA", "ontobricks")
 ONTOBRICKS_TABLE = os.environ.get("CARE_ONTOBRICKS_TABLE")  # None -> the latest published clinicaldomain version
@@ -208,12 +243,28 @@ _GO_REC = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "
                                        "genie_ontology_retrieval.json"))
 
 
+def _go_rec(workspace: str, qid: str) -> dict | None:
+    if not os.path.isfile(_GO_REC):
+        return None
+    return json.load(open(_GO_REC))["workspaces"].get(workspace, {}).get("questions", {}).get(qid)
+
+
+def genie_skipped(arm: str, qid: str) -> bool | None:
+    """True if Genie One never ran its ontology search for this question (so 'retrieved nothing' is not a finding);
+    None if there is no recording for the question at all."""
+    ws = {"genie_ontology": "ect", "genie_ontology_dmvm": "dmvm"}.get(arm)
+    if not ws:
+        return False
+    rec = _go_rec(ws, qid)
+    return None if rec is None else bool(rec.get("skipped_search"))
+
+
 def _genie_ontology(workspace: str, qid: str) -> list[dict]:
     """Genie Ontology's OWN retrieval for this question (recorded: snippet search + Pages read), no Genie One answer."""
-    if not os.path.isfile(_GO_REC):
-        return [_doc("[no Genie Ontology recording — run scripts/record_genie_ontology.py]", source="genie_ontology_error")]
-    rec = json.load(open(_GO_REC))["workspaces"].get(workspace, {})
-    return genie_ontology_docs(rec.get("questions", {}).get(qid) or {})
+    rec = _go_rec(workspace, qid)
+    if rec is None:
+        return []
+    return genie_ontology_docs(rec)
 
 
 @mlflow.trace(span_type="RETRIEVER", name="genie_ontology")
@@ -236,3 +287,9 @@ PROVIDERS = {
     "genie_ontology_dmvm": genie_ontology_dmvm,
     "ontobricks": ontobricks,
 }
+
+
+def warm() -> None:
+    """Populate the per-run metadata caches (metric-view definitions, terminology table cards) before parallel use."""
+    _metric_views()
+    _term_cards()
