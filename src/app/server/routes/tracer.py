@@ -188,7 +188,7 @@ def patient_journey(patient_id: str):
               "Structured context: pre-materialized hierarchies and typed edge tables, queried with fixed-shape SQL."),
         stage("ontobricks", "Ontology — Ontobricks graph", "Cross-vocabulary OWL mapping over the governed tables (clinicaldomain)",
               "page",
-              {"graph": "clinicaldomain_v2 (live triplestore)"},
+              {"graph": "clinicaldomain (latest live triplestore)"},
               "The explicit OWL graph: typed, cross-vocabulary edges (recommendedFor / contraindicatedWith / "
               "monitoredBy / subClassOf*) mapped from the governed tables via R2RML. Eli-owned Ontobricks deployment "
               "(ADR-0005); surfaced here as the modeled mapping, a live traversal is the next step."),

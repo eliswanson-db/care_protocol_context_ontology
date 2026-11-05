@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import type { GenieResult, OntobricksResult, RagResult, RetrievalLens, RetrievalResult } from "../api";
 import { GenieMarkdown } from "./GenieMarkdown";
+import { SIMPLE_APPROACHES, useSettings } from "../settings";
 
 export type LiveStatus = "idle" | "loading" | "done" | "error";
 export interface LiveArm<T> {
@@ -63,7 +64,7 @@ const META: Record<string, { label: string; resolves_at: string; question: strin
   },
   graph: {
     label: "Ontobricks graph",
-    resolves_at: "live traversal · clinicaldomain_v2",
+    resolves_at: "live traversal · latest clinicaldomain graph",
     question: "the clinical rationale linking the patient's codes, drugs and measures",
     good_at: "Typed, multi-hop, cross-vocab paths a closure join can't express.",
     blind_to: "Overkill for a single is-a rollup; scans ~55M triples.",
@@ -294,7 +295,7 @@ function GraphBody({ arm }: { arm: LiveArm<OntobricksResult> }) {
     <div className="space-y-1.5">
       <div className="flex flex-wrap items-center gap-1 text-[9px]">
         <span className="rounded bg-primary/15 px-1.5 py-0.5 font-semibold text-primary">live traversal</span>
-        <span className="rounded bg-surface-2 px-1.5 py-0.5 text-muted">{rows.length} edges · clinicaldomain_v2</span>
+        <span className="rounded bg-surface-2 px-1.5 py-0.5 text-muted">{rows.length} edges · {(r.table || "").split(".").pop()?.replace(/^triplestore_/, "").replace(/_graph$/, "")}</span>
       </div>
       {rows.length === 0 ? (
         <div className="text-[11px] text-muted">No triples returned.</div>
@@ -338,13 +339,15 @@ export function RetrievalRow({
   rag: LiveArm<RagResult>;
   graph: LiveArm<OntobricksResult>;
 }) {
+  const { simple } = useSettings();
+  const order = simple ? ORDER.filter((id) => SIMPLE_APPROACHES.includes(id)) : ORDER;
   const hasActive = activeModes.size > 0;
   const byId = new Map<string, RetrievalLens>();
   (retrieval?.deterministic_lenses ?? []).forEach((l) => byId.set(l.id, l));
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
-      {ORDER.map((id) => {
+    <div className={`grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 ${simple ? "" : "2xl:grid-cols-5"}`}>
+      {order.map((id) => {
         const active = activeModes.has(id);
         const dim = hasActive && !active;
         const det = byId.get(id);

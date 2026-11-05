@@ -158,7 +158,7 @@ def _live_descriptors(pid: str) -> list[dict]:
         {
             "id": "graph", "label": "Ontobricks graph", "deferred": True,
             "endpoint": f"/api/patient/{pid}/ontobricks",
-            "resolves_at": "live graph traversal (clinicaldomain_v2 triplestore)",
+            "resolves_at": "live graph traversal (latest clinicaldomain triplestore)",
             "question": "the clinical rationale linking the patient's codes, drugs and measures",
             "good_at": "Typed, multi-hop, cross-vocabulary paths a closure join can't express.",
             "blind_to": "Overkill for a single is-a rollup; a full scan over ~55M triples.",

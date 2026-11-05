@@ -6,6 +6,7 @@ import { FlowDiagram } from "../components/FlowDiagram";
 import { NodeDetail } from "../components/NodeDetail";
 import { RetrievalRow, type LiveStatus } from "../components/RetrievalRow";
 import { TracerPicker } from "../components/TracerPicker";
+import { useSettings } from "../settings";
 
 function Section({
   n,
@@ -36,7 +37,14 @@ function Section({
 }
 
 export function TracerJourney() {
-  const [tracers, setTracers] = useState<Tracer[]>([]);
+  const { simple } = useSettings();
+  const [allTracers, setTracers] = useState<Tracer[]>([]);
+  // Simple mode: one MET and one NOT_MET hero patient.
+  const tracers = useMemo(() => {
+    if (!simple) return allTracers;
+    const pick = [allTracers.find((t) => t.status === "MET"), allTracers.find((t) => t.status === "NOT_MET")];
+    return pick.filter(Boolean) as Tracer[];
+  }, [allTracers, simple]);
   const [selected, setSelected] = useState<string | null>(null);
   const [journey, setJourney] = useState<Journey | null>(null);
   const [retrieval, setRetrieval] = useState<RetrievalResult | null>(null);
@@ -112,7 +120,6 @@ export function TracerJourney() {
     api.tracers()
       .then((r) => {
         setTracers(r.tracers);
-        if (r.tracers.length) setSelected(r.tracers[0].patient_id);
       })
       .catch((e) => setError(String(e)))
       .finally(() => setLoadingList(false));
@@ -142,6 +149,11 @@ export function TracerJourney() {
       .then(setRetrieval)
       .catch(() => setRetrieval(null));
   }, [selected]);
+
+  // Keep the selection inside the visible list (e.g. after switching simple mode on).
+  useEffect(() => {
+    if (tracers.length && !tracers.some((t) => t.patient_id === selected)) setSelected(tracers[0].patient_id);
+  }, [tracers, selected]);
 
   const picked = tracers.find((t) => t.patient_id === selected);
 
@@ -175,7 +187,7 @@ export function TracerJourney() {
             <p className="mt-1.5 max-w-4xl text-[14.5px] text-muted">
               GSD (Glycemic Status Assessment) is met when a diabetic patient aged 18–75 has at least one HbA1c
               test in the measurement year. Follow this patient from the care-protocol PDF through every data layer
-              to the governed answer — then see how five retrieval approaches answer the same question.
+              to the governed answer — then see how {simple ? "three" : "five"} retrieval approaches answer the same question.
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-border bg-surface px-4 py-3">
               <span className="font-mono text-xl font-bold">{picked.patient_id.slice(0, 8)}</span>
@@ -227,7 +239,7 @@ export function TracerJourney() {
               onToggle={() => toggle("build")}
             >
               <FlowDiagram
-                stages={journey.stages}
+                stages={simple ? journey.stages.filter((s) => s.key !== "closure_ret") : journey.stages}
                 activePath={activePath}
                 selectedKey={selectedNode}
                 onSelect={(k) => {
@@ -243,7 +255,7 @@ export function TracerJourney() {
 
             <Section
               n="02"
-              title="Retrieval — the same question, five ways"
+              title={`Retrieval — the same question, ${simple ? "three" : "five"} ways`}
               hint="each approach answers the part of the question it can"
               open={open.retrieval}
               onToggle={() => toggle("retrieval")}

@@ -4,6 +4,7 @@ import { api, type A1Runs, type ArenaContext, type CapabilityMap, type CapQuesti
 import { Collapsible } from "../components/Collapsible";
 import { TierChip, tierKey } from "../components/TierChip";
 import { GenieMarkdown } from "../components/GenieMarkdown";
+import { SIMPLE_APPROACHES, SIMPLE_QIDS, useSettings } from "../settings";
 
 const VERDICT: Record<string, { label: string; cls: string }> = {
   reached: { label: "right", cls: "bg-success/15 text-success" },
@@ -248,6 +249,7 @@ function RetrievalColumn({ title, subtitle, color, side, empty }: {
 }
 
 export function RetrievalArena() {
+  const { simple } = useSettings();
   const [map, setMap] = useState<CapabilityMap | null>(null);
   const [runs, setRuns] = useState<A1Runs | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -277,8 +279,15 @@ export function RetrievalArena() {
 
   const flat = useMemo(() => {
     if (!map) return [] as (CapQuestion & { class_name: string })[];
-    return map.classes.flatMap((c) => c.questions.map((q) => ({ ...q, class_name: c.class_name })));
-  }, [map]);
+    const all = map.classes.flatMap((c) => c.questions.map((q) => ({ ...q, class_name: c.class_name })));
+    return simple ? SIMPLE_QIDS.map((id) => all.find((q) => q.id === id)).filter(Boolean) as typeof all : all;
+  }, [map, simple]);
+  const approaches = simple ? APPROACHES.filter((a) => SIMPLE_APPROACHES.includes(a.id)) : APPROACHES;
+
+  // Keep the selection inside the visible list (e.g. after switching simple mode on).
+  useEffect(() => {
+    if (flat.length && !flat.some((x) => x.id === sel)) setSel(flat[0].id);
+  }, [flat, sel]);
 
   if (error)
     return (
@@ -322,15 +331,14 @@ export function RetrievalArena() {
               <h1 className="text-2xl font-bold tracking-tight">{q.question}</h1>
               <p className="mt-1.5 flex flex-wrap items-center gap-2 text-[14px] text-muted">
                 <span className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-[13px]">gold: {q.gold}</span>
-                {q.note ? <span className="italic">· {q.note}</span> : null}
               </p>
             </div>
 
             <div className="space-y-6">
-              <Collapsible title="Five approaches, one question"
-                hint="1 · answer in the context   2 · enough for one query that returns it   3 · neither">
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
-                  {APPROACHES.map((a) => {
+              <Collapsible title={`${simple ? "Three" : "Five"} approaches, one question`}
+                hint="✓ answered from the retrieved context alone">
+                <div className={`grid grid-cols-2 gap-3 sm:grid-cols-3 ${simple ? "" : "xl:grid-cols-5"}`}>
+                  {approaches.map((a) => {
                     const c = LENS[a.id];
                     const sc = ctx?.scored_all?.[a.arm];
                     return (
@@ -366,14 +374,6 @@ export function RetrievalArena() {
                     );
                   })}
                 </div>
-                <p className="mt-2.5 text-[12px] text-muted">
-                  Each approach retrieves with its own method, and the scoring uses only that context. <span className="font-semibold text-fg">Tier 1</span>:
-                  a judge ({ctx?.scored_meta?.judge ?? "—"}) checks each gold fact separately and finds it stated in the context.{" "}
-                  <span className="font-semibold text-fg">Tier 2</span>: a fixed agent writes exactly one SQL query using only names that appear in the
-                  context (no schema is given), we run it, and the judge checks the result rows against the gold. <span className="font-semibold text-fg">Tier 3</span>:
-                  neither. Each cell runs {ctx?.scored_meta?.repeats ?? 3}× and the majority is shown, with "varied" marking cells that changed between runs.
-                  Genie One's end-to-end answer is scored separately below.
-                </p>
               </Collapsible>
 
               <Collapsible title="Retrieval — Genie Ontology vs the graph"
@@ -393,15 +393,13 @@ export function RetrievalArena() {
                         empty="No clinical entity in the question links to a graph node — the graph holds no operational or temporal data." />
                     </div>
                     <p className="mt-2.5 text-[12px] text-muted">
-                      Retrieval only, side by side. Genie Ontology's retrieval is identity-scoped (the app's service principal
-                      gets fewer snippets), so it is recorded as a user on each workspace; the graph is queried live. The tier is
-                      the same as above: answer in the context (1), enough for one query (2), or neither (3).
+                      Genie Ontology is recorded as a user on each workspace (its retrieval depends on who asks); the graph is queried live.
                     </p>
                   </>
                 )}
               </Collapsible>
 
-              <Collapsible title="Genie One end-to-end" hint="the product front door: its own retrieval + SQL, recorded run" defaultOpen={false}>
+              {!simple && <Collapsible title="Genie One end-to-end" hint="the product front door: its own retrieval + SQL, recorded run" defaultOpen={false}>
                 <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                   <div className="flex flex-col rounded-xl border border-t-[3px] border-border bg-surface p-3" style={{ borderTopColor: LENS.genie_ontology }}>
                     <div className="flex items-center gap-2">
@@ -441,7 +439,7 @@ export function RetrievalArena() {
                     </p>
                   </div>
                 </div>
-              </Collapsible>
+              </Collapsible>}
 
               <p className="text-[12px] text-muted">
                 The five cards use one rubric: metric view / closure / Genie One are hand-verified (Genie One = the authoritative

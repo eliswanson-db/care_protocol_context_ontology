@@ -1,8 +1,28 @@
 import { AlertTriangle, Info } from "lucide-react";
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { api, type A1Runs, type CapabilityMap } from "../api";
 import { Collapsible } from "../components/Collapsible";
 import { TIER, TierChip } from "../components/TierChip";
+import { SIMPLE_APPROACHES, SIMPLE_QIDS, useSettings } from "../settings";
+
+/** Simple mode: the same map cut to the simple questions x approaches, with the bars recounted from those cells. */
+function simpleView(m: CapabilityMap): CapabilityMap {
+  const arms = m.arms.filter((a) => SIMPLE_APPROACHES.includes(a.id));
+  const classes = m.classes
+    .map((c) => ({ ...c, questions: c.questions.filter((q) => SIMPLE_QIDS.includes(q.id)) }))
+    .filter((c) => c.questions.length);
+  const qs = classes.flatMap((c) => c.questions);
+  const rollup = m.rollup
+    .filter((r) => SIMPLE_APPROACHES.includes(r.arm))
+    .map((r) => {
+      const v = qs.map((q) => q.verdicts[r.arm]);
+      const n = (ks: string[]) => v.filter((x) => ks.includes(x)).length;
+      return { ...r, total: v.length, tier1: n(["tier1"]), tier2: n(["tier2"]), answered: n(["tier1", "tier2"]),
+        wrong: n(["wrong_answer", "query_failed"]), no_query: n(["no_query", "no_retrieval", "skipped"]),
+        tier3: v.length - n(["tier1", "tier2"]), unstable: 0 };
+    });
+  return { ...m, arms, classes, rollup, floor: undefined };
+}
 
 const E2E: Record<string, { label: string; cls: string }> = {
   reached: { label: "right", cls: "bg-success/15 text-success" },
@@ -206,7 +226,9 @@ function OnOff({ runs }: { runs: A1Runs }) {
 }
 
 export function BenchmarkScorecard() {
-  const [map, setMap] = useState<CapabilityMap | null>(null);
+  const { simple } = useSettings();
+  const [full, setMap] = useState<CapabilityMap | null>(null);
+  const map = useMemo(() => (full && simple ? simpleView(full) : full), [full, simple]);
   const [runs, setRuns] = useState<A1Runs | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -240,8 +262,12 @@ export function BenchmarkScorecard() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">When each layer earns its place</h1>
         <p className="mt-1.5 text-[15px] text-muted">
+          {simple ? (
+            <>Three questions: one where Genie Ontology beats RAG, one where RAG does just as well, and one where the
+              Ontobricks graph beats Genie Ontology.{" "}</>
+          ) : (<>
           Seven questions, four stories: when Genie Ontology's retrieval beats RAG, when RAG does just as well, when the
-          Ontobricks graph beats Genie Ontology, and when the graph looks like it should win but doesn't.{" "}
+          Ontobricks graph beats Genie Ontology, and when the graph looks like it should win but doesn't.{" "}</>)}
           <span className="font-semibold text-success">✓ Answered</span> means the answer was in the retrieved context, or the
           context was enough to write one SQL query that returned it.
         </p>
@@ -250,15 +276,17 @@ export function BenchmarkScorecard() {
       <div className="space-y-6">
         <Collapsible title="How often each approach's retrieval was enough">
           <Ladder map={map} />
-          <p className="mt-2 text-[13px] text-muted">
+          {!simple && <p className="mt-2 text-[13px] text-muted">
             Genie One is not on the same footing: on ECT it also loads a hand-written HEDIS skill built from this question
             set, reads its conversation memory and table schemas, and runs several queries.
-          </p>
+          </p>}
         </Collapsible>
 
-        <Collapsible title="The seven questions">
+        <Collapsible title={simple ? "The three questions" : "The seven questions"}>
           <div className="mb-2 flex flex-wrap gap-2 text-[11px]">
-            {["tier1", "tier2", "wrong_answer", "query_failed", "no_query", "no_retrieval", "skipped"].map((k) => (
+            {["tier1", "tier2", "wrong_answer", "query_failed", "no_query", "no_retrieval", "skipped"]
+              .filter((k) => map.classes.some((c) => c.questions.some((q) => Object.values(q.verdicts).includes(k))))
+              .map((k) => (
               <span key={k} className={`rounded px-1.5 py-0.5 font-semibold ${TIER[k].cls}`}>{TIER[k].label}</span>
             ))}
           </div>
@@ -268,13 +296,13 @@ export function BenchmarkScorecard() {
           </p>
         </Collapsible>
 
-        <Collapsible title="Ontology ON vs OFF (ADR-0018, observational)" hint="optional detail" defaultOpen={false}>
+        {!simple && <Collapsible title="Ontology ON vs OFF (ADR-0018, observational)" hint="optional detail" defaultOpen={false}>
           <p className="mb-2.5 text-[13px] text-muted">
             Same shared catalog, differing native-ontology density. Machine-observed by driving Genie One headless
             on each workspace.
           </p>
           <OnOff runs={runs} />
-        </Collapsible>
+        </Collapsible>}
       </div>
     </main>
   );
