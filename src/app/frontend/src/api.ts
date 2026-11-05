@@ -58,7 +58,8 @@ export interface Scored {
 export interface ArenaContext {
   qid: string;
   question: string;
-  ontology: { docs: CtxDoc[]; latency_s: number; error?: string; scored?: Scored };
+  ontology: Record<string, { docs: CtxDoc[]; error?: string; queries: string[]; skipped_search?: boolean; host: string; identity: string;
+    recorded_at: string; scored?: Scored }>;
   graph: { docs: CtxDoc[]; latency_s: number; error?: string; graph_table: string; scored?: Scored };
   closed_book?: Scored;
   scored_all?: Record<string, Scored>;

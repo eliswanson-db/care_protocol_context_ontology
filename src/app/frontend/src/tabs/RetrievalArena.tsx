@@ -23,7 +23,7 @@ function Verdict({ v }: { v: string }) {
 const APPROACHES = [
   { id: "metric_view", arm: "metric_view", label: "Metric View", how: "MEASURE() over a certified metric view" },
   { id: "closure", arm: "closure_sql", label: "Closure / governed SQL", how: "fixed-shape SQL over closure, edge and gold tables" },
-  { id: "genie_ontology", arm: "genie_ontology", label: "Genie Ontology", how: "Genie Pages + certified metric-view definitions" },
+  { id: "genie_ontology", arm: "genie_ontology", label: "Genie Ontology", how: "Genie's own retriever: inferred snippets + Pages (ECT, recorded)" },
   { id: "rag", arm: "rag", label: "RAG", how: "passage search over the care-protocol documents" },
   { id: "graph", arm: "ontobricks", label: "Ontobricks graph", how: "entity-linked typed edges from the live graph" },
 ] as const;
@@ -101,6 +101,109 @@ function GraphDocs({ docs: raw }: { docs: CtxDoc[] }) {
   );
 }
 
+function Flag({ on, label, tone }: { on: boolean; label: string; tone: "ok" | "warn" }) {
+  if (!on) return null;
+  return (
+    <span className={`rounded px-1 py-0.5 text-[9.5px] font-semibold ${tone === "ok" ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>
+      {label}
+    </span>
+  );
+}
+
+function GenieOntologyColumn({ sides, color }: { sides: ArenaContext["ontology"]; color: string }) {
+  const wss = Object.keys(sides);
+  const [ws, setWs] = useState(wss.includes("ect") ? "ect" : wss[0]);
+  const side = sides[ws];
+  if (!side) return null;
+  const snips = side.docs.filter((d) => d.metadata.kind === "snippet");
+  const pages = side.docs.filter((d) => d.metadata.kind === "page");
+  const onTopic = snips.filter((d) => d.metadata.on_topic).length;
+  return (
+    <div className="flex flex-col rounded-xl border border-t-[3px] border-border bg-surface p-3" style={{ borderTopColor: color }}>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: color }} />
+        <span className="text-[14px] font-semibold">Genie Ontology</span>
+        <span className="ml-auto"><AgentVerdict s={side.scored} /></span>
+      </div>
+      <p className="mt-1 text-[12px] leading-snug text-muted">
+        Genie's own knowledge retriever — the snippet search Genie One runs — returning inferred snippets and ranked
+        Pages, plus the Page bodies it read. Genie One's answer and SQL are not included.
+      </p>
+      <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
+        {wss.map((w) => (
+          <button key={w} onClick={() => setWs(w)}
+            className={`rounded-md border px-2 py-0.5 font-semibold ${w === ws ? "border-primary bg-primary/15 text-primary" : "border-border text-muted hover:text-fg"}`}>
+            {w.toUpperCase()}
+          </button>
+        ))}
+        <span className="text-muted">recorded {side.recorded_at?.slice(0, 10)} as {side.identity} on {side.host}</span>
+      </div>
+      {side.queries?.length > 0 && (
+        <div className="mt-1.5 text-[11px] text-muted">search: <span className="italic">“{side.queries.join("”, “")}”</span></div>
+      )}
+      {side.skipped_search ? (
+        <div className="mt-2 rounded-md border border-warning/40 bg-warning/10 px-2.5 py-2 text-[12px]">
+          Genie One didn't run its ontology search for this question on this workspace (3 attempts) — it answered from
+          conversation memory and SQL instead. So there is no Genie Ontology retrieval to show here, which is itself a finding:
+          Genie decides per question whether to consult the ontology.
+        </div>
+      ) : side.error ? (
+        <div className="mt-2 rounded-md border border-destructive/40 bg-destructive/10 px-2 py-1.5 text-[12px] text-destructive">{side.error}</div>
+      ) : (
+        <div className="mt-2 space-y-3">
+          <section>
+            <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted">
+              Inferred snippets ({snips.length}{snips.length ? `, ${onTopic} about this demo` : ""})
+            </div>
+            {snips.length === 0 ? (
+              <div className="rounded-md border border-dashed border-border bg-surface-2 px-2.5 py-2 text-[12px] text-muted">
+                Genie's snippet search returned no inferred snippets for this question here.
+              </div>
+            ) : (
+              <div className="max-h-80 space-y-1.5 overflow-auto">
+                {snips.map((d, i) => (
+                  <details key={i} className="rounded-md border border-border bg-surface-2 px-2.5 py-1.5">
+                    <summary className="cursor-pointer text-[12px] leading-snug">
+                      <span className="font-medium">{d.metadata.headline}</span>
+                      <span className="ml-1.5 inline-flex flex-wrap items-center gap-1 align-middle">
+                        <Flag on={!!d.metadata.on_topic} label="this demo" tone="ok" />
+                        <Flag on={!d.metadata.on_topic} label="other project" tone="warn" />
+                        <Flag on={!!d.metadata.stale} label="stale source" tone="warn" />
+                      </span>
+                      <div className="mt-0.5 text-[10.5px] text-muted">
+                        {d.metadata.type} · relevance {d.metadata.relevance} · from {d.metadata.source}
+                      </div>
+                    </summary>
+                    <div className="mt-1.5 text-[11.5px] leading-5 text-fg/85">{d.metadata.content}</div>
+                  </details>
+                ))}
+              </div>
+            )}
+          </section>
+          <section>
+            <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted">Ontology Pages ({pages.length})</div>
+            <div className="space-y-1.5">
+              {pages.map((d, i) => (
+                <details key={i} className="rounded-md border border-border bg-surface-2 px-2.5 py-1.5">
+                  <summary className="cursor-pointer text-[12px]">
+                    <span className="font-medium">{d.metadata.page}</span>
+                    <span className="ml-1.5 text-[10.5px] text-muted">{d.metadata.domain} · relevance {d.metadata.relevance}</span>
+                    {d.metadata.body && <span className="ml-1.5 rounded bg-primary/15 px-1 py-0.5 text-[9.5px] font-semibold text-primary">read in full</span>}
+                    <div className="mt-0.5 text-[11px] text-muted">{d.metadata.description}</div>
+                  </summary>
+                  {d.metadata.body && (
+                    <GenieMarkdown md={d.metadata.body} className="mt-1.5 max-h-48 space-y-1 overflow-auto text-[12px] leading-5 text-fg/85" />
+                  )}
+                </details>
+              ))}
+            </div>
+          </section>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function RetrievalColumn({ title, subtitle, color, side, empty }: {
   title: string; subtitle: string; color: string;
   side: { docs: CtxDoc[]; latency_s: number; error?: string; scored?: Scored }; empty: string;
@@ -129,12 +232,6 @@ function RetrievalColumn({ title, subtitle, color, side, empty }: {
           side.docs.map((d, i) => <OntologyDoc key={i} d={d} />)
         )}
       </div>
-      {side.scored && (
-        <div className="mt-3 border-t border-border pt-2.5">
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">Fixed agent's answer from this context alone</div>
-          <GenieMarkdown md={side.scored.answer} className="mt-1 max-h-40 space-y-1 overflow-auto text-[12px] leading-5 text-fg/90" />
-        </div>
-      )}
     </div>
   );
 }
@@ -279,20 +376,16 @@ export function RetrievalArena() {
                 {ctx && (
                   <>
                     <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-                      <RetrievalColumn title="Genie Ontology (modeled layer)" color={LENS.genie_ontology} side={ctx.ontology}
-                        subtitle="Genie Pages matched by their synonyms, plus the certified metric views they link to or that match directly — definitions and governed rules, read from where Genie grounds."
-                        empty="No Page or certified metric view matches this question." />
+                      <GenieOntologyColumn sides={ctx.ontology} color={LENS.genie_ontology} />
                       <RetrievalColumn title="Ontobricks graph" color={LENS.graph} side={ctx.graph}
                         subtitle={`Clinical terms in the question linked to graph nodes, then their typed one-hop edges from ${ctx.graph.graph_table.split(".").pop()} (live).`}
                         empty="No clinical entity in the question links to a graph node — the graph holds no operational or temporal data." />
                     </div>
                     <p className="mt-2.5 text-[12px] text-muted">
-                      Both columns use the same retrieval code the eval scores, and the same fixed agent
-                      ({ctx.scored_meta?.agent ?? "—"}) answers from each context alone; judged by {ctx.scored_meta?.judge ?? "—"}.
-                      {ctx.closed_book && <> With no retrieval at all it {ctx.closed_book.correct ? "already answers" : "cannot answer"} this question.</>}
-                      {" "}Genie's own snippet search is semantic and its payload isn't exposed, so the Genie column is the modeled
-                      content Genie grounds on (inferred snippets not included). Neither layer holds computed numbers — turning a
-                      definition into a count is Genie One's SQL step, below.
+                      Retrieval only, side by side. Genie Ontology's retrieval is identity-scoped (the app's service principal
+                      gets fewer snippets), so it is recorded as a user on each workspace; the graph is queried live. The verdict
+                      is the same judge as above: is the retrieved context alone sufficient? Neither layer holds computed
+                      numbers — turning a definition into a count is Genie One's SQL step, below.
                     </p>
                   </>
                 )}

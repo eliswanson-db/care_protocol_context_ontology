@@ -1,7 +1,8 @@
 """Retrieval Arena — retrieval vs retrieval for one benchmark question.
 
 GET /api/arena/{qid}/context returns, for the question's text:
-  * ontology  — what Genie Ontology's MODELED layer holds for it (Pages + certified metric views), retrieved live
+  * ontology  — Genie Ontology's OWN retrieval for it, per workspace (inferred snippets + Pages + Page bodies), recorded
+                as the user from Genie One's knowledge-snippet search (retrieval is identity-scoped); no Genie One answer
   * graph     — the Ontobricks typed subgraph for it, retrieved live from the latest published triplestore
   * scored    — what ONE fixed agent answered from each context alone, with the three judges' verdicts
                 (docs/benchmark/retrieval_eval_arena.json, produced by the retrieval_eval harness from the SAME
@@ -18,13 +19,11 @@ import json
 import os
 import re
 import time
-from concurrent.futures import ThreadPoolExecutor
 
 from fastapi import APIRouter, HTTPException
 
-from ..config import (CATALOG, ONTOBRICKS_CATALOG, ONTOBRICKS_SCHEMA, SCHEMA, SCHEMA_SEMANTIC,
-                      get_ontobricks_table)
-from ..context_retrieval import graph_context, ontology_context
+from ..config import ONTOBRICKS_CATALOG, ONTOBRICKS_SCHEMA, get_ontobricks_table
+from ..context_retrieval import genie_ontology_docs, graph_context
 from ..warehouse import run_sql
 from .benchmark import BENCH_DIR
 
@@ -90,13 +89,20 @@ def arena_context(qid: str):
         except Exception as e:  # noqa: BLE001 — show the real failure in that column
             return {"docs": [], "error": f"{type(e).__name__}: {str(e)[:240]}", "latency_s": round(time.time() - t0, 1)}
 
-    with ThreadPoolExecutor(max_workers=2) as ex:
-        f_o = ex.submit(timed, ontology_context, q, run_sql, CATALOG, SCHEMA, SCHEMA_SEMANTIC)
-        f_g = ex.submit(timed, graph_context, q, run_sql, graph)
-        onto, gr = f_o.result(), f_g.result()
+    gr = timed(graph_context, q, run_sql, graph)
     scored = _scored(qid)
+    onto = {}
+    rec_path = os.path.join(BENCH_DIR, "genie_ontology_retrieval.json")
+    if os.path.isfile(rec_path):
+        rec = json.load(open(rec_path))
+        for ws, d in rec.get("workspaces", {}).items():
+            r = d.get("questions", {}).get(qid) or {}
+            onto[ws] = {"docs": genie_ontology_docs(r), "error": r.get("error"), "queries": r.get("queries", []),
+                        "skipped_search": bool(r.get("skipped_search")),
+                        "host": d.get("host"), "identity": d.get("identity"), "recorded_at": rec.get("recorded_at"),
+                        "scored": scored.get("genie_ontology" if ws == "ect" else f"genie_ontology_{ws}")}
     return {"qid": qid, "question": q,
-            "ontology": {**onto, "scored": scored.get("genie_ontology")},
+            "ontology": onto,
             "graph": {**gr, "graph_table": graph, "scored": scored.get("ontobricks")},
             "closed_book": scored.get("closed_book"),
             "scored_all": {k: v for k, v in scored.items() if k != "_meta"},

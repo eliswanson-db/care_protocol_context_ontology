@@ -75,7 +75,7 @@ QUESTIONS = [
                         "the follow-up order set was not carried over."]},
 ]
 
-ARMS = ["closed_book", "metric_view", "closure_sql", "rag", "genie_ontology", "ontobricks"]
+ARMS = ["closed_book", "metric_view", "closure_sql", "rag", "genie_ontology", "genie_ontology_dmvm", "ontobricks"]
 
 
 def _yes(feedback) -> bool:
@@ -122,6 +122,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--arms", default=",".join(ARMS), help="comma-separated subset of " + ",".join(ARMS))
     ap.add_argument("--out", default="retrieval_eval.json", help="file name under docs/benchmark/")
+    ap.add_argument("--merge", action="store_true", help="replace only these arms' rows in an existing --out file")
     args = ap.parse_args()
     ARMS = [a for a in args.arms.split(",") if a]
     # Judges authenticate to Databricks via the model URI regardless of the trace store, so if the SP cannot
@@ -166,7 +167,7 @@ def main():
         print(line + f"  (expected winner: {q['wins']})")
 
     print("\n=== Correctness LIFT over closed_book (necessity signal) ===")
-    for q in QUESTIONS:
+    for q in (QUESTIONS if "closed_book" in ARMS else []):
         base = by[("closed_book", q["qid"])]["correct"]
         gains = [arm for arm in ARMS if arm != "closed_book"
                  and by[(arm, q["qid"])]["correct"] and not base]
@@ -176,6 +177,9 @@ def main():
 
     out = os.path.join(os.path.dirname(__file__), "..", "..", "..", "docs", "benchmark", args.out)
     out = os.path.normpath(out)
+    if args.merge and os.path.isfile(out):
+        old = [x for x in json.load(open(out)).get("rows", []) if x["arm"] not in ARMS]
+        rows = old + rows
     json.dump({"judge": JUDGE, "agent": agent.AGENT_MODEL, "rows": rows}, open(out, "w"), indent=2, default=str)
     print(f"\nPer-cell detail -> {out}")
     if providers._rag_error:

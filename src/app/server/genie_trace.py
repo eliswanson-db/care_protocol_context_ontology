@@ -90,7 +90,8 @@ def parse(events: list[dict]) -> dict:
         meta = out.get("meta", {})
         order.append(name)
         if name == "search_knowledge_snippets":
-            pages = [{"name": p.get("name"), "domain": p.get("domain"), "relevance": round(p.get("relevance_score") or 0, 2),
+            pages = [{"id": p.get("id"), "name": p.get("name"), "domain": p.get("domain"),
+                      "relevance": round(p.get("relevance_score") or 0, 2),
                       "certified": p.get("certified"), "description": p.get("description"),
                       "on_topic": p.get("domain") == "Clinical Domain"} for p in meta.get("knowledge_pages") or []]
             snips = [{"headline": s.get("headline"), "type": (s.get("snippet_type") or "").replace("SNIPPET_TYPE_", "").lower(),
@@ -120,6 +121,9 @@ def parse(events: list[dict]) -> dict:
             sql.append(args.get("query") or "")
         elif name.startswith("mcp__"):
             mcp.append({"tool": name.split("__")[-1], "server": name.split("__")[1] if "__" in name else "", "args": args})
+    names = {pg["id"]: pg["name"] for ss in snippet_searches for pg in ss["pages"]}
+    for pr in pages_read:
+        pr["name"] = names.get(pr["page_id"])
     # agent names from assets read (get_asset_info on the Genie space precedes ask_genie_space)
     agent_names = {a["asset"] for a in assets_read if a["type"] == "genie_space"}
     for a in agents:

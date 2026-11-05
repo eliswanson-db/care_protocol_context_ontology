@@ -1,0 +1,2155 @@
+{
+ "recorded_at": "2026-11-05T04:55:00+00:00",
+ "workspaces": {
+  "ect": {
+   "host": "fevm-eli-test-classic",
+   "identity": "eli.swanson@databricks.com",
+   "questions": {
+    "kpi_gsd_rate": {
+     "queries": [
+      "GSD glycemic status compliance rate definition"
+     ],
+     "snippets": [
+      {
+       "headline": "Glycemic Status Assessment measures whether eligible diabetic patients aged 18\u201375 had an A1c test during the year.",
+       "type": "business_logic",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.89,
+       "authority": 0.02,
+       "content": "GSD means Glycemic Status Assessment for diabetic patients aged 18-75. A patient meets GSD when they have an A1c test in the measurement year, represented in patient detail by `gold_adherence_gsd.numerator_flag`. The standard patient-level compliance formula is `COUNT_IF(gold_adherence_gsd.numerator_flag) / COUNT(*)`, where the denominator is all eligible rows in `eli_test_classic_catalog.care_protocol.gold_adherence_gsd` at the grouping grain. For the governed overall rate, query `SELECT MEASURE(`GSD Compliance Rate`) AS gsd_compliance_rate FROM eli_test_classic_catalog.care_protocol.gsd_compliance_metrics`.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "GSD measures whether diabetic adults aged 18 through 75 received an A1c test during the measurement year.",
+       "type": "metric_definition",
+       "source": "[dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.9,
+       "authority": 0.02,
+       "content": "GSD means Glycemic Status Assessment. Its eligible population is diabetic patients aged 18-75, and compliance requires an A1c test in the measurement year. Retrieve the rate with `SELECT MEASURE(`GSD Compliance Rate`) AS gsd_compliance_rate FROM eli_test_classic_catalog.care_protocol.gsd_compliance_metrics`. For patient-level evidence or care gaps, use `eli_test_classic_catalog.care_protocol.gold_adherence_gsd` instead of the metric view.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Glycemic control rates measure results among tested patients, while Glycemic Status compliance measures testing among all eligible patients.",
+       "type": "metric_definition",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.86,
+       "authority": 0.02,
+       "content": "For GSD, good and poor glycemic control rates are computed only among A1c-tested patients, not all eligible diabetic patients. The good control rate is `COUNT_IF(gold_adherence_gsd.a1c_lt8) / COUNT_IF(gold_adherence_gsd.numerator_flag)`, where the denominator is the count of tested patients. The poor control rate is `COUNT_IF(gold_adherence_gsd.a1c_gt9) / COUNT_IF(gold_adherence_gsd.numerator_flag)`, using the same tested-patient denominator. This differs from GSD compliance rate, whose denominator is all eligible GSD patients: `COUNT_IF(gold_adherence_gsd.numerator_flag) / COUNT(*)`.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Glycemic control bands combine A1c testing status with good, moderate, and poor result categories.",
+       "type": "business_logic",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.75,
+       "authority": 0.02,
+       "content": "Use the derived GSD glycemic control band expression to classify A1c testing and control outcomes. The exact expression is `CASE WHEN NOT gold_adherence_gsd.numerator_flag THEN 'Not tested' WHEN gold_adherence_gsd.a1c_lt8 THEN 'Good (<8%)' WHEN gold_adherence_gsd.a1c_gt9 THEN 'Poor (>9%)' ELSE 'Moderate (8-9%)' END`. The complete output value list is `Not tested`, `Good (<8%)`, `Poor (>9%)`, and `Moderate (8-9%)`. This band combines the testing status and A1c result category, so `Not tested` is a testing gap rather than a clinical control range.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Clinic-level Glycemic Status reporting combines eligible counts, testing compliance, control rates, and average latest A1c.",
+       "type": "metric_definition",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.78,
+       "authority": 0.02,
+       "content": "For clinic-level GSD reporting, use `eli_test_classic_catalog.care_protocol.gold_adherence_gsd` directly because `clinic_id` is present on the GSD patient-level table. The curated clinic query groups by `clinic_id` and computes `COUNT(*) AS eligible_patients`, `COUNT_IF(numerator_flag) / COUNT(*) AS gsd_compliance_rate`, `COUNT_IF(a1c_lt8) / COUNT_IF(numerator_flag) AS good_control_rate`, `COUNT_IF(a1c_gt9) / COUNT_IF(numerator_flag) AS poor_control_rate`, and `AVG(evidence_value) AS avg_latest_a1c`. Here the GSD compliance denominator is all eligible patients in that clinic, while good and poor control denominators are only patients with `numerator_flag`. This pattern is the source for clinic-level A1c testing and control comparison.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Average latest A1c summarizes recorded A1c values and is separate from testing compliance and control rates.",
+       "type": "metric_definition",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.78,
+       "authority": 0.02,
+       "content": "The average latest A1c percentage among tested patients is represented by `AVG(gold_adherence_gsd.evidence_value)`. In clinic-level GSD reporting, this appears alongside `COUNT_IF(numerator_flag) / COUNT(*) AS gsd_compliance_rate`, `COUNT_IF(a1c_lt8) / COUNT_IF(numerator_flag) AS good_control_rate`, and `COUNT_IF(a1c_gt9) / COUNT_IF(numerator_flag) AS poor_control_rate`. The numerator for the average is the A1c evidence value, and the intended denominator is the count of rows with non-null `evidence_value` included by `AVG`. Use this only for A1c-tested evidence analysis; it is not a compliance rate.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Measure rates come from governed metric views, while patient detail and care gap lists come from gold adherence tables.",
+       "type": "business_logic",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.74,
+       "authority": 0.02,
+       "content": "For measure rates, use the matching metric view and query the governed metric with `MEASURE(...)`: `gsd_compliance_metrics`, `ked_compliance_metrics`, `bpd_compliance_metrics`, `spd_compliance_metrics`, or `eed_compliance_metrics`. The instruction says never to `SUM` or `AVG` a rate column, because rates are governed measures rather than additive facts. For patient-level detail, evidence fields, care gap lists, and custom clinic or panel breakdowns, use the corresponding `gold_adherence_<measure>` table. In the patient-level tables, `status = 'NOT_MET'` means a care gap and `status = 'MET'` means compliant.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Metric views answer rate questions, while gold adherence tables answer patient-level evidence and care-gap questions.",
+       "type": "join_hint",
+       "source": "[dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.75,
+       "authority": 0.02,
+       "content": "Each measure has two complementary sources: a compliance metric view for rates and a `gold_adherence_<measure>` table for patient-level detail plus evidence. Use `gsd_compliance_metrics`, `ked_compliance_metrics`, `bpd_compliance_metrics`, `spd_compliance_metrics`, or `eed_compliance_metrics` for governed rates. Use the corresponding `gold_adherence_gsd`, `gold_adherence_ked`, `gold_adherence_bpd`, `gold_adherence_spd`, or `gold_adherence_eed` table when the question asks which patients met a measure, what evidence supports it, or where care gaps exist.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Diabetes quality reporting in this agent covers five HEDIS-aligned demo measures and is not NCQA-certified.",
+       "type": "business_logic",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.77,
+       "authority": 0.02,
+       "content": "This Genie Agent covers five diabetes quality measures: GSD, KED, BPD, SPD, and EED. The measures are described as HEDIS-aligned demo content and explicitly are not NCQA-certified. The diabetes cohort is defined by subsumption over the ICD-10-CM hierarchy, using diagnoses under `E10`, `E11`, and `E13`. Analysts should treat these rules as the measure universe for this semantic layer rather than as certified HEDIS specifications.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "This agent covers five HEDIS-aligned diabetes quality measures, but its results are a demonstration rather than NCQA-certified reporting.",
+       "type": "business_logic",
+       "source": "[dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.77,
+       "authority": 0.02,
+       "content": "The agent answers questions about five HEDIS-aligned diabetes measures: GSD, KED, BPD, SPD, and EED. This is a HEDIS-aligned demo and is not NCQA-certified. The available data is organized into matching patient-level gold adherence tables and governed compliance metric views in the Care Protocol semantic layer.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "A care gap is a patient-level record marked not met, while met records represent compliant patients.",
+       "type": "business_logic",
+       "source": "[dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.76,
+       "authority": 0.02,
+       "content": "In every patient-level gold adherence table, `status = 'NOT_MET'` means the patient has a care gap and `status = 'MET'` means the patient is compliant. To count KED care gaps, use the exact governed query `SELECT COUNT(*) AS ked_care_gaps FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked WHERE status = 'NOT_MET'`. The same status interpretation applies to the corresponding gold adherence tables for GSD, BPD, SPD, and EED.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Clinic-level comparisons across diabetes measures use Glycemic Status attribution and report each measure\u2019s eligible clinic-attributed patients.",
+       "type": "metric_definition",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.74,
+       "authority": 0.02,
+       "content": "For clinic-level comparisons across all five diabetes measures, the curated pattern uses GSD as the clinic attribution source. The union labels the complete measure set as `GSD`, `KED`, `BPD`, `SPD`, and `EED`, each carrying `measurement_year`, `clinic_id`, and `numerator_flag`; KED, BPD, SPD, and EED are joined to the GSD clinic CTE by `patient_id` and `measurement_year`. The clinic rates are `COUNT_IF(measure = '<MEASURE>' AND numerator_flag) / COUNT_IF(measure = '<MEASURE>')` for each measure. Because the KED branch uses an inner join to GSD, clinic-level KED rates represent clinic-attributed KED patients rather than all KED-eligible patients aged 18-85.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Age-band reporting for Glycemic Status, Blood Pressure control, and Eye Exam uses three shared adult bands.",
+       "type": "business_logic",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.72,
+       "authority": 0.02,
+       "content": "The GSD age band logic, which also matches the GSD/BPD/EED metric views, is `CASE WHEN gold_adherence_gsd.age < 45 THEN '18-44' WHEN gold_adherence_gsd.age < 65 THEN '45-64' ELSE '65-75' END`. The complete output value list is `18-44`, `45-64`, and `65-75`. Use these exact cut points and labels for GSD, BPD, and EED age-band reporting to match the metric views. The upper band label reflects the 18-75 eligible age range for those measures.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Eye Exam patients use Glycemic Status rows for clinic and panel attribution when reporting clinic-level rates.",
+       "type": "join_hint",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.71,
+       "authority": 0.02,
+       "content": "Attach clinic or panel attribution to EED patients by joining `eli_test_classic_catalog.care_protocol.gold_adherence_eed` to `eli_test_classic_catalog.care_protocol.gold_adherence_gsd` on `gold_adherence_eed.patient_id = gold_adherence_gsd.patient_id AND gold_adherence_eed.measurement_year = gold_adherence_gsd.measurement_year`. The curated relationship is many-to-one from EED to GSD, and every EED patient has a GSD row. Use this join to bring `clinic_id` and `panel_id` onto EED rows for clinic or panel breakdowns. A verified sample computes clinic EED rate as `COUNT_IF(e.numerator_flag) / COUNT(*)` after this join and groups by `g.clinic_id`.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Care gap lists include only non-compliant patient rows, while compliant rows represent completed measure requirements.",
+       "type": "business_logic",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.72,
+       "authority": 0.02,
+       "content": "The universal care gap filter in the gold adherence tables is to INCLUDE rows where `status = 'NOT_MET'`. The corresponding compliant status is `status = 'MET'`, so do not infer care gaps from the absence of evidence fields alone unless a measure-specific snippet says so. This applies to all five patient-level tables: `gold_adherence_gsd`, `gold_adherence_ked`, `gold_adherence_bpd`, `gold_adherence_spd`, and `gold_adherence_eed`. Standard care gap counts use `COUNT_IF(<table>.status = 'NOT_MET')` or `WHERE <table>.status = 'NOT_MET'`.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "SPD measures statin therapy among diabetic adults aged 40 through 75 who were dispensed a statin during the measurement year.",
+       "type": "metric_definition",
+       "source": "[dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.79,
+       "authority": 0.02,
+       "content": "SPD means Statin Therapy. The eligible population is diabetic patients aged 40-75, and compliance requires statin dispensing in the measurement year. Retrieve the governed rate with `SELECT MEASURE(`SPD Compliance Rate`) AS spd_rate FROM eli_test_classic_catalog.care_protocol.spd_compliance_metrics`. For patient-level detail or care gaps, use `eli_test_classic_catalog.care_protocol.gold_adherence_spd`.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "A patient\u2019s diabetes gap burden counts open gaps across the five measures after applying the non-compliant status rule.",
+       "type": "metric_definition",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.71,
+       "authority": 0.02,
+       "content": "A patient's number of open diabetes care gaps is computed by unioning gap rows from all five gold adherence tables and counting rows per `patient_id`. The standard gap inclusion rule in each branch is exactly `status = 'NOT_MET'` for `GSD`, `KED`, `BPD`, `SPD`, and `EED`; the complete measure label list is `GSD`, `KED`, `BPD`, `SPD`, and `EED`. The instruction query uses `UNION ALL`, then `SELECT patient_id, COUNT(*) AS gap_count FROM gaps GROUP BY patient_id`, and finally counts patients by `gap_count`. Because the query groups only by `patient_id`, keep the same measurement-year scope upstream if multiple years are present and a per-year gap burden is needed.",
+       "on_topic": true,
+       "stale": false
+      }
+     ],
+     "pages": [
+      {
+       "id": "1045ab28-3390-4c2f-a056-381c1019c345",
+       "name": "GSD (Glycemic Status Assessment)",
+       "domain": "Clinical Domain",
+       "relevance": 0.83,
+       "certified": false,
+       "description": "Share of diabetic patients aged 18\u201375 with at least one HbA1c test in the measurement year; also bands A1c control.",
+       "on_topic": true
+      },
+      {
+       "id": "7644609a-924b-416d-80f0-461e4ab5ea20",
+       "name": "Compliance Rate",
+       "domain": "Clinical Domain",
+       "relevance": 0.83,
+       "certified": false,
+       "description": "Aggregate measure metric: compliant \u00f7 eligible patients, exposed as a governed measure in each *_compliance_metrics metric view.",
+       "on_topic": true
+      },
+      {
+       "id": "3ff424ef-a529-4bd8-88f6-1c297ae6120f",
+       "name": "HEDIS Measures and Compliance Rate",
+       "domain": "Crestline Health",
+       "relevance": 0.33,
+       "certified": false,
+       "description": "NCQA quality measures Crestline reports, and how the compliance rate is calculated.",
+       "on_topic": false
+      },
+      {
+       "id": "64d08664-03f5-4bfd-aa71-8786a0032cd5",
+       "name": "SLA Compliance & Status Model",
+       "domain": "BrickMobile/Network Assurance",
+       "relevance": 0.33,
+       "certified": false,
+       "description": "How BrickMobile classifies each measurement-day as Met, At Risk, or Breach based on KPI target misses.",
+       "on_topic": false
+      }
+     ],
+     "pages_read": []
+    },
+    "sub_kidney": {
+     "queries": [
+      "diabetes cohort definition and diabetes with kidney complications ICD-10 E11.2"
+     ],
+     "snippets": [
+      {
+       "headline": "Diabetes eligibility includes diagnoses subsumed under the E10, E11, and E13 ICD-10-CM hierarchy families.",
+       "type": "business_logic",
+       "source": "[dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.86,
+       "authority": 0.02,
+       "content": "The diabetes cohort is defined by subsumption over the ICD-10-CM hierarchy, specifically diagnoses under E10, E11, and E13. Use this governed cohort definition when interpreting any of the five measure populations. Do not infer diabetes eligibility from unrelated diagnosis codes or from measure status alone.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "The target population consists of distinct patients with diabetes, chronic kidney disease, and heart failure diagnoses.",
+       "type": "business_logic",
+       "source": "Query history for eli_test_classic_catalog.care_protocol.bronze_order_med and eli_test_classic_catalog.care_protocol_terminology.rxnorm_closure",
+       "relevance": 0.8,
+       "authority": 0.012,
+       "content": "The clinical cohort is the set of DISTINCT `patient_id` values appearing in `eli_test_classic_catalog.care_protocol.bronze_pat_enc_dx` under all three diagnosis conditions: `icd10_code LIKE 'E11%' OR icd10_code LIKE 'E10%' OR icd10_code LIKE 'E13%'` for diabetes, `icd10_code LIKE 'N18%'` for chronic kidney disease, and `icd10_code LIKE 'I50%'` for heart failure. The three diagnosis subsets are joined with INNER JOIN on `patient_id`, so a patient must have at least one matching diagnosis in each subset. The cohort count is `COUNT(*)` over the resulting distinct patient list, not a count of diagnosis records.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Diabetes quality reporting in this agent covers five HEDIS-aligned demo measures and is not NCQA-certified.",
+       "type": "business_logic",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.75,
+       "authority": 0.02,
+       "content": "This Genie Agent covers five diabetes quality measures: GSD, KED, BPD, SPD, and EED. The measures are described as HEDIS-aligned demo content and explicitly are not NCQA-certified. The diabetes cohort is defined by subsumption over the ICD-10-CM hierarchy, using diagnoses under `E10`, `E11`, and `E13`. Analysts should treat these rules as the measure universe for this semantic layer rather than as certified HEDIS specifications.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Kidney Health Evaluation requires both kidney tests for eligible diabetic patients aged 18\u201385, with uACR usually limiting completion.",
+       "type": "business_logic",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.7,
+       "authority": 0.02,
+       "content": "KED means Kidney Health Evaluation for diabetic patients aged 18-85. A patient meets KED only when BOTH kidney tests are present: an eGFR test and a uACR test, represented by the KED numerator. The governed metric view supports `MEASURE(`KED Compliance Rate`)`, `MEASURE(`eGFR Test Rate`)`, and `MEASURE(`uACR Test Rate`)`; use these measures from `eli_test_classic_catalog.care_protocol.ked_compliance_metrics` when comparing KED overall compliance with the two components. The curated instruction notes that uACR is usually the limiting component, so questions about closing the KED gap often focus on missing uACR.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Eye Exam measures whether eligible diabetic patients aged 18\u201375 had a retinal or diabetic eye exam during the year.",
+       "type": "business_logic",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.7,
+       "authority": 0.02,
+       "content": "EED means Eye Exam for diabetic patients aged 18-75. A patient meets EED when they had a retinal or diabetic eye exam in the measurement year, represented by `gold_adherence_eed.numerator_flag`. The standard patient-level EED compliance formula is `COUNT_IF(gold_adherence_eed.numerator_flag) / COUNT(*)`, where the denominator is all EED-eligible rows at the grouping grain. Use `MEASURE(`EED Compliance Rate`)` from `eli_test_classic_catalog.care_protocol.eed_compliance_metrics` for governed rate reporting.",
+       "on_topic": true,
+       "stale": false
+      }
+     ],
+     "pages": [
+      {
+       "id": "402e8af3-3e5a-4a46-aa36-22dcd8df5e64",
+       "name": "Diabetes Cohort",
+       "domain": "Clinical Domain",
+       "relevance": 1.0,
+       "certified": false,
+       "description": "Patients with any ICD-10-CM diagnosis under E10, E11, or E13 (including all child codes); the base population for every diabetes measure.",
+       "on_topic": true
+      },
+      {
+       "id": "a9808138-3aba-4053-a080-e405d405721e",
+       "name": "Diabetes Cohort",
+       "domain": "Clinical Domain",
+       "relevance": 0.67,
+       "certified": false,
+       "description": "The diabetes cohort is the set of patients with a diabetes diagnosis, used as the basis for the diabetes quality measures (GSD, KED, etc.).",
+       "on_topic": true
+      },
+      {
+       "id": "39acdaed-c7ba-42ae-b6f7-ce8134fdde42",
+       "name": "Diabetic beneficiary",
+       "domain": "Health Payers",
+       "relevance": 0.45,
+       "certified": false,
+       "description": "A beneficiary with an active Type 2 diabetes (E11.9) condition.",
+       "on_topic": false
+      },
+      {
+       "id": "2917aa8e-38e0-48a0-90b5-040c2931541a",
+       "name": "KED (Kidney Health Evaluation)",
+       "domain": "Clinical Domain",
+       "relevance": 0.38,
+       "certified": false,
+       "description": "Share of diabetic patients aged 18\u201385 with BOTH an eGFR and a uACR test in the year; uACR is the limiting component.",
+       "on_topic": true
+      }
+     ],
+     "pages_read": [],
+     "attempts": 1
+    },
+    "med_on_statin": {
+     "queries": [
+      "Diabetes cohort definition and SPD statin therapy measure"
+     ],
+     "snippets": [
+      {
+       "headline": "SPD measures statin therapy among diabetic adults aged 40 through 75 who were dispensed a statin during the measurement year.",
+       "type": "metric_definition",
+       "source": "[dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.86,
+       "authority": 0.02,
+       "content": "SPD means Statin Therapy. The eligible population is diabetic patients aged 40-75, and compliance requires statin dispensing in the measurement year. Retrieve the governed rate with `SELECT MEASURE(`SPD Compliance Rate`) AS spd_rate FROM eli_test_classic_catalog.care_protocol.spd_compliance_metrics`. For patient-level detail or care gaps, use `eli_test_classic_catalog.care_protocol.gold_adherence_spd`.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Diabetes eligibility includes diagnoses subsumed under the E10, E11, and E13 ICD-10-CM hierarchy families.",
+       "type": "business_logic",
+       "source": "[dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.83,
+       "authority": 0.02,
+       "content": "The diabetes cohort is defined by subsumption over the ICD-10-CM hierarchy, specifically diagnoses under E10, E11, and E13. Use this governed cohort definition when interpreting any of the five measure populations. Do not infer diabetes eligibility from unrelated diagnosis codes or from measure status alone.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Statin Therapy measures whether eligible diabetic patients aged 40\u201375 received a statin during the measurement year.",
+       "type": "business_logic",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.86,
+       "authority": 0.02,
+       "content": "SPD means Statin Therapy for diabetic patients aged 40-75. A patient meets SPD when a statin was dispensed in the measurement year, represented by `gold_adherence_spd.numerator_flag`. The patient-level SPD rate is `COUNT_IF(gold_adherence_spd.numerator_flag) / COUNT(*)`, where the denominator is all SPD-eligible rows at the grouping grain. For drug-level analysis, normalize the statin ingredient from the evidence drug name with `INITCAP(SPLIT(gold_adherence_spd.evidence_drug, ' ')[0])`.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "This agent covers five HEDIS-aligned diabetes quality measures, but its results are a demonstration rather than NCQA-certified reporting.",
+       "type": "business_logic",
+       "source": "[dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.77,
+       "authority": 0.02,
+       "content": "The agent answers questions about five HEDIS-aligned diabetes measures: GSD, KED, BPD, SPD, and EED. This is a HEDIS-aligned demo and is not NCQA-certified. The available data is organized into matching patient-level gold adherence tables and governed compliance metric views in the Care Protocol semantic layer.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Diabetes quality reporting in this agent covers five HEDIS-aligned demo measures and is not NCQA-certified.",
+       "type": "business_logic",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.79,
+       "authority": 0.02,
+       "content": "This Genie Agent covers five diabetes quality measures: GSD, KED, BPD, SPD, and EED. The measures are described as HEDIS-aligned demo content and explicitly are not NCQA-certified. The diabetes cohort is defined by subsumption over the ICD-10-CM hierarchy, using diagnoses under `E10`, `E11`, and `E13`. Analysts should treat these rules as the measure universe for this semantic layer rather than as certified HEDIS specifications.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "BPD, SPD, and EED gaps identify uncontrolled or unmeasured blood pressure, absent statin dispensing, and absent diabetic eye examinations.",
+       "type": "business_logic",
+       "source": "Query history for eli_test_classic_catalog.care_protocol.gold_adherence_gsd and eli_test_classic_catalog.care_protocol.gold_adherence_ked",
+       "relevance": 0.76,
+       "authority": 0.012,
+       "content": "Among rows included with `status = 'NOT_MET'`, BPD is assigned the gap reason `'BP not controlled / no reading'`, SPD is assigned `'No statin dispensed'`, and EED is assigned `'No diabetic eye exam'`. These exact labels are counted from `eli_test_classic_catalog.care_protocol.gold_adherence_bpd`, `eli_test_classic_catalog.care_protocol.gold_adherence_spd`, and `eli_test_classic_catalog.care_protocol.gold_adherence_eed` using `COUNT(*)` grouped by measure and gap reason. The query does not further split the BPD label into controlled versus missing-reading subcategories, so both conditions remain one combined category.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "GSD measures whether diabetic adults aged 18 through 75 received an A1c test during the measurement year.",
+       "type": "metric_definition",
+       "source": "[dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.77,
+       "authority": 0.02,
+       "content": "GSD means Glycemic Status Assessment. Its eligible population is diabetic patients aged 18-75, and compliance requires an A1c test in the measurement year. Retrieve the rate with `SELECT MEASURE(`GSD Compliance Rate`) AS gsd_compliance_rate FROM eli_test_classic_catalog.care_protocol.gsd_compliance_metrics`. For patient-level evidence or care gaps, use `eli_test_classic_catalog.care_protocol.gold_adherence_gsd` instead of the metric view.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Metric views answer rate questions, while gold adherence tables answer patient-level evidence and care-gap questions.",
+       "type": "join_hint",
+       "source": "[dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.71,
+       "authority": 0.02,
+       "content": "Each measure has two complementary sources: a compliance metric view for rates and a `gold_adherence_<measure>` table for patient-level detail plus evidence. Use `gsd_compliance_metrics`, `ked_compliance_metrics`, `bpd_compliance_metrics`, `spd_compliance_metrics`, or `eed_compliance_metrics` for governed rates. Use the corresponding `gold_adherence_gsd`, `gold_adherence_ked`, `gold_adherence_bpd`, `gold_adherence_spd`, or `gold_adherence_eed` table when the question asks which patients met a measure, what evidence supports it, or where care gaps exist.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "BPD measures blood-pressure control among diabetic adults aged 18 through 75 using the most recent reading.",
+       "type": "metric_definition",
+       "source": "[dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.76,
+       "authority": 0.02,
+       "content": "BPD means Blood Pressure control. The eligible population is diabetic patients aged 18-75, and compliance requires that the most recent blood-pressure reading is `<140/90`. Retrieve the governed rate with `SELECT MEASURE(`BPD Compliance Rate`) AS bpd_rate FROM eli_test_classic_catalog.care_protocol.bpd_compliance_metrics`. For patient-level detail or care gaps, use `eli_test_classic_catalog.care_protocol.gold_adherence_bpd`.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Clinic-level comparisons across diabetes measures use Glycemic Status attribution and report each measure\u2019s eligible clinic-attributed patients.",
+       "type": "metric_definition",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.76,
+       "authority": 0.02,
+       "content": "For clinic-level comparisons across all five diabetes measures, the curated pattern uses GSD as the clinic attribution source. The union labels the complete measure set as `GSD`, `KED`, `BPD`, `SPD`, and `EED`, each carrying `measurement_year`, `clinic_id`, and `numerator_flag`; KED, BPD, SPD, and EED are joined to the GSD clinic CTE by `patient_id` and `measurement_year`. The clinic rates are `COUNT_IF(measure = '<MEASURE>' AND numerator_flag) / COUNT_IF(measure = '<MEASURE>')` for each measure. Because the KED branch uses an inner join to GSD, clinic-level KED rates represent clinic-attributed KED patients rather than all KED-eligible patients aged 18-85.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Glycemic Status Assessment measures whether eligible diabetic patients aged 18\u201375 had an A1c test during the year.",
+       "type": "business_logic",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.79,
+       "authority": 0.02,
+       "content": "GSD means Glycemic Status Assessment for diabetic patients aged 18-75. A patient meets GSD when they have an A1c test in the measurement year, represented in patient detail by `gold_adherence_gsd.numerator_flag`. The standard patient-level compliance formula is `COUNT_IF(gold_adherence_gsd.numerator_flag) / COUNT(*)`, where the denominator is all eligible rows in `eli_test_classic_catalog.care_protocol.gold_adherence_gsd` at the grouping grain. For the governed overall rate, query `SELECT MEASURE(`GSD Compliance Rate`) AS gsd_compliance_rate FROM eli_test_classic_catalog.care_protocol.gsd_compliance_metrics`.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "EED measures retinal or diabetic eye examination among diabetic adults aged 18 through 75 during the measurement year.",
+       "type": "metric_definition",
+       "source": "[dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.72,
+       "authority": 0.02,
+       "content": "EED means Eye Exam. The eligible population is diabetic patients aged 18-75, and compliance requires a retinal or diabetic eye exam in the measurement year. Retrieve the governed rate with `SELECT MEASURE(`EED Compliance Rate`) AS eed_rate FROM eli_test_classic_catalog.care_protocol.eed_compliance_metrics`. For patient-level evidence or care gaps, use `eli_test_classic_catalog.care_protocol.gold_adherence_eed`.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "KED measures kidney evaluation for diabetic adults aged 18 through 85 who received both required laboratory tests.",
+       "type": "metric_definition",
+       "source": "[dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.71,
+       "authority": 0.02,
+       "content": "KED means Kidney Health Evaluation. The eligible population is diabetic patients aged 18-85, and compliance requires both an eGFR test and a uACR test; uACR is usually the limiting component. Retrieve all three governed rates with `SELECT MEASURE(`KED Compliance Rate`) AS ked_rate, MEASURE(`eGFR Test Rate`) AS egfr_rate, MEASURE(`uACR Test Rate`) AS uacr_rate FROM eli_test_classic_catalog.care_protocol.ked_compliance_metrics`. Do not treat completion of only one component as KED compliance.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Blood Pressure control measures whether eligible diabetic patients aged 18\u201375 had a latest reading below 140 over 90.",
+       "type": "business_logic",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.78,
+       "authority": 0.02,
+       "content": "BPD means Blood Pressure control for diabetic patients aged 18-75. A patient meets BPD when their most recent blood pressure reading is controlled, defined in the instruction as `<140/90`. The standard patient-level BPD compliance formula is `COUNT_IF(gold_adherence_bpd.numerator_flag) / COUNT(*)`, where the denominator is all BPD-eligible rows in `eli_test_classic_catalog.care_protocol.gold_adherence_bpd` at the grouping grain. Use `MEASURE(`BPD Compliance Rate`)` from `eli_test_classic_catalog.care_protocol.bpd_compliance_metrics` for governed rate reporting.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Statin Therapy patients use Glycemic Status rows for clinic and panel attribution without dropping eligible patients.",
+       "type": "join_hint",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.73,
+       "authority": 0.02,
+       "content": "Attach clinic or panel attribution to SPD patients by joining `eli_test_classic_catalog.care_protocol.gold_adherence_spd` to `eli_test_classic_catalog.care_protocol.gold_adherence_gsd` on `gold_adherence_spd.patient_id = gold_adherence_gsd.patient_id AND gold_adherence_spd.measurement_year = gold_adherence_gsd.measurement_year`. The curated relationship is many-to-one from SPD to GSD, and every SPD patient has a GSD row. Use this join only to bring `clinic_id` and `panel_id` onto SPD patient-level rows for clinic or panel breakdowns. Under the curated assumption, the join does not drop SPD patients.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "A patient\u2019s diabetes gap burden counts open gaps across the five measures after applying the non-compliant status rule.",
+       "type": "metric_definition",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.73,
+       "authority": 0.02,
+       "content": "A patient's number of open diabetes care gaps is computed by unioning gap rows from all five gold adherence tables and counting rows per `patient_id`. The standard gap inclusion rule in each branch is exactly `status = 'NOT_MET'` for `GSD`, `KED`, `BPD`, `SPD`, and `EED`; the complete measure label list is `GSD`, `KED`, `BPD`, `SPD`, and `EED`. The instruction query uses `UNION ALL`, then `SELECT patient_id, COUNT(*) AS gap_count FROM gaps GROUP BY patient_id`, and finally counts patients by `gap_count`. Because the query groups only by `patient_id`, keep the same measurement-year scope upstream if multiple years are present and a per-year gap burden is needed.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Statin Therapy age-band reporting starts at age 40 and uses three bands tailored to its eligible population.",
+       "type": "business_logic",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.72,
+       "authority": 0.02,
+       "content": "The SPD age band logic is `CASE WHEN gold_adherence_spd.age < 55 THEN '40-54' WHEN gold_adherence_spd.age < 65 THEN '55-64' ELSE '65-75' END`. The complete output value list is `40-54`, `55-64`, and `65-75`. Use these exact labels for SPD rate by age band, including queries against `eli_test_classic_catalog.care_protocol.spd_compliance_metrics` grouped by `Age Band`. These bands are specific to SPD because its eligible population is ages 40-75.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Statin, ACE inhibitor or ARB, and SGLT2 coverage are reported as separate patient counts within the clinical cohort.",
+       "type": "metric_definition",
+       "source": "Query history for eli_test_classic_catalog.care_protocol.bronze_order_med and eli_test_classic_catalog.care_protocol_terminology.rxnorm_closure",
+       "relevance": 0.76,
+       "authority": 0.012,
+       "content": "For the cohort from `eli_test_classic_catalog.care_protocol.bronze_pat_enc_dx`, the statin count includes distinct patients whose medication mapping has `c.ancestor_code = 'DRUGCLASS-STATIN'`. The ACE inhibitor or ARB count includes distinct patients whose mapping has `c.ancestor_code IN ('DRUGCLASS-ACE', 'DRUGCLASS-ARB')`, so either class qualifies. The SGLT2 count includes distinct patients whose mapping has `c.ancestor_code = 'DRUGCLASS-SGLT2'`. Each count comes from `eli_test_classic_catalog.care_protocol.bronze_order_med` INNER JOIN `eli_test_classic_catalog.care_protocol_terminology.rxnorm_closure` on `m.rxnorm_code = c.descendant_code`, and each is limited by `m.patient_id IN (SELECT patient_id FROM cr)`; these are separate overlapping coverage counts, not mutually exclusive medication groups.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Five adherence measures report whether patients met testing, blood-pressure, statin, and eye-exam care requirements.",
+       "type": "business_logic",
+       "source": "Query history for eli_test_classic_catalog.care_protocol.gold_adherence_gsd and eli_test_classic_catalog.care_protocol.gold_adherence_ked",
+       "relevance": 0.76,
+       "authority": 0.012,
+       "content": "The adherence reporting domain uses five measure codes: GSD, KED, BPD, SPD, and EED. Across the five physical sources `eli_test_classic_catalog.care_protocol.gold_adherence_gsd`, `eli_test_classic_catalog.care_protocol.gold_adherence_ked`, `eli_test_classic_catalog.care_protocol.gold_adherence_bpd`, `eli_test_classic_catalog.care_protocol.gold_adherence_spd`, and `eli_test_classic_catalog.care_protocol.gold_adherence_eed`, each row is treated as an eligible patient record because the rate calculation uses `COUNT(*)` as the eligible denominator and `AVG(CAST(numerator_flag AS INT))` as the adherence rate. The source SQL labels the measures as GSD, KED, BPD, SPD, and EED; only the associated care-gap descriptions below are supported by the query text.",
+       "on_topic": true,
+       "stale": false
+      }
+     ],
+     "pages": [
+      {
+       "id": "c8324591-625b-44db-9f8b-c57e9ba5dd7b",
+       "name": "SPD \u2014 Statin Therapy for Patients With Diabetes",
+       "domain": "Clinical Domain",
+       "relevance": 1.0,
+       "certified": false,
+       "description": "SPD (Statin Therapy for Patients With Diabetes) is a HEDIS measure for statin use in diabetic patients.",
+       "on_topic": true
+      },
+      {
+       "id": "90137b0e-d1a0-4667-aea0-8aff1f754984",
+       "name": "SPD (Statin Therapy)",
+       "domain": "Clinical Domain",
+       "relevance": 0.53,
+       "certified": false,
+       "description": "Share of diabetic patients aged 40\u201375 dispensed at least one statin; statins resolved from RxNorm ingredients via subsumption.",
+       "on_topic": true
+      },
+      {
+       "id": "402e8af3-3e5a-4a46-aa36-22dcd8df5e64",
+       "name": "Diabetes Cohort",
+       "domain": "Clinical Domain",
+       "relevance": 0.5,
+       "certified": false,
+       "description": "Patients with any ICD-10-CM diagnosis under E10, E11, or E13 (including all child codes); the base population for every diabetes measure.",
+       "on_topic": true
+      },
+      {
+       "id": "6f77f71b-97a7-4469-9a9d-08bbf377fc76",
+       "name": "Has diabetes",
+       "domain": "Healthcare",
+       "relevance": 0.48,
+       "certified": false,
+       "description": "Whether a person has diabetes, defined differently by CMS, HRSA, CDC, VA, and IHS sources.",
+       "on_topic": false
+      }
+     ],
+     "pages_read": [],
+     "attempts": 2
+    },
+    "vintage_egfr_2026": {
+     "queries": [
+      "KED eGFR value set definition measurement year 2026 LOINC codes"
+     ],
+     "snippets": [
+      {
+       "headline": "Kidney Health Evaluation requires both kidney tests for eligible diabetic patients aged 18\u201385, with uACR usually limiting completion.",
+       "type": "business_logic",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.84,
+       "authority": 0.02,
+       "content": "KED means Kidney Health Evaluation for diabetic patients aged 18-85. A patient meets KED only when BOTH kidney tests are present: an eGFR test and a uACR test, represented by the KED numerator. The governed metric view supports `MEASURE(`KED Compliance Rate`)`, `MEASURE(`eGFR Test Rate`)`, and `MEASURE(`uACR Test Rate`)`; use these measures from `eli_test_classic_catalog.care_protocol.ked_compliance_metrics` when comparing KED overall compliance with the two components. The curated instruction notes that uACR is usually the limiting component, so questions about closing the KED gap often focus on missing uACR.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "eGFR patient coverage counts distinct observed patients matched to each version of the KED eGFR code set during 2025.",
+       "type": "metric_definition",
+       "source": "Query history for eli_test_classic_catalog.care_protocol.silver_observation and eli_test_classic_catalog.care_protocol_terminology.value_set_segment",
+       "relevance": 0.82,
+       "authority": 0.012,
+       "content": "The eGFR patient-coverage measure counts `COUNT(DISTINCT o.patient_id)` for observations in `eli_test_classic_catalog.care_protocol.silver_observation` where `YEAR(result_ts) = 2025`, grouped by value-set version. The matched observation codes are collected as a comma-separated distinct set with `concat_ws(', ', collect_set(o.loinc_code))`; this is a code-coverage result, not a count of observations. Value-set versions come from `eli_test_classic_catalog.care_protocol_terminology.value_set_segment` filtered with `segment_id = 'KED_EGFR'`, and each version is retained even when no 2025 patients match because the final joins are LEFT JOINs.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Each KED eGFR value-set version connects to observed patients through matching LOINC codes in the clinical observation records.",
+       "type": "join_hint",
+       "source": "Query history for eli_test_classic_catalog.care_protocol.silver_observation and eli_test_classic_catalog.care_protocol_terminology.value_set_segment",
+       "relevance": 0.79,
+       "authority": 0.012,
+       "content": "The complete relationship path for eGFR code matching is `eli_test_classic_catalog.care_protocol_terminology.value_set_segment` filtered by `segment_id = 'KED_EGFR'` -> `eli_test_classic_catalog.care_protocol_terminology.value_set_segment.code` equals `eli_test_classic_catalog.care_protocol.silver_observation.loinc_code` -> observation patients via `eli_test_classic_catalog.care_protocol.silver_observation.patient_id`. The SQL first derives distinct versions from `measurement_year`, then joins the version-and-code rows back on `measurement_year`, and finally LEFT JOINs observations on `loinc_code`; unmatched versions remain present with zero matching patients. Multiple code rows can match one version and multiple observations can match one code, so use `COUNT(DISTINCT patient_id)` rather than counting joined rows to avoid code- and observation-level fanout.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "KED measures kidney evaluation for diabetic adults aged 18 through 85 who received both required laboratory tests.",
+       "type": "metric_definition",
+       "source": "[dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.83,
+       "authority": 0.02,
+       "content": "KED means Kidney Health Evaluation. The eligible population is diabetic patients aged 18-85, and compliance requires both an eGFR test and a uACR test; uACR is usually the limiting component. Retrieve all three governed rates with `SELECT MEASURE(`KED Compliance Rate`) AS ked_rate, MEASURE(`eGFR Test Rate`) AS egfr_rate, MEASURE(`uACR Test Rate`) AS uacr_rate FROM eli_test_classic_catalog.care_protocol.ked_compliance_metrics`. Do not treat completion of only one component as KED compliance.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Kidney Evaluation gap reasons distinguish complete testing from missing both tests or missing exactly one component.",
+       "type": "business_logic",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.75,
+       "authority": 0.02,
+       "content": "Use the derived KED care gap reason expression to explain which kidney test components are missing. The exact expression is `CASE WHEN gold_adherence_ked.status = 'MET' THEN 'Complete' WHEN NOT gold_adherence_ked.egfr_flag AND NOT gold_adherence_ked.uacr_flag THEN 'Missing eGFR and uACR' WHEN NOT gold_adherence_ked.uacr_flag THEN 'Missing uACR only' ELSE 'Missing eGFR only' END`. The complete output value list is `Complete`, `Missing eGFR and uACR`, `Missing uACR only`, and `Missing eGFR only`. Use this classification when a question asks why KED is incomplete, rather than relying only on the overall `status` value.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "KED_EGFR coverage requires a version-to-code-to-observation path, with distinct patient counting preventing repeated observations from inflating results.",
+       "type": "join_hint",
+       "source": "Query history for eli_test_classic_catalog.care_protocol.silver_observation and eli_test_classic_catalog.care_protocol_terminology.value_set_segment",
+       "relevance": 0.74,
+       "authority": 0.012,
+       "content": "The complete relationship path is: `eli_test_classic_catalog.care_protocol_terminology.value_set_segment` is first reduced to distinct `measurement_year` values, then `LEFT JOIN`ed to another copy of the same table on `vs.vs_year = v.vs_year` to obtain that version\u2019s `code`, and then `LEFT JOIN`ed to `eli_test_classic_catalog.care_protocol.silver_observation` on `o.loinc_code = vs.code`. The observation join also applies `YEAR(o.result_ts) = 2025` in the observation subquery, while the terminology copies are both restricted to `segment_id = 'KED_EGFR'`. A version can have multiple codes and a code can match multiple observations, so this is a one-to-many path with potential row multiplication; use `COUNT(DISTINCT o.patient_id)` at the version grain rather than counting joined rows.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Kidney Evaluation age-band reporting uses the same younger cut points but extends the oldest band through age 85.",
+       "type": "business_logic",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.77,
+       "authority": 0.02,
+       "content": "The KED age band logic is `CASE WHEN gold_adherence_ked.age < 45 THEN '18-44' WHEN gold_adherence_ked.age < 65 THEN '45-64' ELSE '65-85' END`. The complete output value list is `18-44`, `45-64`, and `65-85`. Use these exact cut points and labels when reproducing or validating KED metric view age-band results. The upper band differs from GSD/BPD/EED because KED eligibility extends through age 85.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "EGFR patient coverage is measured separately for each KED_EGFR value-set version using observations recorded during 2025.",
+       "type": "metric_definition",
+       "source": "Query history for eli_test_classic_catalog.care_protocol.silver_observation and eli_test_classic_catalog.care_protocol_terminology.value_set_segment",
+       "relevance": 0.76,
+       "authority": 0.012,
+       "content": "For each distinct `measurement_year` version in `eli_test_classic_catalog.care_protocol_terminology.value_set_segment` where `segment_id = 'KED_EGFR'`, the patient coverage metric is `COUNT(DISTINCT o.patient_id)`. Matching observations come from `eli_test_classic_catalog.care_protocol.silver_observation` with `YEAR(result_ts) = 2025`, and an observation matches when `o.loinc_code = vs.code`; the observation year is fixed at 2025 for every value-set version. The result is grouped by value-set version, so the metric answers how many distinct patients had an observation whose code belonged to each version's KED_EGFR code set.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Clinic-level comparisons across diabetes measures use Glycemic Status attribution and report each measure\u2019s eligible clinic-attributed patients.",
+       "type": "metric_definition",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.76,
+       "authority": 0.02,
+       "content": "For clinic-level comparisons across all five diabetes measures, the curated pattern uses GSD as the clinic attribution source. The union labels the complete measure set as `GSD`, `KED`, `BPD`, `SPD`, and `EED`, each carrying `measurement_year`, `clinic_id`, and `numerator_flag`; KED, BPD, SPD, and EED are joined to the GSD clinic CTE by `patient_id` and `measurement_year`. The clinic rates are `COUNT_IF(measure = '<MEASURE>' AND numerator_flag) / COUNT_IF(measure = '<MEASURE>')` for each measure. Because the KED branch uses an inner join to GSD, clinic-level KED rates represent clinic-attributed KED patients rather than all KED-eligible patients aged 18-85.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "KED_EGFR coverage uses only the segment\u2019s explicitly listed codes and preserves versions with no matching observations.",
+       "type": "business_logic",
+       "source": "Query history for eli_test_classic_catalog.care_protocol.silver_observation and eli_test_classic_catalog.care_protocol_terminology.value_set_segment",
+       "relevance": 0.78,
+       "authority": 0.012,
+       "content": "Scope the terminology table with `segment_id = 'KED_EGFR'`; do not treat codes from other segments as part of this value set. The complete code membership is whatever rows in `eli_test_classic_catalog.care_protocol_terminology.value_set_segment` satisfy that segment filter, separately by `measurement_year`; no literal code list is supplied. The version list is built with `SELECT DISTINCT measurement_year`, and a `LEFT JOIN` preserves every discovered version even when no 2025 observation matches, producing a zero distinct-patient count rather than removing that version.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Kidney Evaluation outreach for closing uACR gaps targets patients who already completed eGFR but lack uACR.",
+       "type": "business_logic",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.74,
+       "authority": 0.02,
+       "content": "KED care gap outreach has a specific filter for patients who completed eGFR but are missing only uACR. INCLUDE those rows with `gold_adherence_ked.egfr_flag AND NOT gold_adherence_ked.uacr_flag`. This is distinct from the broad KED care gap filter `gold_adherence_ked.status = 'NOT_MET'`, which includes patients missing eGFR, missing uACR, or missing both. Use the specific filter for \u201cclose the uACR gap\u201d outreach and the broad status filter for total KED care gap lists/counts.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Kidney Evaluation clinic attribution excludes ages 76\u201385 unless overall counts preserve unattributed patients with a left join.",
+       "type": "join_hint",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.73,
+       "authority": 0.02,
+       "content": "Attach clinic or panel attribution to KED patients by joining `eli_test_classic_catalog.care_protocol.gold_adherence_ked` to `eli_test_classic_catalog.care_protocol.gold_adherence_gsd` on `gold_adherence_ked.patient_id = gold_adherence_gsd.patient_id AND gold_adherence_ked.measurement_year = gold_adherence_gsd.measurement_year`. Use this join only to attach `clinic_id` and `panel_id`, which exist only on GSD in this semantic layer. For overall KED counts, use a LEFT JOIN if attribution is needed, because KED patients aged 76-85 are not in the GSD population and have no clinic. For clinic breakdowns, an inner join is acceptable because it intentionally reports clinic-attributed KED patients only.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Version-specific patient counts compare KED_EGFR code sets against the same 2025 observation population.",
+       "type": "metric_definition",
+       "source": "Query history for eli_test_classic_catalog.care_protocol.silver_observation and eli_test_classic_catalog.care_protocol_terminology.value_set_segment",
+       "relevance": 0.76,
+       "authority": 0.012,
+       "content": "The reusable comparison metric is `MAX(CASE WHEN vsv = '2025' THEN p END) - MAX(CASE WHEN vsv = '2026' THEN p END)`, where `p` is the distinct-patient count for each value-set version. Both counts are derived from `eli_test_classic_catalog.care_protocol.silver_observation` rows with `YEAR(result_ts) = 2025`; therefore `patients_lost` means the 2025-version coverage count minus the 2026-version coverage count, not a longitudinal patient-loss cohort. The version counts come from `eli_test_classic_catalog.care_protocol_terminology.value_set_segment` filtered to `segment_id = 'KED_EGFR'`, with the result grouped by `measurement_year` before the subtraction.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "GSD gaps represent missing annual A1c testing, while KED gaps distinguish missing kidney tests using both eGFR and uACR flags.",
+       "type": "business_logic",
+       "source": "Query history for eli_test_classic_catalog.care_protocol.gold_adherence_gsd and eli_test_classic_catalog.care_protocol.gold_adherence_ked",
+       "relevance": 0.76,
+       "authority": 0.012,
+       "content": "For rows included with `status = 'NOT_MET'`, GSD is labeled `'No A1c test in year'`. KED uses the complete conditional classification: when `NOT egfr_flag AND NOT uacr_flag`, the reason is `'No eGFR and no uACR'`; when `NOT uacr_flag` otherwise, it is `'No uACR test'`; otherwise, it is `'No eGFR test'`. These labels are produced from `eli_test_classic_catalog.care_protocol.gold_adherence_gsd` and `eli_test_classic_catalog.care_protocol.gold_adherence_ked`, and the resulting rows are counted with `COUNT(*)` by measure and gap reason. The KED labels are mutually assigned by CASE order, so the first label applies when both tests are absent.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Diabetes quality reporting in this agent covers five HEDIS-aligned demo measures and is not NCQA-certified.",
+       "type": "business_logic",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.73,
+       "authority": 0.02,
+       "content": "This Genie Agent covers five diabetes quality measures: GSD, KED, BPD, SPD, and EED. The measures are described as HEDIS-aligned demo content and explicitly are not NCQA-certified. The diabetes cohort is defined by subsumption over the ICD-10-CM hierarchy, using diagnoses under `E10`, `E11`, and `E13`. Analysts should treat these rules as the measure universe for this semantic layer rather than as certified HEDIS specifications.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "A care gap is a patient-level record marked not met, while met records represent compliant patients.",
+       "type": "business_logic",
+       "source": "[dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.71,
+       "authority": 0.02,
+       "content": "In every patient-level gold adherence table, `status = 'NOT_MET'` means the patient has a care gap and `status = 'MET'` means the patient is compliant. To count KED care gaps, use the exact governed query `SELECT COUNT(*) AS ked_care_gaps FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked WHERE status = 'NOT_MET'`. The same status interpretation applies to the corresponding gold adherence tables for GSD, BPD, SPD, and EED.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "This agent covers five HEDIS-aligned diabetes quality measures, but its results are a demonstration rather than NCQA-certified reporting.",
+       "type": "business_logic",
+       "source": "[dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.72,
+       "authority": 0.02,
+       "content": "The agent answers questions about five HEDIS-aligned diabetes measures: GSD, KED, BPD, SPD, and EED. This is a HEDIS-aligned demo and is not NCQA-certified. The available data is organized into matching patient-level gold adherence tables and governed compliance metric views in the Care Protocol semantic layer.",
+       "on_topic": true,
+       "stale": false
+      }
+     ],
+     "pages": [
+      {
+       "id": "013c65de-c5b8-4fc8-824f-2d80cd5ca8ed",
+       "name": "Value Set",
+       "domain": "Clinical Domain",
+       "relevance": 0.7,
+       "certified": false,
+       "description": "Named, year-versioned list of codes (LOINC, ICD-10-CM, RxNorm, SNOMED) that defines a clinical concept for a measure, e.g. GSD_A1C_TEST.",
+       "on_topic": true
+      },
+      {
+       "id": "1c03bd0f-573e-4dc8-b03e-0c05bb4473cc",
+       "name": "Measure Drift",
+       "domain": "Clinical Domain",
+       "relevance": 0.58,
+       "certified": false,
+       "description": "A rate change caused by a change in the measure's definition (value-set version), not in actual care; e.g. eGFR coverage dropping from 79 to 0 patients.",
+       "on_topic": true
+      },
+      {
+       "id": "4ee5a80a-a4b7-47d5-93aa-f765943b8605",
+       "name": "Measure Drift (Value-Set Versioning)",
+       "domain": "Clinical Domain",
+       "relevance": 0.57,
+       "certified": false,
+       "description": "Measure drift is when a quality measure's result changes because its definition changed \u2014 not because the underlying care changed.",
+       "on_topic": true
+      },
+      {
+       "id": "c84e5ba4-05b5-47b2-9126-370c57c488a9",
+       "name": "Measurement Year",
+       "domain": "Clinical Domain",
+       "relevance": 0.48,
+       "certified": false,
+       "description": "The calendar year a measure is computed for (MY2025 here); sets the age cutoff, the numerator window, and which value-set version applies.",
+       "on_topic": true
+      }
+     ],
+     "pages_read": []
+    },
+    "proto_cardiorenal": {
+     "queries": [
+      "cardiorenal patient definition diabetes CKD heart failure statin ACE ARB SGLT2 medication classes"
+     ],
+     "snippets": [
+      {
+       "headline": "Statin, ACE inhibitor or ARB, and SGLT2 coverage are reported as separate patient counts within the clinical cohort.",
+       "type": "metric_definition",
+       "source": "Query history for eli_test_classic_catalog.care_protocol.bronze_order_med and eli_test_classic_catalog.care_protocol_terminology.rxnorm_closure",
+       "relevance": 0.76,
+       "authority": 0.012,
+       "content": "For the cohort from `eli_test_classic_catalog.care_protocol.bronze_pat_enc_dx`, the statin count includes distinct patients whose medication mapping has `c.ancestor_code = 'DRUGCLASS-STATIN'`. The ACE inhibitor or ARB count includes distinct patients whose mapping has `c.ancestor_code IN ('DRUGCLASS-ACE', 'DRUGCLASS-ARB')`, so either class qualifies. The SGLT2 count includes distinct patients whose mapping has `c.ancestor_code = 'DRUGCLASS-SGLT2'`. Each count comes from `eli_test_classic_catalog.care_protocol.bronze_order_med` INNER JOIN `eli_test_classic_catalog.care_protocol_terminology.rxnorm_closure` on `m.rxnorm_code = c.descendant_code`, and each is limited by `m.patient_id IN (SELECT patient_id FROM cr)`; these are separate overlapping coverage counts, not mutually exclusive medication groups.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Medication-class coverage is measured as distinct cohort patients with at least one mapped medication order.",
+       "type": "join_hint",
+       "source": "Query history for eli_test_classic_catalog.care_protocol.bronze_order_med and eli_test_classic_catalog.care_protocol_terminology.rxnorm_closure",
+       "relevance": 0.74,
+       "authority": 0.012,
+       "content": "Medication coverage counts use `COUNT(DISTINCT m.patient_id)` from `eli_test_classic_catalog.care_protocol.bronze_order_med`, restricted to patients in the diabetes-plus-kidney-disease-plus-heart-failure cohort defined from `eli_test_classic_catalog.care_protocol.bronze_pat_enc_dx`. A medication order is mapped to a drug class by an INNER JOIN to `eli_test_classic_catalog.care_protocol_terminology.rxnorm_closure` on `m.rxnorm_code = c.descendant_code`; the class is selected through `c.ancestor_code`. Because the metric counts distinct patients rather than orders, multiple qualifying medication orders for one patient contribute one covered patient.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "The target population consists of distinct patients with diabetes, chronic kidney disease, and heart failure diagnoses.",
+       "type": "business_logic",
+       "source": "Query history for eli_test_classic_catalog.care_protocol.bronze_order_med and eli_test_classic_catalog.care_protocol_terminology.rxnorm_closure",
+       "relevance": 0.73,
+       "authority": 0.012,
+       "content": "The clinical cohort is the set of DISTINCT `patient_id` values appearing in `eli_test_classic_catalog.care_protocol.bronze_pat_enc_dx` under all three diagnosis conditions: `icd10_code LIKE 'E11%' OR icd10_code LIKE 'E10%' OR icd10_code LIKE 'E13%'` for diabetes, `icd10_code LIKE 'N18%'` for chronic kidney disease, and `icd10_code LIKE 'I50%'` for heart failure. The three diagnosis subsets are joined with INNER JOIN on `patient_id`, so a patient must have at least one matching diagnosis in each subset. The cohort count is `COUNT(*)` over the resulting distinct patient list, not a count of diagnosis records.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "SPD measures statin therapy among diabetic adults aged 40 through 75 who were dispensed a statin during the measurement year.",
+       "type": "metric_definition",
+       "source": "[dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.71,
+       "authority": 0.02,
+       "content": "SPD means Statin Therapy. The eligible population is diabetic patients aged 40-75, and compliance requires statin dispensing in the measurement year. Retrieve the governed rate with `SELECT MEASURE(`SPD Compliance Rate`) AS spd_rate FROM eli_test_classic_catalog.care_protocol.spd_compliance_metrics`. For patient-level detail or care gaps, use `eli_test_classic_catalog.care_protocol.gold_adherence_spd`.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Diabetes eligibility includes diagnoses subsumed under the E10, E11, and E13 ICD-10-CM hierarchy families.",
+       "type": "business_logic",
+       "source": "[dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.71,
+       "authority": 0.02,
+       "content": "The diabetes cohort is defined by subsumption over the ICD-10-CM hierarchy, specifically diagnoses under E10, E11, and E13. Use this governed cohort definition when interpreting any of the five measure populations. Do not infer diabetes eligibility from unrelated diagnosis codes or from measure status alone.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "KED measures kidney evaluation for diabetic adults aged 18 through 85 who received both required laboratory tests.",
+       "type": "metric_definition",
+       "source": "[dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.7,
+       "authority": 0.02,
+       "content": "KED means Kidney Health Evaluation. The eligible population is diabetic patients aged 18-85, and compliance requires both an eGFR test and a uACR test; uACR is usually the limiting component. Retrieve all three governed rates with `SELECT MEASURE(`KED Compliance Rate`) AS ked_rate, MEASURE(`eGFR Test Rate`) AS egfr_rate, MEASURE(`uACR Test Rate`) AS uacr_rate FROM eli_test_classic_catalog.care_protocol.ked_compliance_metrics`. Do not treat completion of only one component as KED compliance.",
+       "on_topic": true,
+       "stale": false
+      }
+     ],
+     "pages": [
+      {
+       "id": "90137b0e-d1a0-4667-aea0-8aff1f754984",
+       "name": "SPD (Statin Therapy)",
+       "domain": "Clinical Domain",
+       "relevance": 0.57,
+       "certified": false,
+       "description": "Share of diabetic patients aged 40\u201375 dispensed at least one statin; statins resolved from RxNorm ingredients via subsumption.",
+       "on_topic": true
+      },
+      {
+       "id": "aaa14bcf-4130-4c6a-a4ad-675e433ea3e1",
+       "name": "Star adherence medication",
+       "domain": "Health Payers",
+       "relevance": 0.55,
+       "certified": false,
+       "description": "Medication classes counted for adherence: diabetes medication, RAS antagonist, statin (illustrative [BG]).",
+       "on_topic": false
+      },
+      {
+       "id": "39acdaed-c7ba-42ae-b6f7-ce8134fdde42",
+       "name": "Diabetic beneficiary",
+       "domain": "Health Payers",
+       "relevance": 0.44,
+       "certified": false,
+       "description": "A beneficiary with an active Type 2 diabetes (E11.9) condition.",
+       "on_topic": false
+      },
+      {
+       "id": "c8324591-625b-44db-9f8b-c57e9ba5dd7b",
+       "name": "SPD \u2014 Statin Therapy for Patients With Diabetes",
+       "domain": "Clinical Domain",
+       "relevance": 0.4,
+       "certified": false,
+       "description": "SPD (Statin Therapy for Patients With Diabetes) is a HEDIS measure for statin use in diabetic patients.",
+       "on_topic": true
+      }
+     ],
+     "pages_read": []
+    },
+    "def_metformin_egfr": {
+     "queries": [],
+     "snippets": [],
+     "pages": [],
+     "pages_read": [],
+     "attempts": 3,
+     "skipped_search": true
+    },
+    "infer_rationale_path": {
+     "queries": [
+      "SPD statin therapy for patients with diabetes definition and diabetes cohort ICD-10 E10 E11 E13"
+     ],
+     "snippets": [
+      {
+       "headline": "Diabetes eligibility includes diagnoses subsumed under the E10, E11, and E13 ICD-10-CM hierarchy families.",
+       "type": "business_logic",
+       "source": "[dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.84,
+       "authority": 0.02,
+       "content": "The diabetes cohort is defined by subsumption over the ICD-10-CM hierarchy, specifically diagnoses under E10, E11, and E13. Use this governed cohort definition when interpreting any of the five measure populations. Do not infer diabetes eligibility from unrelated diagnosis codes or from measure status alone.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "SPD measures statin therapy among diabetic adults aged 40 through 75 who were dispensed a statin during the measurement year.",
+       "type": "metric_definition",
+       "source": "[dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.83,
+       "authority": 0.02,
+       "content": "SPD means Statin Therapy. The eligible population is diabetic patients aged 40-75, and compliance requires statin dispensing in the measurement year. Retrieve the governed rate with `SELECT MEASURE(`SPD Compliance Rate`) AS spd_rate FROM eli_test_classic_catalog.care_protocol.spd_compliance_metrics`. For patient-level detail or care gaps, use `eli_test_classic_catalog.care_protocol.gold_adherence_spd`.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Statin Therapy measures whether eligible diabetic patients aged 40\u201375 received a statin during the measurement year.",
+       "type": "business_logic",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.84,
+       "authority": 0.02,
+       "content": "SPD means Statin Therapy for diabetic patients aged 40-75. A patient meets SPD when a statin was dispensed in the measurement year, represented by `gold_adherence_spd.numerator_flag`. The patient-level SPD rate is `COUNT_IF(gold_adherence_spd.numerator_flag) / COUNT(*)`, where the denominator is all SPD-eligible rows at the grouping grain. For drug-level analysis, normalize the statin ingredient from the evidence drug name with `INITCAP(SPLIT(gold_adherence_spd.evidence_drug, ' ')[0])`.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Diabetes quality reporting in this agent covers five HEDIS-aligned demo measures and is not NCQA-certified.",
+       "type": "business_logic",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.78,
+       "authority": 0.02,
+       "content": "This Genie Agent covers five diabetes quality measures: GSD, KED, BPD, SPD, and EED. The measures are described as HEDIS-aligned demo content and explicitly are not NCQA-certified. The diabetes cohort is defined by subsumption over the ICD-10-CM hierarchy, using diagnoses under `E10`, `E11`, and `E13`. Analysts should treat these rules as the measure universe for this semantic layer rather than as certified HEDIS specifications.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "This agent covers five HEDIS-aligned diabetes quality measures, but its results are a demonstration rather than NCQA-certified reporting.",
+       "type": "business_logic",
+       "source": "[dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.72,
+       "authority": 0.02,
+       "content": "The agent answers questions about five HEDIS-aligned diabetes measures: GSD, KED, BPD, SPD, and EED. This is a HEDIS-aligned demo and is not NCQA-certified. The available data is organized into matching patient-level gold adherence tables and governed compliance metric views in the Care Protocol semantic layer.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "The target population consists of distinct patients with diabetes, chronic kidney disease, and heart failure diagnoses.",
+       "type": "business_logic",
+       "source": "Query history for eli_test_classic_catalog.care_protocol.bronze_order_med and eli_test_classic_catalog.care_protocol_terminology.rxnorm_closure",
+       "relevance": 0.75,
+       "authority": 0.012,
+       "content": "The clinical cohort is the set of DISTINCT `patient_id` values appearing in `eli_test_classic_catalog.care_protocol.bronze_pat_enc_dx` under all three diagnosis conditions: `icd10_code LIKE 'E11%' OR icd10_code LIKE 'E10%' OR icd10_code LIKE 'E13%'` for diabetes, `icd10_code LIKE 'N18%'` for chronic kidney disease, and `icd10_code LIKE 'I50%'` for heart failure. The three diagnosis subsets are joined with INNER JOIN on `patient_id`, so a patient must have at least one matching diagnosis in each subset. The cohort count is `COUNT(*)` over the resulting distinct patient list, not a count of diagnosis records.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "GSD measures whether diabetic adults aged 18 through 75 received an A1c test during the measurement year.",
+       "type": "metric_definition",
+       "source": "[dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.73,
+       "authority": 0.02,
+       "content": "GSD means Glycemic Status Assessment. Its eligible population is diabetic patients aged 18-75, and compliance requires an A1c test in the measurement year. Retrieve the rate with `SELECT MEASURE(`GSD Compliance Rate`) AS gsd_compliance_rate FROM eli_test_classic_catalog.care_protocol.gsd_compliance_metrics`. For patient-level evidence or care gaps, use `eli_test_classic_catalog.care_protocol.gold_adherence_gsd` instead of the metric view.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "EED measures retinal or diabetic eye examination among diabetic adults aged 18 through 75 during the measurement year.",
+       "type": "metric_definition",
+       "source": "[dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.72,
+       "authority": 0.02,
+       "content": "EED means Eye Exam. The eligible population is diabetic patients aged 18-75, and compliance requires a retinal or diabetic eye exam in the measurement year. Retrieve the governed rate with `SELECT MEASURE(`EED Compliance Rate`) AS eed_rate FROM eli_test_classic_catalog.care_protocol.eed_compliance_metrics`. For patient-level evidence or care gaps, use `eli_test_classic_catalog.care_protocol.gold_adherence_eed`.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "BPD measures blood-pressure control among diabetic adults aged 18 through 75 using the most recent reading.",
+       "type": "metric_definition",
+       "source": "[dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.71,
+       "authority": 0.02,
+       "content": "BPD means Blood Pressure control. The eligible population is diabetic patients aged 18-75, and compliance requires that the most recent blood-pressure reading is `<140/90`. Retrieve the governed rate with `SELECT MEASURE(`BPD Compliance Rate`) AS bpd_rate FROM eli_test_classic_catalog.care_protocol.bpd_compliance_metrics`. For patient-level detail or care gaps, use `eli_test_classic_catalog.care_protocol.gold_adherence_bpd`.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Statin Therapy patients use Glycemic Status rows for clinic and panel attribution without dropping eligible patients.",
+       "type": "join_hint",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.71,
+       "authority": 0.02,
+       "content": "Attach clinic or panel attribution to SPD patients by joining `eli_test_classic_catalog.care_protocol.gold_adherence_spd` to `eli_test_classic_catalog.care_protocol.gold_adherence_gsd` on `gold_adherence_spd.patient_id = gold_adherence_gsd.patient_id AND gold_adherence_spd.measurement_year = gold_adherence_gsd.measurement_year`. The curated relationship is many-to-one from SPD to GSD, and every SPD patient has a GSD row. Use this join only to bring `clinic_id` and `panel_id` onto SPD patient-level rows for clinic or panel breakdowns. Under the curated assumption, the join does not drop SPD patients.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "BPD, SPD, and EED gaps identify uncontrolled or unmeasured blood pressure, absent statin dispensing, and absent diabetic eye examinations.",
+       "type": "business_logic",
+       "source": "Query history for eli_test_classic_catalog.care_protocol.gold_adherence_gsd and eli_test_classic_catalog.care_protocol.gold_adherence_ked",
+       "relevance": 0.71,
+       "authority": 0.012,
+       "content": "Among rows included with `status = 'NOT_MET'`, BPD is assigned the gap reason `'BP not controlled / no reading'`, SPD is assigned `'No statin dispensed'`, and EED is assigned `'No diabetic eye exam'`. These exact labels are counted from `eli_test_classic_catalog.care_protocol.gold_adherence_bpd`, `eli_test_classic_catalog.care_protocol.gold_adherence_spd`, and `eli_test_classic_catalog.care_protocol.gold_adherence_eed` using `COUNT(*)` grouped by measure and gap reason. The query does not further split the BPD label into controlled versus missing-reading subcategories, so both conditions remain one combined category.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Glycemic Status Assessment measures whether eligible diabetic patients aged 18\u201375 had an A1c test during the year.",
+       "type": "business_logic",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.74,
+       "authority": 0.02,
+       "content": "GSD means Glycemic Status Assessment for diabetic patients aged 18-75. A patient meets GSD when they have an A1c test in the measurement year, represented in patient detail by `gold_adherence_gsd.numerator_flag`. The standard patient-level compliance formula is `COUNT_IF(gold_adherence_gsd.numerator_flag) / COUNT(*)`, where the denominator is all eligible rows in `eli_test_classic_catalog.care_protocol.gold_adherence_gsd` at the grouping grain. For the governed overall rate, query `SELECT MEASURE(`GSD Compliance Rate`) AS gsd_compliance_rate FROM eli_test_classic_catalog.care_protocol.gsd_compliance_metrics`.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Statin, ACE inhibitor or ARB, and SGLT2 coverage are reported as separate patient counts within the clinical cohort.",
+       "type": "metric_definition",
+       "source": "Query history for eli_test_classic_catalog.care_protocol.bronze_order_med and eli_test_classic_catalog.care_protocol_terminology.rxnorm_closure",
+       "relevance": 0.72,
+       "authority": 0.012,
+       "content": "For the cohort from `eli_test_classic_catalog.care_protocol.bronze_pat_enc_dx`, the statin count includes distinct patients whose medication mapping has `c.ancestor_code = 'DRUGCLASS-STATIN'`. The ACE inhibitor or ARB count includes distinct patients whose mapping has `c.ancestor_code IN ('DRUGCLASS-ACE', 'DRUGCLASS-ARB')`, so either class qualifies. The SGLT2 count includes distinct patients whose mapping has `c.ancestor_code = 'DRUGCLASS-SGLT2'`. Each count comes from `eli_test_classic_catalog.care_protocol.bronze_order_med` INNER JOIN `eli_test_classic_catalog.care_protocol_terminology.rxnorm_closure` on `m.rxnorm_code = c.descendant_code`, and each is limited by `m.patient_id IN (SELECT patient_id FROM cr)`; these are separate overlapping coverage counts, not mutually exclusive medication groups.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Clinic-level comparisons across diabetes measures use Glycemic Status attribution and report each measure\u2019s eligible clinic-attributed patients.",
+       "type": "metric_definition",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.7,
+       "authority": 0.02,
+       "content": "For clinic-level comparisons across all five diabetes measures, the curated pattern uses GSD as the clinic attribution source. The union labels the complete measure set as `GSD`, `KED`, `BPD`, `SPD`, and `EED`, each carrying `measurement_year`, `clinic_id`, and `numerator_flag`; KED, BPD, SPD, and EED are joined to the GSD clinic CTE by `patient_id` and `measurement_year`. The clinic rates are `COUNT_IF(measure = '<MEASURE>' AND numerator_flag) / COUNT_IF(measure = '<MEASURE>')` for each measure. Because the KED branch uses an inner join to GSD, clinic-level KED rates represent clinic-attributed KED patients rather than all KED-eligible patients aged 18-85.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Medication-class coverage is measured as distinct cohort patients with at least one mapped medication order.",
+       "type": "join_hint",
+       "source": "Query history for eli_test_classic_catalog.care_protocol.bronze_order_med and eli_test_classic_catalog.care_protocol_terminology.rxnorm_closure",
+       "relevance": 0.7,
+       "authority": 0.012,
+       "content": "Medication coverage counts use `COUNT(DISTINCT m.patient_id)` from `eli_test_classic_catalog.care_protocol.bronze_order_med`, restricted to patients in the diabetes-plus-kidney-disease-plus-heart-failure cohort defined from `eli_test_classic_catalog.care_protocol.bronze_pat_enc_dx`. A medication order is mapped to a drug class by an INNER JOIN to `eli_test_classic_catalog.care_protocol_terminology.rxnorm_closure` on `m.rxnorm_code = c.descendant_code`; the class is selected through `c.ancestor_code`. Because the metric counts distinct patients rather than orders, multiple qualifying medication orders for one patient contribute one covered patient.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Eye Exam measures whether eligible diabetic patients aged 18\u201375 had a retinal or diabetic eye exam during the year.",
+       "type": "business_logic",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.73,
+       "authority": 0.02,
+       "content": "EED means Eye Exam for diabetic patients aged 18-75. A patient meets EED when they had a retinal or diabetic eye exam in the measurement year, represented by `gold_adherence_eed.numerator_flag`. The standard patient-level EED compliance formula is `COUNT_IF(gold_adherence_eed.numerator_flag) / COUNT(*)`, where the denominator is all EED-eligible rows at the grouping grain. Use `MEASURE(`EED Compliance Rate`)` from `eli_test_classic_catalog.care_protocol.eed_compliance_metrics` for governed rate reporting.",
+       "on_topic": true,
+       "stale": false
+      }
+     ],
+     "pages": [
+      {
+       "id": "c8324591-625b-44db-9f8b-c57e9ba5dd7b",
+       "name": "SPD \u2014 Statin Therapy for Patients With Diabetes",
+       "domain": "Clinical Domain",
+       "relevance": 1.0,
+       "certified": false,
+       "description": "SPD (Statin Therapy for Patients With Diabetes) is a HEDIS measure for statin use in diabetic patients.",
+       "on_topic": true
+      },
+      {
+       "id": "90137b0e-d1a0-4667-aea0-8aff1f754984",
+       "name": "SPD (Statin Therapy)",
+       "domain": "Clinical Domain",
+       "relevance": 0.67,
+       "certified": false,
+       "description": "Share of diabetic patients aged 40\u201375 dispensed at least one statin; statins resolved from RxNorm ingredients via subsumption.",
+       "on_topic": true
+      },
+      {
+       "id": "402e8af3-3e5a-4a46-aa36-22dcd8df5e64",
+       "name": "Diabetes Cohort",
+       "domain": "Clinical Domain",
+       "relevance": 0.5,
+       "certified": false,
+       "description": "Patients with any ICD-10-CM diagnosis under E10, E11, or E13 (including all child codes); the base population for every diabetes measure.",
+       "on_topic": true
+      },
+      {
+       "id": "39acdaed-c7ba-42ae-b6f7-ce8134fdde42",
+       "name": "Diabetic beneficiary",
+       "domain": "Health Payers",
+       "relevance": 0.37,
+       "certified": false,
+       "description": "A beneficiary with an active Type 2 diabetes (E11.9) condition.",
+       "on_topic": false
+      }
+     ],
+     "pages_read": []
+    },
+    "op_worst_clinic_annual": {
+     "queries": [
+      "Protocol Step-3 A1c follow-up adherence rate by clinic definition"
+     ],
+     "snippets": [
+      {
+       "headline": "Average latest A1c summarizes recorded A1c values and is separate from testing compliance and control rates.",
+       "type": "metric_definition",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.77,
+       "authority": 0.02,
+       "content": "The average latest A1c percentage among tested patients is represented by `AVG(gold_adherence_gsd.evidence_value)`. In clinic-level GSD reporting, this appears alongside `COUNT_IF(numerator_flag) / COUNT(*) AS gsd_compliance_rate`, `COUNT_IF(a1c_lt8) / COUNT_IF(numerator_flag) AS good_control_rate`, and `COUNT_IF(a1c_gt9) / COUNT_IF(numerator_flag) AS poor_control_rate`. The numerator for the average is the A1c evidence value, and the intended denominator is the count of rows with non-null `evidence_value` included by `AVG`. Use this only for A1c-tested evidence analysis; it is not a compliance rate.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Clinic-level Glycemic Status reporting combines eligible counts, testing compliance, control rates, and average latest A1c.",
+       "type": "metric_definition",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.75,
+       "authority": 0.02,
+       "content": "For clinic-level GSD reporting, use `eli_test_classic_catalog.care_protocol.gold_adherence_gsd` directly because `clinic_id` is present on the GSD patient-level table. The curated clinic query groups by `clinic_id` and computes `COUNT(*) AS eligible_patients`, `COUNT_IF(numerator_flag) / COUNT(*) AS gsd_compliance_rate`, `COUNT_IF(a1c_lt8) / COUNT_IF(numerator_flag) AS good_control_rate`, `COUNT_IF(a1c_gt9) / COUNT_IF(numerator_flag) AS poor_control_rate`, and `AVG(evidence_value) AS avg_latest_a1c`. Here the GSD compliance denominator is all eligible patients in that clinic, while good and poor control denominators are only patients with `numerator_flag`. This pattern is the source for clinic-level A1c testing and control comparison.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Glycemic control rates measure results among tested patients, while Glycemic Status compliance measures testing among all eligible patients.",
+       "type": "metric_definition",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.78,
+       "authority": 0.02,
+       "content": "For GSD, good and poor glycemic control rates are computed only among A1c-tested patients, not all eligible diabetic patients. The good control rate is `COUNT_IF(gold_adherence_gsd.a1c_lt8) / COUNT_IF(gold_adherence_gsd.numerator_flag)`, where the denominator is the count of tested patients. The poor control rate is `COUNT_IF(gold_adherence_gsd.a1c_gt9) / COUNT_IF(gold_adherence_gsd.numerator_flag)`, using the same tested-patient denominator. This differs from GSD compliance rate, whose denominator is all eligible GSD patients: `COUNT_IF(gold_adherence_gsd.numerator_flag) / COUNT(*)`.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Glycemic Status Assessment measures whether eligible diabetic patients aged 18\u201375 had an A1c test during the year.",
+       "type": "business_logic",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.75,
+       "authority": 0.02,
+       "content": "GSD means Glycemic Status Assessment for diabetic patients aged 18-75. A patient meets GSD when they have an A1c test in the measurement year, represented in patient detail by `gold_adherence_gsd.numerator_flag`. The standard patient-level compliance formula is `COUNT_IF(gold_adherence_gsd.numerator_flag) / COUNT(*)`, where the denominator is all eligible rows in `eli_test_classic_catalog.care_protocol.gold_adherence_gsd` at the grouping grain. For the governed overall rate, query `SELECT MEASURE(`GSD Compliance Rate`) AS gsd_compliance_rate FROM eli_test_classic_catalog.care_protocol.gsd_compliance_metrics`.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Glycemic control bands combine A1c testing status with good, moderate, and poor result categories.",
+       "type": "business_logic",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.73,
+       "authority": 0.02,
+       "content": "Use the derived GSD glycemic control band expression to classify A1c testing and control outcomes. The exact expression is `CASE WHEN NOT gold_adherence_gsd.numerator_flag THEN 'Not tested' WHEN gold_adherence_gsd.a1c_lt8 THEN 'Good (<8%)' WHEN gold_adherence_gsd.a1c_gt9 THEN 'Poor (>9%)' ELSE 'Moderate (8-9%)' END`. The complete output value list is `Not tested`, `Good (<8%)`, `Poor (>9%)`, and `Moderate (8-9%)`. This band combines the testing status and A1c result category, so `Not tested` is a testing gap rather than a clinical control range.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "GSD measures whether diabetic adults aged 18 through 75 received an A1c test during the measurement year.",
+       "type": "metric_definition",
+       "source": "[dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.74,
+       "authority": 0.02,
+       "content": "GSD means Glycemic Status Assessment. Its eligible population is diabetic patients aged 18-75, and compliance requires an A1c test in the measurement year. Retrieve the rate with `SELECT MEASURE(`GSD Compliance Rate`) AS gsd_compliance_rate FROM eli_test_classic_catalog.care_protocol.gsd_compliance_metrics`. For patient-level evidence or care gaps, use `eli_test_classic_catalog.care_protocol.gold_adherence_gsd` instead of the metric view.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Eye Exam patients use Glycemic Status rows for clinic and panel attribution when reporting clinic-level rates.",
+       "type": "join_hint",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.71,
+       "authority": 0.02,
+       "content": "Attach clinic or panel attribution to EED patients by joining `eli_test_classic_catalog.care_protocol.gold_adherence_eed` to `eli_test_classic_catalog.care_protocol.gold_adherence_gsd` on `gold_adherence_eed.patient_id = gold_adherence_gsd.patient_id AND gold_adherence_eed.measurement_year = gold_adherence_gsd.measurement_year`. The curated relationship is many-to-one from EED to GSD, and every EED patient has a GSD row. Use this join to bring `clinic_id` and `panel_id` onto EED rows for clinic or panel breakdowns. A verified sample computes clinic EED rate as `COUNT_IF(e.numerator_flag) / COUNT(*)` after this join and groups by `g.clinic_id`.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Blood Pressure control measures whether eligible diabetic patients aged 18\u201375 had a latest reading below 140 over 90.",
+       "type": "business_logic",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.74,
+       "authority": 0.02,
+       "content": "BPD means Blood Pressure control for diabetic patients aged 18-75. A patient meets BPD when their most recent blood pressure reading is controlled, defined in the instruction as `<140/90`. The standard patient-level BPD compliance formula is `COUNT_IF(gold_adherence_bpd.numerator_flag) / COUNT(*)`, where the denominator is all BPD-eligible rows in `eli_test_classic_catalog.care_protocol.gold_adherence_bpd` at the grouping grain. Use `MEASURE(`BPD Compliance Rate`)` from `eli_test_classic_catalog.care_protocol.bpd_compliance_metrics` for governed rate reporting.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Clinic-level comparisons across diabetes measures use Glycemic Status attribution and report each measure\u2019s eligible clinic-attributed patients.",
+       "type": "metric_definition",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.73,
+       "authority": 0.02,
+       "content": "For clinic-level comparisons across all five diabetes measures, the curated pattern uses GSD as the clinic attribution source. The union labels the complete measure set as `GSD`, `KED`, `BPD`, `SPD`, and `EED`, each carrying `measurement_year`, `clinic_id`, and `numerator_flag`; KED, BPD, SPD, and EED are joined to the GSD clinic CTE by `patient_id` and `measurement_year`. The clinic rates are `COUNT_IF(measure = '<MEASURE>' AND numerator_flag) / COUNT_IF(measure = '<MEASURE>')` for each measure. Because the KED branch uses an inner join to GSD, clinic-level KED rates represent clinic-attributed KED patients rather than all KED-eligible patients aged 18-85.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Eye Exam measures whether eligible diabetic patients aged 18\u201375 had a retinal or diabetic eye exam during the year.",
+       "type": "business_logic",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.73,
+       "authority": 0.02,
+       "content": "EED means Eye Exam for diabetic patients aged 18-75. A patient meets EED when they had a retinal or diabetic eye exam in the measurement year, represented by `gold_adherence_eed.numerator_flag`. The standard patient-level EED compliance formula is `COUNT_IF(gold_adherence_eed.numerator_flag) / COUNT(*)`, where the denominator is all EED-eligible rows at the grouping grain. Use `MEASURE(`EED Compliance Rate`)` from `eli_test_classic_catalog.care_protocol.eed_compliance_metrics` for governed rate reporting.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Measure rates come from governed metric views, while patient detail and care gap lists come from gold adherence tables.",
+       "type": "business_logic",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.7,
+       "authority": 0.02,
+       "content": "For measure rates, use the matching metric view and query the governed metric with `MEASURE(...)`: `gsd_compliance_metrics`, `ked_compliance_metrics`, `bpd_compliance_metrics`, `spd_compliance_metrics`, or `eed_compliance_metrics`. The instruction says never to `SUM` or `AVG` a rate column, because rates are governed measures rather than additive facts. For patient-level detail, evidence fields, care gap lists, and custom clinic or panel breakdowns, use the corresponding `gold_adherence_<measure>` table. In the patient-level tables, `status = 'NOT_MET'` means a care gap and `status = 'MET'` means compliant.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Blood Pressure control gaps include both missing readings and uncontrolled latest readings, which support separate outreach lists.",
+       "type": "business_logic",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.7,
+       "authority": 0.02,
+       "content": "BPD care gaps split into no-reading gaps and uncontrolled latest-reading gaps. INCLUDE all BPD gap list/count rows with `gold_adherence_bpd.status = 'NOT_MET'`, which covers uncontrolled blood pressure OR no reading. INCLUDE uncontrolled latest-reading gaps and EXCLUDE no-reading gaps with `gold_adherence_bpd.status = 'NOT_MET' AND gold_adherence_bpd.bp_datetime IS NOT NULL`. INCLUDE patients with no BP reading in the measurement year with `gold_adherence_bpd.bp_datetime IS NULL`.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Five adherence measures report whether patients met testing, blood-pressure, statin, and eye-exam care requirements.",
+       "type": "business_logic",
+       "source": "Query history for eli_test_classic_catalog.care_protocol.gold_adherence_gsd and eli_test_classic_catalog.care_protocol.gold_adherence_ked",
+       "relevance": 0.74,
+       "authority": 0.012,
+       "content": "The adherence reporting domain uses five measure codes: GSD, KED, BPD, SPD, and EED. Across the five physical sources `eli_test_classic_catalog.care_protocol.gold_adherence_gsd`, `eli_test_classic_catalog.care_protocol.gold_adherence_ked`, `eli_test_classic_catalog.care_protocol.gold_adherence_bpd`, `eli_test_classic_catalog.care_protocol.gold_adherence_spd`, and `eli_test_classic_catalog.care_protocol.gold_adherence_eed`, each row is treated as an eligible patient record because the rate calculation uses `COUNT(*)` as the eligible denominator and `AVG(CAST(numerator_flag AS INT))` as the adherence rate. The source SQL labels the measures as GSD, KED, BPD, SPD, and EED; only the associated care-gap descriptions below are supported by the query text.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Kidney Evaluation outreach for closing uACR gaps targets patients who already completed eGFR but lack uACR.",
+       "type": "business_logic",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.7,
+       "authority": 0.02,
+       "content": "KED care gap outreach has a specific filter for patients who completed eGFR but are missing only uACR. INCLUDE those rows with `gold_adherence_ked.egfr_flag AND NOT gold_adherence_ked.uacr_flag`. This is distinct from the broad KED care gap filter `gold_adherence_ked.status = 'NOT_MET'`, which includes patients missing eGFR, missing uACR, or missing both. Use the specific filter for \u201cclose the uACR gap\u201d outreach and the broad status filter for total KED care gap lists/counts.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Statin Therapy measures whether eligible diabetic patients aged 40\u201375 received a statin during the measurement year.",
+       "type": "business_logic",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.71,
+       "authority": 0.02,
+       "content": "SPD means Statin Therapy for diabetic patients aged 40-75. A patient meets SPD when a statin was dispensed in the measurement year, represented by `gold_adherence_spd.numerator_flag`. The patient-level SPD rate is `COUNT_IF(gold_adherence_spd.numerator_flag) / COUNT(*)`, where the denominator is all SPD-eligible rows at the grouping grain. For drug-level analysis, normalize the statin ingredient from the evidence drug name with `INITCAP(SPLIT(gold_adherence_spd.evidence_drug, ' ')[0])`.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "A care gap is a patient-level record marked not met, while met records represent compliant patients.",
+       "type": "business_logic",
+       "source": "[dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.72,
+       "authority": 0.02,
+       "content": "In every patient-level gold adherence table, `status = 'NOT_MET'` means the patient has a care gap and `status = 'MET'` means the patient is compliant. To count KED care gaps, use the exact governed query `SELECT COUNT(*) AS ked_care_gaps FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked WHERE status = 'NOT_MET'`. The same status interpretation applies to the corresponding gold adherence tables for GSD, BPD, SPD, and EED.",
+       "on_topic": true,
+       "stale": false
+      }
+     ],
+     "pages": [
+      {
+       "id": "06ffb8bf-e5c6-410d-8c97-8e21027bbf6d",
+       "name": "Medication Adherence",
+       "domain": "Health Payers",
+       "relevance": 0.62,
+       "certified": false,
+       "description": "A synthetic refill-based measure estimating the share of days during which a beneficiary has medication available.",
+       "on_topic": false
+      },
+      {
+       "id": "5f928091-a585-4501-bca5-73f203bd108b",
+       "name": "Adherence rate (fill-level)",
+       "domain": "Health Payers",
+       "relevance": 0.58,
+       "certified": false,
+       "description": "Fill-level simplification.",
+       "on_topic": false
+      },
+      {
+       "id": "95884716-0ea5-4062-a35b-a69e26725db3",
+       "name": "Adherent fill",
+       "domain": "Health Payers",
+       "relevance": 0.36,
+       "certified": false,
+       "description": "A fill with proportion_days_covered >= 0.80 (illustrative fill-level simplification of the PDC adherence threshold [BG]).",
+       "on_topic": false
+      },
+      {
+       "id": "7644609a-924b-416d-80f0-461e4ab5ea20",
+       "name": "Compliance Rate",
+       "domain": "Clinical Domain",
+       "relevance": 0.3,
+       "certified": false,
+       "description": "Aggregate measure metric: compliant \u00f7 eligible patients, exposed as a governed measure in each *_compliance_metrics metric view.",
+       "on_topic": true
+      }
+     ],
+     "pages_read": [],
+     "attempts": 1
+    },
+    "op_clinic_drift": {
+     "queries": [
+      "protocol Step-3 adherence drift clinic baseline watch findings"
+     ],
+     "snippets": [
+      {
+       "headline": "Statin Therapy patients use Glycemic Status rows for clinic and panel attribution without dropping eligible patients.",
+       "type": "join_hint",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.7,
+       "authority": 0.02,
+       "content": "Attach clinic or panel attribution to SPD patients by joining `eli_test_classic_catalog.care_protocol.gold_adherence_spd` to `eli_test_classic_catalog.care_protocol.gold_adherence_gsd` on `gold_adherence_spd.patient_id = gold_adherence_gsd.patient_id AND gold_adherence_spd.measurement_year = gold_adherence_gsd.measurement_year`. The curated relationship is many-to-one from SPD to GSD, and every SPD patient has a GSD row. Use this join only to bring `clinic_id` and `panel_id` onto SPD patient-level rows for clinic or panel breakdowns. Under the curated assumption, the join does not drop SPD patients.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Clinic-level Glycemic Status reporting combines eligible counts, testing compliance, control rates, and average latest A1c.",
+       "type": "metric_definition",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.71,
+       "authority": 0.02,
+       "content": "For clinic-level GSD reporting, use `eli_test_classic_catalog.care_protocol.gold_adherence_gsd` directly because `clinic_id` is present on the GSD patient-level table. The curated clinic query groups by `clinic_id` and computes `COUNT(*) AS eligible_patients`, `COUNT_IF(numerator_flag) / COUNT(*) AS gsd_compliance_rate`, `COUNT_IF(a1c_lt8) / COUNT_IF(numerator_flag) AS good_control_rate`, `COUNT_IF(a1c_gt9) / COUNT_IF(numerator_flag) AS poor_control_rate`, and `AVG(evidence_value) AS avg_latest_a1c`. Here the GSD compliance denominator is all eligible patients in that clinic, while good and poor control denominators are only patients with `numerator_flag`. This pattern is the source for clinic-level A1c testing and control comparison.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Five adherence measures report whether patients met testing, blood-pressure, statin, and eye-exam care requirements.",
+       "type": "business_logic",
+       "source": "Query history for eli_test_classic_catalog.care_protocol.gold_adherence_gsd and eli_test_classic_catalog.care_protocol.gold_adherence_ked",
+       "relevance": 0.72,
+       "authority": 0.012,
+       "content": "The adherence reporting domain uses five measure codes: GSD, KED, BPD, SPD, and EED. Across the five physical sources `eli_test_classic_catalog.care_protocol.gold_adherence_gsd`, `eli_test_classic_catalog.care_protocol.gold_adherence_ked`, `eli_test_classic_catalog.care_protocol.gold_adherence_bpd`, `eli_test_classic_catalog.care_protocol.gold_adherence_spd`, and `eli_test_classic_catalog.care_protocol.gold_adherence_eed`, each row is treated as an eligible patient record because the rate calculation uses `COUNT(*)` as the eligible denominator and `AVG(CAST(numerator_flag AS INT))` as the adherence rate. The source SQL labels the measures as GSD, KED, BPD, SPD, and EED; only the associated care-gap descriptions below are supported by the query text.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Blood Pressure control gaps include both missing readings and uncontrolled latest readings, which support separate outreach lists.",
+       "type": "business_logic",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.7,
+       "authority": 0.02,
+       "content": "BPD care gaps split into no-reading gaps and uncontrolled latest-reading gaps. INCLUDE all BPD gap list/count rows with `gold_adherence_bpd.status = 'NOT_MET'`, which covers uncontrolled blood pressure OR no reading. INCLUDE uncontrolled latest-reading gaps and EXCLUDE no-reading gaps with `gold_adherence_bpd.status = 'NOT_MET' AND gold_adherence_bpd.bp_datetime IS NOT NULL`. INCLUDE patients with no BP reading in the measurement year with `gold_adherence_bpd.bp_datetime IS NULL`.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Unmet adherence records are identified by the single status value NOT_MET across all five care-measure sources.",
+       "type": "business_logic",
+       "source": "Query history for eli_test_classic_catalog.care_protocol.gold_adherence_gsd and eli_test_classic_catalog.care_protocol.gold_adherence_ked",
+       "relevance": 0.71,
+       "authority": 0.012,
+       "content": "To count adherence gaps, filter each source with the inclusion predicate `status = 'NOT_MET'`; the complete status value used for this gap population is `'NOT_MET'`. The grouped output counts rows as `COUNT(*)` by measure and gap reason, so the patient count is a row count rather than a distinct-patient count. This inclusion rule is applied independently to `eli_test_classic_catalog.care_protocol.gold_adherence_gsd`, `eli_test_classic_catalog.care_protocol.gold_adherence_ked`, `eli_test_classic_catalog.care_protocol.gold_adherence_bpd`, `eli_test_classic_catalog.care_protocol.gold_adherence_spd`, and `eli_test_classic_catalog.care_protocol.gold_adherence_eed`.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Eligible adherence counts represent unique patient-measure pairs across six clinical adherence programs.",
+       "type": "metric_definition",
+       "source": "Query history for eli_test_classic_catalog.care_protocol.gold_adherence_gsd and eli_test_classic_catalog.care_protocol.gold_adherence_ked",
+       "relevance": 0.7,
+       "authority": 0.014,
+       "content": "The eligible adherence count is the number of unique `(patient_id, measure_id)` pairs across `eli_test_classic_catalog.care_protocol.gold_adherence_gsd`, `eli_test_classic_catalog.care_protocol.gold_adherence_bpd`, `eli_test_classic_catalog.care_protocol.gold_adherence_eed`, `eli_test_classic_catalog.care_protocol.gold_adherence_ked`, `eli_test_classic_catalog.care_protocol.gold_adherence_mad`, and `eli_test_classic_catalog.care_protocol.gold_adherence_spd`. Include only rows where `eligible_flag = true` and `patient_id IS NOT NULL` in every branch; `measure_id` is selected but is not explicitly required to be non-null by this rule. Because the branches use `UNION` rather than `UNION ALL`, duplicate patient-measure pairs across or within the six tables are counted once by the outer `COUNT(*)`.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "A care gap is a patient-level record marked not met, while met records represent compliant patients.",
+       "type": "business_logic",
+       "source": "[dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.71,
+       "authority": 0.02,
+       "content": "In every patient-level gold adherence table, `status = 'NOT_MET'` means the patient has a care gap and `status = 'MET'` means the patient is compliant. To count KED care gaps, use the exact governed query `SELECT COUNT(*) AS ked_care_gaps FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked WHERE status = 'NOT_MET'`. The same status interpretation applies to the corresponding gold adherence tables for GSD, BPD, SPD, and EED.",
+       "on_topic": true,
+       "stale": false
+      }
+     ],
+     "pages": [
+      {
+       "id": "06ffb8bf-e5c6-410d-8c97-8e21027bbf6d",
+       "name": "Medication Adherence",
+       "domain": "Health Payers",
+       "relevance": 0.67,
+       "certified": false,
+       "description": "A synthetic refill-based measure estimating the share of days during which a beneficiary has medication available.",
+       "on_topic": false
+      },
+      {
+       "id": "1c03bd0f-573e-4dc8-b03e-0c05bb4473cc",
+       "name": "Measure Drift",
+       "domain": "Clinical Domain",
+       "relevance": 0.53,
+       "certified": false,
+       "description": "A rate change caused by a change in the measure's definition (value-set version), not in actual care; e.g. eGFR coverage dropping from 79 to 0 patients.",
+       "on_topic": true
+      },
+      {
+       "id": "5f928091-a585-4501-bca5-73f203bd108b",
+       "name": "Adherence rate (fill-level)",
+       "domain": "Health Payers",
+       "relevance": 0.38,
+       "certified": false,
+       "description": "Fill-level simplification.",
+       "on_topic": false
+      },
+      {
+       "id": "17e03df3-fe9d-42a0-9576-80d2f6f56022",
+       "name": "Observation Resource",
+       "domain": "mkgs_fhir",
+       "relevance": 0.27,
+       "certified": false,
+       "description": "A FHIR resource for recording measurements, test results, and clinical assertions about a patient \u2014 including vital signs, lab results, and social history.",
+       "on_topic": false
+      }
+     ],
+     "pages_read": []
+    },
+    "op_drift_rootcause": {
+     "queries": [
+      "protocol Step-3 adherence A1c follow-up clinic PCP transition"
+     ],
+     "snippets": [
+      {
+       "headline": "Clinic-level Glycemic Status reporting combines eligible counts, testing compliance, control rates, and average latest A1c.",
+       "type": "metric_definition",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.71,
+       "authority": 0.02,
+       "content": "For clinic-level GSD reporting, use `eli_test_classic_catalog.care_protocol.gold_adherence_gsd` directly because `clinic_id` is present on the GSD patient-level table. The curated clinic query groups by `clinic_id` and computes `COUNT(*) AS eligible_patients`, `COUNT_IF(numerator_flag) / COUNT(*) AS gsd_compliance_rate`, `COUNT_IF(a1c_lt8) / COUNT_IF(numerator_flag) AS good_control_rate`, `COUNT_IF(a1c_gt9) / COUNT_IF(numerator_flag) AS poor_control_rate`, and `AVG(evidence_value) AS avg_latest_a1c`. Here the GSD compliance denominator is all eligible patients in that clinic, while good and poor control denominators are only patients with `numerator_flag`. This pattern is the source for clinic-level A1c testing and control comparison.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Average latest A1c summarizes recorded A1c values and is separate from testing compliance and control rates.",
+       "type": "metric_definition",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.7,
+       "authority": 0.02,
+       "content": "The average latest A1c percentage among tested patients is represented by `AVG(gold_adherence_gsd.evidence_value)`. In clinic-level GSD reporting, this appears alongside `COUNT_IF(numerator_flag) / COUNT(*) AS gsd_compliance_rate`, `COUNT_IF(a1c_lt8) / COUNT_IF(numerator_flag) AS good_control_rate`, and `COUNT_IF(a1c_gt9) / COUNT_IF(numerator_flag) AS poor_control_rate`. The numerator for the average is the A1c evidence value, and the intended denominator is the count of rows with non-null `evidence_value` included by `AVG`. Use this only for A1c-tested evidence analysis; it is not a compliance rate.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Glycemic control rates measure results among tested patients, while Glycemic Status compliance measures testing among all eligible patients.",
+       "type": "metric_definition",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.71,
+       "authority": 0.02,
+       "content": "For GSD, good and poor glycemic control rates are computed only among A1c-tested patients, not all eligible diabetic patients. The good control rate is `COUNT_IF(gold_adherence_gsd.a1c_lt8) / COUNT_IF(gold_adherence_gsd.numerator_flag)`, where the denominator is the count of tested patients. The poor control rate is `COUNT_IF(gold_adherence_gsd.a1c_gt9) / COUNT_IF(gold_adherence_gsd.numerator_flag)`, using the same tested-patient denominator. This differs from GSD compliance rate, whose denominator is all eligible GSD patients: `COUNT_IF(gold_adherence_gsd.numerator_flag) / COUNT(*)`.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "Blood Pressure control measures whether eligible diabetic patients aged 18\u201375 had a latest reading below 140 over 90.",
+       "type": "business_logic",
+       "source": "(Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.7,
+       "authority": 0.02,
+       "content": "BPD means Blood Pressure control for diabetic patients aged 18-75. A patient meets BPD when their most recent blood pressure reading is controlled, defined in the instruction as `<140/90`. The standard patient-level BPD compliance formula is `COUNT_IF(gold_adherence_bpd.numerator_flag) / COUNT(*)`, where the denominator is all BPD-eligible rows in `eli_test_classic_catalog.care_protocol.gold_adherence_bpd` at the grouping grain. Use `MEASURE(`BPD Compliance Rate`)` from `eli_test_classic_catalog.care_protocol.bpd_compliance_metrics` for governed rate reporting.",
+       "on_topic": true,
+       "stale": false
+      },
+      {
+       "headline": "This agent covers five HEDIS-aligned diabetes quality measures, but its results are a demonstration rather than NCQA-certified reporting.",
+       "type": "business_logic",
+       "source": "[dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+       "relevance": 0.72,
+       "authority": 0.02,
+       "content": "The agent answers questions about five HEDIS-aligned diabetes measures: GSD, KED, BPD, SPD, and EED. This is a HEDIS-aligned demo and is not NCQA-certified. The available data is organized into matching patient-level gold adherence tables and governed compliance metric views in the Care Protocol semantic layer.",
+       "on_topic": true,
+       "stale": false
+      }
+     ],
+     "pages": [
+      {
+       "id": "06ffb8bf-e5c6-410d-8c97-8e21027bbf6d",
+       "name": "Medication Adherence",
+       "domain": "Health Payers",
+       "relevance": 0.67,
+       "certified": false,
+       "description": "A synthetic refill-based measure estimating the share of days during which a beneficiary has medication available.",
+       "on_topic": false
+      },
+      {
+       "id": "5f928091-a585-4501-bca5-73f203bd108b",
+       "name": "Adherence rate (fill-level)",
+       "domain": "Health Payers",
+       "relevance": 0.44,
+       "certified": false,
+       "description": "Fill-level simplification.",
+       "on_topic": false
+      },
+      {
+       "id": "95884716-0ea5-4062-a35b-a69e26725db3",
+       "name": "Adherent fill",
+       "domain": "Health Payers",
+       "relevance": 0.39,
+       "certified": false,
+       "description": "A fill with proportion_days_covered >= 0.80 (illustrative fill-level simplification of the PDC adherence threshold [BG]).",
+       "on_topic": false
+      },
+      {
+       "id": "842335a6-3547-4ac9-9334-ce0929be0eed",
+       "name": "Pharmacy and Medications",
+       "domain": "Brick Health: Clinical & Quality",
+       "relevance": 0.22,
+       "certified": false,
+       "description": "The drug formulary, what the system spends on drugs, and whether patients take the chronic medications they are prescribed.",
+       "on_topic": false
+      }
+     ],
+     "pages_read": []
+    }
+   }
+  },
+  "dmvm": {
+   "host": "fe-vm-vdm-classic-q6xfh3",
+   "identity": "eli.swanson@databricks.com",
+   "questions": {
+    "kpi_gsd_rate": {
+     "queries": [
+      "GSD compliance rate definition"
+     ],
+     "snippets": [],
+     "pages": [
+      {
+       "id": "7644609a-924b-416d-80f0-461e4ab5ea20",
+       "name": "Compliance Rate",
+       "domain": "Clinical Domain",
+       "relevance": 1.0,
+       "certified": false,
+       "description": "Aggregate measure metric: compliant \u00f7 eligible patients, exposed as a governed measure in each *_compliance_metrics metric view.",
+       "on_topic": true
+      },
+      {
+       "id": "3ff424ef-a529-4bd8-88f6-1c297ae6120f",
+       "name": "HEDIS Measures and Compliance Rate",
+       "domain": "Crestline Health",
+       "relevance": 0.58,
+       "certified": false,
+       "description": "NCQA quality measures Crestline reports, and how the compliance rate is calculated.",
+       "on_topic": false
+      },
+      {
+       "id": "5b3ace97-a2a9-4e1a-9b53-29df38bdfb26",
+       "name": "SLA Policy (SDS) & Compliance Targets",
+       "domain": "[Schwartz] Support",
+       "relevance": 0.39,
+       "certified": false,
+       "description": "SLA scope, Prio2/Prio3 business-day allowances, overdue status, and the SLA compliance rate formula with its \u2265 90% target and alert bands.",
+       "on_topic": false
+      },
+      {
+       "id": "5a7b82eb-e81e-4cb0-b1c5-4eb979b29d39",
+       "name": "PM Compliance",
+       "domain": "Newmont Asset Management",
+       "relevance": 0.33,
+       "certified": false,
+       "description": "Share of preventive-maintenance orders completed on time. Target 90%.",
+       "on_topic": false
+      }
+     ],
+     "pages_read": [
+      {
+       "page_id": "7644609a-924b-416d-80f0-461e4ab5ea20",
+       "body": "## Definition\n**Compliance rate = compliant (numerator) \u00f7 eligible (denominator)** for a measure in a measurement year.\n\n## Data\n| Measure | Metric view | Governed metrics |\n| --- | --- | --- |\n| GSD | `gsd_compliance_metrics` | GSD Compliance Rate |\n| KED | `ked_compliance_metrics` | KED Compliance Rate, eGFR Test Rate, uACR Test Rate |\n| EED | `eed_compliance_metrics` | EED compliance |\n| BPD | `bpd_compliance_metrics` | BPD compliance |\n| SPD | `spd_compliance_metrics` | SPD compliance |\n\n## Business use\nUse the governed metric instead of recomputing the ratio. A rate change can come from a change in care or from a change in the definition; check **Measure Drift** before reading a change as a change in care.",
+       "name": "Compliance Rate"
+      }
+     ]
+    },
+    "sub_kidney": {
+     "queries": [
+      "diabetes with kidney complications definition ICD-10 codes E11.2 diabetic nephropathy"
+     ],
+     "snippets": [],
+     "pages": [
+      {
+       "id": "2917aa8e-38e0-48a0-90b5-040c2931541a",
+       "name": "KED (Kidney Health Evaluation)",
+       "domain": "Clinical Domain",
+       "relevance": 0.7,
+       "certified": false,
+       "description": "Share of diabetic patients aged 18\u201385 with BOTH an eGFR and a uACR test in the year; uACR is the limiting component.",
+       "on_topic": true
+      },
+      {
+       "id": "402e8af3-3e5a-4a46-aa36-22dcd8df5e64",
+       "name": "Diabetes Cohort",
+       "domain": "Clinical Domain",
+       "relevance": 0.7,
+       "certified": false,
+       "description": "Patients with any ICD-10-CM diagnosis under E10, E11, or E13 (including all child codes); the base population for every diabetes measure.",
+       "on_topic": true
+      },
+      {
+       "id": "39acdaed-c7ba-42ae-b6f7-ce8134fdde42",
+       "name": "Diabetic beneficiary",
+       "domain": "Health Payers",
+       "relevance": 0.58,
+       "certified": false,
+       "description": "A beneficiary with an active Type 2 diabetes (E11.9) condition.",
+       "on_topic": false
+      },
+      {
+       "id": "9edbb1f7-62bd-405e-9bb6-fa9413b7d243",
+       "name": "KED \u2014 Kidney Health Evaluation for Patients With Diabetes",
+       "domain": "Clinical Domain",
+       "relevance": 0.58,
+       "certified": false,
+       "description": "KED (Kidney Health Evaluation for Patients With Diabetes) is a HEDIS quality measure for assessing kidney health in diabetic patients.",
+       "on_topic": true
+      }
+     ],
+     "pages_read": [
+      {
+       "page_id": "402e8af3-3e5a-4a46-aa36-22dcd8df5e64",
+       "body": "## Definition\nThe set of patients with a diabetes diagnosis: any ICD-10-CM code that is a **descendant of E10, E11, or E13** (type 1, type 2, and other/specified diabetes).\n\n## How it is resolved\nThe cohort is resolved semantically, not from a hand-maintained code list. `silver_condition` is joined to `icd10_closure` on `descendant_code` where `ancestor_code IN ('E10','E11','E13')`. One equality join captures the whole subtree (e.g. `E11.21`, `E11.319`); see **Code Subsumption**.\n\n## Data\n`silver_diabetes_cohort`: one row per distinct `patient_id`.\n\n## Business use\nAll five diabetes measures apply their own age band to this cohort. A flat code list would miss specific child codes and undercount every measure.",
+       "name": "Diabetes Cohort"
+      }
+     ]
+    },
+    "med_on_statin": {
+     "queries": [
+      "diabetic patient definition and statin medication codes"
+     ],
+     "snippets": [
+      {
+       "headline": "A reusable diagnosis-name filter includes five specific diagnoses for common clinical reporting examples.",
+       "type": "business_logic",
+       "source": "clinical_genie_space_tables",
+       "relevance": 0.71,
+       "authority": 0.024,
+       "content": "To filter for notable diagnosis names in `dim_diagnosis`, INCLUDE exactly these five values: `'Type 2 diabetes mellitus without complications'`, `'Essential (primary) hypertension'`, `'ST elevation MI involving left main coronary artery'`, `'General adult medical exam without abnormal findings'`, and `'Cerebral infarction, unspecified'`. The exact SQL pattern is `dim_diagnosis.diagnosis_name IN (...)` using the complete list. This is an inclusion filter, not a list of values to exclude. The corresponding CCS category filter is separate and should not be assumed to be interchangeable with diagnosis name filtering.",
+       "on_topic": false,
+       "stale": false
+      },
+      {
+       "headline": "Cardiovascular prescribing counts medication event rows attached to encounters with cardiovascular primary diagnoses.",
+       "type": "metric_definition",
+       "source": "Eval Stress Test - Epic EMR",
+       "relevance": 0.7,
+       "authority": 0.019,
+       "content": "Medication prescribing for patients with cardiovascular diagnoses is computed by joining event rows to encounters and diagnoses: `fact_clinical_event ce JOIN dim_medication m ON ce.medication_key = m.medication_key JOIN fact_encounter fe ON ce.encounter_key = fe.encounter_key JOIN dim_diagnosis dx ON fe.primary_diagnosis_key = dx.diagnosis_key`. The standard cardiovascular prescription cohort INCLUDES `dx.diagnosis_category = 'Cardiovascular' AND ce.event_type = 'Medication'`. The metric is `COUNT(*) AS prescription_count` grouped by `m.generic_name` and `m.therapeutic_class`. This counts medication clinical-event rows associated with encounters whose primary diagnosis is cardiovascular, not unique patients or active prescriptions.",
+       "on_topic": false,
+       "stale": false
+      }
+     ],
+     "pages": [
+      {
+       "id": "6f77f71b-97a7-4469-9a9d-08bbf377fc76",
+       "name": "Has diabetes",
+       "domain": "Healthcare",
+       "relevance": 0.64,
+       "certified": false,
+       "description": "Whether a person has diabetes, defined differently by CMS, HRSA, CDC, VA, and IHS sources.",
+       "on_topic": false
+      },
+      {
+       "id": "90137b0e-d1a0-4667-aea0-8aff1f754984",
+       "name": "SPD (Statin Therapy)",
+       "domain": "Clinical Domain",
+       "relevance": 0.55,
+       "certified": false,
+       "description": "Share of diabetic patients aged 40\u201375 dispensed at least one statin; statins resolved from RxNorm ingredients via subsumption.",
+       "on_topic": true
+      },
+      {
+       "id": "095b4076-c9ba-4c06-93bb-b4bca9c25e51",
+       "name": "Diabetes medication",
+       "domain": "Health Payers",
+       "relevance": 0.5,
+       "certified": false,
+       "description": "Medications for diabetes (illustrative [BG]).",
+       "on_topic": false
+      },
+      {
+       "id": "39acdaed-c7ba-42ae-b6f7-ce8134fdde42",
+       "name": "Diabetic beneficiary",
+       "domain": "Health Payers",
+       "relevance": 0.5,
+       "certified": false,
+       "description": "A beneficiary with an active Type 2 diabetes (E11.9) condition.",
+       "on_topic": false
+      }
+     ],
+     "pages_read": [
+      {
+       "page_id": "90137b0e-d1a0-4667-aea0-8aff1f754984",
+       "body": "## Definition\nHEDIS measure of statin use in patients with diabetes.\n\n## Measure specification\n* **Denominator:** **Diabetes Cohort**, aged **40\u201375** at the end of the measurement year.\n* **Numerator:** at least one statin dispensed during the measurement year.\n* **Value set:** `SPD_STATIN` (RxNorm **ingredients**, e.g. `36567` simvastatin, `83367` atorvastatin)\n\n## Why subsumption is required\nPrescriptions carry RxNorm **clinical-drug** codes (e.g. `312961` *Simvastatin 20 MG Oral Tablet*), not ingredients. A flat ingredient match finds **zero** statins, so SPD resolves ingredients to their clinical drugs through `rxnorm_closure` (see **Code Subsumption**).\n\n## Data\n* **Metric view:** `spd_compliance_metrics`\n* **Patient-level detail:** `gold_adherence_spd`\n\n---\n_HEDIS-aligned demo, not NCQA-certified._",
+       "name": "SPD (Statin Therapy)"
+      }
+     ]
+    },
+    "vintage_egfr_2026": {
+     "queries": [
+      "2026 KED eGFR qualifying test definition"
+     ],
+     "snippets": [
+      {
+       "headline": "Metabolic abnormality comparisons by insurance require more than twenty patients with any lab result.",
+       "type": "business_logic",
+       "source": "test space",
+       "relevance": 0.7,
+       "authority": 0.019,
+       "content": "For metabolic abnormality comparisons by primary insurance in `eswanson_demo.epic_emr_demo.clinical_event_metrics`, the curated query suppresses small denominators. Include only insurance groups where `MEASURE(`Unique Patients with Any Lab Result`) > 20`. The numerator-like companion measure is `MEASURE(`Unique Patients with Abnormal Metabolic Results`)`, and the rate is `MEASURE(`High and Critically High Metabolic Lab Result Patient Rate`)`. The exact threshold is `> 20`, and it is applied with `HAVING` after grouping by `Primary Insurance`.",
+       "on_topic": false,
+       "stale": false
+      }
+     ],
+     "pages": [
+      {
+       "id": "9edbb1f7-62bd-405e-9bb6-fa9413b7d243",
+       "name": "KED \u2014 Kidney Health Evaluation for Patients With Diabetes",
+       "domain": "Clinical Domain",
+       "relevance": 1.0,
+       "certified": false,
+       "description": "KED (Kidney Health Evaluation for Patients With Diabetes) is a HEDIS quality measure for assessing kidney health in diabetic patients.",
+       "on_topic": true
+      },
+      {
+       "id": "150dfd59-85b9-4efd-8014-bb170bfe626e",
+       "name": "eGFR (Estimated Glomerular Filtration Rate)",
+       "domain": "Clinical Domain",
+       "relevance": 0.58,
+       "certified": false,
+       "description": "Kidney-function lab estimating how well kidneys filter blood (LOINC 33914-3 MDRD, 98979-8 CKD-EPI); one of KED's two tests.",
+       "on_topic": true
+      },
+      {
+       "id": "2917aa8e-38e0-48a0-90b5-040c2931541a",
+       "name": "KED (Kidney Health Evaluation)",
+       "domain": "Clinical Domain",
+       "relevance": 0.45,
+       "certified": false,
+       "description": "Share of diabetic patients aged 18\u201385 with BOTH an eGFR and a uACR test in the year; uACR is the limiting component.",
+       "on_topic": true
+      },
+      {
+       "id": "a53fe307-bc73-4e7d-8c13-d63d71c42cae",
+       "name": "Test Types, Events and Glossary",
+       "domain": "Demos",
+       "relevance": 0.39,
+       "certified": false,
+       "description": "Test protocols (endurance, cycling, accelerated stress), operational event types, and acronym glossary.",
+       "on_topic": false
+      }
+     ],
+     "pages_read": [
+      {
+       "page_id": "4ee5a80a-a4b7-47d5-93aa-f765943b8605",
+       "body": "**Measure drift** is when a quality measure's *result changes because its definition changed* \u2014 not because\nthe underlying care changed. Value sets are versioned by **measurement year** (`value_set_segment.measurement_year`),\nwhich makes drift explicit, auditable, and reproducible instead of a silent code-list edit.\n\n**Worked example \u2014 eGFR code modernization (KED):**\n- **MY2025** `KED_EGFR` accepts `98979-8` (CKD-EPI) **and** `33914-3` (MDRD).\n- **MY2026** `KED_EGFR` is \"modernized\" to `98979-8` (CKD-EPI) only.\n- The lab data is identical (Synthea records eGFR as `33914-3`, MDRD). Yet eGFR coverage for 2025 observations\n  under each value-set version is:\n\n| Value-set version | Patients with eGFR | Codes matched |\n|---|---|---|\n| 2025 | **79** | 33914-3 |\n| 2026 | **0** | (none) |\n\nSwitching the value set silently erases eGFR coverage \u2014 which would collapse the KED rate \u2014 with zero change\nin actual testing. The demo query is `src/semantic/measure_drift_demo.sql`.\n\n**Why the context layer matters:** because the value set is governed and year-stamped, you can (a) reproduce a\nmeasure exactly as defined in any year, (b) attribute a rate change to a definition change vs. a care change,\nand (c) see, before shipping a spec update, which codes you are about to drop.\n\n> HEDIS-aligned demo, not NCQA-certified.",
+       "name": null
+      },
+      {
+       "page_id": "150dfd59-85b9-4efd-8014-bb170bfe626e",
+       "body": "## Definition\nA lab estimate of how well the kidneys filter blood.\n\n* **Value set:** `KED_EGFR`, containing **`33914-3`** (MDRD-based, the code Synthea emits) and **`98979-8`** (newer CKD-EPI).\n* A measure must accept **every** valid code for the concept. Relying on a single code undercounts.\n\n## Data\nConformed into `silver_observation`. Feeds `gold_adherence_ked` as `egfr_flag` and the `eGFR Test Rate` metric.\n\n---\n_The two eGFR code vintages are the worked example on the **Measure Drift** page._",
+       "name": "eGFR (Estimated Glomerular Filtration Rate)"
+      }
+     ],
+     "attempts": 1
+    },
+    "proto_cardiorenal": {
+     "queries": [
+      "cardiorenal patients diabetes CKD heart failure condition codes and statin ACE ARB SGLT2 medication classification"
+     ],
+     "snippets": [
+      {
+       "headline": "The curated diagnosis-category cohort covers diabetes, hypertension, myocardial infarction, medical evaluation, and cerebrovascular disease.",
+       "type": "business_logic",
+       "source": "test space tables",
+       "relevance": 0.75,
+       "authority": 0,
+       "content": "The example diagnosis category filter INCLUDES exactly `dim_diagnosis.ccs_category IN ('Diabetes mellitus without complication', 'Essential hypertension', 'Acute myocardial infarction', 'Medical examination/evaluation', 'Acute cerebrovascular disease')`. The direction is INCLUDE, not exclude. Use these standardized CCS categories from `dim_diagnosis` when reproducing the curated condition-category cohort. For encounter analysis, join from `fact_encounter.primary_diagnosis_key` to `dim_diagnosis.diagnosis_key` before filtering.",
+       "on_topic": false,
+       "stale": false
+      },
+      {
+       "headline": "A reusable CCS-category filter includes five diagnosis groupings for clinical condition reporting.",
+       "type": "business_logic",
+       "source": "clinical_genie_space_tables",
+       "relevance": 0.74,
+       "authority": 0.024,
+       "content": "To filter for selected CCS diagnosis categories in `dim_diagnosis`, INCLUDE exactly these five values: `'Diabetes mellitus without complication'`, `'Essential hypertension'`, `'Acute myocardial infarction'`, `'Medical examination/evaluation'`, and `'Acute cerebrovascular disease'`. The exact SQL pattern is `dim_diagnosis.ccs_category IN (...)` using the full list. This is an inclusion filter by CCS category, not a filter by individual diagnosis name or ICD-10 code. Use it when the intended grouping is the CCS category taxonomy rather than the patient-facing diagnosis description.",
+       "on_topic": false,
+       "stale": false
+      },
+      {
+       "headline": "A reusable diagnosis-name filter includes five specific diagnoses for common clinical reporting examples.",
+       "type": "business_logic",
+       "source": "clinical_genie_space_tables",
+       "relevance": 0.74,
+       "authority": 0.024,
+       "content": "To filter for notable diagnosis names in `dim_diagnosis`, INCLUDE exactly these five values: `'Type 2 diabetes mellitus without complications'`, `'Essential (primary) hypertension'`, `'ST elevation MI involving left main coronary artery'`, `'General adult medical exam without abnormal findings'`, and `'Cerebral infarction, unspecified'`. The exact SQL pattern is `dim_diagnosis.diagnosis_name IN (...)` using the complete list. This is an inclusion filter, not a list of values to exclude. The corresponding CCS category filter is separate and should not be assumed to be interchangeable with diagnosis name filtering.",
+       "on_topic": false,
+       "stale": false
+      },
+      {
+       "headline": "Cardiovascular prescribing counts medication event rows attached to encounters with cardiovascular primary diagnoses.",
+       "type": "metric_definition",
+       "source": "Eval Stress Test - Epic EMR",
+       "relevance": 0.75,
+       "authority": 0.019,
+       "content": "Medication prescribing for patients with cardiovascular diagnoses is computed by joining event rows to encounters and diagnoses: `fact_clinical_event ce JOIN dim_medication m ON ce.medication_key = m.medication_key JOIN fact_encounter fe ON ce.encounter_key = fe.encounter_key JOIN dim_diagnosis dx ON fe.primary_diagnosis_key = dx.diagnosis_key`. The standard cardiovascular prescription cohort INCLUDES `dx.diagnosis_category = 'Cardiovascular' AND ce.event_type = 'Medication'`. The metric is `COUNT(*) AS prescription_count` grouped by `m.generic_name` and `m.therapeutic_class`. This counts medication clinical-event rows associated with encounters whose primary diagnosis is cardiovascular, not unique patients or active prescriptions.",
+       "on_topic": false,
+       "stale": false
+      },
+      {
+       "headline": "Primary condition groups patient risk metrics by the patient\u2019s primary medical condition code.",
+       "type": "business_logic",
+       "source": "main.cedar.mv_patient_risk",
+       "relevance": 0.73,
+       "authority": 0,
+       "content": "The `primary_condition` dimension in `main.cedar.mv_patient_risk` maps directly to `source.primary_condition` and represents the primary medical condition code. Use it to group or filter readmission-exposure KPIs by patient condition. The metric view describes it as a code, not a diagnosis description, and does not provide a code-to-description lookup.",
+       "on_topic": false,
+       "stale": false
+      },
+      {
+       "headline": "Medication analytics only apply to clinical event rows that carry a populated medication key.",
+       "type": "join_hint",
+       "source": "test space tables",
+       "relevance": 0.7,
+       "authority": 0,
+       "content": "Medication analysis through clinical events should use `dim_medication.medication_key = fact_clinical_event.medication_key`. The `medication_key` in `fact_clinical_event` is sparsely populated; only rows where `fact_clinical_event.medication_key IS NOT NULL` relate to medication events. `dim_medication` standardizes medication descriptors including `generic_name`, medication classification hierarchies, dosage form, controlled-substance scheduling, and formulary status. Do not assume every clinical event has medication context, and filter to non-null medication keys before analyzing prescribing or pharmacy patterns.",
+       "on_topic": false,
+       "stale": false
+      },
+      {
+       "headline": "Medication analytics require medication-event rows with medication dimension attributes, not all clinical events.",
+       "type": "join_hint",
+       "source": "Eval Stress Test - Epic EMR",
+       "relevance": 0.73,
+       "authority": 0.019,
+       "content": "Medication and prescribing-pattern analyses use `eswanson_demo.epic_emr_demo.fact_clinical_event` joined to `eswanson_demo.epic_emr_demo.dim_medication` on `fce.medication_key = med.medication_key`. The medication dimension provides standardized descriptors including `generic_name`, `therapeutic_class`, `pharmacological_class`, `dosage_form`, `controlled_substance_schedule`, and `formulary_status`. Because `medication_key` is only populated on medication-related clinical events, medication counts should filter to medication context, for example `fce.medication_key IS NOT NULL`, `fce.event_type = 'Medication'`, or `med.formulary_status = 'Active'` depending on the business question. Do not assume every clinical event row can be categorized as a medication event.",
+       "on_topic": false,
+       "stale": false
+      },
+      {
+       "headline": "The curated medication cohort includes five generic medications used for prescribing and pharmacy analyses.",
+       "type": "business_logic",
+       "source": "test space tables",
+       "relevance": 0.71,
+       "authority": 0,
+       "content": "The example medication generic-name filter INCLUDES exactly `dim_medication.generic_name IN ('Metformin HCl', 'Lisinopril', 'Heparin Sodium', 'Aspirin', 'Alteplase')`. The direction is INCLUDE, not exclude. Apply this filter after joining medication events with `dim_medication` through `medication_key`, and remember that `fact_clinical_event.medication_key` is sparsely populated. This list is useful for reproducing the curated medication cohort, not for all possible medications.",
+       "on_topic": false,
+       "stale": false
+      },
+      {
+       "headline": "Medication analytics require medication-related clinical events linked to standardized drug classes and formulary status.",
+       "type": "join_hint",
+       "source": "(Clone) (Clone) Blank test space tables",
+       "relevance": 0.71,
+       "authority": 0.019,
+       "content": "Medication and prescribing-pattern analyses should use `eswanson_demo.epic_emr_demo.fact_clinical_event` joined to `eswanson_demo.epic_emr_demo.dim_medication` on `fact_clinical_event.medication_key = dim_medication.medication_key`. The medication key is only populated on medication-related event rows, so include `fact_clinical_event.medication_key IS NOT NULL` or use `fact_clinical_event.event_type = 'Medication'` when the business question is specifically about medication events. The medication dimension standardizes medication descriptors including `therapeutic_class`, `pharmacological_class`, `generic_name`, `dosage_form`, controlled-substance scheduling, and `formulary_status`. For active formulary medication rankings, use the inclusion filter `dim_medication.formulary_status = 'Active'`.",
+       "on_topic": false,
+       "stale": false
+      },
+      {
+       "headline": "Readmission risk concentration is reported by condition using the at-risk measure, with HF, COPD, pneumonia, and AMI dominating.",
+       "type": "metric_definition",
+       "source": "Cedar Population Health",
+       "relevance": 0.71,
+       "authority": 0.019,
+       "content": "For concentration of readmission risk by condition, use `main.cedar.mv_patient_risk` and group by `primary_condition` with the built-in measures. The accepted query pattern for the at-risk count is `SELECT primary_condition, MEASURE(\u0018atrisk_count\u0019) AS atrisk_count FROM main.cedar.mv_patient_risk GROUP BY primary_condition ORDER BY atrisk_count DESC`. The curated investigation guidance says HF/COPD/PNA/AMI dominate this risk concentration. Use this view and measure for the question \"Which conditions is the readmission risk concentrated in?\" rather than deriving an ad hoc at-risk definition from raw score thresholds.",
+       "on_topic": false,
+       "stale": false
+      }
+     ],
+     "pages": [
+      {
+       "id": "17fa0ba1-a8cc-472d-ae53-6133c84aa611",
+       "name": "Cardiometabolic condition",
+       "domain": "Health Payers",
+       "relevance": 0.61,
+       "certified": false,
+       "description": "Customer-defined group: cardiovascular plus endocrine/metabolic conditions.",
+       "on_topic": false
+      },
+      {
+       "id": "402e8af3-3e5a-4a46-aa36-22dcd8df5e64",
+       "name": "Diabetes Cohort",
+       "domain": "Clinical Domain",
+       "relevance": 0.55,
+       "certified": false,
+       "description": "Patients with any ICD-10-CM diagnosis under E10, E11, or E13 (including all child codes); the base population for every diabetes measure.",
+       "on_topic": true
+      },
+      {
+       "id": "e18bedf0-f717-4d60-ba2f-2c9d79d3b5d5",
+       "name": "Chronic condition",
+       "domain": "Health Payers",
+       "relevance": 0.43,
+       "certified": false,
+       "description": "All conditions in this dataset treated as chronic (illustrative [BG], not the CMS CCW list).",
+       "on_topic": false
+      },
+      {
+       "id": "de64a523-c00e-4603-82e0-81d0f0a24a86",
+       "name": "UPMC Heart Failure Readmission Cohort",
+       "domain": "[hc_provider] Foundational",
+       "relevance": 0.38,
+       "certified": false,
+       "description": "HF readmission cohort = index discharges with final MS-DRG 291, 292 or 293. Use for every heart failure readmission rate question.",
+       "on_topic": false
+      }
+     ],
+     "pages_read": [],
+     "attempts": 3
+    },
+    "def_metformin_egfr": {
+     "queries": [
+      "metformin contraindicated eGFR threshold"
+     ],
+     "snippets": [],
+     "pages": [
+      {
+       "id": "17fa0ba1-a8cc-472d-ae53-6133c84aa611",
+       "name": "Cardiometabolic condition",
+       "domain": "Health Payers",
+       "relevance": 0.5,
+       "certified": false,
+       "description": "Customer-defined group: cardiovascular plus endocrine/metabolic conditions.",
+       "on_topic": false
+      },
+      {
+       "id": "f9a44abc-34bb-4ef6-be19-ee9deb28aaa6",
+       "name": "Deficiency Rate (metric)",
+       "domain": "medical affairs",
+       "relevance": 0.42,
+       "certified": false,
+       "description": "Share of serum measurements below the 20 ng/mL sufficiency threshold.",
+       "on_topic": false
+      },
+      {
+       "id": "576075c5-d2a3-4208-bc81-9d9fd686d173",
+       "name": "Escalation threshold",
+       "domain": "compliance_aml",
+       "relevance": 0.32,
+       "certified": false,
+       "description": "Overnight count at or above 125% of the 30-day baseline for a typology.",
+       "on_topic": false
+      },
+      {
+       "id": "5f928091-a585-4501-bca5-73f203bd108b",
+       "name": "Adherence rate (fill-level)",
+       "domain": "Health Payers",
+       "relevance": 0.25,
+       "certified": false,
+       "description": "Fill-level simplification.",
+       "on_topic": false
+      }
+     ],
+     "pages_read": []
+    },
+    "infer_rationale_path": {
+     "queries": [
+      "clinical knowledge graph path diabetes to statin therapy rationale"
+     ],
+     "snippets": [],
+     "pages": [
+      {
+       "id": "90137b0e-d1a0-4667-aea0-8aff1f754984",
+       "name": "SPD (Statin Therapy)",
+       "domain": "Clinical Domain",
+       "relevance": 0.75,
+       "certified": false,
+       "description": "Share of diabetic patients aged 40\u201375 dispensed at least one statin; statins resolved from RxNorm ingredients via subsumption.",
+       "on_topic": true
+      },
+      {
+       "id": "c8324591-625b-44db-9f8b-c57e9ba5dd7b",
+       "name": "SPD \u2014 Statin Therapy for Patients With Diabetes",
+       "domain": "Clinical Domain",
+       "relevance": 0.67,
+       "certified": false,
+       "description": "SPD (Statin Therapy for Patients With Diabetes) is a HEDIS measure for statin use in diabetic patients.",
+       "on_topic": true
+      },
+      {
+       "id": "6f77f71b-97a7-4469-9a9d-08bbf377fc76",
+       "name": "Has diabetes",
+       "domain": "Healthcare",
+       "relevance": 0.62,
+       "certified": false,
+       "description": "Whether a person has diabetes, defined differently by CMS, HRSA, CDC, VA, and IHS sources.",
+       "on_topic": false
+      },
+      {
+       "id": "d8400649-483f-4419-9dae-89dfd801f564",
+       "name": "Knowledge Graph",
+       "domain": "Field Operations",
+       "relevance": 0.31,
+       "certified": false,
+       "description": "A structured representation of entities and their relationships used to power search, discovery, and intelligent recommendations.",
+       "on_topic": false
+      }
+     ],
+     "pages_read": [
+      {
+       "page_id": "90137b0e-d1a0-4667-aea0-8aff1f754984",
+       "body": "## Definition\nHEDIS measure of statin use in patients with diabetes.\n\n## Measure specification\n* **Denominator:** **Diabetes Cohort**, aged **40\u201375** at the end of the measurement year.\n* **Numerator:** at least one statin dispensed during the measurement year.\n* **Value set:** `SPD_STATIN` (RxNorm **ingredients**, e.g. `36567` simvastatin, `83367` atorvastatin)\n\n## Why subsumption is required\nPrescriptions carry RxNorm **clinical-drug** codes (e.g. `312961` *Simvastatin 20 MG Oral Tablet*), not ingredients. A flat ingredient match finds **zero** statins, so SPD resolves ingredients to their clinical drugs through `rxnorm_closure` (see **Code Subsumption**).\n\n## Data\n* **Metric view:** `spd_compliance_metrics`\n* **Patient-level detail:** `gold_adherence_spd`\n\n---\n_HEDIS-aligned demo, not NCQA-certified._",
+       "name": "SPD (Statin Therapy)"
+      }
+     ],
+     "attempts": 1
+    },
+    "op_worst_clinic_annual": {
+     "queries": [
+      "protocol Step-3 A1c follow-up adherence definition by clinic"
+     ],
+     "snippets": [],
+     "pages": [
+      {
+       "id": "06ffb8bf-e5c6-410d-8c97-8e21027bbf6d",
+       "name": "Medication Adherence",
+       "domain": "Health Payers",
+       "relevance": 0.64,
+       "certified": false,
+       "description": "A synthetic refill-based measure estimating the share of days during which a beneficiary has medication available.",
+       "on_topic": false
+      },
+      {
+       "id": "5f928091-a585-4501-bca5-73f203bd108b",
+       "name": "Adherence rate (fill-level)",
+       "domain": "Health Payers",
+       "relevance": 0.43,
+       "certified": false,
+       "description": "Fill-level simplification.",
+       "on_topic": false
+      },
+      {
+       "id": "95884716-0ea5-4062-a35b-a69e26725db3",
+       "name": "Adherent fill",
+       "domain": "Health Payers",
+       "relevance": 0.38,
+       "certified": false,
+       "description": "A fill with proportion_days_covered >= 0.80 (illustrative fill-level simplification of the PDC adherence threshold [BG]).",
+       "on_topic": false
+      },
+      {
+       "id": "e18bedf0-f717-4d60-ba2f-2c9d79d3b5d5",
+       "name": "Chronic condition",
+       "domain": "Health Payers",
+       "relevance": 0.25,
+       "certified": false,
+       "description": "All conditions in this dataset treated as chronic (illustrative [BG], not the CMS CCW list).",
+       "on_topic": false
+      }
+     ],
+     "pages_read": [],
+     "attempts": 1
+    },
+    "op_clinic_drift": {
+     "queries": [
+      "protocol Step-3 adherence drop versus clinic's own history"
+     ],
+     "snippets": [
+      {
+       "headline": "Low golden adherence with zero deviations signals possible under-reporting rather than acceptable batch conformance.",
+       "type": "metric_definition",
+       "source": "test mv",
+       "relevance": 0.71,
+       "authority": 0,
+       "content": "`Low Golden Adherence Zero Deviation Rate` in `eswanson_demo.pharma_nba.cpv_kpis_daily_metrics_v2` flags days where process adherence is low but no deviations were recorded. The exact condition is `Avg Golden Adherence < 0.9` and `Deviation Count = 0`, indicating potential deviation under-reporting. The verified query groups by `Batch Start Date` and `Control Strategy`, reports `Avg Golden Adherence` and `Low Golden Adherence Zero Deviation Rate`, and keeps only groups with `MEASURE(`Low Golden Adherence Zero Deviation Rate`) > 0`. This metric answers an under-reporting risk question, not a batch conformance success question.",
+       "on_topic": false,
+       "stale": false
+      }
+     ],
+     "pages": [
+      {
+       "id": "06ffb8bf-e5c6-410d-8c97-8e21027bbf6d",
+       "name": "Medication Adherence",
+       "domain": "Health Payers",
+       "relevance": 0.75,
+       "certified": false,
+       "description": "A synthetic refill-based measure estimating the share of days during which a beneficiary has medication available.",
+       "on_topic": false
+      },
+      {
+       "id": "95884716-0ea5-4062-a35b-a69e26725db3",
+       "name": "Adherent fill",
+       "domain": "Health Payers",
+       "relevance": 0.45,
+       "certified": false,
+       "description": "A fill with proportion_days_covered >= 0.80 (illustrative fill-level simplification of the PDC adherence threshold [BG]).",
+       "on_topic": false
+      },
+      {
+       "id": "5f928091-a585-4501-bca5-73f203bd108b",
+       "name": "Adherence rate (fill-level)",
+       "domain": "Health Payers",
+       "relevance": 0.44,
+       "certified": false,
+       "description": "Fill-level simplification.",
+       "on_topic": false
+      },
+      {
+       "id": "ab76ffac-4028-4139-821b-ff160878120d",
+       "name": "Adherent fill count",
+       "domain": "Health Payers",
+       "relevance": 0.22,
+       "certified": false,
+       "description": "Fills with PDC >= 0.80.",
+       "on_topic": false
+      }
+     ],
+     "pages_read": []
+    },
+    "op_drift_rootcause": {
+     "queries": [
+      "protocol Step-3 adherence definition A1c follow-up within 90 days clinic"
+     ],
+     "snippets": [],
+     "pages": [
+      {
+       "id": "06ffb8bf-e5c6-410d-8c97-8e21027bbf6d",
+       "name": "Medication Adherence",
+       "domain": "Health Payers",
+       "relevance": 0.64,
+       "certified": false,
+       "description": "A synthetic refill-based measure estimating the share of days during which a beneficiary has medication available.",
+       "on_topic": false
+      },
+      {
+       "id": "95884716-0ea5-4062-a35b-a69e26725db3",
+       "name": "Adherent fill",
+       "domain": "Health Payers",
+       "relevance": 0.44,
+       "certified": false,
+       "description": "A fill with proportion_days_covered >= 0.80 (illustrative fill-level simplification of the PDC adherence threshold [BG]).",
+       "on_topic": false
+      },
+      {
+       "id": "a1b0b62e-8fe5-44f1-8ecd-6ed8ed1e7d4b",
+       "name": "Repeat Contact",
+       "domain": "Call Center (fsrv)",
+       "relevance": 0.39,
+       "certified": false,
+       "description": "A customer raising the same issue again within 7 days of a previous interaction.",
+       "on_topic": false
+      },
+      {
+       "id": "5f928091-a585-4501-bca5-73f203bd108b",
+       "name": "Adherence rate (fill-level)",
+       "domain": "Health Payers",
+       "relevance": 0.33,
+       "certified": false,
+       "description": "Fill-level simplification.",
+       "on_topic": false
+      }
+     ],
+     "pages_read": []
+    }
+   }
+  }
+ }
+}

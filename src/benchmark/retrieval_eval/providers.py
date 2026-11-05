@@ -16,6 +16,7 @@ custom sufficiency judge can read the documents back off the trace. Documents us
 """
 from __future__ import annotations
 
+import json
 import os
 import re
 
@@ -174,7 +175,7 @@ def rag(question: str, qid: str) -> list[dict]:
 import sys as _sys  # noqa: E402
 
 _sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "app")))
-from server.context_retrieval import graph_context, ontology_context  # noqa: E402
+from server.context_retrieval import genie_ontology_docs, graph_context  # noqa: E402
 
 ONTOBRICKS_CATALOG = os.environ.get("CARE_ONTOBRICKS_CATALOG", "eswanson_demo")
 ONTOBRICKS_SCHEMA = os.environ.get("CARE_ONTOBRICKS_SCHEMA", "ontobricks")
@@ -203,13 +204,26 @@ def ontobricks(question: str, qid: str) -> list[dict]:
         return [_doc(f"[Ontobricks query failed: {type(e).__name__}: {str(e)[:140]}]", source="ontobricks_error")]
 
 
+_GO_REC = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "docs", "benchmark",
+                                       "genie_ontology_retrieval.json"))
+
+
+def _genie_ontology(workspace: str, qid: str) -> list[dict]:
+    """Genie Ontology's OWN retrieval for this question (recorded: snippet search + Pages read), no Genie One answer."""
+    if not os.path.isfile(_GO_REC):
+        return [_doc("[no Genie Ontology recording — run scripts/record_genie_ontology.py]", source="genie_ontology_error")]
+    rec = json.load(open(_GO_REC))["workspaces"].get(workspace, {})
+    return genie_ontology_docs(rec.get("questions", {}).get(qid) or {})
+
+
 @mlflow.trace(span_type="RETRIEVER", name="genie_ontology")
 def genie_ontology(question: str, qid: str) -> list[dict]:
-    try:
-        return ontology_context(question, run_sql, CATALOG, SCHEMA, SCHEMA_SEMANTIC)
-    except Exception as e:  # noqa: BLE001
-        return [_doc(f"[Genie Ontology retrieval failed: {type(e).__name__}: {str(e)[:140]}]",
-                     source="genie_ontology_error")]
+    return _genie_ontology("ect", qid)
+
+
+@mlflow.trace(span_type="RETRIEVER", name="genie_ontology_dmvm")
+def genie_ontology_dmvm(question: str, qid: str) -> list[dict]:
+    return _genie_ontology("dmvm", qid)
 
 
 # The arms, in display order. closed_book first = the floor every other arm's lift is measured against.
@@ -219,5 +233,6 @@ PROVIDERS = {
     "closure_sql": closure_sql,
     "rag": rag,
     "genie_ontology": genie_ontology,
+    "genie_ontology_dmvm": genie_ontology_dmvm,
     "ontobricks": ontobricks,
 }
