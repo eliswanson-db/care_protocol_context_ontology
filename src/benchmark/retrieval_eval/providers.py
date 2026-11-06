@@ -162,6 +162,13 @@ def rag(question: str, qid: str) -> list[dict]:
 ONTOBRICKS_CATALOG = os.environ.get("CARE_ONTOBRICKS_CATALOG", "eswanson_demo")
 ONTOBRICKS_SCHEMA = os.environ.get("CARE_ONTOBRICKS_SCHEMA", "ontobricks")
 ONTOBRICKS_TABLE = os.environ.get("CARE_ONTOBRICKS_TABLE")  # None -> the latest published clinicaldomain version
+# Full name of the triple table/view to use instead (e.g. the live compiled-mapping view, to test a republish before it
+# happens). Overrides CARE_ONTOBRICKS_TABLE.
+ONTOBRICKS_GRAPH = os.environ.get("CARE_ONTOBRICKS_GRAPH")
+
+
+def _graph_table() -> str:
+    return ONTOBRICKS_GRAPH or f"{ONTOBRICKS_CATALOG}.{ONTOBRICKS_SCHEMA}.{_latest_ontobricks()}_graph"
 
 
 def _latest_ontobricks() -> str:
@@ -179,7 +186,7 @@ _ONS = "https://care-protocol.example/ontology/"
 
 @mlflow.trace(span_type="RETRIEVER", name="ontobricks")
 def ontobricks(question: str, qid: str) -> list[dict]:
-    graph = f"{ONTOBRICKS_CATALOG}.{ONTOBRICKS_SCHEMA}.{_latest_ontobricks()}_graph"
+    graph = _graph_table()
     try:
         return graph_context(question, run_sql, graph)
     except Exception as e:  # noqa: BLE001
@@ -282,6 +289,5 @@ def graph_runner():
     if _GRAPH is None:
         from server import graph_runner as gr
         from .warehouse import fetch_all
-        table = f"{ONTOBRICKS_CATALOG}.{ONTOBRICKS_SCHEMA}.{_latest_ontobricks()}_graph"
-        _GRAPH = gr.load(table, fetch_all)
+        _GRAPH = gr.load(_graph_table(), fetch_all)
     return _GRAPH

@@ -169,8 +169,19 @@ def graph_context(question: str, run_sql, graph: str) -> list[dict]:
                                f"Graph schema (predicate: subject type -> object type, count): {graph_schema(run_sql, graph)}"),
               "metadata": {"source": "ontobricks", "kind": "provenance", "graph": graph, "linked_entities": linked}}
     order = sorted(seen, key=lambda k: (seen[k], tiers[k] != "patient"))
+    # Node names: the graph's rdfs:label on any retrieved non-patient node, so codes read as concepts. (No effect when
+    # the graph carries no labels for these nodes.)
+    nodes = {x for k in order for x in (k[0], k[2]) if x.startswith(ONTO_NS) and "/Patient/" not in x}
+    names: dict[str, str] = {}
+    if nodes:
+        for r in run_sql(f"SELECT subject, object FROM {graph} WHERE predicate = "
+                         f"'http://www.w3.org/2000/01/rdf-schema#label' AND subject IN ({_iri_list(nodes)})"):
+            names.setdefault(r["subject"], r["object"])
+
+    def nm(iri):
+        return f"{_short(iri)} \"{names[iri]}\"" if iri in names else _short(iri)
     return [header] + [
-        {"page_content": f"({_short(k[0])}) -[{_short(k[1])}]-> ({_short(k[2])})  [{tiers[k]}, hop {seen[k]}]",
+        {"page_content": f"({nm(k[0])}) -[{_short(k[1])}]-> ({nm(k[2])})  [{tiers[k]}, hop {seen[k]}]",
          "metadata": {"source": "ontobricks", "kind": "triple", "tier": tiers[k], "hop": seen[k], "graph": graph,
                       "subject": _short(k[0]), "predicate": _short(k[1]), "object": _short(k[2]),
                       "linked_entities": linked}}

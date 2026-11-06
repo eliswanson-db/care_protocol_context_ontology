@@ -1,0 +1,458 @@
+{
+  "judge": "databricks-claude-sonnet-5",
+  "agent": "databricks-claude-sonnet-5",
+  "scoring": "tiers-v1",
+  "repeats": 1,
+  "rows": [
+    {
+      "arm": "ontobricks",
+      "qid": "sub_kidney",
+      "tier": 2,
+      "sufficient": false,
+      "query_correct": true,
+      "interface": "graph-runner call",
+      "query": {
+        "kind": "tool",
+        "interface": "graph",
+        "tool": "match",
+        "args": {
+          "pattern": [
+            [
+              "?p",
+              "hasDiagnosis",
+              "?dx"
+            ],
+            [
+              "?dx",
+              "subClassOf*",
+              "icd/E11.2"
+            ]
+          ],
+          "select": "?p"
+        }
+      },
+      "sql": "{\"tool\": \"match\", \"args\": {\"pattern\": [[\"?p\", \"hasDiagnosis\", \"?dx\"], [\"?dx\", \"subClassOf*\", \"icd/E11.2\"]], \"select\": \"?p\"}}",
+      "sql_error": null,
+      "sql_result": "1881 result(s) for ?p\n{\"?dx\": \"icd/E11.22\", \"?p\": \"Patient/8a52a143-67f2-9ee5-a3e3-f7090da9d866 (Dorinda15 VonRueden376)\"}\n{\"?dx\": \"icd/E11.22\", \"?p\": \"Patient/54baf356-4472-a150-bbe1-957125d1a968 (Sommer719 Jerde200)\"}\n{\"?dx\": \"icd/E11.22\", \"?p\": \"Patient/09435545-74dc-55c5-3a49-7ad174cbbbed (Esther279 Homenick806)\"}\n{\"?dx\": \"icd/E11.22\", \"?p\": \"Patient/184d3cbb-20b3-bdbf-8476-488f9af5baae (Xavier983 Crist667)\"}\n{\"?dx\": \"icd/E11.22\", \"?p\": \"Patient/5c2310e9-59d5-3966-91c0-7a937b1ba397 (Cristopher265 Stanton715)\"}\n{\"?dx\": \"icd/E11.22\", \"?p\": \"Patient/4ab20bc9-8991-0cef-10c9-e091661253f6 (Latisha994 Cummerata161)\"}\n{\"?dx\": \"icd/E11.22\", \"?p\": \"Patient/c06e72ca-c517-c91c-c86f-3642185f143a (Lilia791 Prado282)\"}\n{\"?dx\": \"icd/E11.22\", \"?p\": \"Patient/c1943e3c-8f4b-929b-ab6f-40d21a3f9fc8 (Stewart672 Kuhlman484)\"}\n{\"?dx\": \"icd/E11.22\", \"?p\": \"Patient/de4da54f-69f4-33a9-71cb-166610826632 (Fletcher87 Durgan499)\"}\n{\"?dx\": \"icd/E11.22\", \"?p\": \"Patient/e6a57963-797d-8acc-9329-0cf6dc4ac033 (Merrill415 Rodriguez71)\"}",
+      "facts": [
+        {
+          "fact": "1881 distinct patients have diabetes with a kidney complication.",
+          "in_context": {
+            "ok": false,
+            "quote": "",
+            "rationale": "The text only shows graph schema and sample triples/ICD codes without any explicit count of patients with diabetes and kidney complications."
+          },
+          "in_result": {
+            "ok": true,
+            "quote": "1881 result(s) for ?p",
+            "rationale": "The query result count of 1881 matches the stated fact of 1881 distinct patients with diabetic kidney complications."
+          }
+        }
+      ],
+      "reason": "The graph-runner call matched patients under icd/E11.2 subclasses, correctly returning 1881 results matching the gold count.",
+      "retrieved": "Linked Measure/KED, ValueSet/COMORBID_CKD, icd/E10*, icd/E11*, icd/E13*, icd/N17*; 62 triples (subClassOf 24, contains 14, eligibleFor 8, hasComponent 4, hasSystem 4).",
+      "n_docs": 63,
+      "skipped_search": false,
+      "facts_in_context": [
+        false
+      ],
+      "facts_in_result": [
+        true
+      ],
+      "context": "Source: Ontobricks triple table eswanson_demo.ontobricks.triplestore_clinicaldomain_v3 (columns subject, predicate, object). Node IRIs are https://care-protocol.example/ontology/<Type>/<id> (e.g. https://care-protocol.example/ontology/Patient/<patient_id>, https://care-protocol.example/ontology/icd/E11.9, https://care-protocol.example/ontology/DrugClass/DRUGCLASS-STATIN); predicate IRIs are https://care-protocol.example/ontology/<predicate>. Triples below are shown with that prefix removed.\nGraph schema (predicate: subject type -> object type, count): ageAtPeriodEnd: Patient -> literal (2,399); contains: ValueSet -> icd (20); contraindicatedWhen: DrugClass -> Threshold (2); contraindicatedWith: DrugClass -> ValueSet (4); definedBy: ValueSet -> Threshold (1); eligibleFor: Patient -> Measure (13,133); firstLineFor: DrugClass -> ValueSet (1); hasCareGap: Patient -> Measure (6,744); hasComponent: loinc -> part (9); hasDiagnosis: Patient -> icd (17,871); hasIngredient: rx -> ing (42); hasMethod: loinc -> part (5); hasObservation: Patient -> obs (15,094,152); hasSystem: loinc -> part (9); hasThreshold: Measure -> Threshold (4); icd10Code: Pregnancy -> literal (704); icd10Code: Condition -> literal (39); icd10Code: DiabetesDiagnosis -> literal (7); icd10Code: ChronicKidneyDisease -> literal (5); icd10Code: HeartFailure -> literal (1); inDrugClass: ing -> DrugClass (3); loincCode: LabTest -> literal (308); monitoredBy: Measure -> part (5); ofTest: obs -> loinc (15,094,152); prescribed: Patient -> rx (156,532); recommendedFor: DrugClass -> ValueSet (4); recommendedFor: DrugClass -> Measure (1); resultValue: Observation -> literal (9,426,773); rxnormCode: Medication -> literal (48); subClassOf: icd -> icd (28); thresholdValue: Threshold -> literal (7); valueSetId: ValueSet -> literal (21)\n\n(Patient/323f97f5-7f67-af21-0e99-358251f049b9) -[eligibleFor]-> (Measure/KED)  [member, hop 1]\n\n(Patient/2073138e-fac3-67bf-a363-240f8c9a6665) -[eligibleFor]-> (Measure/KED)  [member, hop 1]\n\n(Patient/0453e68d-eef2-4e1b-54d4-d43b05705270) -[eligibleFor]-> (Measure/KED)  [member, hop 1]\n\n(Patient/cdaa9609-4bdc-d762-642e-2fac4fd94340) -[eligibleFor]-> (Measure/KED)  [member, hop 1]\n\n(Patient/223a765d-4073-4215-d214-37680cadd652) -[eligibleFor]-> (Measure/KED)  [member, hop 1]\n\n(Patient/86f17a19-0e74-4385-ca64-7eb264de88a7) -[eligibleFor]-> (Measure/KED)  [member, hop 1]\n\n(Patient/a56a4457-451c-e330-9061-c5a1feabeb87) -[eligibleFor]-> (Measure/KED)  [member, hop 1]\n\n(Patient/acf8937e-7dc1-a665-8f21-003de8d64b52) -[eligibleFor]-> (Measure/KED)  [member, hop 1]\n\n(Measure/KED) -[monitoredBy]-> (part/LP-EGFR)  [guideline, hop 1]\n\n(Measure/KED) -[monitoredBy]-> (part/LP-UACR)  [guideline, hop 1]\n\n(DrugClass/DRUGCLASS-SGLT2) -[recommendedFor]-> (ValueSet/COMORBID_CKD)  [guideline, hop 1]\n\n(icd/E11.22) -[subClassOf]-> (icd/E11.2)  [guideline, hop 1]\n\n(icd/E11.9) -[subClassOf]-> (icd/E11)  [guideline, hop 1]\n\n(icd/E11.319) -[subClassOf]-> (icd/E11.31)  [guideline, hop 1]\n\n(icd/E11.3) -[subClassOf]-> (icd/E11)  [guideline, hop 1]\n\n(icd/N18.2) -[subClassOf]-> (icd/N18)  [guideline, hop 1]\n\n(icd/N18.1) -[subClassOf]-> (icd/N18)  [guideline, hop 1]\n\n(icd/E11.21) -[subClassOf]-> (icd/E11.2)  [guideline, hop 1]\n\n(icd/E10.21) -[subClassOf]-> (icd/E10.2)  [guideline, hop 1]\n\n(icd/E11.40) -[subClassOf]-> (icd/E11.4)  [guideline, hop 1]\n\n(icd/E11.22) -[subClassOf]-> (icd/N18)  [guideline, hop 1]\n\n(icd/E10.2) -[subClassOf]-> (icd/E10)  [guideline, hop 1]\n\n(icd/E10.9) -[subClassOf]-> (icd/E10)  [guideline, hop 1]\n\n(icd/E11.2) -[subClassOf]-> (icd/E11)  [guideline, hop 1]\n\n(icd/N18.4) -[subClassOf]-> (icd/N18)  [guideline, hop 1]\n\n(icd/E11.4) -[subClassOf]-> (icd/E11)  [guideline, hop 1]\n\n(icd/N17.9) -[subClassOf]-> (icd/N17)  [guideline, hop 1]\n\n(icd/E11.31) -[subClassOf]-> (icd/E11.3)  [guideline, hop 1]\n\n(icd/N18.6) -[subClassOf]-> (icd/N18)  [guideline, hop 1]\n\n(icd/E11.29) -[subClassOf]-> (icd/E11.2)  [guideline, hop 1]\n\n(icd/E11.65) -[subClassOf]-> (icd/E11)  [guideline, hop 1]\n\n(icd/N18.30) -[subClassOf]-> (icd/N18.3)  [guideline, hop 1]\n\n(icd/N18.5) -[subClassOf]-> (icd/N18)  [guideline, hop 1]\n\n(icd/N18.3) -[subClassOf]-> (icd/N18)  [guideline, hop 1]\n\n(ValueSet/CARDIORENAL_COHORT) -[contains]-> (icd/N18.5)  [guideline, hop 1]\n\n(ValueSet/EXCL_PREEXISTING_DM) -[contains]-> (icd/E13)  [guideline, hop 1]\n\n(ValueSet/HEDIS_DIABETES_DENOM) -[contains]-> (icd/E10)  [guideline, hop 1]\n\n(ValueSet/EXCL_ESRD) -[contains]-> (icd/N18.6)  [guideline, hop 1]\n\n(ValueSet/COMORBID_CKD) -[contains]-> (icd/N18)  [guideline, hop 1]\n\n(ValueSet/EXCL_PREEXISTING_DM) -[contains]-> (icd/E11)  [guideline, hop 1]\n\n(ValueSet/EXCL_PREEXISTING_DM) -[contains]-> (icd/E10)  [guideline, hop 1]\n\n(ValueSet/CARDIORENAL_COHORT) -[contains]-> (icd/E11)  [guideline, hop 1]\n\n(ValueSet/CARDIORENAL_COHORT) -[contains]-> (icd/N18.4)  [guideline, hop 1]\n\n(ValueSet/CARDIORENAL_COHORT) -[contains]-> (icd/N18.6)  [guideline, hop 1]\n\n(ValueSet/HEDIS_DIABETES_DENOM) -[contains]-> (icd/E11)  [guideline, hop 1]\n\n(ValueSet/HEDIS_DIABETES_DENOM) -[contains]-> (icd/E13)  [guideline, hop 1]\n\n(ValueSet/CARDIORENAL_COHORT) -[contains]-> (icd/I50.9)  [guideline, hop 2]\n\n(DrugClass/DRUGCLASS-SGLT2) -[contraindicatedWhen]-> (Threshold/eGFR_LT_20)  [guideline, hop 2]\n\n(loinc/9318-7) -[hasComponent]-> (part/LP-UACR)  [guideline, hop 2]\n\n(loinc/33914-3) -[hasComponent]-> (part/LP-EGFR)  [guideline, hop 2]\n\n(loinc/98979-8) -[hasComponent]-> (part/LP-EGFR)  [guideline, hop 2]\n\n(loinc/14959-1) -[hasComponent]-> (part/LP-UACR)  [guideline, hop 2]\n\n(DrugClass/DRUGCLASS-SGLT2) -[recommendedFor]-> (ValueSet/COMORBID_HF)  [guideline, hop 2]\n\n(Threshold/eGFR_LT_20) -[thresholdValue]-> (20)  [guideline, hop 3]\n\n(ValueSet/COMORBID_HF) -[contains]-> (icd/I50)  [guideline, hop 3]\n\n(loinc/98979-8) -[hasMethod]-> (part/LP-METH-CKDEPI)  [guideline, hop 3]\n\n(loinc/33914-3) -[hasMethod]-> (part/LP-METH-MDRD)  [guideline, hop 3]\n\n(loinc/14959-1) -[hasSystem]-> (part/LP-SYS-URINE)  [guideline, hop 3]\n\n(loinc/",
+      "latency_s": 24.7,
+      "tier_runs": [
+        2
+      ],
+      "stable": true,
+      "harness_errors": 0,
+      "runs": [
+        {
+          "tier": 2,
+          "sql": "{\"tool\": \"match\", \"args\": {\"pattern\": [[\"?p\", \"hasDiagnosis\", \"?dx\"], [\"?dx\", \"subClassOf*\", \"icd/E11.2\"]], \"select\": \"?p\"}}",
+          "sql_error": null,
+          "facts_in_context": [
+            false
+          ],
+          "facts_in_result": [
+            true
+          ]
+        }
+      ]
+    },
+    {
+      "arm": "ontobricks",
+      "qid": "graph_statin_contra_cohort",
+      "tier": 2,
+      "sufficient": false,
+      "query_correct": true,
+      "interface": "graph-runner call",
+      "query": {
+        "kind": "tool",
+        "interface": "graph",
+        "tool": "match",
+        "args": {
+          "pattern": [
+            [
+              "?p",
+              "prescribed",
+              "?rx"
+            ],
+            [
+              "?rx",
+              "hasIngredient",
+              "?ing"
+            ],
+            [
+              "?ing",
+              "inDrugClass",
+              "DrugClass/DRUGCLASS-STATIN"
+            ],
+            [
+              "?p",
+              "hasDiagnosis",
+              "?dx"
+            ],
+            [
+              "DrugClass/DRUGCLASS-STATIN",
+              "contraindicatedWith",
+              "?vs"
+            ],
+            [
+              "?vs",
+              "contains",
+              "?dxroot"
+            ],
+            [
+              "?dx",
+              "subClassOf*",
+              "?dxroot"
+            ]
+          ],
+          "select": "p"
+        }
+      },
+      "sql": "{\"tool\": \"match\", \"args\": {\"pattern\": [[\"?p\", \"prescribed\", \"?rx\"], [\"?rx\", \"hasIngredient\", \"?ing\"], [\"?ing\", \"inDrugClass\", \"DrugClass/DRUGCLASS-STATIN\"], [\"?p\", \"hasDiagnosis\", \"?dx\"], [\"DrugClass/DRUGCLASS-STATIN\", \"contraindicatedWith\", \"?vs\"], [\"?vs\", \"contains\", \"?dxroot\"], [\"?dx\", \"subClassOf*\", \"?dxroot\"]], \"select\": \"p\"}}",
+      "sql_error": null,
+      "sql_result": "198 result(s) for ?p\n{\"?ing\": \"ing/36567\", \"?rx\": \"rx/312961\", \"?p\": \"Patient/01ee58df-f106-7b32-0098-c8d818248a70 (Gigi364 Morar593)\", \"?dx\": \"icd/Z34.90\", \"?vs\": \"ValueSet/CONTRA_PREGNANCY\", \"?dxroot\": \"icd/Z34\"}\n{\"?ing\": \"ing/36567\", \"?rx\": \"rx/312961\", \"?p\": \"Patient/57cb21e8-7e92-5921-2340-f99c3994b633 (Malissa448 Walker122)\", \"?dx\": \"icd/Z34.90\", \"?vs\": \"ValueSet/CONTRA_PREGNANCY\", \"?dxroot\": \"icd/Z34\"}\n{\"?ing\": \"ing/36567\", \"?rx\": \"rx/312961\", \"?p\": \"Patient/84102657-ac58-6cc2-aa34-e4ef5742cd67 (Priscila9 Prosacco716)\", \"?dx\": \"icd/Z34.90\", \"?vs\": \"ValueSet/CONTRA_PREGNANCY\", \"?dxroot\": \"icd/Z34\"}\n{\"?ing\": \"ing/36567\", \"?rx\": \"rx/312961\", \"?p\": \"Patient/dc6036cc-3a63-761e-c37d-19fe033dafe2 (Kizzie166 Oberbrunner298)\", \"?dx\": \"icd/Z34.90\", \"?vs\": \"ValueSet/CONTRA_PREGNANCY\", \"?dxroot\": \"icd/Z34\"}\n{\"?ing\": \"ing/36567\", \"?rx\": \"rx/312961\", \"?p\": \"Patient/37e0b693-9abb-7e6c-314c-2d4fb51f425f (Evelin941 Gottlieb798)\", \"?dx\": \"icd/Z34.90\", \"?vs\": \"ValueSet/CONTRA_PREGNANCY\", \"?dxroot\": \"icd/Z34\"}\n{\"?ing\": \"ing/36567\", \"?rx\": \"rx/312961\", \"?p\": \"Patient/567fe6ee-3b81-c13f-369e-6f88bad1ada9 (Doreen575 Gleason633)\", \"?dx\": \"icd/Z34.90\", \"?vs\": \"ValueSet/CONTRA_PREGNANCY\", \"?dxroot\": \"icd/Z34\"}\n{\"?ing\": \"ing/36567\", \"?rx\": \"rx/312961\", \"?p\": \"Patient/955250dc-9974-8986-8557-bf070099fc67 (Laurena366 Bins636)\", \"?dx\": \"icd/Z34.90\", \"?vs\": \"ValueSet/CONTRA_PREGNANCY\", \"?dxroot\": \"icd/Z34\"}\n{\"?ing\": \"ing/36567\", \"?rx\": \"rx/312961\", \"?p\": \"Patient/33e1ecce-737c-cd36-9221-fdc1744a499d (Sabrina514 Wisoky380)\", \"?dx\": \"icd/Z34.90\", \"?vs\": \"ValueSet/CONTRA_PREGNANCY\", \"?dxroot\": \"icd/Z34\"}\n{\"?ing\": \"ing/36567\", \"?rx\": \"rx/312961\", \"?p\": \"Patient/9e0c689b-5082-0254-1f00-1c3fbccd4b02 (Dianne921 Runte676)\", \"?dx\": \"icd/Z34.90\", \"?vs\": \"ValueSet/CONTRA_PREGNANCY\", \"?dxroot\": \"icd/Z34\"}\n{\"?ing\": \"ing/36567\", \"?rx\": \"rx/312961\", \"?p\": \"Patient/bb4dd279-6976-b79d-c836-5b0ebdca7d7f (Marylouise236 Gusikowski974)\", \"?dx\": \"icd/Z34.90\", \"?vs\": \"ValueSet/CONTRA_PREGNANCY\", \"?dxroot\": \"icd/Z34\"}",
+      "facts": [
+        {
+          "fact": "198 patients are prescribed a statin while having a diagnosis in a statin-contraindication value set (all via CONTRA_PREGNANCY).",
+          "in_context": {
+            "ok": false,
+            "quote": "",
+            "rationale": "The text only shows schema/triples (contraindication rules, drug class memberships) but no final count of 198 patients or any aggregated result."
+          },
+          "in_result": {
+            "ok": true,
+            "quote": "198 result(s) for ?p",
+            "rationale": "The result count of 198 distinct patients matches the fact, with all shown rows via CONTRA_PREGNANCY."
+          }
+        }
+      ],
+      "reason": "The graph-runner call joined statin prescriptions to diagnoses via contraindication value sets, correctly returning 198 patients.",
+      "retrieved": "Linked DrugClass/DRUGCLASS-STATIN, Measure/SPD, ValueSet/CONTRA_HEPATIC, ValueSet/CONTRA_PREGNANCY; 38 triples (hasIngredient 9, eligibleFor 8, contains 6, contraindicatedWith 4, subClassOf 4).",
+      "n_docs": 39,
+      "skipped_search": false,
+      "facts_in_context": [
+        false
+      ],
+      "facts_in_result": [
+        true
+      ],
+      "context": "Source: Ontobricks triple table eswanson_demo.ontobricks.triplestore_clinicaldomain_v3 (columns subject, predicate, object). Node IRIs are https://care-protocol.example/ontology/<Type>/<id> (e.g. https://care-protocol.example/ontology/Patient/<patient_id>, https://care-protocol.example/ontology/icd/E11.9, https://care-protocol.example/ontology/DrugClass/DRUGCLASS-STATIN); predicate IRIs are https://care-protocol.example/ontology/<predicate>. Triples below are shown with that prefix removed.\nGraph schema (predicate: subject type -> object type, count): ageAtPeriodEnd: Patient -> literal (2,399); contains: ValueSet -> icd (20); contraindicatedWhen: DrugClass -> Threshold (2); contraindicatedWith: DrugClass -> ValueSet (4); definedBy: ValueSet -> Threshold (1); eligibleFor: Patient -> Measure (13,133); firstLineFor: DrugClass -> ValueSet (1); hasCareGap: Patient -> Measure (6,744); hasComponent: loinc -> part (9); hasDiagnosis: Patient -> icd (17,871); hasIngredient: rx -> ing (42); hasMethod: loinc -> part (5); hasObservation: Patient -> obs (15,094,152); hasSystem: loinc -> part (9); hasThreshold: Measure -> Threshold (4); icd10Code: Pregnancy -> literal (704); icd10Code: Condition -> literal (39); icd10Code: DiabetesDiagnosis -> literal (7); icd10Code: ChronicKidneyDisease -> literal (5); icd10Code: HeartFailure -> literal (1); inDrugClass: ing -> DrugClass (3); loincCode: LabTest -> literal (308); monitoredBy: Measure -> part (5); ofTest: obs -> loinc (15,094,152); prescribed: Patient -> rx (156,532); recommendedFor: DrugClass -> ValueSet (4); recommendedFor: DrugClass -> Measure (1); resultValue: Observation -> literal (9,426,773); rxnormCode: Medication -> literal (48); subClassOf: icd -> icd (28); thresholdValue: Threshold -> literal (7); valueSetId: ValueSet -> literal (21)\n\n(Patient/8887c103-8e04-a42a-a13f-c95abc53c3b9) -[eligibleFor]-> (Measure/SPD)  [member, hop 1]\n\n(Patient/8f6e6c5d-0b79-e459-5ca8-40807c1d5892) -[eligibleFor]-> (Measure/SPD)  [member, hop 1]\n\n(Patient/93453625-e576-c38f-2970-c0dd4b21ea9b) -[eligibleFor]-> (Measure/SPD)  [member, hop 1]\n\n(Patient/5d0b4b0e-5190-dad6-8dee-b3936c0522ea) -[eligibleFor]-> (Measure/SPD)  [member, hop 1]\n\n(Patient/3e87d8ec-8070-f76f-b757-bb5b5b6d9c03) -[eligibleFor]-> (Measure/SPD)  [member, hop 1]\n\n(Patient/09c07c41-c67c-11b2-f5ee-3e12daa107cf) -[eligibleFor]-> (Measure/SPD)  [member, hop 1]\n\n(Patient/43bac073-81a8-29ec-771c-faffc8ed4adf) -[eligibleFor]-> (Measure/SPD)  [member, hop 1]\n\n(Patient/4e0b1f83-991f-ba42-cd8a-5cd3b5037ca5) -[eligibleFor]-> (Measure/SPD)  [member, hop 1]\n\n(DrugClass/DRUGCLASS-STATIN) -[contraindicatedWith]-> (ValueSet/CONTRA_HEPATIC)  [guideline, hop 1]\n\n(DrugClass/DRUGCLASS-STATIN) -[contraindicatedWith]-> (ValueSet/CONTRA_PREGNANCY)  [guideline, hop 1]\n\n(DrugClass/DRUGCLASS-ACE) -[contraindicatedWith]-> (ValueSet/CONTRA_PREGNANCY)  [guideline, hop 1]\n\n(DrugClass/DRUGCLASS-ARB) -[contraindicatedWith]-> (ValueSet/CONTRA_PREGNANCY)  [guideline, hop 1]\n\n(ing/36567) -[inDrugClass]-> (DrugClass/DRUGCLASS-STATIN)  [guideline, hop 1]\n\n(ing/83367) -[inDrugClass]-> (DrugClass/DRUGCLASS-STATIN)  [guideline, hop 1]\n\n(ing/301542) -[inDrugClass]-> (DrugClass/DRUGCLASS-STATIN)  [guideline, hop 1]\n\n(DrugClass/DRUGCLASS-STATIN) -[recommendedFor]-> (Measure/SPD)  [guideline, hop 1]\n\n(ValueSet/CONTRA_PREGNANCY) -[contains]-> (icd/O26)  [guideline, hop 1]\n\n(ValueSet/CONTRA_HEPATIC) -[contains]-> (icd/K70)  [guideline, hop 1]\n\n(ValueSet/CONTRA_PREGNANCY) -[contains]-> (icd/Z34)  [guideline, hop 1]\n\n(ValueSet/CONTRA_PREGNANCY) -[contains]-> (icd/O15)  [guideline, hop 1]\n\n(ValueSet/CONTRA_HEPATIC) -[contains]-> (icd/K74)  [guideline, hop 1]\n\n(ValueSet/CONTRA_PREGNANCY) -[contains]-> (icd/O00)  [guideline, hop 1]\n\n(rx/859424) -[hasIngredient]-> (ing/301542)  [guideline, hop 2]\n\n(rx/312961) -[hasIngredient]-> (ing/36567)  [guideline, hop 2]\n\n(rx/476349) -[hasIngredient]-> (ing/36567)  [guideline, hop 2]\n\n(rx/859747) -[hasIngredient]-> (ing/301542)  [guideline, hop 2]\n\n(rx/314231) -[hasIngredient]-> (ing/36567)  [guideline, hop 2]\n\n(rx/617311) -[hasIngredient]-> (ing/83367)  [guideline, hop 2]\n\n(rx/617310) -[hasIngredient]-> (ing/83367)  [guideline, hop 2]\n\n(rx/617312) -[hasIngredient]-> (ing/83367)  [guideline, hop 2]\n\n(rx/259255) -[hasIngredient]-> (ing/83367)  [guideline, hop 2]\n\n(DrugClass/DRUGCLASS-ACE) -[recommendedFor]-> (ValueSet/ALBUMINURIA)  [guideline, hop 2]\n\n(DrugClass/DRUGCLASS-ARB) -[recommendedFor]-> (ValueSet/ALBUMINURIA)  [guideline, hop 2]\n\n(icd/O00.1) -[subClassOf]-> (icd/O00)  [guideline, hop 2]\n\n(icd/O26.9) -[subClassOf]-> (icd/O26)  [guideline, hop 2]\n\n(icd/Z34.90) -[subClassOf]-> (icd/Z34)  [guideline, hop 2]\n\n(icd/O15.9) -[subClassOf]-> (icd/O15)  [guideline, hop 2]\n\n(ValueSet/ALBUMINURIA) -[definedBy]-> (Threshold/uACR_GTE_30)  [guideline, hop 3]",
+      "latency_s": 21.7,
+      "tier_runs": [
+        2
+      ],
+      "stable": true,
+      "harness_errors": 0,
+      "runs": [
+        {
+          "tier": 2,
+          "sql": "{\"tool\": \"match\", \"args\": {\"pattern\": [[\"?p\", \"prescribed\", \"?rx\"], [\"?rx\", \"hasIngredient\", \"?ing\"], [\"?ing\", \"inDrugClass\", \"DrugClass/DRUGCLASS-STATIN\"], [\"?p\", \"hasDiagnosis\", \"?dx\"], [\"DrugClass/DRUGCLASS-STATIN\", \"contraindicatedWith\", \"?vs\"], [\"?vs\", \"contains\", \"?dxroot\"], [\"?dx\", \"subClassOf*\", \"?dxroot\"]], \"select\": \"p\"}}",
+          "sql_error": null,
+          "facts_in_context": [
+            false
+          ],
+          "facts_in_result": [
+            true
+          ]
+        }
+      ]
+    },
+    {
+      "arm": "ontobricks",
+      "qid": "onto_ked_definition",
+      "tier": 3,
+      "sufficient": false,
+      "query_correct": false,
+      "interface": "graph-runner call",
+      "query": {
+        "kind": "tool",
+        "interface": "graph",
+        "tool": "neighbors",
+        "args": {
+          "node": "Measure/KED",
+          "hops": 2
+        }
+      },
+      "sql": "{\"tool\": \"neighbors\", \"args\": {\"node\": \"Measure/KED\", \"hops\": 2}}",
+      "sql_error": null,
+      "sql_result": "8 result(s)\n{\"s\": \"Measure/KED\", \"p\": \"monitoredBy\", \"o\": \"part/LP-EGFR\"}\n{\"s\": \"Measure/KED\", \"p\": \"monitoredBy\", \"o\": \"part/LP-UACR\"}\n{\"s\": \"loinc/33914-3\", \"p\": \"hasComponent\", \"o\": \"part/LP-EGFR\"}\n{\"s\": \"loinc/98979-8\", \"p\": \"hasComponent\", \"o\": \"part/LP-EGFR\"}\n{\"s\": \"Measure/KED\", \"p\": \"monitoredBy\", \"o\": \"part/LP-EGFR\"}\n{\"s\": \"loinc/9318-7\", \"p\": \"hasComponent\", \"o\": \"part/LP-UACR\"}\n{\"s\": \"loinc/14959-1\", \"p\": \"hasComponent\", \"o\": \"part/LP-UACR\"}\n{\"s\": \"Measure/KED\", \"p\": \"monitoredBy\", \"o\": \"part/LP-UACR\"}",
+      "facts": [
+        {
+          "fact": "KED applies to diabetic patients aged 18 to 85.",
+          "in_context": {
+            "ok": false,
+            "quote": "",
+            "rationale": "The text shows graph relationships and care-gap data but never explicitly states the KED eligibility criteria (diabetic patients aged 18-85)."
+          },
+          "in_result": {
+            "ok": false,
+            "quote": "",
+            "rationale": "The result only lists LOINC components monitored by KED; it does not state eligibility age or diabetic criteria."
+          }
+        },
+        {
+          "fact": "To be compliant a patient needs BOTH an eGFR test and a uACR test in the measurement year.",
+          "in_context": {
+            "ok": false,
+            "quote": "",
+            "rationale": "The text only shows monitoredBy edges to EGFR and UACR components without stating both are jointly required for compliance."
+          },
+          "in_result": {
+            "ok": false,
+            "quote": "",
+            "rationale": "The result only lists codes/components monitored by the measure; it does not explicitly state eligibility or that BOTH tests are required for compliance."
+          }
+        }
+      ],
+      "reason": "The graph-runner call returned only monitoredBy/hasComponent edges for EGFR and UACR, omitting eligibility age criteria and the BOTH-tests compliance rule.",
+      "retrieved": "Linked Measure/KED; 20 triples (hasCareGap 8, hasComponent 4, hasSystem 4, monitoredBy 2, hasMethod 2).",
+      "n_docs": 21,
+      "skipped_search": false,
+      "facts_in_context": [
+        false,
+        false
+      ],
+      "facts_in_result": [
+        false,
+        false
+      ],
+      "context": "Source: Ontobricks triple table eswanson_demo.ontobricks.triplestore_clinicaldomain_v3 (columns subject, predicate, object). Node IRIs are https://care-protocol.example/ontology/<Type>/<id> (e.g. https://care-protocol.example/ontology/Patient/<patient_id>, https://care-protocol.example/ontology/icd/E11.9, https://care-protocol.example/ontology/DrugClass/DRUGCLASS-STATIN); predicate IRIs are https://care-protocol.example/ontology/<predicate>. Triples below are shown with that prefix removed.\nGraph schema (predicate: subject type -> object type, count): ageAtPeriodEnd: Patient -> literal (2,399); contains: ValueSet -> icd (20); contraindicatedWhen: DrugClass -> Threshold (2); contraindicatedWith: DrugClass -> ValueSet (4); definedBy: ValueSet -> Threshold (1); eligibleFor: Patient -> Measure (13,133); firstLineFor: DrugClass -> ValueSet (1); hasCareGap: Patient -> Measure (6,744); hasComponent: loinc -> part (9); hasDiagnosis: Patient -> icd (17,871); hasIngredient: rx -> ing (42); hasMethod: loinc -> part (5); hasObservation: Patient -> obs (15,094,152); hasSystem: loinc -> part (9); hasThreshold: Measure -> Threshold (4); icd10Code: Pregnancy -> literal (704); icd10Code: Condition -> literal (39); icd10Code: DiabetesDiagnosis -> literal (7); icd10Code: ChronicKidneyDisease -> literal (5); icd10Code: HeartFailure -> literal (1); inDrugClass: ing -> DrugClass (3); loincCode: LabTest -> literal (308); monitoredBy: Measure -> part (5); ofTest: obs -> loinc (15,094,152); prescribed: Patient -> rx (156,532); recommendedFor: DrugClass -> ValueSet (4); recommendedFor: DrugClass -> Measure (1); resultValue: Observation -> literal (9,426,773); rxnormCode: Medication -> literal (48); subClassOf: icd -> icd (28); thresholdValue: Threshold -> literal (7); valueSetId: ValueSet -> literal (21)\n\n(Patient/7504ccf8-6d1f-6a43-7b6e-f64ac18d9776) -[hasCareGap]-> (Measure/KED)  [member, hop 1]\n\n(Patient/c04e3a2b-e8ae-d3e4-c481-e7cdde6b6606) -[hasCareGap]-> (Measure/KED)  [member, hop 1]\n\n(Patient/0e347603-bbbc-4343-2cf8-d3899228a697) -[hasCareGap]-> (Measure/KED)  [member, hop 1]\n\n(Patient/b3baa2e5-6ab8-a0cc-d550-ae463955329f) -[hasCareGap]-> (Measure/KED)  [member, hop 1]\n\n(Patient/f2c28e06-6d88-8a65-bb34-ae97d7bfd9a1) -[hasCareGap]-> (Measure/KED)  [member, hop 1]\n\n(Patient/b9821c5d-afda-65d3-f636-787fa43fe1ec) -[hasCareGap]-> (Measure/KED)  [member, hop 1]\n\n(Patient/1bd7df19-7fb8-c252-616d-2032bc187e38) -[hasCareGap]-> (Measure/KED)  [member, hop 1]\n\n(Patient/3ca8a8dc-cae8-eee8-9882-7b76f76a9aac) -[hasCareGap]-> (Measure/KED)  [member, hop 1]\n\n(Measure/KED) -[monitoredBy]-> (part/LP-EGFR)  [guideline, hop 1]\n\n(Measure/KED) -[monitoredBy]-> (part/LP-UACR)  [guideline, hop 1]\n\n(loinc/9318-7) -[hasComponent]-> (part/LP-UACR)  [guideline, hop 2]\n\n(loinc/33914-3) -[hasComponent]-> (part/LP-EGFR)  [guideline, hop 2]\n\n(loinc/98979-8) -[hasComponent]-> (part/LP-EGFR)  [guideline, hop 2]\n\n(loinc/14959-1) -[hasComponent]-> (part/LP-UACR)  [guideline, hop 2]\n\n(loinc/98979-8) -[hasMethod]-> (part/LP-METH-CKDEPI)  [guideline, hop 3]\n\n(loinc/33914-3) -[hasMethod]-> (part/LP-METH-MDRD)  [guideline, hop 3]\n\n(loinc/14959-1) -[hasSystem]-> (part/LP-SYS-URINE)  [guideline, hop 3]\n\n(loinc/98979-8) -[hasSystem]-> (part/LP-SYS-SERPL)  [guideline, hop 3]\n\n(loinc/33914-3) -[hasSystem]-> (part/LP-SYS-SERPL)  [guideline, hop 3]\n\n(loinc/9318-7) -[hasSystem]-> (part/LP-SYS-URINE)  [guideline, hop 3]",
+      "latency_s": 64.9,
+      "tier_runs": [
+        3
+      ],
+      "stable": true,
+      "harness_errors": 0,
+      "runs": [
+        {
+          "tier": 3,
+          "sql": "{\"tool\": \"neighbors\", \"args\": {\"node\": \"Measure/KED\", \"hops\": 2}}",
+          "sql_error": null,
+          "facts_in_context": [
+            false,
+            false
+          ],
+          "facts_in_result": [
+            false,
+            false
+          ]
+        }
+      ]
+    },
+    {
+      "arm": "ontobricks",
+      "qid": "onto_poor_control_denominator",
+      "tier": 3,
+      "sufficient": false,
+      "query_correct": false,
+      "interface": "graph-runner call",
+      "query": {
+        "kind": "tool",
+        "interface": "graph",
+        "tool": "neighbors",
+        "args": {
+          "node": "Measure/GSD",
+          "hops": 2
+        }
+      },
+      "sql": "{\"tool\": \"neighbors\", \"args\": {\"node\": \"Measure/GSD\", \"hops\": 2}}",
+      "sql_error": null,
+      "sql_result": "9 result(s)\n{\"s\": \"Measure/GSD\", \"p\": \"hasThreshold\", \"o\": \"Threshold/a1c_poor_gt_9\"}\n{\"s\": \"Measure/GSD\", \"p\": \"hasThreshold\", \"o\": \"Threshold/a1c_good_lt_8\"}\n{\"s\": \"Measure/GSD\", \"p\": \"monitoredBy\", \"o\": \"part/LP-HBA1C\"}\n{\"s\": \"Measure/GSD\", \"p\": \"hasThreshold\", \"o\": \"Threshold/a1c_poor_gt_9\"}\n{\"s\": \"Measure/GSD\", \"p\": \"hasThreshold\", \"o\": \"Threshold/a1c_good_lt_8\"}\n{\"s\": \"loinc/4548-4\", \"p\": \"hasComponent\", \"o\": \"part/LP-HBA1C\"}\n{\"s\": \"loinc/17856-6\", \"p\": \"hasComponent\", \"o\": \"part/LP-HBA1C\"}\n{\"s\": \"loinc/59261-8\", \"p\": \"hasComponent\", \"o\": \"part/LP-HBA1C\"}\n{\"s\": \"Measure/GSD\", \"p\": \"monitoredBy\", \"o\": \"part/LP-HBA1C\"}",
+      "facts": [
+        {
+          "fact": "The GSD poor-control rate is computed only among A1c-tested patients, not all eligible patients.",
+          "in_context": {
+            "ok": false,
+            "quote": "",
+            "rationale": "The text shows the A1c>9 threshold but never states that the GSD rate is computed only among A1c-tested patients."
+          },
+          "in_result": {
+            "ok": false,
+            "quote": "",
+            "rationale": "The result only lists thresholds and codes; it never states the denominator population for the poor-control rate."
+          }
+        },
+        {
+          "fact": "Poor control means the latest A1c in the measurement year is above 9.0%.",
+          "in_context": {
+            "ok": false,
+            "quote": "",
+            "rationale": "The text only shows a threshold code/value (a1c_poor_gt_9 -> 9) and care-gap membership, not an explicit statement defining poor control as the latest A1c above 9.0% or specifying the eligible population scope."
+          },
+          "in_result": {
+            "ok": false,
+            "quote": "",
+            "rationale": "The result only lists a threshold code reference (a1c_poor_gt_9), not an explicit statement that poor control is defined as latest A1c > 9.0%."
+          }
+        }
+      ],
+      "reason": "The graph-runner call returned the a1c_poor_gt_9 threshold but no triple specifying the denominator population for the rate.",
+      "retrieved": "Linked Measure/GSD, part/LP-HBA1C; 22 triples (hasCareGap 8, hasComponent 3, hasMethod 3, hasSystem 3, hasThreshold 2).",
+      "n_docs": 23,
+      "skipped_search": false,
+      "facts_in_context": [
+        false,
+        false
+      ],
+      "facts_in_result": [
+        false,
+        false
+      ],
+      "context": "Source: Ontobricks triple table eswanson_demo.ontobricks.triplestore_clinicaldomain_v3 (columns subject, predicate, object). Node IRIs are https://care-protocol.example/ontology/<Type>/<id> (e.g. https://care-protocol.example/ontology/Patient/<patient_id>, https://care-protocol.example/ontology/icd/E11.9, https://care-protocol.example/ontology/DrugClass/DRUGCLASS-STATIN); predicate IRIs are https://care-protocol.example/ontology/<predicate>. Triples below are shown with that prefix removed.\nGraph schema (predicate: subject type -> object type, count): ageAtPeriodEnd: Patient -> literal (2,399); contains: ValueSet -> icd (20); contraindicatedWhen: DrugClass -> Threshold (2); contraindicatedWith: DrugClass -> ValueSet (4); definedBy: ValueSet -> Threshold (1); eligibleFor: Patient -> Measure (13,133); firstLineFor: DrugClass -> ValueSet (1); hasCareGap: Patient -> Measure (6,744); hasComponent: loinc -> part (9); hasDiagnosis: Patient -> icd (17,871); hasIngredient: rx -> ing (42); hasMethod: loinc -> part (5); hasObservation: Patient -> obs (15,094,152); hasSystem: loinc -> part (9); hasThreshold: Measure -> Threshold (4); icd10Code: Pregnancy -> literal (704); icd10Code: Condition -> literal (39); icd10Code: DiabetesDiagnosis -> literal (7); icd10Code: ChronicKidneyDisease -> literal (5); icd10Code: HeartFailure -> literal (1); inDrugClass: ing -> DrugClass (3); loincCode: LabTest -> literal (308); monitoredBy: Measure -> part (5); ofTest: obs -> loinc (15,094,152); prescribed: Patient -> rx (156,532); recommendedFor: DrugClass -> ValueSet (4); recommendedFor: DrugClass -> Measure (1); resultValue: Observation -> literal (9,426,773); rxnormCode: Medication -> literal (48); subClassOf: icd -> icd (28); thresholdValue: Threshold -> literal (7); valueSetId: ValueSet -> literal (21)\n\n(Patient/097629d4-bbc0-cc1d-1ec1-e5ee8f499251) -[hasCareGap]-> (Measure/GSD)  [member, hop 1]\n\n(Patient/439e31a4-3792-c373-933c-6c191a8267c0) -[hasCareGap]-> (Measure/GSD)  [member, hop 1]\n\n(Patient/30009f01-0591-7877-6f1c-b69e96fbe313) -[hasCareGap]-> (Measure/GSD)  [member, hop 1]\n\n(Patient/55350728-b4cb-72fb-818e-96d22d525500) -[hasCareGap]-> (Measure/GSD)  [member, hop 1]\n\n(Patient/a41aacba-0ff1-45dd-4460-66e2e8f8f40e) -[hasCareGap]-> (Measure/GSD)  [member, hop 1]\n\n(Patient/343514be-7fb4-e071-321f-e405417866d2) -[hasCareGap]-> (Measure/GSD)  [member, hop 1]\n\n(Patient/1f13b2cc-263d-c3a0-982e-1bf863933579) -[hasCareGap]-> (Measure/GSD)  [member, hop 1]\n\n(Patient/b6a5cfe3-b4f6-2804-8ce4-a5f5f21fbfb1) -[hasCareGap]-> (Measure/GSD)  [member, hop 1]\n\n(loinc/4548-4) -[hasComponent]-> (part/LP-HBA1C)  [guideline, hop 1]\n\n(loinc/17856-6) -[hasComponent]-> (part/LP-HBA1C)  [guideline, hop 1]\n\n(loinc/59261-8) -[hasComponent]-> (part/LP-HBA1C)  [guideline, hop 1]\n\n(Measure/GSD) -[hasThreshold]-> (Threshold/a1c_poor_gt_9)  [guideline, hop 1]\n\n(Measure/GSD) -[hasThreshold]-> (Threshold/a1c_good_lt_8)  [guideline, hop 1]\n\n(Measure/GSD) -[monitoredBy]-> (part/LP-HBA1C)  [guideline, hop 1]\n\n(Threshold/a1c_good_lt_8) -[thresholdValue]-> (8)  [guideline, hop 2]\n\n(Threshold/a1c_poor_gt_9) -[thresholdValue]-> (9)  [guideline, hop 2]\n\n(loinc/17856-6) -[hasMethod]-> (part/LP-METH-HPLC)  [guideline, hop 2]\n\n(loinc/4548-4) -[hasMethod]-> (part/LP-METH-ANY)  [guideline, hop 2]\n\n(loinc/59261-8) -[hasMethod]-> (part/LP-METH-IFCC)  [guideline, hop 2]\n\n(loinc/17856-6) -[hasSystem]-> (part/LP-SYS-BLD)  [guideline, hop 2]\n\n(loinc/59261-8) -[hasSystem]-> (part/LP-SYS-BLD)  [guideline, hop 2]\n\n(loinc/4548-4) -[hasSystem]-> (part/LP-SYS-BLD)  [guideline, hop 2]",
+      "latency_s": 72.4,
+      "tier_runs": [
+        3
+      ],
+      "stable": true,
+      "harness_errors": 0,
+      "runs": [
+        {
+          "tier": 3,
+          "sql": "{\"tool\": \"neighbors\", \"args\": {\"node\": \"Measure/GSD\", \"hops\": 2}}",
+          "sql_error": null,
+          "facts_in_context": [
+            false,
+            false
+          ],
+          "facts_in_result": [
+            false,
+            false
+          ]
+        }
+      ]
+    },
+    {
+      "arm": "ontobricks",
+      "qid": "graph_multiparent_routes",
+      "tier": 1,
+      "sufficient": true,
+      "query_correct": false,
+      "interface": "graph-runner call",
+      "query": null,
+      "sql": null,
+      "sql_error": null,
+      "sql_result": null,
+      "facts": [
+        {
+          "fact": "The route E11.22 -> E11.2 -> E11 is shown: E11.22 reaches type 2 diabetes mellitus (E11) through E11.2. A list of ancestors with distances alone does not show this route.",
+          "in_context": {
+            "ok": true,
+            "quote": "(icd/E11.22) -[subClassOf]-> (icd/E11.2)  [guideline, hop 1]\n\n(icd/E11.22) -[subClassOf]-> (icd/N18)  [guideline, hop 1]\n\n(ValueSet/COMORBID_CKD) -[contains]-> (icd/N18)  [guideline, hop 2]\n\n(icd/N18.2) -[subClassOf]-> (icd/N18)  [guideline, hop 2]\n\n(icd/N18.1) -[subClassOf]-> (icd/N18)  [guideline, hop 2]\n\n(icd/E11.21) -[subClassOf]-> (icd/E11.2)  [guideline, hop 2]\n\n(icd/E11.2) -[subClassOf]-> (icd/E11)  [guideline, hop 2]",
+            "rationale": "This contiguous block shows the edges E11.22->E11.2 and E11.2->E11, giving the explicit parent chain to top-level E11."
+          },
+          "in_result": null
+        },
+        {
+          "fact": "The route E11.22 -> N18 is shown: E11.22 reaches chronic kidney disease (N18) directly, as a second parent with no code in between.",
+          "in_context": {
+            "ok": true,
+            "quote": "(icd/E11.22) -[subClassOf]-> (icd/N18)  [guideline, hop 1]",
+            "rationale": "Shows E11.22 directly subClassOf N18 with no intermediate code"
+          },
+          "in_result": null
+        }
+      ],
+      "reason": "The graph-runner call retrieved triples showing both E11.22\u2192E11.2\u2192E11 and E11.22\u2192N18 directly, covering all gold facts.",
+      "retrieved": "Linked icd/E11.22*; 33 triples (subClassOf 16, hasDiagnosis 8, contains 8, recommendedFor 1).",
+      "n_docs": 34,
+      "skipped_search": false,
+      "facts_in_context": [
+        true,
+        true
+      ],
+      "facts_in_result": null,
+      "context": "Source: Ontobricks triple table eswanson_demo.ontobricks.triplestore_clinicaldomain_v3 (columns subject, predicate, object). Node IRIs are https://care-protocol.example/ontology/<Type>/<id> (e.g. https://care-protocol.example/ontology/Patient/<patient_id>, https://care-protocol.example/ontology/icd/E11.9, https://care-protocol.example/ontology/DrugClass/DRUGCLASS-STATIN); predicate IRIs are https://care-protocol.example/ontology/<predicate>. Triples below are shown with that prefix removed.\nGraph schema (predicate: subject type -> object type, count): ageAtPeriodEnd: Patient -> literal (2,399); contains: ValueSet -> icd (20); contraindicatedWhen: DrugClass -> Threshold (2); contraindicatedWith: DrugClass -> ValueSet (4); definedBy: ValueSet -> Threshold (1); eligibleFor: Patient -> Measure (13,133); firstLineFor: DrugClass -> ValueSet (1); hasCareGap: Patient -> Measure (6,744); hasComponent: loinc -> part (9); hasDiagnosis: Patient -> icd (17,871); hasIngredient: rx -> ing (42); hasMethod: loinc -> part (5); hasObservation: Patient -> obs (15,094,152); hasSystem: loinc -> part (9); hasThreshold: Measure -> Threshold (4); icd10Code: Pregnancy -> literal (704); icd10Code: Condition -> literal (39); icd10Code: DiabetesDiagnosis -> literal (7); icd10Code: ChronicKidneyDisease -> literal (5); icd10Code: HeartFailure -> literal (1); inDrugClass: ing -> DrugClass (3); loincCode: LabTest -> literal (308); monitoredBy: Measure -> part (5); ofTest: obs -> loinc (15,094,152); prescribed: Patient -> rx (156,532); recommendedFor: DrugClass -> ValueSet (4); recommendedFor: DrugClass -> Measure (1); resultValue: Observation -> literal (9,426,773); rxnormCode: Medication -> literal (48); subClassOf: icd -> icd (28); thresholdValue: Threshold -> literal (7); valueSetId: ValueSet -> literal (21)\n\n(Patient/8a52a143-67f2-9ee5-a3e3-f7090da9d866) -[hasDiagnosis]-> (icd/E11.22)  [member, hop 1]\n\n(Patient/54baf356-4472-a150-bbe1-957125d1a968) -[hasDiagnosis]-> (icd/E11.22)  [member, hop 1]\n\n(Patient/09435545-74dc-55c5-3a49-7ad174cbbbed) -[hasDiagnosis]-> (icd/E11.22)  [member, hop 1]\n\n(Patient/184d3cbb-20b3-bdbf-8476-488f9af5baae) -[hasDiagnosis]-> (icd/E11.22)  [member, hop 1]\n\n(Patient/5c2310e9-59d5-3966-91c0-7a937b1ba397) -[hasDiagnosis]-> (icd/E11.22)  [member, hop 1]\n\n(Patient/4ab20bc9-8991-0cef-10c9-e091661253f6) -[hasDiagnosis]-> (icd/E11.22)  [member, hop 1]\n\n(Patient/c06e72ca-c517-c91c-c86f-3642185f143a) -[hasDiagnosis]-> (icd/E11.22)  [member, hop 1]\n\n(Patient/c1943e3c-8f4b-929b-ab6f-40d21a3f9fc8) -[hasDiagnosis]-> (icd/E11.22)  [member, hop 1]\n\n(icd/E11.22) -[subClassOf]-> (icd/E11.2)  [guideline, hop 1]\n\n(icd/E11.22) -[subClassOf]-> (icd/N18)  [guideline, hop 1]\n\n(ValueSet/COMORBID_CKD) -[contains]-> (icd/N18)  [guideline, hop 2]\n\n(icd/N18.2) -[subClassOf]-> (icd/N18)  [guideline, hop 2]\n\n(icd/N18.1) -[subClassOf]-> (icd/N18)  [guideline, hop 2]\n\n(icd/E11.21) -[subClassOf]-> (icd/E11.2)  [guideline, hop 2]\n\n(icd/E11.2) -[subClassOf]-> (icd/E11)  [guideline, hop 2]\n\n(icd/N18.4) -[subClassOf]-> (icd/N18)  [guideline, hop 2]\n\n(icd/N18.6) -[subClassOf]-> (icd/N18)  [guideline, hop 2]\n\n(icd/E11.29) -[subClassOf]-> (icd/E11.2)  [guideline, hop 2]\n\n(icd/N18.5) -[subClassOf]-> (icd/N18)  [guideline, hop 2]\n\n(icd/N18.3) -[subClassOf]-> (icd/N18)  [guideline, hop 2]\n\n(ValueSet/CARDIORENAL_COHORT) -[contains]-> (icd/N18.5)  [guideline, hop 3]\n\n(ValueSet/EXCL_ESRD) -[contains]-> (icd/N18.6)  [guideline, hop 3]\n\n(ValueSet/EXCL_PREEXISTING_DM) -[contains]-> (icd/E11)  [guideline, hop 3]\n\n(ValueSet/CARDIORENAL_COHORT) -[contains]-> (icd/E11)  [guideline, hop 3]\n\n(ValueSet/CARDIORENAL_COHORT) -[contains]-> (icd/N18.4)  [guideline, hop 3]\n\n(ValueSet/CARDIORENAL_COHORT) -[contains]-> (icd/N18.6)  [guideline, hop 3]\n\n(ValueSet/HEDIS_DIABETES_DENOM) -[contains]-> (icd/E11)  [guideline, hop 3]\n\n(DrugClass/DRUGCLASS-SGLT2) -[recommendedFor]-> (ValueSet/COMORBID_CKD)  [guideline, hop 3]\n\n(icd/E11.9) -[subClassOf]-> (icd/E11)  [guideline, hop 3]\n\n(icd/E11.3) -[subClassOf]-> (icd/E11)  [guideline, hop 3]\n\n(icd/E11.4) -[subClassOf]-> (icd/E11)  [guideline, hop 3]\n\n(icd/E11.65) -[subClassOf]-> (icd/E11)  [guideline, hop 3]\n\n(icd/N18.30) -[subClassOf]-> (icd/N18.3)  [guideline, hop 3]",
+      "latency_s": 35.6,
+      "tier_runs": [
+        1
+      ],
+      "stable": true,
+      "harness_errors": 0,
+      "runs": [
+        {
+          "tier": 1,
+          "sql": "",
+          "sql_error": null,
+          "facts_in_context": [
+            true,
+            true
+          ],
+          "facts_in_result": null
+        }
+      ]
+    },
+    {
+      "arm": "ontobricks",
+      "qid": "op_worst_clinic_annual",
+      "tier": 3,
+      "sufficient": false,
+      "query_correct": false,
+      "interface": "graph-runner call",
+      "query": null,
+      "sql": null,
+      "sql_error": null,
+      "sql_result": null,
+      "facts": [
+        {
+          "fact": "CLINIC-04 has the lowest Step-3 adherence year-to-date (about 44.3%).",
+          "in_context": {
+            "ok": false,
+            "quote": "",
+            "rationale": "Text contains only schema/triple listings with no clinic-level adherence percentages or rankings."
+          },
+          "in_result": null
+        }
+      ],
+      "reason": "The graph-runner call retrieved only schema triples (eligibleFor, hasComponent, hasMethod), lacking any clinic-level adherence percentages needed to answer.",
+      "retrieved": "Linked Measure/GSD, part/LP-HBA1C; 22 triples (eligibleFor 8, hasComponent 3, hasMethod 3, hasSystem 3, hasThreshold 2).",
+      "n_docs": 23,
+      "skipped_search": false,
+      "facts_in_context": [
+        false
+      ],
+      "facts_in_result": null,
+      "context": "Source: Ontobricks triple table eswanson_demo.ontobricks.triplestore_clinicaldomain_v3 (columns subject, predicate, object). Node IRIs are https://care-protocol.example/ontology/<Type>/<id> (e.g. https://care-protocol.example/ontology/Patient/<patient_id>, https://care-protocol.example/ontology/icd/E11.9, https://care-protocol.example/ontology/DrugClass/DRUGCLASS-STATIN); predicate IRIs are https://care-protocol.example/ontology/<predicate>. Triples below are shown with that prefix removed.\nGraph schema (predicate: subject type -> object type, count): ageAtPeriodEnd: Patient -> literal (2,399); contains: ValueSet -> icd (20); contraindicatedWhen: DrugClass -> Threshold (2); contraindicatedWith: DrugClass -> ValueSet (4); definedBy: ValueSet -> Threshold (1); eligibleFor: Patient -> Measure (13,133); firstLineFor: DrugClass -> ValueSet (1); hasCareGap: Patient -> Measure (6,744); hasComponent: loinc -> part (9); hasDiagnosis: Patient -> icd (17,871); hasIngredient: rx -> ing (42); hasMethod: loinc -> part (5); hasObservation: Patient -> obs (15,094,152); hasSystem: loinc -> part (9); hasThreshold: Measure -> Threshold (4); icd10Code: Pregnancy -> literal (704); icd10Code: Condition -> literal (39); icd10Code: DiabetesDiagnosis -> literal (7); icd10Code: ChronicKidneyDisease -> literal (5); icd10Code: HeartFailure -> literal (1); inDrugClass: ing -> DrugClass (3); loincCode: LabTest -> literal (308); monitoredBy: Measure -> part (5); ofTest: obs -> loinc (15,094,152); prescribed: Patient -> rx (156,532); recommendedFor: DrugClass -> ValueSet (4); recommendedFor: DrugClass -> Measure (1); resultValue: Observation -> literal (9,426,773); rxnormCode: Medication -> literal (48); subClassOf: icd -> icd (28); thresholdValue: Threshold -> literal (7); valueSetId: ValueSet -> literal (21)\n\n(Patient/896ecb4a-65f0-85af-aac6-6bf76759adcf) -[eligibleFor]-> (Measure/GSD)  [member, hop 1]\n\n(Patient/26ce9ce7-8ef7-de4c-6b3d-5a1ca48e7beb) -[eligibleFor]-> (Measure/GSD)  [member, hop 1]\n\n(Patient/971ea08c-3590-535c-f1bc-abb59c514ab1) -[eligibleFor]-> (Measure/GSD)  [member, hop 1]\n\n(Patient/d5ce07a5-b2f1-6d5b-f316-1d3cda2e8076) -[eligibleFor]-> (Measure/GSD)  [member, hop 1]\n\n(Patient/235f5f60-d328-fafc-e91c-345eacd87b5a) -[eligibleFor]-> (Measure/GSD)  [member, hop 1]\n\n(Patient/b27623c2-f054-4f01-cfe1-24ebeb2a3482) -[eligibleFor]-> (Measure/GSD)  [member, hop 1]\n\n(Patient/b4e32343-a7cd-e7b7-5644-5f05fa2fa265) -[eligibleFor]-> (Measure/GSD)  [member, hop 1]\n\n(Patient/75c725dd-9d09-e359-3380-eb62fd4b2053) -[eligibleFor]-> (Measure/GSD)  [member, hop 1]\n\n(loinc/4548-4) -[hasComponent]-> (part/LP-HBA1C)  [guideline, hop 1]\n\n(loinc/17856-6) -[hasComponent]-> (part/LP-HBA1C)  [guideline, hop 1]\n\n(loinc/59261-8) -[hasComponent]-> (part/LP-HBA1C)  [guideline, hop 1]\n\n(Measure/GSD) -[hasThreshold]-> (Threshold/a1c_poor_gt_9)  [guideline, hop 1]\n\n(Measure/GSD) -[hasThreshold]-> (Threshold/a1c_good_lt_8)  [guideline, hop 1]\n\n(Measure/GSD) -[monitoredBy]-> (part/LP-HBA1C)  [guideline, hop 1]\n\n(Threshold/a1c_good_lt_8) -[thresholdValue]-> (8)  [guideline, hop 2]\n\n(Threshold/a1c_poor_gt_9) -[thresholdValue]-> (9)  [guideline, hop 2]\n\n(loinc/17856-6) -[hasMethod]-> (part/LP-METH-HPLC)  [guideline, hop 2]\n\n(loinc/4548-4) -[hasMethod]-> (part/LP-METH-ANY)  [guideline, hop 2]\n\n(loinc/59261-8) -[hasMethod]-> (part/LP-METH-IFCC)  [guideline, hop 2]\n\n(loinc/17856-6) -[hasSystem]-> (part/LP-SYS-BLD)  [guideline, hop 2]\n\n(loinc/59261-8) -[hasSystem]-> (part/LP-SYS-BLD)  [guideline, hop 2]\n\n(loinc/4548-4) -[hasSystem]-> (part/LP-SYS-BLD)  [guideline, hop 2]",
+      "latency_s": 57.3,
+      "tier_runs": [
+        3
+      ],
+      "stable": true,
+      "harness_errors": 0,
+      "runs": [
+        {
+          "tier": 3,
+          "sql": "",
+          "sql_error": null,
+          "facts_in_context": [
+            false
+          ],
+          "facts_in_result": null
+        }
+      ]
+    }
+  ]
+}

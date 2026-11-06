@@ -1,0 +1,458 @@
+{
+  "judge": "databricks-claude-sonnet-5",
+  "agent": "databricks-claude-sonnet-5",
+  "scoring": "tiers-v1",
+  "repeats": 1,
+  "rows": [
+    {
+      "arm": "ontobricks",
+      "qid": "sub_kidney",
+      "tier": 2,
+      "sufficient": false,
+      "query_correct": true,
+      "interface": "graph-runner call",
+      "query": {
+        "kind": "tool",
+        "interface": "graph",
+        "tool": "match",
+        "args": {
+          "pattern": [
+            [
+              "?p",
+              "hasDiagnosis",
+              "?dx"
+            ],
+            [
+              "?dx",
+              "subClassOf*",
+              "icd/E11.2"
+            ]
+          ],
+          "select": "?p"
+        }
+      },
+      "sql": "{\"tool\": \"match\", \"args\": {\"pattern\": [[\"?p\", \"hasDiagnosis\", \"?dx\"], [\"?dx\", \"subClassOf*\", \"icd/E11.2\"]], \"select\": \"?p\"}}",
+      "sql_error": null,
+      "sql_result": "1881 result(s) for ?p\n{\"?dx\": \"icd/E11.22 (Type 2 diabetes mellitus with diabetic chronic kidney disease)\", \"?p\": \"Patient/8a52a143-67f2-9ee5-a3e3-f7090da9d866 (Dorinda15 VonRueden376)\"}\n{\"?dx\": \"icd/E11.22 (Type 2 diabetes mellitus with diabetic chronic kidney disease)\", \"?p\": \"Patient/54baf356-4472-a150-bbe1-957125d1a968 (Sommer719 Jerde200)\"}\n{\"?dx\": \"icd/E11.22 (Type 2 diabetes mellitus with diabetic chronic kidney disease)\", \"?p\": \"Patient/09435545-74dc-55c5-3a49-7ad174cbbbed (Esther279 Homenick806)\"}\n{\"?dx\": \"icd/E11.22 (Type 2 diabetes mellitus with diabetic chronic kidney disease)\", \"?p\": \"Patient/184d3cbb-20b3-bdbf-8476-488f9af5baae (Xavier983 Crist667)\"}\n{\"?dx\": \"icd/E11.22 (Type 2 diabetes mellitus with diabetic chronic kidney disease)\", \"?p\": \"Patient/5c2310e9-59d5-3966-91c0-7a937b1ba397 (Cristopher265 Stanton715)\"}\n{\"?dx\": \"icd/E11.22 (Type 2 diabetes mellitus with diabetic chronic kidney disease)\", \"?p\": \"Patient/4ab20bc9-8991-0cef-10c9-e091661253f6 (Latisha994 Cummerata161)\"}\n{\"?dx\": \"icd/E11.22 (Type 2 diabetes mellitus with diabetic chronic kidney disease)\", \"?p\": \"Patient/c06e72ca-c517-c91c-c86f-3642185f143a (Lilia791 Prado282)\"}\n{\"?dx\": \"icd/E11.22 (Type 2 diabetes mellitus with diabetic chronic kidney disease)\", \"?p\": \"Patient/c1943e3c-8f4b-929b-ab6f-40d21a3f9fc8 (Stewart672 Kuhlman484)\"}\n{\"?dx\": \"icd/E11.22 (Type 2 diabetes mellitus with diabetic chronic kidney disease)\", \"?p\": \"Patient/de4da54f-69f4-33a9-71cb-166610826632 (Fletcher87 Durgan499)\"}\n{\"?dx\": \"icd/E11.22 (Type 2 diabetes mellitus with diabetic chronic kidney disease)\", \"?p\": \"Patient/e6a57963-797d-8acc-9329-0cf6dc4ac033 (Merrill415 Rodriguez71)\"}",
+      "facts": [
+        {
+          "fact": "1881 distinct patients have diabetes with a kidney complication.",
+          "in_context": {
+            "ok": false,
+            "quote": "",
+            "rationale": "The text shows ontology relationships and sample patient triples but never states a count of 1881 distinct patients with diabetes-with-kidney-complication diagnoses."
+          },
+          "in_result": {
+            "ok": true,
+            "quote": "1881 result(s) for ?p",
+            "rationale": "The query result count of distinct patients matches the fact's count of 1881."
+          }
+        }
+      ],
+      "reason": "The graph-runner call matched patients via diagnosis subClassOf icd/E11.2, correctly returning 1881 distinct patients.",
+      "retrieved": "Linked Measure/KED, ValueSet/COMORBID_CKD, icd/E10*, icd/E11*, icd/E13*, icd/N17*; 64 triples (subClassOf 24, contains 14, hasCareGap 8, hasComponent 4, hasSystem 4).",
+      "n_docs": 65,
+      "skipped_search": false,
+      "facts_in_context": [
+        false
+      ],
+      "facts_in_result": [
+        true
+      ],
+      "context": "Source: Ontobricks triple table ( SELECT subject, predicate, object FROM eswanson_demo.ontobricks.triplestore_clinicaldomain_v3 WHERE NOT (predicate = 'https://care-protocol.example/ontology/hasIngredient' AND object LIKE 'https://care-protocol.example/ontology/ing/DRUGCLASS-%') AND predicate <> 'https://care-protocol.example/ontology/inDrugClass' UNION ALL SELECT concat('https://care-protocol.example/ontology/ing/', code), 'https://care-protocol.example/ontology/inDrugClass', concat('https://care-protocol.example/ontology/DrugClass/', parent_code) FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE relationship = 'class_member' UNION ALL SELECT concat('https://care-protocol.example/ontology/icd/', code), 'http://www.w3.org/2000/01/rdf-schema#label', max(name) FROM eli_test_classic_catalog.care_protocol_terminology.icd10_hier GROUP BY code UNION ALL SELECT concat('https://care-protocol.example/ontology/rx/', rx), 'http://www.w3.org/2000/01/rdf-schema#label', max(nm) FROM ( SELECT code AS rx, name AS nm FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE relationship = 'ingredient_of' UNION ALL SELECT rxnorm_code, description FROM eli_test_classic_catalog.care_protocol.bronze_order_med WHERE rxnorm_code IS NOT NULL) m GROUP BY rx UNION ALL SELECT concat('https://care-protocol.example/ontology/ing/', code), 'http://www.w3.org/2000/01/rdf-schema#label', max(name) FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE relationship = 'class_member' GROUP BY code UNION ALL SELECT concat('https://care-protocol.example/ontology/DrugClass/', code), 'http://www.w3.org/2000/01/rdf-schema#label', max(name) FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE code LIKE 'DRUGCLASS-%' GROUP BY code UNION ALL SELECT concat('https://care-protocol.example/ontology/ValueSet/', segment_id), 'http://www.w3.org/2000/01/rdf-schema#label', max(segment_name) FROM eli_test_classic_catalog.care_protocol_terminology.value_set_segment GROUP BY segment_id ) sim (columns subject, predicate, object). Node IRIs are https://care-protocol.example/ontology/<Type>/<id> (e.g. https://care-protocol.example/ontology/Patient/<patient_id>, https://care-protocol.example/ontology/icd/E11.9, https://care-protocol.example/ontology/DrugClass/DRUGCLASS-STATIN); predicate IRIs are https://care-protocol.example/ontology/<predicate>. Triples below are shown with that prefix removed.\nGraph schema (predicate: subject type -> object type, count): ageAtPeriodEnd: Patient -> literal (2,399); contains: ValueSet -> icd (20); contraindicatedWhen: DrugClass -> Threshold (2); contraindicatedWith: DrugClass -> ValueSet (4); definedBy: ValueSet -> Threshold (1); eligibleFor: Patient -> Measure (13,133); firstLineFor: DrugClass -> ValueSet (1); hasCareGap: Patient -> Measure (6,744); hasComponent: loinc -> part (9); hasDiagnosis: Patient -> icd (17,871); hasIngredient: rx -> ing (26); hasMethod: loinc -> part (5); hasObservation: Patient -> obs (15,094,152); hasSystem: loinc -> part (9); hasThreshold: Measure -> Threshold (4); icd10Code: Pregnancy -> literal (704); icd10Code: Condition -> literal (39); icd10Code: DiabetesDiagnosis -> literal (7); icd10Code: ChronicKidneyDisease -> literal (5); icd10Code: HeartFailure -> literal (1); inDrugClass: ing -> DrugClass (16); loincCode: LabTest -> literal (308); monitoredBy: Measure -> part (5); ofTest: obs -> loinc (15,094,152); prescribed: Patient -> rx (156,532); recommendedFor: DrugClass -> ValueSet (4); recommendedFor: DrugClass -> Measure (1); resultValue: Observation -> literal (9,426,773); rxnormCode: Medication -> literal (48); subClassOf: icd -> icd (28); thresholdValue: Threshold -> literal (7); valueSetId: ValueSet -> literal (21)\n\n(Patient/7504ccf8-6d1f-6a43-7b6e-f64ac18d9776) -[hasCareGap]-> (Measure/KED)  [member, hop 1]\n\n(Patient/c04e3a2b-e8ae-d3e4-c481-e7cdde6b6606) -[hasCareGap]-> (Measure/KED)  [member, hop 1]\n\n(Patient/0e347603-bbbc-4343-2cf8-d3899228a697) -[hasCareGap]-> (Measure/KED)  [member, hop 1]\n\n(Patient/b3baa2e5-6ab8-a0cc-d550-ae463955329f) -[hasCareGap]-> (Measure/KED)  [member, hop 1]\n\n(Patient/f2c28e06-6d88-8a65-bb34-ae97d7bfd9a1) -[hasCareGap]-> (Measure/KED)  [member, hop 1]\n\n(Patient/b9821c5d-afda-65d3-f636-787fa43fe1ec) -[hasCareGap]-> (Measure/KED)  [member, hop 1]\n\n(Patient/1bd7df19-7fb8-c252-616d-2032bc187e38) -[hasCareGap]-> (Measure/KED)  [member, hop 1]\n\n(Patient/3ca8a8dc-cae8-eee8-9882-7b76f76a9aac) -[hasCareGap]-> (Measure/KED)  [member, hop 1]\n\n(ValueSet/CARDIORENAL_COHORT \"Cardiorenal cohort - cross-branch (DM-05): diabetes + CKD + HF\") -[contains]-> (icd/N18.5 \"Chronic kidney disease stage 5\")  [guideline, hop 1]\n\n(ValueSet/EXCL_PREEXISTING_DM \"Pre-existing diabetes exclusion (SSD)\") -[contains]-> (icd/E13 \"Other specified diabetes mellitus\")  [guideline, hop 1]\n\n(ValueSet/HEDIS_DIABETES_DENOM \"Diabetes denominator (demo)\") -[contains]-> (icd/E10 \"Type 1 diabetes mellitus\")  [guideline, hop 1]\n\n(ValueSet/EXCL_ESRD \"ESRD / dialysis exclusion (KED)\") -[contains]-> (icd/N18.6 \"End stage renal disease\")  [guideline, hop 1]\n\n(ValueSet/COMORBID_CKD \"Chronic kidney disease (any stage)\") -[contains]-> (icd/N18 \"Chronic kidney disease (CKD)\")  [guideline, hop 1]\n\n(ValueSet/EXCL_PREEXISTING_DM \"Pre-existing diabetes exclusion (SSD)\") -[contains]-> (icd/E11 \"Type 2 diabetes mellitus\")  [guideline, hop 1]\n\n(ValueSet/EXCL_PREEXISTING_DM \"Pre-existing diabetes exclusion (SSD)\") -[contains]-> (icd/E10 \"Type 1 diabetes mellitus\")  [guideline, hop 1]\n\n(ValueSet/CARDIORENAL_COHORT \"Cardiorenal cohort - cross-branch (DM-05): diabetes + CKD + HF\") -[contains]-> (icd/E11 \"Type 2 diabetes mellitus\")  [guideline, hop 1]\n\n(ValueSet/CARDIORENAL_COHORT \"Cardiorenal cohort - cross-branch (DM-05): diabetes + CKD + HF\") -[contains]-> (icd/N18.4 \"Chronic kidney disease stage 4\")  [guideline, hop 1]\n\n(ValueSet/CARDIORENAL_COHORT \"Cardiorenal cohort - cross-branch (DM-05): diabetes + CKD + HF\") -[contains]-> (i",
+      "latency_s": 21.6,
+      "tier_runs": [
+        2
+      ],
+      "stable": true,
+      "harness_errors": 0,
+      "runs": [
+        {
+          "tier": 2,
+          "sql": "{\"tool\": \"match\", \"args\": {\"pattern\": [[\"?p\", \"hasDiagnosis\", \"?dx\"], [\"?dx\", \"subClassOf*\", \"icd/E11.2\"]], \"select\": \"?p\"}}",
+          "sql_error": null,
+          "facts_in_context": [
+            false
+          ],
+          "facts_in_result": [
+            true
+          ]
+        }
+      ]
+    },
+    {
+      "arm": "ontobricks",
+      "qid": "graph_statin_contra_cohort",
+      "tier": 2,
+      "sufficient": false,
+      "query_correct": true,
+      "interface": "graph-runner call",
+      "query": {
+        "kind": "tool",
+        "interface": "graph",
+        "tool": "match",
+        "args": {
+          "pattern": [
+            [
+              "?p",
+              "prescribed",
+              "?rx"
+            ],
+            [
+              "?rx",
+              "hasIngredient",
+              "?ing"
+            ],
+            [
+              "?ing",
+              "inDrugClass",
+              "DrugClass/DRUGCLASS-STATIN"
+            ],
+            [
+              "DrugClass/DRUGCLASS-STATIN",
+              "contraindicatedWith",
+              "?vs"
+            ],
+            [
+              "?vs",
+              "contains",
+              "?icd"
+            ],
+            [
+              "?p",
+              "hasDiagnosis",
+              "?dx"
+            ],
+            [
+              "?dx",
+              "subClassOf*",
+              "?icd"
+            ]
+          ],
+          "select": "p"
+        }
+      },
+      "sql": "{\"tool\": \"match\", \"args\": {\"pattern\": [[\"?p\", \"prescribed\", \"?rx\"], [\"?rx\", \"hasIngredient\", \"?ing\"], [\"?ing\", \"inDrugClass\", \"DrugClass/DRUGCLASS-STATIN\"], [\"DrugClass/DRUGCLASS-STATIN\", \"contraindicatedWith\", \"?vs\"], [\"?vs\", \"contains\", \"?icd\"], [\"?p\", \"hasDiagnosis\", \"?dx\"], [\"?dx\", \"subClassOf*\", \"?icd\"]], \"select\": \"p\"}}",
+      "sql_error": null,
+      "sql_result": "198 result(s) for ?p\n{\"?ing\": \"ing/83367 (atorvastatin)\", \"?rx\": \"rx/617311 (atorvastatin 40 MG Oral Tablet)\", \"?p\": \"Patient/3408b445-a7cc-ef7a-0be6-dd250193c56f (Carlena776 Sawayn19)\", \"?vs\": \"ValueSet/CONTRA_PREGNANCY (Pregnancy (statin/ACE/ARB contraindication))\", \"?icd\": \"icd/Z34 (Encounter for supervision of normal pregnancy)\", \"?dx\": \"icd/Z34.90 (Encounter for supervision of normal pregnancy unspecified)\"}\n{\"?ing\": \"ing/83367 (atorvastatin)\", \"?rx\": \"rx/617310 (atorvastatin 20 MG Oral Tablet)\", \"?p\": \"Patient/7f7c7764-c451-6d5c-556f-51c17ee4d3fa (Else33 Klocko335)\", \"?vs\": \"ValueSet/CONTRA_PREGNANCY (Pregnancy (statin/ACE/ARB contraindication))\", \"?icd\": \"icd/Z34 (Encounter for supervision of normal pregnancy)\", \"?dx\": \"icd/Z34.90 (Encounter for supervision of normal pregnancy unspecified)\"}\n{\"?ing\": \"ing/83367 (atorvastatin)\", \"?rx\": \"rx/617310 (atorvastatin 20 MG Oral Tablet)\", \"?p\": \"Patient/8ce1226a-7358-a74d-bef2-5b2a667f7d4d (Sachiko982 Muller251)\", \"?vs\": \"ValueSet/CONTRA_PREGNANCY (Pregnancy (statin/ACE/ARB contraindication))\", \"?icd\": \"icd/Z34 (Encounter for supervision of normal pregnancy)\", \"?dx\": \"icd/Z34.90 (Encounter for supervision of normal pregnancy unspecified)\"}\n{\"?ing\": \"ing/83367 (atorvastatin)\", \"?rx\": \"rx/617310 (atorvastatin 20 MG Oral Tablet)\", \"?p\": \"Patient/3197ad69-e5d3-6228-ee21-b5ee288a839b (Gwyneth692 Brekke496)\", \"?vs\": \"ValueSet/CONTRA_PREGNANCY (Pregnancy (statin/ACE/ARB contraindication))\", \"?icd\": \"icd/O26 (Maternal care for conditions related to pregnancy)\", \"?dx\": \"icd/O26.9 (Pregnancy related condition unspecified)\"}\n{\"?ing\": \"ing/83367 (atorvastatin)\", \"?rx\": \"rx/617312 (atorvastatin 10 MG Oral Tablet)\", \"?p\": \"Patient/d6610315-b7cf-ab86-c7b8-d9d5e758cc5b (Augusta206 Hartmann983)\", \"?vs\": \"ValueSet/CONTRA_PREGNANCY (Pregnancy (statin/ACE/ARB contraindication))\", \"?icd\": \"icd/Z34 (Encounter for supervision of normal pregnancy)\", \"?dx\": \"icd/Z34.90 (Encounter for supervision of normal pregnancy unspecified)\"}\n{\"?ing\": \"ing/83367 (atorvastatin)\", \"?rx\": \"rx/617312 (atorvastatin 10 MG Oral Tablet)\", \"?p\": \"Patient/d8569de5-5f4b-3575-b93e-d02e83a423c5 (Traci329 Hahn503)\", \"?vs\": \"ValueSet/CONTRA_PREGNANCY (Pregnancy (statin/ACE/ARB contraindication))\", \"?icd\": \"icd/Z34 (Encounter for supervision of normal pregnancy)\", \"?dx\": \"icd/Z34.90 (Encounter for supervision of normal pregnancy unspecified)\"}\n{\"?ing\": \"ing/36567 (simvastatin)\", \"?rx\": \"rx/312961 (simvastatin 20 MG Oral Tablet)\", \"?p\": \"Patient/01ee58df-f106-7b",
+      "facts": [
+        {
+          "fact": "198 patients are prescribed a statin while having a diagnosis in a statin-contraindication value set (all via CONTRA_PREGNANCY).",
+          "in_context": {
+            "ok": false,
+            "quote": "",
+            "rationale": "The text provides schema/graph relationships but never states the count of 198 patients prescribed a statin with a contraindicated diagnosis."
+          },
+          "in_result": {
+            "ok": true,
+            "quote": "198 result(s) for ?p",
+            "rationale": "The result count of 198 distinct patients, all shown with CONTRA_PREGNANCY value set, matches the fact."
+          }
+        }
+      ],
+      "reason": "The graph-runner call joined statin prescriptions to patients' contraindicated diagnoses, correctly returning 198 matching patients.",
+      "retrieved": "Linked DrugClass/DRUGCLASS-STATIN, Measure/SPD, ValueSet/CONTRA_HEPATIC, ValueSet/CONTRA_PREGNANCY; 52 triples (hasIngredient 18, hasCareGap 8, inDrugClass 8, contains 6, contraindicatedWith 4).",
+      "n_docs": 53,
+      "skipped_search": false,
+      "facts_in_context": [
+        false
+      ],
+      "facts_in_result": [
+        true
+      ],
+      "context": "Source: Ontobricks triple table ( SELECT subject, predicate, object FROM eswanson_demo.ontobricks.triplestore_clinicaldomain_v3 WHERE NOT (predicate = 'https://care-protocol.example/ontology/hasIngredient' AND object LIKE 'https://care-protocol.example/ontology/ing/DRUGCLASS-%') AND predicate <> 'https://care-protocol.example/ontology/inDrugClass' UNION ALL SELECT concat('https://care-protocol.example/ontology/ing/', code), 'https://care-protocol.example/ontology/inDrugClass', concat('https://care-protocol.example/ontology/DrugClass/', parent_code) FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE relationship = 'class_member' UNION ALL SELECT concat('https://care-protocol.example/ontology/icd/', code), 'http://www.w3.org/2000/01/rdf-schema#label', max(name) FROM eli_test_classic_catalog.care_protocol_terminology.icd10_hier GROUP BY code UNION ALL SELECT concat('https://care-protocol.example/ontology/rx/', rx), 'http://www.w3.org/2000/01/rdf-schema#label', max(nm) FROM ( SELECT code AS rx, name AS nm FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE relationship = 'ingredient_of' UNION ALL SELECT rxnorm_code, description FROM eli_test_classic_catalog.care_protocol.bronze_order_med WHERE rxnorm_code IS NOT NULL) m GROUP BY rx UNION ALL SELECT concat('https://care-protocol.example/ontology/ing/', code), 'http://www.w3.org/2000/01/rdf-schema#label', max(name) FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE relationship = 'class_member' GROUP BY code UNION ALL SELECT concat('https://care-protocol.example/ontology/DrugClass/', code), 'http://www.w3.org/2000/01/rdf-schema#label', max(name) FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE code LIKE 'DRUGCLASS-%' GROUP BY code UNION ALL SELECT concat('https://care-protocol.example/ontology/ValueSet/', segment_id), 'http://www.w3.org/2000/01/rdf-schema#label', max(segment_name) FROM eli_test_classic_catalog.care_protocol_terminology.value_set_segment GROUP BY segment_id ) sim (columns subject, predicate, object). Node IRIs are https://care-protocol.example/ontology/<Type>/<id> (e.g. https://care-protocol.example/ontology/Patient/<patient_id>, https://care-protocol.example/ontology/icd/E11.9, https://care-protocol.example/ontology/DrugClass/DRUGCLASS-STATIN); predicate IRIs are https://care-protocol.example/ontology/<predicate>. Triples below are shown with that prefix removed.\nGraph schema (predicate: subject type -> object type, count): ageAtPeriodEnd: Patient -> literal (2,399); contains: ValueSet -> icd (20); contraindicatedWhen: DrugClass -> Threshold (2); contraindicatedWith: DrugClass -> ValueSet (4); definedBy: ValueSet -> Threshold (1); eligibleFor: Patient -> Measure (13,133); firstLineFor: DrugClass -> ValueSet (1); hasCareGap: Patient -> Measure (6,744); hasComponent: loinc -> part (9); hasDiagnosis: Patient -> icd (17,871); hasIngredient: rx -> ing (26); hasMethod: loinc -> part (5); hasObservation: Patient -> obs (15,094,152); hasSystem: loinc -> part (9); hasThreshold: Measure -> Threshold (4); icd10Code: Pregnancy -> literal (704); icd10Code: Condition -> literal (39); icd10Code: DiabetesDiagnosis -> literal (7); icd10Code: ChronicKidneyDisease -> literal (5); icd10Code: HeartFailure -> literal (1); inDrugClass: ing -> DrugClass (16); loincCode: LabTest -> literal (308); monitoredBy: Measure -> part (5); ofTest: obs -> loinc (15,094,152); prescribed: Patient -> rx (156,532); recommendedFor: DrugClass -> ValueSet (4); recommendedFor: DrugClass -> Measure (1); resultValue: Observation -> literal (9,426,773); rxnormCode: Medication -> literal (48); subClassOf: icd -> icd (28); thresholdValue: Threshold -> literal (7); valueSetId: ValueSet -> literal (21)\n\n(Patient/95d27609-0dba-ca04-a987-11603e86b06e) -[hasCareGap]-> (Measure/SPD)  [member, hop 1]\n\n(Patient/2faf1db3-de6c-d3d7-acbc-5cc174323ec4) -[hasCareGap]-> (Measure/SPD)  [member, hop 1]\n\n(Patient/22b7fafe-a1f3-21bc-a226-944325421f09) -[hasCareGap]-> (Measure/SPD)  [member, hop 1]\n\n(Patient/1170a834-4936-1c68-6746-949f48534f08) -[hasCareGap]-> (Measure/SPD)  [member, hop 1]\n\n(Patient/3fd46c13-6040-002b-942f-4ac3b0f03363) -[hasCareGap]-> (Measure/SPD)  [member, hop 1]\n\n(Patient/c82247d4-ea56-071b-3f5c-282fe2cd9aa7) -[hasCareGap]-> (Measure/SPD)  [member, hop 1]\n\n(Patient/b8f10ba8-e3b2-f7a3-f4a3-6502cad5ac6b) -[hasCareGap]-> (Measure/SPD)  [member, hop 1]\n\n(Patient/9d6a2a2a-db91-66c4-13f6-7197abdaac69) -[hasCareGap]-> (Measure/SPD)  [member, hop 1]\n\n(DrugClass/DRUGCLASS-STATIN \"HMG-CoA reductase inhibitor (statin)\") -[contraindicatedWith]-> (ValueSet/CONTRA_HEPATIC \"Active hepatic disease (statin contraindication)\")  [guideline, hop 1]\n\n(DrugClass/DRUGCLASS-STATIN \"HMG-CoA reductase inhibitor (statin)\") -[contraindicatedWith]-> (ValueSet/CONTRA_PREGNANCY \"Pregnancy (statin/ACE/ARB contraindication)\")  [guideline, hop 1]\n\n(DrugClass/DRUGCLASS-ACE \"ACE inhibitor\") -[contraindicatedWith]-> (ValueSet/CONTRA_PREGNANCY \"Pregnancy (statin/ACE/ARB contraindication)\")  [guideline, hop 1]\n\n(DrugClass/DRUGCLASS-ARB \"Angiotensin II receptor blocker (ARB)\") -[contraindicatedWith]-> (ValueSet/CONTRA_PREGNANCY \"Pregnancy (statin/ACE/ARB contraindication)\")  [guideline, hop 1]\n\n(DrugClass/DRUGCLASS-STATIN \"HMG-CoA reductase inhibitor (statin)\") -[recommendedFor]-> (Measure/SPD)  [guideline, hop 1]\n\n(ValueSet/CONTRA_PREGNANCY \"Pregnancy (statin/ACE/ARB contraindication)\") -[contains]-> (icd/O26 \"Maternal care for conditions related to pregnancy\")  [guideline, hop 1]\n\n(ValueSet/CONTRA_HEPATIC \"Active hepatic disease (statin contraindication)\") -[contains]-> (icd/K70 \"Alcoholic liver disease\")  [guideline, hop 1]\n\n(ValueSet/CONTRA_PREGNANCY \"Pregnancy (statin/ACE/ARB contraindication)\") -[contains]-> (icd/Z34 \"Encounter for supervision of normal pregnancy\")  [guideline, hop 1]\n\n(ValueSet/CONTRA_PREGNANCY \"Pregnancy (statin/ACE/ARB contraindication)\") -[contains]-> (icd/O15 \"Eclampsia\")  [guideline, hop 1]",
+      "latency_s": 23.4,
+      "tier_runs": [
+        2
+      ],
+      "stable": true,
+      "harness_errors": 0,
+      "runs": [
+        {
+          "tier": 2,
+          "sql": "{\"tool\": \"match\", \"args\": {\"pattern\": [[\"?p\", \"prescribed\", \"?rx\"], [\"?rx\", \"hasIngredient\", \"?ing\"], [\"?ing\", \"inDrugClass\", \"DrugClass/DRUGCLASS-STATIN\"], [\"DrugClass/DRUGCLASS-STATIN\", \"contraindicatedWith\", \"?vs\"], [\"?vs\", \"contains\", \"?icd\"], [\"?p\", \"hasDiagnosis\", \"?dx\"], [\"?dx\", \"subClassOf*\", \"?icd\"]], \"select\": \"p\"}}",
+          "sql_error": null,
+          "facts_in_context": [
+            false
+          ],
+          "facts_in_result": [
+            true
+          ]
+        }
+      ]
+    },
+    {
+      "arm": "ontobricks",
+      "qid": "onto_ked_definition",
+      "tier": 3,
+      "sufficient": false,
+      "query_correct": false,
+      "interface": "graph-runner call",
+      "query": {
+        "kind": "tool",
+        "interface": "graph",
+        "tool": "neighbors",
+        "args": {
+          "node": "Measure/KED",
+          "hops": 2
+        }
+      },
+      "sql": "{\"tool\": \"neighbors\", \"args\": {\"node\": \"Measure/KED\", \"hops\": 2}}",
+      "sql_error": null,
+      "sql_result": "8 result(s)\n{\"s\": \"Measure/KED\", \"p\": \"monitoredBy\", \"o\": \"part/LP-EGFR\"}\n{\"s\": \"Measure/KED\", \"p\": \"monitoredBy\", \"o\": \"part/LP-UACR\"}\n{\"s\": \"loinc/33914-3\", \"p\": \"hasComponent\", \"o\": \"part/LP-EGFR\"}\n{\"s\": \"loinc/98979-8\", \"p\": \"hasComponent\", \"o\": \"part/LP-EGFR\"}\n{\"s\": \"Measure/KED\", \"p\": \"monitoredBy\", \"o\": \"part/LP-EGFR\"}\n{\"s\": \"loinc/9318-7\", \"p\": \"hasComponent\", \"o\": \"part/LP-UACR\"}\n{\"s\": \"loinc/14959-1\", \"p\": \"hasComponent\", \"o\": \"part/LP-UACR\"}\n{\"s\": \"Measure/KED\", \"p\": \"monitoredBy\", \"o\": \"part/LP-UACR\"}",
+      "facts": [
+        {
+          "fact": "KED applies to diabetic patients aged 18 to 85.",
+          "in_context": {
+            "ok": false,
+            "quote": "",
+            "rationale": "The text shows patients eligible for KED and lab components monitored, but never states the age range 18-85 or diabetes eligibility criterion explicitly."
+          },
+          "in_result": {
+            "ok": false,
+            "quote": "",
+            "rationale": "The result only shows monitoring components (eGFR/UACR) for KED, not eligibility criteria about age or diabetes."
+          }
+        },
+        {
+          "fact": "To be compliant a patient needs BOTH an eGFR test and a uACR test in the measurement year.",
+          "in_context": {
+            "ok": false,
+            "quote": "",
+            "rationale": "The text only shows that KED is monitoredBy both LP-EGFR and LP-UACR parts, without stating that both are required together for compliance."
+          },
+          "in_result": {
+            "ok": false,
+            "quote": "",
+            "rationale": "The result only lists monitoredBy relationships and component codes, not an explicit statement that both tests are required for compliance or eligibility criteria."
+          }
+        }
+      ],
+      "reason": "The graph-runner call retrieved only monitoredBy/hasComponent triples, omitting age-18-85/diabetes eligibility and the both-tests compliance requirement.",
+      "retrieved": "Linked Measure/KED; 20 triples (eligibleFor 8, hasComponent 4, hasSystem 4, monitoredBy 2, hasMethod 2).",
+      "n_docs": 21,
+      "skipped_search": false,
+      "facts_in_context": [
+        false,
+        false
+      ],
+      "facts_in_result": [
+        false,
+        false
+      ],
+      "context": "Source: Ontobricks triple table ( SELECT subject, predicate, object FROM eswanson_demo.ontobricks.triplestore_clinicaldomain_v3 WHERE NOT (predicate = 'https://care-protocol.example/ontology/hasIngredient' AND object LIKE 'https://care-protocol.example/ontology/ing/DRUGCLASS-%') AND predicate <> 'https://care-protocol.example/ontology/inDrugClass' UNION ALL SELECT concat('https://care-protocol.example/ontology/ing/', code), 'https://care-protocol.example/ontology/inDrugClass', concat('https://care-protocol.example/ontology/DrugClass/', parent_code) FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE relationship = 'class_member' UNION ALL SELECT concat('https://care-protocol.example/ontology/icd/', code), 'http://www.w3.org/2000/01/rdf-schema#label', max(name) FROM eli_test_classic_catalog.care_protocol_terminology.icd10_hier GROUP BY code UNION ALL SELECT concat('https://care-protocol.example/ontology/rx/', rx), 'http://www.w3.org/2000/01/rdf-schema#label', max(nm) FROM ( SELECT code AS rx, name AS nm FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE relationship = 'ingredient_of' UNION ALL SELECT rxnorm_code, description FROM eli_test_classic_catalog.care_protocol.bronze_order_med WHERE rxnorm_code IS NOT NULL) m GROUP BY rx UNION ALL SELECT concat('https://care-protocol.example/ontology/ing/', code), 'http://www.w3.org/2000/01/rdf-schema#label', max(name) FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE relationship = 'class_member' GROUP BY code UNION ALL SELECT concat('https://care-protocol.example/ontology/DrugClass/', code), 'http://www.w3.org/2000/01/rdf-schema#label', max(name) FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE code LIKE 'DRUGCLASS-%' GROUP BY code UNION ALL SELECT concat('https://care-protocol.example/ontology/ValueSet/', segment_id), 'http://www.w3.org/2000/01/rdf-schema#label', max(segment_name) FROM eli_test_classic_catalog.care_protocol_terminology.value_set_segment GROUP BY segment_id ) sim (columns subject, predicate, object). Node IRIs are https://care-protocol.example/ontology/<Type>/<id> (e.g. https://care-protocol.example/ontology/Patient/<patient_id>, https://care-protocol.example/ontology/icd/E11.9, https://care-protocol.example/ontology/DrugClass/DRUGCLASS-STATIN); predicate IRIs are https://care-protocol.example/ontology/<predicate>. Triples below are shown with that prefix removed.\nGraph schema (predicate: subject type -> object type, count): ageAtPeriodEnd: Patient -> literal (2,399); contains: ValueSet -> icd (20); contraindicatedWhen: DrugClass -> Threshold (2); contraindicatedWith: DrugClass -> ValueSet (4); definedBy: ValueSet -> Threshold (1); eligibleFor: Patient -> Measure (13,133); firstLineFor: DrugClass -> ValueSet (1); hasCareGap: Patient -> Measure (6,744); hasComponent: loinc -> part (9); hasDiagnosis: Patient -> icd (17,871); hasIngredient: rx -> ing (26); hasMethod: loinc -> part (5); hasObservation: Patient -> obs (15,094,152); hasSystem: loinc -> part (9); hasThreshold: Measure -> Threshold (4); icd10Code: Pregnancy -> literal (704); icd10Code: Condition -> literal (39); icd10Code: DiabetesDiagnosis -> literal (7); icd10Code: ChronicKidneyDisease -> literal (5); icd10Code: HeartFailure -> literal (1); inDrugClass: ing -> DrugClass (16); loincCode: LabTest -> literal (308); monitoredBy: Measure -> part (5); ofTest: obs -> loinc (15,094,152); prescribed: Patient -> rx (156,532); recommendedFor: DrugClass -> ValueSet (4); recommendedFor: DrugClass -> Measure (1); resultValue: Observation -> literal (9,426,773); rxnormCode: Medication -> literal (48); subClassOf: icd -> icd (28); thresholdValue: Threshold -> literal (7); valueSetId: ValueSet -> literal (21)\n\n(Patient/323f97f5-7f67-af21-0e99-358251f049b9) -[eligibleFor]-> (Measure/KED)  [member, hop 1]\n\n(Patient/2073138e-fac3-67bf-a363-240f8c9a6665) -[eligibleFor]-> (Measure/KED)  [member, hop 1]\n\n(Patient/0453e68d-eef2-4e1b-54d4-d43b05705270) -[eligibleFor]-> (Measure/KED)  [member, hop 1]\n\n(Patient/cdaa9609-4bdc-d762-642e-2fac4fd94340) -[eligibleFor]-> (Measure/KED)  [member, hop 1]\n\n(Patient/223a765d-4073-4215-d214-37680cadd652) -[eligibleFor]-> (Measure/KED)  [member, hop 1]\n\n(Patient/86f17a19-0e74-4385-ca64-7eb264de88a7) -[eligibleFor]-> (Measure/KED)  [member, hop 1]\n\n(Patient/a56a4457-451c-e330-9061-c5a1feabeb87) -[eligibleFor]-> (Measure/KED)  [member, hop 1]\n\n(Patient/acf8937e-7dc1-a665-8f21-003de8d64b52) -[eligibleFor]-> (Measure/KED)  [member, hop 1]\n\n(Measure/KED) -[monitoredBy]-> (part/LP-EGFR)  [guideline, hop 1]\n\n(Measure/KED) -[monitoredBy]-> (part/LP-UACR)  [guideline, hop 1]\n\n(loinc/9318-7) -[hasComponent]-> (part/LP-UACR)  [guideline, hop 2]\n\n(loinc/33914-3) -[hasComponent]-> (part/LP-EGFR)  [guideline, hop 2]\n\n(loinc/98979-8) -[hasComponent]-> (part/LP-EGFR)  [guideline, hop 2]\n\n(loinc/14959-1) -[hasComponent]-> (part/LP-UACR)  [guideline, hop 2]\n\n(loinc/98979-8) -[hasMethod]-> (part/LP-METH-CKDEPI)  [guideline, hop 3]\n\n(loinc/33914-3) -[hasMethod]-> (part/LP-METH-MDRD)  [guideline, hop 3]\n\n(loinc/14959-1) -[hasSystem]-> (part/LP-SYS-URINE)  [guideline, hop 3]\n\n(loinc/98979-8) -[hasSystem]-> (part/LP-SYS-SERPL)  [guideline, hop 3]\n\n(loinc/33914-3) -[hasSystem]-> (part/LP-SYS-SERPL)  [guideline, hop 3]\n\n(loinc/9318-7) -[hasSystem]-> (part/LP-SYS-URINE)  [guideline, hop 3]",
+      "latency_s": 67.0,
+      "tier_runs": [
+        3
+      ],
+      "stable": true,
+      "harness_errors": 0,
+      "runs": [
+        {
+          "tier": 3,
+          "sql": "{\"tool\": \"neighbors\", \"args\": {\"node\": \"Measure/KED\", \"hops\": 2}}",
+          "sql_error": null,
+          "facts_in_context": [
+            false,
+            false
+          ],
+          "facts_in_result": [
+            false,
+            false
+          ]
+        }
+      ]
+    },
+    {
+      "arm": "ontobricks",
+      "qid": "onto_poor_control_denominator",
+      "tier": 3,
+      "sufficient": false,
+      "query_correct": false,
+      "interface": "graph-runner call",
+      "query": {
+        "kind": "tool",
+        "interface": "graph",
+        "tool": "neighbors",
+        "args": {
+          "node": "Measure/GSD",
+          "hops": 2
+        }
+      },
+      "sql": "{\"tool\": \"neighbors\", \"args\": {\"node\": \"Measure/GSD\", \"hops\": 2}}",
+      "sql_error": null,
+      "sql_result": "9 result(s)\n{\"s\": \"Measure/GSD\", \"p\": \"hasThreshold\", \"o\": \"Threshold/a1c_poor_gt_9\"}\n{\"s\": \"Measure/GSD\", \"p\": \"hasThreshold\", \"o\": \"Threshold/a1c_good_lt_8\"}\n{\"s\": \"Measure/GSD\", \"p\": \"monitoredBy\", \"o\": \"part/LP-HBA1C\"}\n{\"s\": \"Measure/GSD\", \"p\": \"hasThreshold\", \"o\": \"Threshold/a1c_poor_gt_9\"}\n{\"s\": \"Measure/GSD\", \"p\": \"hasThreshold\", \"o\": \"Threshold/a1c_good_lt_8\"}\n{\"s\": \"loinc/4548-4\", \"p\": \"hasComponent\", \"o\": \"part/LP-HBA1C\"}\n{\"s\": \"loinc/17856-6\", \"p\": \"hasComponent\", \"o\": \"part/LP-HBA1C\"}\n{\"s\": \"loinc/59261-8\", \"p\": \"hasComponent\", \"o\": \"part/LP-HBA1C\"}\n{\"s\": \"Measure/GSD\", \"p\": \"monitoredBy\", \"o\": \"part/LP-HBA1C\"}",
+      "facts": [
+        {
+          "fact": "The GSD poor-control rate is computed only among A1c-tested patients, not all eligible patients.",
+          "in_context": {
+            "ok": false,
+            "quote": "",
+            "rationale": "Text shows GSD threshold a1c_poor_gt_9 = 9 but never states the rate is computed only among A1c-tested patients vs all eligible."
+          },
+          "in_result": {
+            "ok": false,
+            "quote": "",
+            "rationale": "The result only lists threshold and monitoring codes; it never states that the poor-control rate is computed only among A1c-tested patients rather than all eligible patients."
+          }
+        },
+        {
+          "fact": "Poor control means the latest A1c in the measurement year is above 9.0%.",
+          "in_context": {
+            "ok": false,
+            "quote": "",
+            "rationale": "The text only shows threshold codes/values (a1c_poor_gt_9 -> 9) without explicitly stating that poor control means the latest A1c in the measurement year exceeds 9.0%."
+          },
+          "in_result": {
+            "ok": false,
+            "quote": "",
+            "rationale": "The result only lists a threshold code reference (a1c_poor_gt_9) without stating that it means the latest A1c above 9.0%."
+          }
+        }
+      ],
+      "reason": "The graph-runner call returned threshold codes like a1c_poor_gt_9 but never stated the denominator population or explicit 9.0% meaning.",
+      "retrieved": "Linked Measure/GSD, part/LP-HBA1C; 22 triples (eligibleFor 8, hasComponent 3, hasMethod 3, hasSystem 3, hasThreshold 2).",
+      "n_docs": 23,
+      "skipped_search": false,
+      "facts_in_context": [
+        false,
+        false
+      ],
+      "facts_in_result": [
+        false,
+        false
+      ],
+      "context": "Source: Ontobricks triple table ( SELECT subject, predicate, object FROM eswanson_demo.ontobricks.triplestore_clinicaldomain_v3 WHERE NOT (predicate = 'https://care-protocol.example/ontology/hasIngredient' AND object LIKE 'https://care-protocol.example/ontology/ing/DRUGCLASS-%') AND predicate <> 'https://care-protocol.example/ontology/inDrugClass' UNION ALL SELECT concat('https://care-protocol.example/ontology/ing/', code), 'https://care-protocol.example/ontology/inDrugClass', concat('https://care-protocol.example/ontology/DrugClass/', parent_code) FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE relationship = 'class_member' UNION ALL SELECT concat('https://care-protocol.example/ontology/icd/', code), 'http://www.w3.org/2000/01/rdf-schema#label', max(name) FROM eli_test_classic_catalog.care_protocol_terminology.icd10_hier GROUP BY code UNION ALL SELECT concat('https://care-protocol.example/ontology/rx/', rx), 'http://www.w3.org/2000/01/rdf-schema#label', max(nm) FROM ( SELECT code AS rx, name AS nm FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE relationship = 'ingredient_of' UNION ALL SELECT rxnorm_code, description FROM eli_test_classic_catalog.care_protocol.bronze_order_med WHERE rxnorm_code IS NOT NULL) m GROUP BY rx UNION ALL SELECT concat('https://care-protocol.example/ontology/ing/', code), 'http://www.w3.org/2000/01/rdf-schema#label', max(name) FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE relationship = 'class_member' GROUP BY code UNION ALL SELECT concat('https://care-protocol.example/ontology/DrugClass/', code), 'http://www.w3.org/2000/01/rdf-schema#label', max(name) FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE code LIKE 'DRUGCLASS-%' GROUP BY code UNION ALL SELECT concat('https://care-protocol.example/ontology/ValueSet/', segment_id), 'http://www.w3.org/2000/01/rdf-schema#label', max(segment_name) FROM eli_test_classic_catalog.care_protocol_terminology.value_set_segment GROUP BY segment_id ) sim (columns subject, predicate, object). Node IRIs are https://care-protocol.example/ontology/<Type>/<id> (e.g. https://care-protocol.example/ontology/Patient/<patient_id>, https://care-protocol.example/ontology/icd/E11.9, https://care-protocol.example/ontology/DrugClass/DRUGCLASS-STATIN); predicate IRIs are https://care-protocol.example/ontology/<predicate>. Triples below are shown with that prefix removed.\nGraph schema (predicate: subject type -> object type, count): ageAtPeriodEnd: Patient -> literal (2,399); contains: ValueSet -> icd (20); contraindicatedWhen: DrugClass -> Threshold (2); contraindicatedWith: DrugClass -> ValueSet (4); definedBy: ValueSet -> Threshold (1); eligibleFor: Patient -> Measure (13,133); firstLineFor: DrugClass -> ValueSet (1); hasCareGap: Patient -> Measure (6,744); hasComponent: loinc -> part (9); hasDiagnosis: Patient -> icd (17,871); hasIngredient: rx -> ing (26); hasMethod: loinc -> part (5); hasObservation: Patient -> obs (15,094,152); hasSystem: loinc -> part (9); hasThreshold: Measure -> Threshold (4); icd10Code: Pregnancy -> literal (704); icd10Code: Condition -> literal (39); icd10Code: DiabetesDiagnosis -> literal (7); icd10Code: ChronicKidneyDisease -> literal (5); icd10Code: HeartFailure -> literal (1); inDrugClass: ing -> DrugClass (16); loincCode: LabTest -> literal (308); monitoredBy: Measure -> part (5); ofTest: obs -> loinc (15,094,152); prescribed: Patient -> rx (156,532); recommendedFor: DrugClass -> ValueSet (4); recommendedFor: DrugClass -> Measure (1); resultValue: Observation -> literal (9,426,773); rxnormCode: Medication -> literal (48); subClassOf: icd -> icd (28); thresholdValue: Threshold -> literal (7); valueSetId: ValueSet -> literal (21)\n\n(Patient/896ecb4a-65f0-85af-aac6-6bf76759adcf) -[eligibleFor]-> (Measure/GSD)  [member, hop 1]\n\n(Patient/26ce9ce7-8ef7-de4c-6b3d-5a1ca48e7beb) -[eligibleFor]-> (Measure/GSD)  [member, hop 1]\n\n(Patient/971ea08c-3590-535c-f1bc-abb59c514ab1) -[eligibleFor]-> (Measure/GSD)  [member, hop 1]\n\n(Patient/d5ce07a5-b2f1-6d5b-f316-1d3cda2e8076) -[eligibleFor]-> (Measure/GSD)  [member, hop 1]\n\n(Patient/235f5f60-d328-fafc-e91c-345eacd87b5a) -[eligibleFor]-> (Measure/GSD)  [member, hop 1]\n\n(Patient/b27623c2-f054-4f01-cfe1-24ebeb2a3482) -[eligibleFor]-> (Measure/GSD)  [member, hop 1]\n\n(Patient/b4e32343-a7cd-e7b7-5644-5f05fa2fa265) -[eligibleFor]-> (Measure/GSD)  [member, hop 1]\n\n(Patient/75c725dd-9d09-e359-3380-eb62fd4b2053) -[eligibleFor]-> (Measure/GSD)  [member, hop 1]\n\n(loinc/4548-4) -[hasComponent]-> (part/LP-HBA1C)  [guideline, hop 1]\n\n(loinc/17856-6) -[hasComponent]-> (part/LP-HBA1C)  [guideline, hop 1]\n\n(loinc/59261-8) -[hasComponent]-> (part/LP-HBA1C)  [guideline, hop 1]\n\n(Measure/GSD) -[hasThreshold]-> (Threshold/a1c_poor_gt_9)  [guideline, hop 1]\n\n(Measure/GSD) -[hasThreshold]-> (Threshold/a1c_good_lt_8)  [guideline, hop 1]\n\n(Measure/GSD) -[monitoredBy]-> (part/LP-HBA1C)  [guideline, hop 1]\n\n(Threshold/a1c_good_lt_8) -[thresholdValue]-> (8)  [guideline, hop 2]\n\n(Threshold/a1c_poor_gt_9) -[thresholdValue]-> (9)  [guideline, hop 2]\n\n(loinc/17856-6) -[hasMethod]-> (part/LP-METH-HPLC)  [guideline, hop 2]\n\n(loinc/4548-4) -[hasMethod]-> (part/LP-METH-ANY)  [guideline, hop 2]\n\n(loinc/59261-8) -[hasMethod]-> (part/LP-METH-IFCC)  [guideline, hop 2]\n\n(loinc/17856-6) -[hasSystem]-> (part/LP-SYS-BLD)  [guideline, hop 2]\n\n(loinc/59261-8) -[hasSystem]-> (part/LP-SYS-BLD)  [guideline, hop 2]\n\n(loinc/4548-4) -[hasSystem]-> (part/LP-SYS-BLD)  [guideline, hop 2]",
+      "latency_s": 70.5,
+      "tier_runs": [
+        3
+      ],
+      "stable": true,
+      "harness_errors": 0,
+      "runs": [
+        {
+          "tier": 3,
+          "sql": "{\"tool\": \"neighbors\", \"args\": {\"node\": \"Measure/GSD\", \"hops\": 2}}",
+          "sql_error": null,
+          "facts_in_context": [
+            false,
+            false
+          ],
+          "facts_in_result": [
+            false,
+            false
+          ]
+        }
+      ]
+    },
+    {
+      "arm": "ontobricks",
+      "qid": "graph_multiparent_routes",
+      "tier": 1,
+      "sufficient": true,
+      "query_correct": false,
+      "interface": "graph-runner call",
+      "query": null,
+      "sql": null,
+      "sql_error": null,
+      "sql_result": null,
+      "facts": [
+        {
+          "fact": "The route E11.22 -> E11.2 -> E11 is shown: E11.22 reaches type 2 diabetes mellitus (E11) through E11.2. A list of ancestors with distances alone does not show this route.",
+          "in_context": {
+            "ok": true,
+            "quote": "(icd/E11.22 \"Type 2 diabetes mellitus with diabetic chronic kidney disease\") -[subClassOf]-> (icd/E11.2 \"Type 2 diabetes mellitus with kidney complications\")  [guideline, hop 1]\n\n(icd/E11.22 \"Type 2 diabetes mellitus with diabetic chronic kidney disease\") -[subClassOf]-> (icd/N18 \"Chronic kidney disease (CKD)\")  [guideline, hop 1]\n\n(icd/N18.2 \"Chronic kidney disease stage 2\") -[subClassOf]-> (icd/N18 \"Chronic kidney disease (CKD)\")  [guideline, hop 2]\n\n(icd/N18.1 \"Chronic kidney disease stage 1\") -[subClassOf]-> (icd/N18 \"Chronic kidney disease (CKD)\")  [guideline, hop 2]\n\n(icd/E11.21 \"Type 2 diabetes mellitus with diabetic nephropathy\") -[subClassOf]-> (icd/E11.2 \"Type 2 diabetes mellitus with kidney complications\")  [guideline, hop 2]\n\n(icd/E11.2 \"Type 2 diabetes mellitus with kidney complications\") -[subClassOf]-> (icd/E11 \"Type 2 diabetes mellitus\")  [guideline, hop 2]",
+            "rationale": "This contiguous verbatim block shows E11.22 subClassOf E11.2 and E11.2 subClassOf E11, establishing the route to top-level E11, and also E11.22 subClassOf N18 directly."
+          },
+          "in_result": null
+        },
+        {
+          "fact": "The route E11.22 -> N18 is shown: E11.22 reaches chronic kidney disease (N18) directly, as a second parent with no code in between.",
+          "in_context": {
+            "ok": true,
+            "quote": "(icd/E11.22 \"Type 2 diabetes mellitus with diabetic chronic kidney disease\") -[subClassOf]-> (icd/N18 \"Chronic kidney disease (CKD)\")  [guideline, hop 1]",
+            "rationale": "The text explicitly shows E11.22 directly linked via subClassOf to N18 at hop 1, with no intermediate code."
+          },
+          "in_result": null
+        }
+      ],
+      "reason": "The graph-runner call retrieved both subClassOf triples, showing E11.22\u2192E11.2\u2192E11 and E11.22\u2192N18 directly.",
+      "retrieved": "Linked icd/E11.22*; 33 triples (subClassOf 16, hasDiagnosis 8, contains 8, recommendedFor 1).",
+      "n_docs": 34,
+      "skipped_search": false,
+      "facts_in_context": [
+        true,
+        true
+      ],
+      "facts_in_result": null,
+      "context": "Source: Ontobricks triple table ( SELECT subject, predicate, object FROM eswanson_demo.ontobricks.triplestore_clinicaldomain_v3 WHERE NOT (predicate = 'https://care-protocol.example/ontology/hasIngredient' AND object LIKE 'https://care-protocol.example/ontology/ing/DRUGCLASS-%') AND predicate <> 'https://care-protocol.example/ontology/inDrugClass' UNION ALL SELECT concat('https://care-protocol.example/ontology/ing/', code), 'https://care-protocol.example/ontology/inDrugClass', concat('https://care-protocol.example/ontology/DrugClass/', parent_code) FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE relationship = 'class_member' UNION ALL SELECT concat('https://care-protocol.example/ontology/icd/', code), 'http://www.w3.org/2000/01/rdf-schema#label', max(name) FROM eli_test_classic_catalog.care_protocol_terminology.icd10_hier GROUP BY code UNION ALL SELECT concat('https://care-protocol.example/ontology/rx/', rx), 'http://www.w3.org/2000/01/rdf-schema#label', max(nm) FROM ( SELECT code AS rx, name AS nm FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE relationship = 'ingredient_of' UNION ALL SELECT rxnorm_code, description FROM eli_test_classic_catalog.care_protocol.bronze_order_med WHERE rxnorm_code IS NOT NULL) m GROUP BY rx UNION ALL SELECT concat('https://care-protocol.example/ontology/ing/', code), 'http://www.w3.org/2000/01/rdf-schema#label', max(name) FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE relationship = 'class_member' GROUP BY code UNION ALL SELECT concat('https://care-protocol.example/ontology/DrugClass/', code), 'http://www.w3.org/2000/01/rdf-schema#label', max(name) FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE code LIKE 'DRUGCLASS-%' GROUP BY code UNION ALL SELECT concat('https://care-protocol.example/ontology/ValueSet/', segment_id), 'http://www.w3.org/2000/01/rdf-schema#label', max(segment_name) FROM eli_test_classic_catalog.care_protocol_terminology.value_set_segment GROUP BY segment_id ) sim (columns subject, predicate, object). Node IRIs are https://care-protocol.example/ontology/<Type>/<id> (e.g. https://care-protocol.example/ontology/Patient/<patient_id>, https://care-protocol.example/ontology/icd/E11.9, https://care-protocol.example/ontology/DrugClass/DRUGCLASS-STATIN); predicate IRIs are https://care-protocol.example/ontology/<predicate>. Triples below are shown with that prefix removed.\nGraph schema (predicate: subject type -> object type, count): ageAtPeriodEnd: Patient -> literal (2,399); contains: ValueSet -> icd (20); contraindicatedWhen: DrugClass -> Threshold (2); contraindicatedWith: DrugClass -> ValueSet (4); definedBy: ValueSet -> Threshold (1); eligibleFor: Patient -> Measure (13,133); firstLineFor: DrugClass -> ValueSet (1); hasCareGap: Patient -> Measure (6,744); hasComponent: loinc -> part (9); hasDiagnosis: Patient -> icd (17,871); hasIngredient: rx -> ing (26); hasMethod: loinc -> part (5); hasObservation: Patient -> obs (15,094,152); hasSystem: loinc -> part (9); hasThreshold: Measure -> Threshold (4); icd10Code: Pregnancy -> literal (704); icd10Code: Condition -> literal (39); icd10Code: DiabetesDiagnosis -> literal (7); icd10Code: ChronicKidneyDisease -> literal (5); icd10Code: HeartFailure -> literal (1); inDrugClass: ing -> DrugClass (16); loincCode: LabTest -> literal (308); monitoredBy: Measure -> part (5); ofTest: obs -> loinc (15,094,152); prescribed: Patient -> rx (156,532); recommendedFor: DrugClass -> ValueSet (4); recommendedFor: DrugClass -> Measure (1); resultValue: Observation -> literal (9,426,773); rxnormCode: Medication -> literal (48); subClassOf: icd -> icd (28); thresholdValue: Threshold -> literal (7); valueSetId: ValueSet -> literal (21)\n\n(Patient/8a52a143-67f2-9ee5-a3e3-f7090da9d866) -[hasDiagnosis]-> (icd/E11.22 \"Type 2 diabetes mellitus with diabetic chronic kidney disease\")  [member, hop 1]\n\n(Patient/54baf356-4472-a150-bbe1-957125d1a968) -[hasDiagnosis]-> (icd/E11.22 \"Type 2 diabetes mellitus with diabetic chronic kidney disease\")  [member, hop 1]\n\n(Patient/09435545-74dc-55c5-3a49-7ad174cbbbed) -[hasDiagnosis]-> (icd/E11.22 \"Type 2 diabetes mellitus with diabetic chronic kidney disease\")  [member, hop 1]\n\n(Patient/184d3cbb-20b3-bdbf-8476-488f9af5baae) -[hasDiagnosis]-> (icd/E11.22 \"Type 2 diabetes mellitus with diabetic chronic kidney disease\")  [member, hop 1]\n\n(Patient/5c2310e9-59d5-3966-91c0-7a937b1ba397) -[hasDiagnosis]-> (icd/E11.22 \"Type 2 diabetes mellitus with diabetic chronic kidney disease\")  [member, hop 1]\n\n(Patient/4ab20bc9-8991-0cef-10c9-e091661253f6) -[hasDiagnosis]-> (icd/E11.22 \"Type 2 diabetes mellitus with diabetic chronic kidney disease\")  [member, hop 1]\n\n(Patient/c06e72ca-c517-c91c-c86f-3642185f143a) -[hasDiagnosis]-> (icd/E11.22 \"Type 2 diabetes mellitus with diabetic chronic kidney disease\")  [member, hop 1]\n\n(Patient/c1943e3c-8f4b-929b-ab6f-40d21a3f9fc8) -[hasDiagnosis]-> (icd/E11.22 \"Type 2 diabetes mellitus with diabetic chronic kidney disease\")  [member, hop 1]\n\n(icd/E11.22 \"Type 2 diabetes mellitus with diabetic chronic kidney disease\") -[subClassOf]-> (icd/E11.2 \"Type 2 diabetes mellitus with kidney complications\")  [guideline, hop 1]\n\n(icd/E11.22 \"Type 2 diabetes mellitus with diabetic chronic kidney disease\") -[subClassOf]-> (icd/N18 \"Chronic kidney disease (CKD)\")  [guideline, hop 1]\n\n(icd/N18.2 \"Chronic kidney disease stage 2\") -[subClassOf]-> (icd/N18 \"Chronic kidney disease (CKD)\")  [guideline, hop 2]\n\n(icd/N18.1 \"Chronic kidney disease stage 1\") -[subClassOf]-> (icd/N18 \"Chronic kidney disease (CKD)\")  [guideline, hop 2]\n\n(icd/E11.21 \"Type 2 diabetes mellitus with diabetic nephropathy\") -[subClassOf]-> (icd/E11.2 \"Type 2 diabetes mellitus with kidney complications\")  [guideline, hop 2]\n\n(icd/E11.2 \"Type 2 diabetes mellitus with kidney complications\") -[subClassOf]-> (icd/E11 \"Type 2 diabetes mellitus\")  [guideline, hop 2]\n\n(icd/N18.4 \"Chronic kidney disease stage 4\") -[subClassOf]",
+      "latency_s": 41.0,
+      "tier_runs": [
+        1
+      ],
+      "stable": true,
+      "harness_errors": 0,
+      "runs": [
+        {
+          "tier": 1,
+          "sql": "",
+          "sql_error": null,
+          "facts_in_context": [
+            true,
+            true
+          ],
+          "facts_in_result": null
+        }
+      ]
+    },
+    {
+      "arm": "ontobricks",
+      "qid": "op_worst_clinic_annual",
+      "tier": 3,
+      "sufficient": false,
+      "query_correct": false,
+      "interface": "graph-runner call",
+      "query": null,
+      "sql": null,
+      "sql_error": null,
+      "sql_result": null,
+      "facts": [
+        {
+          "fact": "CLINIC-04 has the lowest Step-3 adherence year-to-date (about 44.3%).",
+          "in_context": {
+            "ok": false,
+            "quote": "",
+            "rationale": "The text contains only graph schema and triples with no clinic-level Step-3 adherence percentages or ranking."
+          },
+          "in_result": null
+        }
+      ],
+      "reason": "The graph-runner call only returned schema triples (eligibleFor, hasComponent, hasMethod) but no clinic-level adherence percentages for ranking.",
+      "retrieved": "Linked Measure/GSD, part/LP-HBA1C; 22 triples (eligibleFor 8, hasComponent 3, hasMethod 3, hasSystem 3, hasThreshold 2).",
+      "n_docs": 23,
+      "skipped_search": false,
+      "facts_in_context": [
+        false
+      ],
+      "facts_in_result": null,
+      "context": "Source: Ontobricks triple table ( SELECT subject, predicate, object FROM eswanson_demo.ontobricks.triplestore_clinicaldomain_v3 WHERE NOT (predicate = 'https://care-protocol.example/ontology/hasIngredient' AND object LIKE 'https://care-protocol.example/ontology/ing/DRUGCLASS-%') AND predicate <> 'https://care-protocol.example/ontology/inDrugClass' UNION ALL SELECT concat('https://care-protocol.example/ontology/ing/', code), 'https://care-protocol.example/ontology/inDrugClass', concat('https://care-protocol.example/ontology/DrugClass/', parent_code) FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE relationship = 'class_member' UNION ALL SELECT concat('https://care-protocol.example/ontology/icd/', code), 'http://www.w3.org/2000/01/rdf-schema#label', max(name) FROM eli_test_classic_catalog.care_protocol_terminology.icd10_hier GROUP BY code UNION ALL SELECT concat('https://care-protocol.example/ontology/rx/', rx), 'http://www.w3.org/2000/01/rdf-schema#label', max(nm) FROM ( SELECT code AS rx, name AS nm FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE relationship = 'ingredient_of' UNION ALL SELECT rxnorm_code, description FROM eli_test_classic_catalog.care_protocol.bronze_order_med WHERE rxnorm_code IS NOT NULL) m GROUP BY rx UNION ALL SELECT concat('https://care-protocol.example/ontology/ing/', code), 'http://www.w3.org/2000/01/rdf-schema#label', max(name) FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE relationship = 'class_member' GROUP BY code UNION ALL SELECT concat('https://care-protocol.example/ontology/DrugClass/', code), 'http://www.w3.org/2000/01/rdf-schema#label', max(name) FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE code LIKE 'DRUGCLASS-%' GROUP BY code UNION ALL SELECT concat('https://care-protocol.example/ontology/ValueSet/', segment_id), 'http://www.w3.org/2000/01/rdf-schema#label', max(segment_name) FROM eli_test_classic_catalog.care_protocol_terminology.value_set_segment GROUP BY segment_id ) sim (columns subject, predicate, object). Node IRIs are https://care-protocol.example/ontology/<Type>/<id> (e.g. https://care-protocol.example/ontology/Patient/<patient_id>, https://care-protocol.example/ontology/icd/E11.9, https://care-protocol.example/ontology/DrugClass/DRUGCLASS-STATIN); predicate IRIs are https://care-protocol.example/ontology/<predicate>. Triples below are shown with that prefix removed.\nGraph schema (predicate: subject type -> object type, count): ageAtPeriodEnd: Patient -> literal (2,399); contains: ValueSet -> icd (20); contraindicatedWhen: DrugClass -> Threshold (2); contraindicatedWith: DrugClass -> ValueSet (4); definedBy: ValueSet -> Threshold (1); eligibleFor: Patient -> Measure (13,133); firstLineFor: DrugClass -> ValueSet (1); hasCareGap: Patient -> Measure (6,744); hasComponent: loinc -> part (9); hasDiagnosis: Patient -> icd (17,871); hasIngredient: rx -> ing (26); hasMethod: loinc -> part (5); hasObservation: Patient -> obs (15,094,152); hasSystem: loinc -> part (9); hasThreshold: Measure -> Threshold (4); icd10Code: Pregnancy -> literal (704); icd10Code: Condition -> literal (39); icd10Code: DiabetesDiagnosis -> literal (7); icd10Code: ChronicKidneyDisease -> literal (5); icd10Code: HeartFailure -> literal (1); inDrugClass: ing -> DrugClass (16); loincCode: LabTest -> literal (308); monitoredBy: Measure -> part (5); ofTest: obs -> loinc (15,094,152); prescribed: Patient -> rx (156,532); recommendedFor: DrugClass -> ValueSet (4); recommendedFor: DrugClass -> Measure (1); resultValue: Observation -> literal (9,426,773); rxnormCode: Medication -> literal (48); subClassOf: icd -> icd (28); thresholdValue: Threshold -> literal (7); valueSetId: ValueSet -> literal (21)\n\n(Patient/896ecb4a-65f0-85af-aac6-6bf76759adcf) -[eligibleFor]-> (Measure/GSD)  [member, hop 1]\n\n(Patient/26ce9ce7-8ef7-de4c-6b3d-5a1ca48e7beb) -[eligibleFor]-> (Measure/GSD)  [member, hop 1]\n\n(Patient/971ea08c-3590-535c-f1bc-abb59c514ab1) -[eligibleFor]-> (Measure/GSD)  [member, hop 1]\n\n(Patient/d5ce07a5-b2f1-6d5b-f316-1d3cda2e8076) -[eligibleFor]-> (Measure/GSD)  [member, hop 1]\n\n(Patient/235f5f60-d328-fafc-e91c-345eacd87b5a) -[eligibleFor]-> (Measure/GSD)  [member, hop 1]\n\n(Patient/b27623c2-f054-4f01-cfe1-24ebeb2a3482) -[eligibleFor]-> (Measure/GSD)  [member, hop 1]\n\n(Patient/b4e32343-a7cd-e7b7-5644-5f05fa2fa265) -[eligibleFor]-> (Measure/GSD)  [member, hop 1]\n\n(Patient/75c725dd-9d09-e359-3380-eb62fd4b2053) -[eligibleFor]-> (Measure/GSD)  [member, hop 1]\n\n(loinc/4548-4) -[hasComponent]-> (part/LP-HBA1C)  [guideline, hop 1]\n\n(loinc/17856-6) -[hasComponent]-> (part/LP-HBA1C)  [guideline, hop 1]\n\n(loinc/59261-8) -[hasComponent]-> (part/LP-HBA1C)  [guideline, hop 1]\n\n(Measure/GSD) -[hasThreshold]-> (Threshold/a1c_poor_gt_9)  [guideline, hop 1]\n\n(Measure/GSD) -[hasThreshold]-> (Threshold/a1c_good_lt_8)  [guideline, hop 1]\n\n(Measure/GSD) -[monitoredBy]-> (part/LP-HBA1C)  [guideline, hop 1]\n\n(Threshold/a1c_good_lt_8) -[thresholdValue]-> (8)  [guideline, hop 2]\n\n(Threshold/a1c_poor_gt_9) -[thresholdValue]-> (9)  [guideline, hop 2]\n\n(loinc/17856-6) -[hasMethod]-> (part/LP-METH-HPLC)  [guideline, hop 2]\n\n(loinc/4548-4) -[hasMethod]-> (part/LP-METH-ANY)  [guideline, hop 2]\n\n(loinc/59261-8) -[hasMethod]-> (part/LP-METH-IFCC)  [guideline, hop 2]\n\n(loinc/17856-6) -[hasSystem]-> (part/LP-SYS-BLD)  [guideline, hop 2]\n\n(loinc/59261-8) -[hasSystem]-> (part/LP-SYS-BLD)  [guideline, hop 2]\n\n(loinc/4548-4) -[hasSystem]-> (part/LP-SYS-BLD)  [guideline, hop 2]",
+      "latency_s": 60.0,
+      "tier_runs": [
+        3
+      ],
+      "stable": true,
+      "harness_errors": 0,
+      "runs": [
+        {
+          "tier": 3,
+          "sql": "",
+          "sql_error": null,
+          "facts_in_context": [
+            false
+          ],
+          "facts_in_result": null
+        }
+      ]
+    }
+  ]
+}

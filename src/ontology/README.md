@@ -23,8 +23,8 @@ The mapping now emits `rdfs:label` on every Condition (ICD name), Medication (hi
 description), Ingredient, DrugClass and ValueSet; `cp:inDrugClass` for every drug class (was statins only); and
 `cp:hasIngredient` only for true ingredient -> clinical-drug edges (`rxnorm_hier.relationship`). `icd10_hier` is now
 a DAG: E11.22 has two parents (E11.2 and N18), which `IcdSubClassMap` emits as two `subClassOf` edges. All 44
-triples-map queries were run against the rebuilt tables (0 failures). **Republish the clinicaldomain graph in
-Ontobricks** to pick these up; the app and the eval auto-discover the newest `triplestore_clinicaldomain_v<N>`.
+triples-map queries were run against the rebuilt tables (0 failures). **Correction (same day):** Ontobricks does not run this file; it runs its own project mapping (see
+`docs/ontology/ONTOBRICKS_REPUBLISH.md`, which has the checked republish paths and the edits to port).
 
 ## What the graph adds over the SQL closure (the benchmark's point)
 - ICD-10 `subClassOf` → the reasoner derives the transitive closure that `icd10_closure` materializes in SQL:
