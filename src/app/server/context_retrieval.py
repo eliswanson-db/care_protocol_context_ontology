@@ -7,6 +7,8 @@ for the question, which a fixed agent then reasons over.
 
   genie_ontology_docs  Genie Ontology's OWN retrieval (recorded from Genie One's knowledge-snippet search):
                        inferred snippets + ranked Pages + Page bodies read. No Genie One answer or SQL.
+  closure_context   Closure tables as tools: resolve the question's concepts to hierarchy nodes, walk the derived
+                    closure (ancestors / descendants), and join the patients recorded under each subtree.
   graph_context     Ontobricks: entity-link the question's clinical terms (and patient ids) to graph nodes, return
                     the k-hop subgraph around them over the terminology + guideline layer, from the live triplestore.
 """
@@ -195,4 +197,123 @@ def genie_ontology_docs(rec: dict) -> list[dict]:
                                   "domain": p.get("domain"), "relevance": p.get("relevance"),
                                   "certified": p.get("certified"), "on_topic": p.get("on_topic"),
                                   "description": p.get("description"), "body": body}})
+    return docs
+
+
+# --------------------------------------------------- closure ---------------------------------------------------
+# Closure-table retrieval as parameterized TOOLS (docs/decisions.md ADR-0010 addendum 2026-11-06, after the
+# "Closure-Table Retrieval on Databricks" review): direct edges (icd10_hier, rxnorm_hier) are the source of truth;
+# the closures (icd10_closure, rxnorm_closure: ancestor, descendant, depth incl. a depth-0 self row) are derived.
+# Request flow: resolve the question's concepts to nodes -> filter the closure (descendants / ancestors) -> join the
+# content attached to those nodes (here: patients' recorded diagnoses and medication orders) -> agent context.
+# One relationship only (is-a / contains). Protocol rules (contraindicatedWith, recommendedFor ...) are a different
+# relationship and are deliberately NOT folded in -- that cross-relationship multi-hop is the graph's job.
+
+_GENERIC = set("type 1 2 mellitus unspecified other specified with without of the and for to related conditions "
+               "demo scd mg oral tablet hr extended release hydrochloride calcium potassium encounter supervision "
+               "disorder care maternal".split())
+_NORM = {"diabetic": "diabetes", "complications": "complication", "statins": "statin", "inhibitors": "inhibitor"}
+
+
+def _toks(text: str) -> set[str]:
+    out = set()
+    for w in re.findall(r"[a-z0-9]+", text.lower()):
+        w = _NORM.get(w, w)
+        if len(w) > 1 and not w.isdigit():
+            out.add(w)
+    return out
+
+
+_NODES: dict[str, list[dict]] = {}
+
+
+def _closure_nodes(run_sql, term: str) -> list[dict]:
+    """knowledge_nodes = the two hierarchies' nodes (code, name, parent, which closure they live in)."""
+    if term not in _NODES:
+        rows = run_sql(f"SELECT code, parent_code, name, 'icd' AS h FROM {term}.icd10_hier UNION ALL "
+                       f"SELECT code, parent_code, name, 'rx' AS h FROM {term}.rxnorm_hier")
+        _NODES[term] = rows
+    return _NODES[term]
+
+
+def resolve_nodes(question: str, run_sql, term: str) -> list[dict]:
+    """resolve_node: match the question to hierarchy nodes by NAME (every non-generic word of the node's name appears in
+    the question) plus the alias table (LEXICON entries that point at a code or drug class). A candidate whose matched
+    words are a strict subset of another candidate's is dropped (the question named the more specific concept); a
+    candidate under another candidate with the same matched words is dropped too (keep the top of the subtree).
+    Returns [{code, name, h, matched}], where `matched` groups synonyms: same words -> same concept -> OR."""
+    q = _toks(question)
+    nodes = {n["code"]: n for n in _closure_nodes(run_sql, term)}
+    cands: dict[str, frozenset] = {}
+    for n in nodes.values():
+        c = _toks(n["name"]) - _GENERIC
+        if c and c <= q:
+            cands[n["code"]] = frozenset(c)
+    ql = question.lower()
+    for term_, anchors in LEXICON.items():
+        if term_ in ql:
+            for a in anchors:
+                code = a.split("/", 1)[1]
+                if (a.startswith("icd/") or a.startswith("DrugClass/")) and code in nodes and code not in cands:
+                    cands[code] = frozenset(_toks(term_))
+    keep = {k: v for k, v in cands.items() if not any(v < w for w in cands.values())}
+
+    def ancestors(code):
+        seen, p = [], nodes.get(code, {}).get("parent_code")
+        while p and p not in seen:
+            seen.append(p)
+            p = nodes.get(p, {}).get("parent_code")
+        return seen
+    keep = {k: v for k, v in keep.items() if not any(a in keep and keep[a] == v for a in ancestors(k))}
+    return [{"code": k, "name": nodes[k]["name"], "h": nodes[k]["h"], "matched": sorted(v)} for k, v in keep.items()]
+
+
+def closure_context(question: str, run_sql, catalog: str, schema: str, term_schema: str) -> list[dict]:
+    """Closure retrieval with four tools over the derived closures: resolve_nodes, get_ancestors, get_descendants and
+    patients_under (the content join: patients with a recorded diagnosis / medication order anywhere in the subtree).
+    Concepts matched by different words are ANDed (e.g. diabetes AND statin); synonyms matched by the same words are
+    ORed (E10.2 OR E11.2). Nothing is retrieved when the question names no hierarchy node."""
+    term = f"{catalog}.{term_schema}"
+    anchors = resolve_nodes(question, run_sql, term)
+    if not anchors:
+        return []
+    clos = {"icd": f"{term}.icd10_closure", "rx": f"{term}.rxnorm_closure"}
+    facts = {"icd": (f"{catalog}.{schema}.bronze_pat_enc_dx", "icd10_code", "a recorded diagnosis"),
+             "rx": (f"{catalog}.{schema}.bronze_order_med", "rxnorm_code", "a medication order")}
+    q = lambda v: "'" + str(v).replace("'", "") + "'"  # noqa: E731
+    docs = [{"page_content": ("Source: closure-table tools over " + ", ".join(sorted({clos[a['h']] for a in anchors}))
+                              + " (ancestor_code, descendant_code, depth). Content joined from "
+                              + ", ".join(sorted({facts[a['h']][0] for a in anchors})) + "."),
+             "metadata": {"source": "closure", "kind": "provenance"}}]
+    groups: dict[tuple, list[dict]] = {}
+    for a in anchors:
+        groups.setdefault((a["h"], tuple(a["matched"])), []).append(a)
+    for a in anchors:
+        anc = run_sql(f"SELECT ancestor_code, ancestor_name, depth FROM {clos[a['h']]} "
+                      f"WHERE descendant_code = {q(a['code'])} AND depth > 0 ORDER BY depth DESC")
+        desc = run_sql(f"SELECT descendant_code, descendant_name, depth FROM {clos[a['h']]} "
+                       f"WHERE ancestor_code = {q(a['code'])} ORDER BY depth, descendant_code LIMIT 40")
+        crumb = " > ".join([f"{r['ancestor_code']}" for r in anc] + [a["code"]])
+        docs.append({"page_content": (f"resolve_node(\"{' '.join(a['matched'])}\") -> {a['code']} ({a['name']}). "
+                                      f"Ancestors: {crumb}. Descendants ({len(desc)}, incl. itself): "
+                                      + "; ".join(f"{r['descendant_code']} {r['descendant_name']} [depth {r['depth']}]"
+                                                  for r in desc)),
+                     "metadata": {"source": "closure", "kind": "subtree", "anchor": a["code"], "h": a["h"]}})
+    counts = []
+    subq = []
+    for (h, words), grp in groups.items():
+        tbl, col, what = facts[h]
+        codes = ", ".join(q(a["code"]) for a in grp)
+        sql = (f"SELECT DISTINCT f.patient_id FROM {tbl} f JOIN {clos[h]} c ON f.{col} = c.descendant_code "
+               f"WHERE c.ancestor_code IN ({codes})")
+        subq.append(sql)
+        n = run_sql(f"SELECT COUNT(*) AS n FROM ({sql})")[0]["n"]
+        label = " or ".join(f"{a['code']} ({a['name']})" for a in grp)
+        counts.append(f"Patients with {what} under {label}: {int(n):,}")
+    if len(subq) > 1:
+        both = " INTERSECT ".join(f"({s})" for s in subq)
+        n = run_sql(f"SELECT COUNT(*) AS n FROM ({both})")[0]["n"]
+        counts.append(f"Patients matching ALL of the above concepts: {int(n):,}")
+    docs.append({"page_content": "patients_under(...) -> " + " | ".join(counts),
+                 "metadata": {"source": "closure", "kind": "content"}})
     return docs

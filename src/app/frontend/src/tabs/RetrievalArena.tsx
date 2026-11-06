@@ -24,7 +24,7 @@ function Verdict({ v }: { v: string }) {
 // (same question, same fixed agent, same judges) — `arm` is the retrieval_eval provider.
 const APPROACHES = [
   { id: "metric_view", arm: "metric_view", label: "Metric View", how: "definitions of the 3 most relevant certified metric views" },
-  { id: "closure", arm: "closure_sql", label: "Closure / edge tables", how: "terminology table cards + rows hit by the linked entities" },
+  { id: "closure", arm: "closure_sql", label: "Closure tables", how: "tools: resolve the concept → walk its subtree → patients under it" },
   { id: "genie_ontology", arm: "genie_ontology", label: "Genie Ontology", how: "Genie's own retriever: inferred snippets + Pages (ECT, recorded)" },
   { id: "rag", arm: "rag", label: "RAG", how: "passage search over the care-protocol documents" },
   { id: "graph", arm: "ontobricks", label: "Ontobricks graph", how: "subgraph up to 3 hops around the linked entities (live)" },
@@ -46,8 +46,7 @@ function AgentVerdict({ s }: { s?: Scored }) {
 /** The single SQL query the retrieved context let the agent write, run against the warehouse, and its result. */
 function OneQuery({ s }: { s: Scored }) {
   // Tier 1: the answer is in the retrieved context itself, so the query step doesn't apply.
-  if (s.tier === 1) return <div className="mt-1.5 text-[10.5px] text-muted">No query needed: the answer is in what it retrieved.</div>;
-  if (!s.sql) return <div className="mt-1.5 text-[10.5px] text-muted">No query: the context didn't say enough to write one.</div>;
+  if (s.tier === 1 || !s.sql) return null;
   return (
     <details className="mt-1.5 text-[11px]">
       <summary className="cursor-pointer font-semibold text-primary">
@@ -139,10 +138,7 @@ function GenieOntologyColumn({ sides, color }: { sides: ArenaContext["ontology"]
         <span className="text-[14px] font-semibold">Genie Ontology</span>
         <span className="ml-auto"><AgentVerdict s={side.scored} /></span>
       </div>
-      <p className="mt-1 text-[12px] leading-snug text-muted">
-        Genie's own knowledge retriever — the snippet search Genie One runs — returning inferred snippets and ranked
-        Pages, plus the Page bodies it read. Genie One's answer and SQL are not included.
-      </p>
+      <p className="mt-1 text-[12px] leading-snug text-muted">Genie One's snippet search: inferred snippets + Pages.</p>
       <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
         {wss.map((w) => (
           <button key={w} onClick={() => setWs(w)}
@@ -157,9 +153,7 @@ function GenieOntologyColumn({ sides, color }: { sides: ArenaContext["ontology"]
       )}
       {side.skipped_search ? (
         <div className="mt-2 rounded-md border border-warning/40 bg-warning/10 px-2.5 py-2 text-[12px]">
-          Genie One didn't run its ontology search for this question on this workspace (3 attempts) — it answered from
-          conversation memory and SQL instead. So there is no Genie Ontology retrieval to show here, which is itself a finding:
-          Genie decides per question whether to consult the ontology.
+          Genie One skipped its ontology search here (3 tries) and answered from memory and SQL.
         </div>
       ) : side.error ? (
         <div className="mt-2 rounded-md border border-destructive/40 bg-destructive/10 px-2 py-1.5 text-[12px] text-destructive">{side.error}</div>
@@ -171,7 +165,7 @@ function GenieOntologyColumn({ sides, color }: { sides: ArenaContext["ontology"]
             </div>
             {snips.length === 0 ? (
               <div className="rounded-md border border-dashed border-border bg-surface-2 px-2.5 py-2 text-[12px] text-muted">
-                Genie's snippet search returned no inferred snippets for this question here.
+                No inferred snippets for this question.
               </div>
             ) : (
               <div className="max-h-80 space-y-1.5 overflow-auto">
@@ -360,6 +354,7 @@ export function RetrievalArena() {
                             <TierChip k={tierKey(sc)} runs={sc.tier_runs} stable={sc.stable} />
                           )}
                         </div>
+                        {q.why?.[a.id] && <div className="mt-1.5 text-[11.5px] leading-snug text-fg/80">{q.why[a.id]}</div>}
                         {sc && (
                           <>
                             <div className="mt-1.5 text-[10.5px] text-muted">{sc.n_docs} item{sc.n_docs === 1 ? "" : "s"} retrieved</div>
@@ -394,9 +389,6 @@ export function RetrievalArena() {
                         subtitle={`Clinical terms and patient ids in the question linked to graph nodes, then the subgraph up to 3 hops around them from ${ctx.graph.graph_table.split(".").pop()} (live).`}
                         empty="No clinical entity in the question links to a graph node — the graph holds no operational or temporal data." />
                     </div>
-                    <p className="mt-2.5 text-[12px] text-muted">
-                      Genie Ontology is recorded as a user on each workspace (its retrieval depends on who asks); the graph is queried live.
-                    </p>
                   </>
                 )}
               </Collapsible>
@@ -435,10 +427,6 @@ export function RetrievalArena() {
                     ) : (
                       <div className="mt-2 text-[12px] text-muted">{ctx ? "No recorded trail for this question." : "Loading…"}</div>
                     )}
-                    <p className="mt-3 text-[11.5px] text-muted">
-                      Genie One retrieves from the same ontology (Pages, certified metric views, snippets), then writes and runs
-                      SQL — that last step is what turns a definition into a number.
-                    </p>
                   </div>
                 </div>
               </Collapsible>}

@@ -113,7 +113,7 @@ function Ladder({ map }: { map: CapabilityMap }) {
       {e2e.length > 0 && (
         <>
           <div className="pt-3 text-[11px] font-semibold uppercase tracking-wide text-muted">
-            For contrast — Genie One end-to-end (its own retrieval + as many queries as it wants; hand-verified)
+            For contrast — Genie One end-to-end
           </div>
           {e2e.map((r) => <Bar key={r.arm} r={r} />)}
         </>
@@ -162,6 +162,9 @@ function Matrix({ map }: { map: CapabilityMap }) {
                         <Verdict v={q.verdicts[a.id]} e2e />
                       ) : (
                         <TierChip k={q.verdicts[a.id]} short runs={q.evidence?.[a.id]?.tier_runs} stable={q.evidence?.[a.id]?.stable} />
+                      )}
+                      {q.why?.[a.id] && (
+                        <div className="mx-auto mt-1 max-w-[11rem] text-[10.5px] leading-snug text-muted">{q.why[a.id]}</div>
                       )}
                     </td>
                   ))}
@@ -269,30 +272,17 @@ export function BenchmarkScorecard() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">When each layer earns its place</h1>
         <p className="mt-1.5 text-[15px] text-muted">
-          {simple ? (
-            <>Three questions: one where Genie Ontology beats RAG, one where RAG does just as well, and one where the
-              Ontobricks graph beats Genie Ontology.{" "}</>
-          ) : (<>
-          Seven questions, four stories: when Genie Ontology's retrieval beats RAG, when RAG does just as well, when the
-          Ontobricks graph beats Genie Ontology, and when the graph looks like it should win but doesn't.{" "}</>)}
-          {simple ? (
-            <><span className="font-semibold text-success">✓ Answered</span> means what the approach retrieved was enough to answer.</>
-          ) : (<>
-          <span className="font-semibold text-success">✓ Answered</span> means the answer was in the retrieved context, or the
-          context was enough to write one SQL query that returned it.</>)}
+          {simple ? "Three" : "Five"} questions. <span className="font-semibold text-success">✓</span> = what the approach
+          retrieved was enough to answer.
         </p>
       </div>
 
       <div className="space-y-6">
         <Collapsible title="How often each approach's retrieval was enough">
           <Ladder map={map} />
-          {!simple && <p className="mt-2 text-[13px] text-muted">
-            Genie One is not on the same footing: on ECT it also loads a hand-written HEDIS skill built from this question
-            set, reads its conversation memory and table schemas, and runs several queries.
-          </p>}
         </Collapsible>
 
-        <Collapsible title={simple ? "The three questions" : "The seven questions"}>
+        <Collapsible title={simple ? "The three questions" : "The five questions"}>
           <div className="mb-2 flex flex-wrap gap-2 text-[11px]">
             {(simple ? ["answered", "not_answered"] : ["tier1", "tier2", "wrong_answer", "query_failed", "no_query", "no_retrieval", "skipped"])
               .filter((k) => map.classes.some((c) => c.questions.some((q) =>
@@ -303,16 +293,9 @@ export function BenchmarkScorecard() {
               })}
           </div>
           <Matrix map={map} />
-          <p className="mt-2 text-[12px] text-muted">
-            Each row's note says why it came out that way. Hover a cell to see what that approach retrieved and the query it wrote.
-          </p>
         </Collapsible>
 
         {!simple && <Collapsible title="Ontology ON vs OFF (ADR-0018, observational)" hint="optional detail" defaultOpen={false}>
-          <p className="mb-2.5 text-[13px] text-muted">
-            Same shared catalog, differing native-ontology density. Machine-observed by driving Genie One headless
-            on each workspace.
-          </p>
           <OnOff runs={runs} />
         </Collapsible>}
       </div>

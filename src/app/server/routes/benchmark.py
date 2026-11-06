@@ -36,7 +36,7 @@ BENCH_DIR = os.environ.get("CARE_BENCHMARK_DIR") or (
 # Genie One end-to-end (retrieval + its own SQL) is a different thing — kept as a separate, hand-verified column.
 ARMS = [
     {"id": "metric_view", "label": "Metric View", "eval_arm": "metric_view", "kind": "retrieval"},
-    {"id": "closure", "label": "Closure / SQL", "eval_arm": "closure_sql", "kind": "retrieval"},
+    {"id": "closure", "label": "Closure tables", "eval_arm": "closure_sql", "kind": "retrieval"},
     {"id": "genie_ontology", "label": "Genie Ontology", "eval_arm": "genie_ontology", "kind": "retrieval"},
     {"id": "rag", "label": "RAG", "eval_arm": "rag", "kind": "retrieval"},
     {"id": "graph", "label": "Ontobricks graph", "eval_arm": "ontobricks", "kind": "retrieval"},
@@ -97,6 +97,8 @@ def capability_map():
         classes[-1]["questions"].append({
             "id": r["question_id"], "question": r["question"], "gold": r["gold_25k"],
             "min_approach": r["min_approach"], "note": r.get("note") or "", "verdicts": v,
+            # one short reason per approach (why it answered / why not), hand-written from the run's evidence
+            "why": json.loads(r["why"]) if r.get("why") else {},
             "evidence": {a["id"]: evidence(a, r) for a in ARMS if a["kind"] == "retrieval"},
         })
 

@@ -7,7 +7,7 @@ and vary the injected context one component at a time, with closed_book as the f
 
     closed_book    no retrieval                          -> the parametric-knowledge floor (necessity baseline)
     metric_view    the governed metric-view DEFINITIONS (YAML) most relevant to the question
-    closure_sql    closure / edge table cards + the rows the question's linked entities hit
+    closure_sql    closure tables as tools: resolve the concepts, walk the closure, join the patients under each subtree
     rag            Lakebase hybrid passages (A4)          -> unstructured text retrieval
 
 Every provider that actually retrieves is wrapped as an MLflow RETRIEVER span so RetrievalGroundedness and the
@@ -43,7 +43,7 @@ def _doc(content: str, **meta) -> dict:
 import sys as _sys  # noqa: E402
 
 _sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "app")))
-from server.context_retrieval import genie_ontology_docs, graph_context, link_entities  # noqa: E402
+from server.context_retrieval import closure_context, genie_ontology_docs, graph_context, link_entities  # noqa: E402
 
 _STOP = set("the a an of to in on for and or is are was what which how many much does do did with by from this "
             "that their its it as at be any each all whether under show give name own".split())
@@ -87,69 +87,15 @@ def metric_view(question: str, qid: str) -> list[dict]:
             for sc, fqn in scored[:MV_TOP_K] if sc > 0]
 
 
-_TERM_CARDS: list[dict] | None = None
-
-
-def _term_cards() -> list[dict]:
-    """One card per closure / edge table in the terminology schema: name, comment, columns (live UC metadata)."""
-    global _TERM_CARDS
-    if _TERM_CARDS is None:
-        tabs = run_sql(f"SELECT table_name, comment FROM {CATALOG}.information_schema.tables "
-                       f"WHERE table_schema = '{SCHEMA_TERM}' ORDER BY table_name")
-        cols = run_sql(f"SELECT table_name, column_name, comment FROM {CATALOG}.information_schema.columns "
-                       f"WHERE table_schema = '{SCHEMA_TERM}' ORDER BY table_name, ordinal_position")
-        _TERM_CARDS = []
-        for t in tabs:
-            cs = [c for c in cols if c["table_name"] == t["table_name"]]
-            body = "; ".join(f"{c['column_name']}" + (f" ({c['comment']})" if c.get("comment") else "") for c in cs)
-            _TERM_CARDS.append(_doc(f"Table {CATALOG}.{SCHEMA_TERM}.{t['table_name']}: {t.get('comment') or ''}\n"
-                                    f"Columns: {body}", source="closure_sql", kind="table", table=t["table_name"]))
-    return _TERM_CARDS
-
-
 def _q(v: str) -> str:
     return "'" + v.replace("'", "") + "'"
 
 
 @mlflow.trace(span_type="RETRIEVER", name="closure_sql")
 def closure_sql(question: str, qid: str) -> list[dict]:
-    """Closure / edge tables: the table cards, plus the rows the question's linked entities hit (one expansion hop
-    through protocol_edges -> value sets / drug classes). No patient data lives here, so patient ids link nothing."""
-    exact, prefixes = link_entities(question)
-    T = f"{CATALOG}.{SCHEMA_TERM}"
-    ids = {n.split("/", 1)[1] for n in exact if not n.startswith("Patient/")}
-    icd = sorted({p.split("/", 1)[1] for p in prefixes})
-    docs = list(_term_cards())
-    if not ids and not icd:
-        return docs
-
-    def rows(label, sql):
-        rs = run_sql(sql)
-        if rs:
-            docs.append(_doc(f"Rows from {label}:\n{_render(rs, limit=25)}", source="closure_sql", kind="rows",
-                             table=label))
-        return rs
-
-    edges = rows(f"{T}.protocol_edges", f"SELECT subject, predicate, object, value, source FROM {T}.protocol_edges "
-                 f"WHERE subject IN ({', '.join(map(_q, ids or {''}))}) OR object IN ({', '.join(map(_q, ids or {''}))})") \
-        if ids else []
-    hop = ids | {e["subject"] for e in edges} | {e["object"] for e in edges}
-    sets = sorted(x for x in hop if x.isupper() and not x.startswith(("DRUGCLASS-", "LP-")))
-    classes = sorted(x for x in hop if x.startswith("DRUGCLASS-"))
-    parts = sorted(x for x in hop if x.startswith("LP-"))
-    if sets:
-        rows(f"{T}.value_set_segment", f"SELECT segment_id, segment_name, code, code_system, measurement_year "
-             f"FROM {T}.value_set_segment WHERE segment_id IN ({', '.join(map(_q, sets))}) LIMIT 40")
-    if classes:
-        rows(f"{T}.rxnorm_closure", f"SELECT ancestor_code, ancestor_name, descendant_code, descendant_name, depth "
-             f"FROM {T}.rxnorm_closure WHERE ancestor_code IN ({', '.join(map(_q, classes))}) ORDER BY 1, 5, 3 LIMIT 25")
-    if parts:
-        rows(f"{T}.loinc_parts", f"SELECT loinc_code, loinc_name, predicate, part FROM {T}.loinc_parts "
-             f"WHERE part IN ({', '.join(map(_q, parts))}) LIMIT 25")
-    if icd:
-        rows(f"{T}.icd10_closure", f"SELECT ancestor_code, ancestor_name, descendant_code, descendant_name, depth "
-             f"FROM {T}.icd10_closure WHERE ancestor_code IN ({', '.join(map(_q, icd))}) ORDER BY 1, 5, 3 LIMIT 25")
-    return docs
+    """Closure tables as parameterized tools (resolve_node -> ancestors / descendants -> patients under the subtree).
+    See closure_context in src/app/server/context_retrieval.py. No free-form SQL, no per-question queries."""
+    return closure_context(question, run_sql, CATALOG, SCHEMA, SCHEMA_TERM)
 
 
 def _render(rows: list[dict], limit: int = 12) -> str:
@@ -292,7 +238,6 @@ PROVIDERS = {
 def warm() -> None:
     """Populate the per-run metadata caches (metric-view definitions, terminology table cards) before parallel use."""
     _metric_views()
-    _term_cards()
     schema_pack()
 
 

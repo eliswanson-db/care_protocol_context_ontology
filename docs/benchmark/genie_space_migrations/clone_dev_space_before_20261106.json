@@ -1,0 +1,680 @@
+{
+ "version": 2,
+ "config": {
+  "sample_questions": [
+   {
+    "id": "01f1d573b3091c419578a75097971b01",
+    "question": [
+     "Compare all five diabetes measure compliance rates."
+    ]
+   },
+   {
+    "id": "01f1d573b30b171a91502c89b5e626b2",
+    "question": [
+     "What is the diabetic eye exam (EED) rate?"
+    ]
+   },
+   {
+    "id": "01f1d573b30c1e73b5e483438bf88a10",
+    "question": [
+     "What share of eligible diabetic patients are on statin therapy (SPD)?"
+    ]
+   },
+   {
+    "id": "01f1d573b30e1a39856194a897230000",
+    "question": [
+     "What is the blood pressure control (BPD) rate for diabetic patients?"
+    ]
+   },
+   {
+    "id": "01f1d573b31012fbb1b04783e13947c7",
+    "question": [
+     "How many diabetic patients have a care gap for kidney evaluation (KED)?"
+    ]
+   },
+   {
+    "id": "01f1d573b3111bb993c96480acc9daba",
+    "question": [
+     "What is the KED compliance rate, and how do the eGFR and uACR components compare?"
+    ]
+   },
+   {
+    "id": "01f1d573b31316da986eefd33748aff5",
+    "question": [
+     "Show the GSD compliance rate by age band."
+    ]
+   },
+   {
+    "id": "01f1d573b315105fbda1119ea8b8c1b6",
+    "question": [
+     "What is the overall GSD compliance rate?"
+    ]
+   }
+  ]
+ },
+ "data_sources": {
+  "tables": [
+   {
+    "identifier": "eli_test_classic_catalog.care_protocol.bpd_compliance_metrics"
+   },
+   {
+    "identifier": "eli_test_classic_catalog.care_protocol.eed_compliance_metrics"
+   },
+   {
+    "identifier": "eli_test_classic_catalog.care_protocol.gold_adherence_bpd",
+    "column_configs": [
+     {
+      "column_name": "status",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true
+     }
+    ]
+   },
+   {
+    "identifier": "eli_test_classic_catalog.care_protocol.gold_adherence_eed",
+    "column_configs": [
+     {
+      "column_name": "evidence_exam",
+      "synonyms": [
+       "eye exam type",
+       "exam",
+       "procedure"
+      ],
+      "enable_format_assistance": true,
+      "enable_entity_matching": true
+     },
+     {
+      "column_name": "status",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true
+     }
+    ]
+   },
+   {
+    "identifier": "eli_test_classic_catalog.care_protocol.gold_adherence_gsd",
+    "column_configs": [
+     {
+      "column_name": "clinic_id",
+      "synonyms": [
+       "clinic",
+       "practice",
+       "site"
+      ],
+      "enable_format_assistance": true,
+      "enable_entity_matching": true
+     },
+     {
+      "column_name": "panel_id",
+      "synonyms": [
+       "panel",
+       "PCP panel",
+       "provider panel"
+      ],
+      "enable_format_assistance": true,
+      "enable_entity_matching": true
+     },
+     {
+      "column_name": "status",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true
+     }
+    ]
+   },
+   {
+    "identifier": "eli_test_classic_catalog.care_protocol.gold_adherence_ked",
+    "column_configs": [
+     {
+      "column_name": "status",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true
+     }
+    ]
+   },
+   {
+    "identifier": "eli_test_classic_catalog.care_protocol.gold_adherence_spd",
+    "column_configs": [
+     {
+      "column_name": "evidence_drug",
+      "synonyms": [
+       "statin",
+       "statin drug",
+       "medication"
+      ],
+      "enable_format_assistance": true,
+      "enable_entity_matching": true
+     },
+     {
+      "column_name": "status",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true
+     }
+    ]
+   },
+   {
+    "identifier": "eli_test_classic_catalog.care_protocol.gsd_compliance_metrics"
+   },
+   {
+    "identifier": "eli_test_classic_catalog.care_protocol.ked_compliance_metrics"
+   },
+   {
+    "identifier": "eli_test_classic_catalog.care_protocol.spd_compliance_metrics"
+   }
+  ]
+ },
+ "instructions": {
+  "text_instructions": [
+   {
+    "id": "01f1d573b3081768bd265db68f329e3f",
+    "content": [
+     "This agent answers questions about five HEDIS diabetes quality measures (HEDIS-aligned demo, not NCQA-certified): GSD, KED, BPD, SPD, EED.For measure RATES, query the matching metric view (gsd/ked/bpd/spd/eed_compliance_metrics) using MEASURE(`<measure name>`), e.g. MEASURE(`GSD Compliance Rate`). Never SUM or AVG a rate column.GSD = Glycemic Status Assessment: diabetics aged 18-75 with an A1c test in the measurement year.KED = Kidney Health Evaluation: diabetics aged 18-85 with BOTH an eGFR and a uACR test; uACR is usually the limiting component.BPD = Blood Pressure control: diabetics aged 18-75 whose most recent BP reading is <140/90.SPD = Statin Therapy: diabetics aged 40-75 dispensed a statin in the measurement year.EED = Eye Exam: diabetics aged 18-75 with a retinal/diabetic eye exam in the measurement year.Each measure has a metric view (rates, with dimensions Measurement Year, Compliance Status, Age Band, Measure) and a gold_adherence_<measure> table (patient-level detail + evidence).For patient-level detail or care gaps, use gold_adherence_<measure>. status = 'NOT_MET' means a care gap; 'MET' means compliant.The diabetes cohort is defined by subsumption over the ICD-10-CM hierarchy (diagnoses under E10/E11/E13)."
+    ]
+   }
+  ],
+  "example_question_sqls": [
+   {
+    "id": "01f1d573b2ff1a46b7468bd2f412f38e",
+    "question": [
+     "What is the overall GSD compliance rate?"
+    ],
+    "sql": [
+     "SELECT MEASURE(`GSD Compliance Rate`) AS gsd_compliance_rate FROM eli_test_classic_catalog.care_protocol.gsd_compliance_metrics"
+    ]
+   },
+   {
+    "id": "01f1d573b301155f8f274a36904afc8c",
+    "question": [
+     "What is the KED compliance rate and its eGFR and uACR components?"
+    ],
+    "sql": [
+     "SELECT MEASURE(`KED Compliance Rate`) AS ked_rate, MEASURE(`eGFR Test Rate`) AS egfr_rate, MEASURE(`uACR Test Rate`) AS uacr_rate FROM eli_test_classic_catalog.care_protocol.ked_compliance_metrics"
+    ]
+   },
+   {
+    "id": "01f1d573b3031393adb5db9fef2b40d0",
+    "question": [
+     "How many patients have a KED care gap?"
+    ],
+    "sql": [
+     "SELECT COUNT(*) AS ked_care_gaps FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked WHERE status = 'NOT_MET'"
+    ]
+   },
+   {
+    "id": "01f1d573b304180f8408c41ca6c0ae26",
+    "question": [
+     "What is the blood pressure control (BPD) rate?"
+    ],
+    "sql": [
+     "SELECT MEASURE(`BPD Compliance Rate`) AS bpd_rate FROM eli_test_classic_catalog.care_protocol.bpd_compliance_metrics"
+    ]
+   },
+   {
+    "id": "01f1d573b3051de4b8d6b2e34a47c246",
+    "question": [
+     "What is the statin therapy (SPD) rate?"
+    ],
+    "sql": [
+     "SELECT MEASURE(`SPD Compliance Rate`) AS spd_rate FROM eli_test_classic_catalog.care_protocol.spd_compliance_metrics"
+    ]
+   },
+   {
+    "id": "01f1d573b30712d6bdf6cdf9d26286d4",
+    "question": [
+     "What is the diabetic eye exam (EED) rate?"
+    ],
+    "sql": [
+     "SELECT MEASURE(`EED Compliance Rate`) AS eed_rate FROM eli_test_classic_catalog.care_protocol.eed_compliance_metrics"
+    ]
+   },
+   {
+    "id": "01f1d5746afe15f5a85215da6d0c9aac",
+    "question": [
+     "Compare all five measure compliance rates by clinic"
+    ],
+    "sql": [
+     "WITH clinic AS (SELECT patient_id, measurement_year, clinic_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd),\n",
+     "m AS (\n",
+     "  SELECT 'GSD' AS measure, measurement_year, clinic_id, numerator_flag FROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd\n",
+     "  UNION ALL SELECT 'KED', k.measurement_year, c.clinic_id, k.numerator_flag FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked k JOIN clinic c USING (patient_id, measurement_year)\n",
+     "  UNION ALL SELECT 'BPD', b.measurement_year, c.clinic_id, b.numerator_flag FROM eli_test_classic_catalog.care_protocol.gold_adherence_bpd b JOIN clinic c USING (patient_id, measurement_year)\n",
+     "  UNION ALL SELECT 'SPD', s.measurement_year, c.clinic_id, s.numerator_flag FROM eli_test_classic_catalog.care_protocol.gold_adherence_spd s JOIN clinic c USING (patient_id, measurement_year)\n",
+     "  UNION ALL SELECT 'EED', e.measurement_year, c.clinic_id, e.numerator_flag FROM eli_test_classic_catalog.care_protocol.gold_adherence_eed e JOIN clinic c USING (patient_id, measurement_year))\n",
+     "SELECT clinic_id,\n",
+     "  COUNT_IF(measure = 'GSD' AND numerator_flag) / COUNT_IF(measure = 'GSD') AS gsd_rate,\n",
+     "  COUNT_IF(measure = 'KED' AND numerator_flag) / COUNT_IF(measure = 'KED') AS ked_rate,\n",
+     "  COUNT_IF(measure = 'BPD' AND numerator_flag) / COUNT_IF(measure = 'BPD') AS bpd_rate,\n",
+     "  COUNT_IF(measure = 'SPD' AND numerator_flag) / COUNT_IF(measure = 'SPD') AS spd_rate,\n",
+     "  COUNT_IF(measure = 'EED' AND numerator_flag) / COUNT_IF(measure = 'EED') AS eed_rate\n",
+     "FROM m\n",
+     "GROUP BY clinic_id\n",
+     "ORDER BY clinic_id"
+    ]
+   },
+   {
+    "id": "01f1d5746afe1a2f9e3993d4a3b783b3",
+    "question": [
+     "How many patients have multiple open care gaps across the five measures?"
+    ],
+    "sql": [
+     "WITH gaps AS (\n",
+     "  SELECT patient_id, 'GSD' AS measure FROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd WHERE status = 'NOT_MET'\n",
+     "  UNION ALL SELECT patient_id, 'KED' FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked WHERE status = 'NOT_MET'\n",
+     "  UNION ALL SELECT patient_id, 'BPD' FROM eli_test_classic_catalog.care_protocol.gold_adherence_bpd WHERE status = 'NOT_MET'\n",
+     "  UNION ALL SELECT patient_id, 'SPD' FROM eli_test_classic_catalog.care_protocol.gold_adherence_spd WHERE status = 'NOT_MET'\n",
+     "  UNION ALL SELECT patient_id, 'EED' FROM eli_test_classic_catalog.care_protocol.gold_adherence_eed WHERE status = 'NOT_MET')\n",
+     "SELECT gap_count, COUNT(*) AS patients\n",
+     "FROM (SELECT patient_id, COUNT(*) AS gap_count FROM gaps GROUP BY patient_id)\n",
+     "GROUP BY gap_count\n",
+     "ORDER BY gap_count"
+    ]
+   },
+   {
+    "id": "01f1d5746afe1eba9e8a38df3d0f86e4",
+    "question": [
+     "Why are BPD patients not controlled? Break down blood pressure care gaps by reason"
+    ],
+    "sql": [
+     "SELECT CASE WHEN bp_datetime IS NULL THEN 'No BP reading' WHEN systolic >= 140 AND diastolic >= 90 THEN 'Systolic and diastolic high' WHEN systolic >= 140 THEN 'Systolic high' ELSE 'Diastolic high' END AS gap_reason,\n",
+     "  COUNT(*) AS patients\n",
+     "FROM eli_test_classic_catalog.care_protocol.gold_adherence_bpd\n",
+     "WHERE status = 'NOT_MET'\n",
+     "GROUP BY 1\n",
+     "ORDER BY patients DESC"
+    ]
+   },
+   {
+    "id": "01f1d5746aff12c3a6c33e765bc8128b",
+    "question": [
+     "Show GSD testing rate and glycemic control by clinic"
+    ],
+    "sql": [
+     "SELECT clinic_id,\n",
+     "  COUNT(*) AS eligible_patients,\n",
+     "  COUNT_IF(numerator_flag) / COUNT(*) AS gsd_compliance_rate,\n",
+     "  COUNT_IF(a1c_lt8) / COUNT_IF(numerator_flag) AS good_control_rate,\n",
+     "  COUNT_IF(a1c_gt9) / COUNT_IF(numerator_flag) AS poor_control_rate,\n",
+     "  AVG(evidence_value) AS avg_latest_a1c\n",
+     "FROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd\n",
+     "GROUP BY clinic_id\n",
+     "ORDER BY gsd_compliance_rate DESC"
+    ]
+   }
+  ],
+  "join_specs": [
+   {
+    "id": "01f1d5746aea10ceaaab75ebd83103de",
+    "left": {
+     "identifier": "eli_test_classic_catalog.care_protocol.gold_adherence_ked"
+    },
+    "right": {
+     "identifier": "eli_test_classic_catalog.care_protocol.gold_adherence_gsd"
+    },
+    "sql": [
+     "gold_adherence_ked.patient_id = gold_adherence_gsd.patient_id AND gold_adherence_ked.measurement_year = gold_adherence_gsd.measurement_year",
+     "--rt=FROM_RELATIONSHIP_TYPE_MANY_TO_ONE--"
+    ],
+    "comment": [
+     "KED patient to GSD clinic/panel attribution"
+    ],
+    "instruction": [
+     "Use only to attach clinic_id / panel_id (which exist only on gold_adherence_gsd) to KED patients. Use a LEFT JOIN for overall KED counts: KED patients aged 76-85 are not in the GSD population and have no clinic. For clinic breakdowns, an inner join (clinic-attributed patients only) is acceptable."
+    ]
+   },
+   {
+    "id": "01f1d5746aea15e087743fa54b0209e0",
+    "left": {
+     "identifier": "eli_test_classic_catalog.care_protocol.gold_adherence_bpd"
+    },
+    "right": {
+     "identifier": "eli_test_classic_catalog.care_protocol.gold_adherence_gsd"
+    },
+    "sql": [
+     "gold_adherence_bpd.patient_id = gold_adherence_gsd.patient_id AND gold_adherence_bpd.measurement_year = gold_adherence_gsd.measurement_year",
+     "--rt=FROM_RELATIONSHIP_TYPE_MANY_TO_ONE--"
+    ],
+    "comment": [
+     "BPD patient to GSD clinic/panel attribution"
+    ],
+    "instruction": [
+     "Use to attach clinic_id / panel_id to BPD patients for clinic or panel breakdowns. Every BPD patient has a GSD row."
+    ]
+   },
+   {
+    "id": "01f1d5746aea1aa299589bd8a9462a06",
+    "left": {
+     "identifier": "eli_test_classic_catalog.care_protocol.gold_adherence_spd"
+    },
+    "right": {
+     "identifier": "eli_test_classic_catalog.care_protocol.gold_adherence_gsd"
+    },
+    "sql": [
+     "gold_adherence_spd.patient_id = gold_adherence_gsd.patient_id AND gold_adherence_spd.measurement_year = gold_adherence_gsd.measurement_year",
+     "--rt=FROM_RELATIONSHIP_TYPE_MANY_TO_ONE--"
+    ],
+    "comment": [
+     "SPD patient to GSD clinic/panel attribution"
+    ],
+    "instruction": [
+     "Use to attach clinic_id / panel_id to SPD patients for clinic or panel breakdowns. Every SPD patient has a GSD row."
+    ]
+   },
+   {
+    "id": "01f1d5746aeb114287390180db1fb7f8",
+    "left": {
+     "identifier": "eli_test_classic_catalog.care_protocol.gold_adherence_eed"
+    },
+    "right": {
+     "identifier": "eli_test_classic_catalog.care_protocol.gold_adherence_gsd"
+    },
+    "sql": [
+     "gold_adherence_eed.patient_id = gold_adherence_gsd.patient_id AND gold_adherence_eed.measurement_year = gold_adherence_gsd.measurement_year",
+     "--rt=FROM_RELATIONSHIP_TYPE_MANY_TO_ONE--"
+    ],
+    "comment": [
+     "EED patient to GSD clinic/panel attribution"
+    ],
+    "instruction": [
+     "Use to attach clinic_id / panel_id to EED patients for clinic or panel breakdowns. Every EED patient has a GSD row."
+    ]
+   }
+  ],
+  "sql_snippets": {
+   "filters": [
+    {
+     "id": "01f1d5746af91024baae93d672c9e71b",
+     "sql": [
+      "gold_adherence_gsd.status = 'NOT_MET'"
+     ],
+     "display_name": "GSD care gaps (no A1c test) \u2014 use for GSD gap lists/counts"
+    },
+    {
+     "id": "01f1d5746af914d68d4fe0002935c654",
+     "sql": [
+      "gold_adherence_ked.status = 'NOT_MET'"
+     ],
+     "display_name": "KED care gaps (missing eGFR and/or uACR) \u2014 use for KED gap lists/counts"
+    },
+    {
+     "id": "01f1d5746af91863a175a44a19e7f5f3",
+     "sql": [
+      "gold_adherence_bpd.status = 'NOT_MET'"
+     ],
+     "display_name": "BPD care gaps (uncontrolled BP or no reading) \u2014 use for BPD gap lists/counts"
+    },
+    {
+     "id": "01f1d5746af91be5be2101ce97b0e1e0",
+     "sql": [
+      "gold_adherence_spd.status = 'NOT_MET'"
+     ],
+     "display_name": "SPD care gaps (no statin dispensed) \u2014 use for SPD gap lists/counts"
+    },
+    {
+     "id": "01f1d5746af91f4a98e1a620a47ed74e",
+     "sql": [
+      "gold_adherence_eed.status = 'NOT_MET'"
+     ],
+     "display_name": "EED care gaps (no eye exam) \u2014 use for EED gap lists/counts"
+    },
+    {
+     "id": "01f1d5746afa12e58b20e6fb68483c2e",
+     "sql": [
+      "gold_adherence_ked.egfr_flag AND NOT gold_adherence_ked.uacr_flag"
+     ],
+     "display_name": "KED patients missing only the uACR test (eGFR done) \u2014 'close the uACR gap' outreach"
+    },
+    {
+     "id": "01f1d5746afa173082dd59452c8a2279",
+     "sql": [
+      "gold_adherence_bpd.bp_datetime IS NULL"
+     ],
+     "display_name": "BPD patients with no BP reading in the measurement year"
+    },
+    {
+     "id": "01f1d5746afa1b1aa3cb62f0084378a0",
+     "sql": [
+      "gold_adherence_bpd.status = 'NOT_MET' AND gold_adherence_bpd.bp_datetime IS NOT NULL"
+     ],
+     "display_name": "BPD patients with an uncontrolled latest reading (excludes no-reading gaps)"
+    },
+    {
+     "id": "01f1d5746afa1ec9bdb863b12caefcd2",
+     "sql": [
+      "gold_adherence_gsd.a1c_gt9"
+     ],
+     "display_name": "GSD poorly controlled patients (latest A1c > 9%)"
+    }
+   ],
+   "expressions": [
+    {
+     "id": "01f1d5746afb12bdac52b3a08627c992",
+     "sql": [
+      "CASE WHEN gold_adherence_ked.status = 'MET' THEN 'Complete' WHEN NOT gold_adherence_ked.egfr_flag AND NOT gold_adherence_ked.uacr_flag THEN 'Missing eGFR and uACR' WHEN NOT gold_adherence_ked.uacr_flag THEN 'Missing uACR only' ELSE 'Missing eGFR only' END"
+     ],
+     "display_name": "KED care gap reason"
+    },
+    {
+     "id": "01f1d5746afb16ee9a783e95144eda94",
+     "sql": [
+      "CASE WHEN gold_adherence_bpd.status = 'MET' THEN 'Controlled' WHEN gold_adherence_bpd.bp_datetime IS NULL THEN 'No BP reading' WHEN gold_adherence_bpd.systolic >= 140 AND gold_adherence_bpd.diastolic >= 90 THEN 'Systolic and diastolic high' WHEN gold_adherence_bpd.systolic >= 140 THEN 'Systolic high' ELSE 'Diastolic high' END"
+     ],
+     "display_name": "BPD care gap reason"
+    },
+    {
+     "id": "01f1d5746afb1ea69e1f891ff06f2427",
+     "sql": [
+      "CASE WHEN NOT gold_adherence_gsd.numerator_flag THEN 'Not tested' WHEN gold_adherence_gsd.a1c_lt8 THEN 'Good (<8%)' WHEN gold_adherence_gsd.a1c_gt9 THEN 'Poor (>9%)' ELSE 'Moderate (8-9%)' END"
+     ],
+     "display_name": "GSD glycemic control band"
+    },
+    {
+     "id": "01f1d5746afc1335a43f95639dcfbeb4",
+     "sql": [
+      "CASE WHEN gold_adherence_gsd.age < 45 THEN '18-44' WHEN gold_adherence_gsd.age < 65 THEN '45-64' ELSE '65-75' END"
+     ],
+     "display_name": "GSD age band (matches gsd/bpd/eed metric views)"
+    },
+    {
+     "id": "01f1d5746afc175b9c941f03bee8fa61",
+     "sql": [
+      "CASE WHEN gold_adherence_ked.age < 45 THEN '18-44' WHEN gold_adherence_ked.age < 65 THEN '45-64' ELSE '65-85' END"
+     ],
+     "display_name": "KED age band (matches ked metric view)"
+    },
+    {
+     "id": "01f1d5746afc1b3e91044f71b8b0eaaa",
+     "sql": [
+      "CASE WHEN gold_adherence_spd.age < 55 THEN '40-54' WHEN gold_adherence_spd.age < 65 THEN '55-64' ELSE '65-75' END"
+     ],
+     "display_name": "SPD age band (matches spd metric view)"
+    },
+    {
+     "id": "01f1d5746afc1f3eb99bfd194d906912",
+     "sql": [
+      "INITCAP(SPLIT(gold_adherence_spd.evidence_drug, ' ')[0])"
+     ],
+     "display_name": "Statin ingredient (normalized from drug name)"
+    }
+   ],
+   "measures": [
+    {
+     "id": "01f1d5746af51696a6689081ac618794",
+     "sql": [
+      "COUNT_IF(gold_adherence_gsd.numerator_flag) / COUNT(*)"
+     ],
+     "display_name": "GSD compliance rate (patient-level, for clinic/panel breakdowns)"
+    },
+    {
+     "id": "01f1d5746af51b7d9965759cc0861912",
+     "sql": [
+      "COUNT_IF(gold_adherence_ked.numerator_flag) / COUNT(*)"
+     ],
+     "display_name": "KED compliance rate (patient-level, for clinic/panel breakdowns)"
+    },
+    {
+     "id": "01f1d5746af51fedb5fe5133fe54f48c",
+     "sql": [
+      "COUNT_IF(gold_adherence_bpd.numerator_flag) / COUNT(*)"
+     ],
+     "display_name": "BPD compliance rate (patient-level, for clinic/panel breakdowns)"
+    },
+    {
+     "id": "01f1d5746af615638f374a1fc292feea",
+     "sql": [
+      "COUNT_IF(gold_adherence_spd.numerator_flag) / COUNT(*)"
+     ],
+     "display_name": "SPD compliance rate (patient-level, for clinic/panel breakdowns)"
+    },
+    {
+     "id": "01f1d5746af61a04a348e0f80abd5567",
+     "sql": [
+      "COUNT_IF(gold_adherence_eed.numerator_flag) / COUNT(*)"
+     ],
+     "display_name": "EED compliance rate (patient-level, for clinic/panel breakdowns)"
+    },
+    {
+     "id": "01f1d5746af61e7f9cddb9164a8b8e0c",
+     "sql": [
+      "COUNT_IF(gold_adherence_gsd.status = 'NOT_MET')"
+     ],
+     "display_name": "GSD care gap count"
+    },
+    {
+     "id": "01f1d5746af71279bc7e6ca6c3808159",
+     "sql": [
+      "COUNT_IF(gold_adherence_ked.status = 'NOT_MET')"
+     ],
+     "display_name": "KED care gap count"
+    },
+    {
+     "id": "01f1d5746af717f78184dfaab470bf88",
+     "sql": [
+      "COUNT_IF(gold_adherence_bpd.status = 'NOT_MET')"
+     ],
+     "display_name": "BPD care gap count"
+    },
+    {
+     "id": "01f1d5746af71b6f9e4ed6935927c675",
+     "sql": [
+      "COUNT_IF(gold_adherence_spd.status = 'NOT_MET')"
+     ],
+     "display_name": "SPD care gap count"
+    },
+    {
+     "id": "01f1d5746af71f84ae4b7600172c5477",
+     "sql": [
+      "COUNT_IF(gold_adherence_eed.status = 'NOT_MET')"
+     ],
+     "display_name": "EED care gap count"
+    },
+    {
+     "id": "01f1d5746af813678a13cc4f269f8c82",
+     "sql": [
+      "COUNT_IF(gold_adherence_gsd.a1c_lt8) / COUNT_IF(gold_adherence_gsd.numerator_flag)"
+     ],
+     "display_name": "GSD good glycemic control rate (A1c < 8%, among A1c-tested patients)"
+    },
+    {
+     "id": "01f1d5746af8171eb18f38a85eba905e",
+     "sql": [
+      "COUNT_IF(gold_adherence_gsd.a1c_gt9) / COUNT_IF(gold_adherence_gsd.numerator_flag)"
+     ],
+     "display_name": "GSD poor glycemic control rate (A1c > 9%, among A1c-tested patients)"
+    },
+    {
+     "id": "01f1d5746af81b5fa258f58a5efad6fa",
+     "sql": [
+      "AVG(gold_adherence_gsd.evidence_value)"
+     ],
+     "display_name": "Average latest A1c (%) among tested patients"
+    }
+   ]
+  }
+ },
+ "benchmarks": {
+  "questions": [
+   {
+    "id": "01f1d5749c8b13c4bd3444a76ddb6f57",
+    "question": [
+     "What share of A1c-tested patients are poorly controlled (A1c above 9%)?"
+    ],
+    "answer": [
+     {
+      "format": "SQL",
+      "content": [
+       "SELECT MEASURE(`Poor Control Rate`) AS poor_control_rate FROM eli_test_classic_catalog.care_protocol.gsd_compliance_metrics"
+      ]
+     }
+    ]
+   },
+   {
+    "id": "01f1d5749c6e1a1591a737fb6cf8cef0",
+    "question": [
+     "Which clinic has the highest diabetic eye exam (EED) rate?"
+    ],
+    "answer": [
+     {
+      "format": "SQL",
+      "content": [
+       "SELECT g.clinic_id, COUNT_IF(e.numerator_flag) / COUNT(*) AS eed_rate FROM eli_test_classic_catalog.care_protocol.gold_adherence_eed e JOIN eli_test_classic_catalog.care_protocol.gold_adherence_gsd g ON e.patient_id = g.patient_id AND e.measurement_year = g.measurement_year GROUP BY g.clinic_id ORDER BY eed_rate DESC"
+      ]
+     }
+    ]
+   },
+   {
+    "id": "01f1d5749c55100dad6d27312f64ae63",
+    "question": [
+     "How many BPD-eligible patients had no blood pressure reading in the measurement year?"
+    ],
+    "answer": [
+     {
+      "format": "SQL",
+      "content": [
+       "SELECT COUNT(*) AS patients FROM eli_test_classic_catalog.care_protocol.gold_adherence_bpd WHERE bp_datetime IS NULL"
+      ]
+     }
+    ]
+   },
+   {
+    "id": "01f1d5749c3b1c298604aea0f6b5393c",
+    "question": [
+     "How many KED patients had an eGFR test but are missing the uACR test?"
+    ],
+    "answer": [
+     {
+      "format": "SQL",
+      "content": [
+       "SELECT COUNT(*) AS patients FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked WHERE egfr_flag AND NOT uacr_flag"
+      ]
+     }
+    ]
+   },
+   {
+    "id": "01f1d5749c191e5f88b278bec4bfbb89",
+    "question": [
+     "What is the statin therapy (SPD) rate by age band?"
+    ],
+    "answer": [
+     {
+      "format": "SQL",
+      "content": [
+       "SELECT `Age Band`, MEASURE(`SPD Compliance Rate`) AS spd_rate FROM eli_test_classic_catalog.care_protocol.spd_compliance_metrics GROUP BY `Age Band` ORDER BY `Age Band`"
+      ]
+     }
+    ]
+   },
+   {
+    "id": "01f1d5749c011caba18d0cd5a25f4913",
+    "question": [
+     "What percentage of eligible diabetic patients had an A1c test this year?"
+    ],
+    "answer": [
+     {
+      "format": "SQL",
+      "content": [
+       "SELECT MEASURE(`GSD Compliance Rate`) AS gsd_compliance_rate FROM eli_test_classic_catalog.care_protocol.gsd_compliance_metrics"
+      ]
+     }
+    ]
+   }
+  ]
+ }
+}

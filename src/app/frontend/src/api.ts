@@ -219,6 +219,7 @@ export interface CapQuestion {
   min_approach: string;
   note: string;
   verdicts: Record<string, string>;
+  why?: Record<string, string>;
   evidence?: Record<string, { context: string; sql?: string | null; tier_runs?: number[] | null; stable?: boolean | null }>;
 }
 export interface CapClass {

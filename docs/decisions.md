@@ -329,6 +329,27 @@ them); what differs is that patient facts, hierarchies and rules sit in one trav
 the graph's context held the patient's records and the rule together (tier 1, 2 of 3 runs), while Genie One solved
 it end-to-end from the relational tables.
 
+**Addendum 2026-11-06 — closure redesigned as a retrieval approach, not the answer key.** After the
+"Closure-Table Retrieval on Databricks" technical review. Before: the closure arm first injected the gold query's
+result, then table cards plus entity-matched rows for the agent to write free SQL against. Now it follows the
+review's pattern: the direct edges (`icd10_hier`, `rxnorm_hier`) are the source of truth and the closures are
+derived. Retrieval runs through four parameterized tools (`closure_context` in `src/app/server/context_retrieval.py`):
+`resolve_nodes` (node-name match + alias table), ancestors, descendants, and `patients_under` (the content join:
+patients with a diagnosis / medication order in the subtree). The agent writes no SQL. One relationship (is-a) only;
+protocol rules are a different relationship and are deliberately left out, so cross-relationship multi-hop is the
+graph's job. `scripts/validate_closure.py` checks the review's acceptance criteria (self rows, unique keys, direct
+edges at depth 1, no missing nodes, no cycles, equal to a recursive traversal): all pass.
+Not adopted: scope_id/tenancy, AI Search filtering by closure ids, UC-function registration of the tools, and the
+DAG min-depth contract (our hierarchies are trees). Gap found: `rxnorm_closure` mixes two relationships
+(class -> ingredient and ingredient -> product), which the review says to keep separate.
+Demo set is now 5 questions (one story each). First run: metric view alone answers the clinic Step-3 question;
+closure alone answers "diabetes with kidney complications" (1,881) because it resolves the concept by name, while
+the graph and Genie Ontology both misread it as diabetes AND CKD (1,791) -- the graph carries no code names; the
+graph alone answers the statin-contraindication cohort (198), the only cross-relationship question.
+Also: the ECT `(Clone) [dev]` Genie space was migrated to current names (`scripts/migrate_genie_space_names.py`;
+before-state in `docs/benchmark/genie_space_migrations/`). Genie Ontology snippets still carry the old names until
+Genie re-mines it.
+
 ## ADR-0009 — A4 Lakebase = Autoscaling project; hybrid retrieval over the ontology corpus
 **Date:** 2026-10-30 · **Status:** accepted
 A4 (Lakebase hybrid retrieval) uses a **Lakebase Autoscaling** project, not the retired **Provisioned**
