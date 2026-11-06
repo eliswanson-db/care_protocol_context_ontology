@@ -83,7 +83,7 @@ def capability_map():
     def evidence(a, r):
         e = by.get((a.get("eval_arm"), r["question_id"])) or {}
         out = {"context": (e.get("context") or "")[:600], "sql": e.get("sql"), "tier_runs": e.get("tier_runs"),
-               "stable": e.get("stable")}
+               "stable": e.get("stable"), "retrieved": e.get("retrieved"), "interface": e.get("interface")}
         return out
 
     classes: list[dict] = []
@@ -97,8 +97,10 @@ def capability_map():
         classes[-1]["questions"].append({
             "id": r["question_id"], "question": r["question"], "gold": r["gold_25k"],
             "min_approach": r["min_approach"], "note": r.get("note") or "", "verdicts": v,
-            # one short reason per approach (why it answered / why not), hand-written from the run's evidence
-            "why": json.loads(r["why"]) if r.get("why") else {},
+            # one short reason per approach (why it answered / why not), generated from the judged evidence
+            "why": {a["id"]: (by.get((a.get("eval_arm"), r["question_id"])) or {}).get("reason")
+                    for a in ARMS if a["kind"] == "retrieval"
+                    and (by.get((a.get("eval_arm"), r["question_id"])) or {}).get("reason")},
             "evidence": {a["id"]: evidence(a, r) for a in ARMS if a["kind"] == "retrieval"},
         })
 

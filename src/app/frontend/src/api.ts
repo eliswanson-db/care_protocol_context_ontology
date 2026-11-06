@@ -59,7 +59,13 @@ export interface Scored {
   skipped_search?: boolean;
   n_docs: number;
   context?: string;
+  interface?: string;
+  query?: { kind: "sql" | "tool"; sql?: string; tool?: string; args?: Record<string, unknown> } | null;
+  facts?: { fact: string; in_context: Judged; in_result: Judged | null }[];
+  reason?: string;
+  retrieved?: string;
 }
+export interface Judged { ok: boolean; rationale: string }
 export interface ArenaContext {
   qid: string;
   question: string;

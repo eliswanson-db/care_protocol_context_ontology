@@ -44,7 +44,7 @@ def _scored(qid: str) -> dict:
         return {}
     d = json.load(open(path))
     keys = ("tier", "tier_runs", "stable", "sufficient", "query_correct", "sql", "sql_result", "sql_error",
-            "skipped_search", "n_docs", "context")
+            "skipped_search", "n_docs", "context", "interface", "query", "facts", "reason", "retrieved")
     out = {r["arm"]: {k: r.get(k) for k in keys} for r in d.get("rows", []) if r["qid"] == qid}
     out["_meta"] = {"agent": d.get("agent"), "judge": d.get("judge"), "repeats": d.get("repeats")}
     return out

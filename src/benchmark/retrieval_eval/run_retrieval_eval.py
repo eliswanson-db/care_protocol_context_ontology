@@ -21,12 +21,13 @@ import os
 import time
 
 import mlflow
-from mlflow.genai.judges import meets_guidelines
 
 from . import agent, providers
 from .warehouse import run_readonly
+from server.context_retrieval import CLOSURE_TOOLS, closure_tool
+from server.graph_runner import TOOLS as GRAPH_TOOLS
 
-JUDGE = os.environ.get("CARE_JUDGE_MODEL", "databricks:/databricks-claude-sonnet-5")
+JUDGE = agent.JUDGE_MODEL
 EXPERIMENT = os.environ.get("CARE_EVAL_EXPERIMENT", "/Shared/care_protocol_retrieval_eval")
 
 # The scored set. Mirrors docs/benchmark/capability_matrix.csv; expected_facts are the hand-verified gold (25k).
@@ -98,6 +99,17 @@ QUESTIONS = [
                   "eligibility, and in what window must the required care happen?"),
      "expected_facts": ["Age is evaluated at the end of the measurement year (period end, December 31).",
                         "The required care must happen within the measurement year (January 1 to December 31)."]},
+    # Structure that breaks a closure: E11.22 has two parents (E11.2 and N18). The closure keeps one row per ancestor
+    # at the shortest distance and no routes; a traversal returns every route. Gold: @id graph_multiparent_routes.
+    {"qid": "graph_multiparent_routes", "cls": "8_graph_native", "wins": "graph",
+     "question": "Which top-level conditions does ICD-10 code E11.22 roll up to, and through which parent codes?",
+     # The question asks THROUGH WHICH parents, so each fact is a route. A list of ancestors with distances (E11.2 1,
+     # N18 1, E11 2) does not show a route: it can't tell whether E11 is reached through E11.2 or through N18.
+     "expected_facts": [
+         "The route E11.22 -> E11.2 -> E11 is shown: E11.22 reaches type 2 diabetes mellitus (E11) through E11.2. "
+         "A list of ancestors with distances alone does not show this route.",
+         "The route E11.22 -> N18 is shown: E11.22 reaches chronic kidney disease (N18) directly, as a second parent "
+         "with no code in between."]},
     {"qid": "op_worst_clinic_annual", "cls": "9_operational_temporal", "wins": "metric_view",
      "question": "Which clinic has the lowest protocol Step-3 (A1c follow-up) adherence overall this year?",
      "expected_facts": ["CLINIC-04 has the lowest Step-3 adherence year-to-date (about 44.3%)."]},
@@ -111,8 +123,6 @@ QUESTIONS = [
      "expected_facts": ["CLINIC-08's Step-3 adherence slipped after a primary-care (PCP) handoff on 2026-05-15; "
                         "the follow-up order set was not carried over."]},
 ]
-
-SCHEMA_TIER = False  # --schema-tier: also score with the shared physical schema pack (diagnostic)
 
 ARMS = ["closed_book", "metric_view", "closure_sql", "rag", "genie_ontology", "genie_ontology_dmvm", "ontobricks"]
 
@@ -128,83 +138,77 @@ def retrieve(arm: str, question: str, qid: str) -> list[dict]:
     return providers.PROVIDERS[arm](question, qid)
 
 
+# How each approach is allowed to query in the one-shot step: its OWN native interface.
+INTERFACE = {"metric_view": "sql", "genie_ontology": "sql", "genie_ontology_dmvm": "sql", "rag": "sql",
+             "closed_book": "sql", "closure_sql": "closure", "ontobricks": "graph"}
+INTERFACE_LABEL = {"sql": "SQL", "closure": "closure-tool call", "graph": "graph-runner call"}
+
+
+def _run_query(arm: str, query: dict) -> str:
+    """Execute the one-shot query in the arm's native interface; returns the rendered result."""
+    if query["kind"] == "sql":
+        return _render_rows(run_readonly(query["sql"]))
+    if query["interface"] == "closure":
+        res = closure_tool(query["tool"], query.get("args") or {}, providers.run_sql, providers.CATALOG,
+                           providers.SCHEMA, providers.SCHEMA_TERM)
+    else:
+        from server import graph_runner as gr
+        res = gr.call(providers.graph_runner(), query["tool"], query.get("args") or {})
+    from server.graph_runner import render
+    return render(res)
+
+
 @mlflow.trace(name="cell")
 def run_cell(arm: str, q: dict) -> dict:
-    """One (arm x question) cell, scored in three tiers from the SAME retrieved context:
-      tier 1  the answer is directly in the retrieved context           (sufficiency judge over the context)
-      tier 2  the context gives what's needed for ONE query that answers (agent writes one SQL from the context
-              only; we RUN it and judge the result rows against the gold facts)
-      tier 3  neither."""
+    """One (arm x question) cell.
+      1. Retrieve with the arm's own method.
+      2. Judge each gold fact against the retrieved context. All stated -> tier 1 ("answered in context").
+      3. Otherwise the agent may make ONE query in the arm's native interface (SQL / closure tool / graph runner),
+         using only what the context names. We run it and judge each gold fact against the result -> tier 2.
+      4. Neither -> tier 3. Every judgment keeps its rationale; `reason` is a one-line summary of why."""
     mlflow.update_current_trace(tags={"arm": arm, "qid": q["qid"], "cls": q["cls"]})
     docs = retrieve(arm, q["question"], q["qid"])
     ctx = "\n\n".join(d.get("page_content", "") for d in docs) or "(no context retrieved)"
 
-    # Tier 1: judged ONE FACT AT A TIME (all must pass) -- a single all-facts judge proved lenient and flipped
-    # between runs (it accepted a general rule as evidence of a patient-specific fact).
-    fact_t1 = [_yes(meets_guidelines(
-        name="in_context",
-        guidelines=("The retrieved_documents EXPLICITLY state the following fact about the entities in the question. "
-                    "It is NOT enough that they state a general rule from which the fact could be inferred, list "
-                    "codes it could be looked up with, or describe how it could be computed. Answer 'no' if the "
-                    "documents are empty. FACT: " + f),
-        context={"question": q["question"], "retrieved_documents": ctx}, model=JUDGE)) for f in q["expected_facts"]]
-    sufficient = all(fact_t1)
+    in_ctx = [agent.judge_fact(q["question"], f, "" if not docs else ctx, "retrieved context")
+              for f in q["expected_facts"]]
+    sufficient = all(x["ok"] for x in in_ctx)
 
-    sql = agent.write_sql(q["question"], docs)
-    sql_rows, sql_error, query_correct, fact_t2 = None, None, False, None
-    if sql:
-        try:
-            sql_rows = run_readonly(sql)
-        except Exception as e:  # noqa: BLE001 -- a failed or rejected query is a tier-2 miss, recorded verbatim
-            sql_error = f"{type(e).__name__}: {str(e)[:300]}"
-    if sql_rows is not None:
-        result = _render_rows(sql_rows)
-        fact_t2 = [_yes(meets_guidelines(
-            name="query_result_correct",
-            guidelines=("The query_result rows establish the following fact. Allow formatting differences (a rate "
-                        "as a fraction or percent, rounding to 3 significant figures, a count given as the number of "
-                        "returned rows, codes with or without a prefix). Answer 'no' if the result is empty, shows a "
-                        "different value, or answers a different question. FACT: " + f),
-            context={"question": q["question"], "query": sql, "query_result": result}, model=JUDGE))
-            for f in q["expected_facts"]]
-        query_correct = all(fact_t2)
+    interface = INTERFACE.get(arm, "sql")
+    query, result, error, in_res = None, None, None, None
+    if not sufficient:
+        tools = {"closure": CLOSURE_TOOLS, "graph": GRAPH_TOOLS}.get(interface)
+        query = agent.write_query(q["question"], docs, interface, tools)
+        if query:
+            try:
+                result = _run_query(arm, query)
+            except Exception as e:  # noqa: BLE001 -- a failed or rejected query is a miss, recorded verbatim
+                error = f"{type(e).__name__}: {str(e)[:300]}"
+        if result is not None:
+            in_res = [agent.judge_fact(q["question"], f, result, "query result") for f in q["expected_facts"]]
+    query_correct = bool(in_res) and all(x["ok"] for x in in_res)
     tier = 1 if sufficient else (2 if query_correct else 3)
-
-    # Schema-aided tier (diagnostic): the same context + the SAME physical schema for every arm + up to 3 tries with
-    # the SQL error fed back. closed_book here is the floor "an agent with only the schema"; an arm's lift over it is
-    # the value of its semantics.
-    s_sql, s_rows, s_err, s_attempts, s_facts, previous = None, None, None, 0, None, []
-    for s_attempts in (range(1, 4) if SCHEMA_TIER else ()):
-        s_sql = agent.write_sql_with_schema(q["question"], docs, providers.schema_pack(), previous)
-        if not s_sql:
-            break
-        try:
-            s_rows, s_err = run_readonly(s_sql), None
-            break
-        except Exception as e:  # noqa: BLE001
-            s_err = f"{type(e).__name__}: {str(e)[:300]}"
-            previous.append((s_sql, s_err))
-    s_ok = False
-    if s_rows is not None:
-        s_res = _render_rows(s_rows)
-        s_facts = [_yes(meets_guidelines(
-            name="schema_query_result_correct",
-            guidelines=("The query_result rows establish the following fact. Allow formatting differences (a rate "
-                        "as a fraction or percent, rounding to 3 significant figures, a count given as the number of "
-                        "returned rows, codes with or without a prefix). Answer 'no' if the result is empty, shows a "
-                        "different value, or answers a different question. FACT: " + f),
-            context={"question": q["question"], "query": s_sql, "query_result": s_res}, model=JUDGE))
-            for f in q["expected_facts"]]
-        s_ok = all(s_facts)
-    tier_s = (1 if sufficient else (2 if s_ok else 3)) if SCHEMA_TIER else None
+    facts = [{"fact": f, "in_context": in_ctx[k], "in_result": (in_res[k] if in_res else None)}
+             for k, f in enumerate(q["expected_facts"])]
+    what = ("retrieved nothing" if not docs else
+            "every gold fact is stated in what it retrieved (no query needed)" if sufficient else
+            "not every fact was in what it retrieved; the agent declined to write a query (NO_QUERY)" if not query else
+            f"not every fact was in what it retrieved; the agent's {INTERFACE_LABEL[interface]} failed" if error else
+            f"not every fact was in what it retrieved; the agent's {INTERFACE_LABEL[interface]} ran")
+    outcome = {"tier": tier, "what_happened": what, "interface": INTERFACE_LABEL[interface],
+               "retrieved": providers.summarize(arm, docs),
+               "facts": facts,
+               "query": query, "query_result": (result or "")[:1500], "query_error": error}
+    reason = agent.explain(q["question"], arm, outcome)
     skipped = providers.genie_skipped(arm, q["qid"])
     return {"arm": arm, "qid": q["qid"], "tier": tier, "sufficient": sufficient, "query_correct": query_correct,
-            "sql": sql, "sql_error": sql_error, "sql_result": _render_rows(sql_rows)[:2500] if sql_rows is not None else None,
-            "n_docs": len(docs), "skipped_search": bool(skipped), "facts_in_context": fact_t1,
-            "facts_in_result": fact_t2, "context": ctx[:6000],
-            "tier_schema": tier_s, "schema_sql": s_sql, "schema_sql_error": s_err, "schema_attempts": s_attempts,
-            "schema_facts": s_facts,
-            "schema_result": _render_rows(s_rows)[:2500] if s_rows is not None else None}
+            "interface": INTERFACE_LABEL[interface], "query": query,
+            "sql": (query or {}).get("sql") or (json.dumps({k: query[k] for k in ("tool", "args")}) if query else None),
+            "sql_error": error, "sql_result": (result or None) and result[:2500],
+            "facts": facts, "reason": reason, "retrieved": outcome["retrieved"],
+            "n_docs": len(docs), "skipped_search": bool(skipped),
+            "facts_in_context": [x["ok"] for x in in_ctx], "facts_in_result": [x["ok"] for x in in_res] if in_res else None,
+            "context": ctx[:6000]}
 
 
 def _render_rows(rows, limit: int = 40) -> str:
@@ -217,7 +221,7 @@ def _render_rows(rows, limit: int = 40) -> str:
 
 def main():
     import argparse
-    global ARMS, SCHEMA_TIER
+    global ARMS
     ap = argparse.ArgumentParser()
     ap.add_argument("--arms", default=",".join(ARMS), help="comma-separated subset of " + ",".join(ARMS))
     ap.add_argument("--out", default="retrieval_eval.json", help="file name under docs/benchmark/")
@@ -225,10 +229,8 @@ def main():
     ap.add_argument("--qids", default="", help="comma-separated question ids (default: the demo set in the CSV)")
     ap.add_argument("--workers", type=int, default=6)
     ap.add_argument("--repeats", type=int, default=1, help="runs per cell; the majority tier is reported")
-    ap.add_argument("--schema-tier", action="store_true", help="also score each arm with the shared physical schema")
     args = ap.parse_args()
     ARMS = [a for a in args.arms.split(",") if a]
-    SCHEMA_TIER = args.schema_tier
     # Judges authenticate to Databricks via the model URI regardless of the trace store, so if the SP cannot
     # create the workspace experiment we fall back to a LOCAL trace store -- the matrix is still produced.
     try:
@@ -286,12 +288,6 @@ def main():
             continue
         maj = max(sorted(set(tiers), reverse=True), key=tiers.count)
         rep = dict(next(r for r in rs if r["tier"] == maj))
-        ts = [r["tier_schema"] for r in rs if r.get("tier_schema") is not None]
-        tmaj = max(sorted(set(ts), reverse=True), key=ts.count) if ts else None
-        rep.update({"tier_schema": tmaj, "tier_schema_runs": ts,
-                    "schema_rep": next(({k: r.get(k) for k in ("schema_sql", "schema_sql_error", "schema_result",
-                                                                "schema_attempts")}
-                                        for r in rs if r.get("tier_schema") == tmaj), None)})
         rep.update({"tier_runs": tiers, "stable": len(set(tiers)) == 1,
                     "harness_errors": sum(r["tier"] is None for r in rs),
                     "runs": [{"tier": r["tier"], "sql": (r.get("sql") or "")[:1500], "sql_error": r.get("sql_error"),
@@ -304,8 +300,6 @@ def main():
     print("question".ljust(24) + "".join(a[:12].ljust(13) for a in ARMS))
     for q in QUESTIONS:
         if (ARMS[0], q["qid"]) in by:
-            if SCHEMA_TIER:
-                print("  +schema".ljust(24) + "".join(str(by[(a, q["qid"])].get("tier_schema")).ljust(13) for a in ARMS))
             print(q["qid"].ljust(24) + "".join((str(by[(a, q["qid"])]["tier"]) + ("" if by[(a, q["qid"])]["stable"]
                   else "~" + "".join(map(str, by[(a, q["qid"])]["tier_runs"])))).ljust(13) for a in ARMS))
 

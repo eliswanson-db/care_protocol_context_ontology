@@ -43,7 +43,8 @@ def _doc(content: str, **meta) -> dict:
 import sys as _sys  # noqa: E402
 
 _sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "app")))
-from server.context_retrieval import closure_context, genie_ontology_docs, graph_context, link_entities  # noqa: E402
+from server.context_retrieval import (CLOSURE_TOOLS, closure_context, closure_tool, genie_ontology_docs,  # noqa: E402
+                                      graph_context, link_entities)
 
 _STOP = set("the a an of to in on for and or is are was what which how many much does do did with by from this "
             "that their its it as at be any each all whether under show give name own".split())
@@ -238,27 +239,49 @@ PROVIDERS = {
 def warm() -> None:
     """Populate the per-run metadata caches (metric-view definitions, terminology table cards) before parallel use."""
     _metric_views()
-    schema_pack()
+    graph_runner()
 
 
-# --- Physical schema pack: the SAME for every arm (incl. closed_book) in the schema-aided tier. Names + types only
-# -- no comments (comments are semantic context, which is what the arms are being compared on). The benchmark's own
-# tables are excluded so no answers leak.
-_SCHEMA_PACK: str | None = None
+# ---- what each approach retrieved, in one line (shown on every card) --------------------------------------------
+def summarize(arm: str, docs: list[dict]) -> str:
+    from collections import Counter
+    if not docs:
+        return "Retrieved nothing."
+    m = [d.get("metadata", {}) for d in docs]
+    if arm == "metric_view":
+        return "Definitions of " + ", ".join(x.get("view", "").split(".")[-1] for x in m) + "."
+    if arm == "closure_sql":
+        anchors = [x["anchor"] for x in m if x.get("kind") == "subtree"]
+        content = next((d["page_content"].replace("patients_under(...) -> ", "") for d, x in zip(docs, m)
+                        if x.get("kind") == "content"), "")
+        return f"Resolved {', '.join(anchors)}; walked their subtrees; {content}"[:300]
+    if arm.startswith("genie_ontology"):
+        sn = [x for x in m if x.get("kind") == "snippet"]
+        pg = [x.get("page") for x in m if x.get("kind") == "page"]
+        on = sum(1 for x in sn if x.get("on_topic"))
+        return (f"{len(sn)} inferred snippets ({on} about this demo); {len(pg)} Pages"
+                + (f": {', '.join(p for p in pg if p)}" if pg else "") + ".")
+    if arm == "rag":
+        titles = [x.get("title") for x in m if x.get("title")]
+        return f"{len(docs)} passages from: " + ", ".join(dict.fromkeys(titles)) + "."
+    if arm == "ontobricks":
+        head = next((x for x in m if x.get("kind") == "provenance"), {})
+        preds = Counter(x.get("predicate") for x in m if x.get("kind") == "triple")
+        top = ", ".join(f"{p} {n}" for p, n in preds.most_common(5))
+        linked = ", ".join(head.get("linked_entities", [])[:6])
+        return f"Linked {linked or 'nothing'}; {sum(preds.values())} triples ({top})."
+    return f"{len(docs)} documents."
 
 
-def schema_pack() -> str:
-    global _SCHEMA_PACK
-    if _SCHEMA_PACK is None:
-        rows = run_sql(
-            f"SELECT table_schema, table_name, column_name, data_type FROM {CATALOG}.information_schema.columns "
-            f"WHERE table_schema IN ('{SCHEMA}', '{SCHEMA_SEMANTIC}', '{SCHEMA_TERM}') "
-            f"AND table_name NOT LIKE '\\\\_\\\\_%' AND table_name NOT LIKE 'event_log%' "
-            f"AND table_name NOT LIKE 'benchmark%' AND table_name <> 'tracer_registry' "
-            f"ORDER BY table_schema, table_name, ordinal_position")
-        tabs: dict[str, list[str]] = {}
-        for r in rows:
-            tabs.setdefault(f"{CATALOG}.{r['table_schema']}.{r['table_name']}", []).append(
-                f"`{r['column_name']}` {r['data_type']}")
-        _SCHEMA_PACK = "\n".join(f"{t}({', '.join(c)})" for t, c in tabs.items())
-    return _SCHEMA_PACK
+_GRAPH = None
+
+
+def graph_runner():
+    """The published graph loaded in memory for one-shot traversal calls (cached per run)."""
+    global _GRAPH
+    if _GRAPH is None:
+        from server import graph_runner as gr
+        from .warehouse import fetch_all
+        table = f"{ONTOBRICKS_CATALOG}.{ONTOBRICKS_SCHEMA}.{_latest_ontobricks()}_graph"
+        _GRAPH = gr.load(table, fetch_all)
+    return _GRAPH

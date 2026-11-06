@@ -210,6 +210,21 @@ JOIN {catalog}.{tschema}.protocol_edges e ON e.subject = 'DRUGCLASS-STATIN' AND 
 JOIN {catalog}.{tschema}.value_set_segment v ON v.segment_id = e.object
 JOIN {catalog}.{schema}.bronze_pat_enc_dx dx ON dx.patient_id = m.patient_id AND dx.icd10_code LIKE concat(v.code, '%');
 
+-- @id: graph_multiparent_routes
+-- class: 8_graph_native  min_approach: graph  expect: E11.22>E11.2>E11|E11.22>N18
+-- Every route from E11.22 (type 2 diabetes with diabetic CKD) up to a root, over the direct is-a edges. E11.22 has
+-- TWO parents (E11.2 and N18), so there are two routes. A closure keeps one row per ancestor at the shortest
+-- distance (E11.2 1, N18 1, E11 2) and no routes, so it cannot say which ancestor is reached through which parent.
+WITH RECURSIVE up (code, route) AS (
+  SELECT 'E11.22', 'E11.22'
+  UNION ALL
+  SELECT h.parent_code, concat(u.route, '>', h.parent_code)
+  FROM up u JOIN {catalog}.{tschema}.icd10_hier h ON h.code = u.code
+  WHERE h.parent_code IS NOT NULL
+)
+SELECT array_join(array_sort(collect_list(route)), '|') AS routes
+FROM up u WHERE NOT EXISTS (SELECT 1 FROM {catalog}.{tschema}.icd10_hier h WHERE h.code = u.code AND h.parent_code IS NOT NULL);
+
 -- @id: op_worst_clinic_annual
 -- class: 9_operational_temporal  min_approach: metric_view  expect: CLINIC-04
 -- Lowest protocol Step-3 adherence year-to-date, closed 90-day windows only (open windows aren't misses yet).

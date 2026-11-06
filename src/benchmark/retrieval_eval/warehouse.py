@@ -90,3 +90,30 @@ def run_readonly(sql: str, row_limit: int = 200) -> list[dict]:
         return []
     cols = [c.name for c in r.manifest.schema.columns]
     return [dict(zip(cols, row)) for row in r.result.data_array]
+
+
+def fetch_all(sql: str):
+    """Yield every row (as a list) of a large result: EXTERNAL_LINKS disposition, JSON_ARRAY chunks, downloaded from
+    the presigned links (no auth header -- the links carry their own credentials)."""
+    import time
+
+    import requests
+    from databricks.sdk.service.sql import Disposition, Format
+
+    se = _client().statement_execution
+    r = se.execute_statement(warehouse_id=_warehouse_id(), statement=sql, wait_timeout="30s",
+                             disposition=Disposition.EXTERNAL_LINKS, format=Format.JSON_ARRAY)
+    deadline = time.time() + 600
+    while r.status and r.status.state and r.status.state.value in ("PENDING", "RUNNING"):
+        if time.time() > deadline:
+            raise RuntimeError("SQL statement did not finish within 600s")
+        time.sleep(2)
+        r = se.get_statement(r.statement_id)
+    if r.status.state.value != "SUCCEEDED":
+        raise RuntimeError(f"SQL {r.status.state.value}: {r.status.error.message if r.status.error else ''}")
+    chunk = r.result
+    while chunk is not None:
+        for link in chunk.external_links or []:
+            yield from requests.get(link.external_link, timeout=300).json()
+        nxt = (chunk.external_links[-1].next_chunk_index if chunk.external_links else None)
+        chunk = se.get_statement_result_chunk_n(r.statement_id, nxt) if nxt is not None else None

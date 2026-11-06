@@ -18,6 +18,14 @@ ontology files to import. The build does not automate Ontobricks.
   that crosses vocabularies (the graph's reason to exist); dashed edges are per-patient instance links.
   Rendered with `docs/architecture/mermaid-config.json` (`mmdc -i … -c … -b white`).
 
+## Revision notes (2026-11-06 rev 7 — names, typed drug edges, one multi-parent code) — REPUBLISH NEEDED
+The mapping now emits `rdfs:label` on every Condition (ICD name), Medication (hierarchy name or the order's
+description), Ingredient, DrugClass and ValueSet; `cp:inDrugClass` for every drug class (was statins only); and
+`cp:hasIngredient` only for true ingredient -> clinical-drug edges (`rxnorm_hier.relationship`). `icd10_hier` is now
+a DAG: E11.22 has two parents (E11.2 and N18), which `IcdSubClassMap` emits as two `subClassOf` edges. All 44
+triples-map queries were run against the rebuilt tables (0 failures). **Republish the clinicaldomain graph in
+Ontobricks** to pick these up; the app and the eval auto-discover the newest `triplestore_clinicaldomain_v<N>`.
+
 ## What the graph adds over the SQL closure (the benchmark's point)
 - ICD-10 `subClassOf` → the reasoner derives the transitive closure that `icd10_closure` materializes in SQL:
   **same answer** for is-a rollups → shows the closure suffices there.

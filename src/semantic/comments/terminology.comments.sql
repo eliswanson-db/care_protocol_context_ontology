@@ -30,6 +30,7 @@ COMMENT ON COLUMN {catalog}.care_protocol_terminology.icd10_hier.name IS 'Human-
 COMMENT ON COLUMN {catalog}.care_protocol_terminology.rxnorm_hier.code IS 'RxNorm rxcui of this concept (child node of the edge), typically a clinical drug.';
 COMMENT ON COLUMN {catalog}.care_protocol_terminology.rxnorm_hier.parent_code IS 'RxNorm rxcui of the immediate parent concept (e.g. the ingredient). Transitively expanded into rxnorm_closure.';
 COMMENT ON COLUMN {catalog}.care_protocol_terminology.rxnorm_hier.name IS 'Human-readable RxNorm concept name.';
+COMMENT ON COLUMN {catalog}.care_protocol_terminology.rxnorm_hier.relationship IS 'Edge type: class_member (drug class -> ingredient) or ingredient_of (ingredient -> clinical drug). Each relationship has its own closure (drug_class_closure, rxnorm_ingredient_closure); rxnorm_closure is their composition.';
 
 -- rxnorm_statin: the statin ingredient value set (seed codes for SPD subsumption).
 COMMENT ON COLUMN {catalog}.care_protocol_terminology.rxnorm_statin.rxcui IS 'RxNorm ingredient rxcui for a statin (e.g. 36567 simvastatin). Joined to rxnorm_closure to subsume every statin clinical drug for the SPD numerator.';

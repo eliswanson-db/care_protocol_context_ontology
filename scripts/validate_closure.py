@@ -14,7 +14,9 @@ import sys
 import json
 
 T = "eli_test_classic_catalog.care_protocol_terminology"
-PAIRS = [("icd10_hier", "icd10_closure"), ("rxnorm_hier", "rxnorm_closure")]
+# (edge table, closure, relationship filter or None)
+PAIRS = [("icd10_hier", "icd10_closure", None), ("rxnorm_hier", "rxnorm_closure", None),
+         ("rxnorm_hier", "drug_class_closure", "class_member"), ("rxnorm_hier", "rxnorm_ingredient_closure", "ingredient_of")]
 Q = os.path.join(os.path.dirname(__file__), "q.py")
 
 
@@ -30,25 +32,32 @@ def one(stmt: str):
 
 def main():
     ok = True
-    for hier, clos in PAIRS:
-        h, c = f"{T}.{hier}", f"{T}.{clos}"
+    for hier, clos, rel in PAIRS:
+        c = f"{T}.{clos}"
+        # Edges in scope (one relationship, or all) and the nodes they touch.
+        h = (f"(SELECT code, parent_code, name FROM {T}.{hier} WHERE relationship = '{rel}')" if rel
+             else f"{T}.{hier}")
+        nodes = (f"(SELECT code FROM {h} UNION SELECT parent_code FROM {h})" if rel
+                 else f"(SELECT DISTINCT code FROM {T}.{hier})")
         checks = {
-            "nodes": f"SELECT count(*) FROM {h}",
-            "self rows missing": f"SELECT count(*) FROM {h} n LEFT ANTI JOIN {c} x ON x.ancestor_code = n.code "
+            "nodes": f"SELECT count(*) FROM {nodes}",
+            "multi-parent nodes": f"SELECT count(*) FROM (SELECT code FROM {h} WHERE parent_code IS NOT NULL "
+                                  f"GROUP BY code HAVING count(*) > 1)",
+            "self rows missing": f"SELECT count(*) FROM {nodes} n LEFT ANTI JOIN {c} x ON x.ancestor_code = n.code "
                                  f"AND x.descendant_code = n.code AND x.depth = 0",
             "duplicate keys": f"SELECT count(*) FROM (SELECT ancestor_code, descendant_code FROM {c} "
                               f"GROUP BY 1, 2 HAVING count(*) > 1)",
             "direct edges not at depth 1": f"SELECT count(*) FROM {h} e LEFT ANTI JOIN {c} x ON x.ancestor_code = "
                                            f"e.parent_code AND x.descendant_code = e.code AND x.depth = 1 "
                                            f"WHERE e.parent_code IS NOT NULL",
-            "parents missing as nodes": f"SELECT count(*) FROM {h} e LEFT ANTI JOIN {h} p ON p.code = e.parent_code "
-                                        f"WHERE e.parent_code IS NOT NULL",
-            "closure rows with unknown nodes": f"SELECT count(*) FROM {c} x LEFT ANTI JOIN {h} n "
+            "parents missing as nodes": f"SELECT count(*) FROM {h} e LEFT ANTI JOIN {T}.{hier} p ON p.code = e.parent_code "
+                                        f"WHERE e.parent_code IS NOT NULL AND e.parent_code NOT LIKE 'DRUGCLASS-%'",
+            "closure rows with unknown nodes": f"SELECT count(*) FROM {c} x LEFT ANTI JOIN {nodes} n "
                                                f"ON n.code = x.descendant_code",
             "cycles (non-self rows a->a)": f"SELECT count(*) FROM {c} WHERE ancestor_code = descendant_code AND depth > 0",
             "rows differing from a recursive traversal": f"""
                 WITH RECURSIVE walk (ancestor_code, descendant_code, depth) AS (
-                  SELECT code, code, 0 FROM {h}
+                  SELECT code, code, 0 FROM {nodes} WHERE code IS NOT NULL
                   UNION ALL
                   SELECT w.ancestor_code, e.code, w.depth + 1 FROM walk w JOIN {h} e ON e.parent_code = w.descendant_code
                 ), want AS (SELECT ancestor_code, descendant_code, min(depth) AS depth FROM walk GROUP BY 1, 2)
@@ -59,15 +68,13 @@ def main():
         print(f"== {clos} (edges: {hier})")
         for name, stmt in checks.items():
             v = int(one(stmt) or 0)
-            bad = name != "nodes" and v != 0
+            bad = name not in ("nodes", "multi-parent nodes") and v != 0
             ok &= not bad
             print(f"  {'FAIL' if bad else 'ok  '} {name}: {v}")
-        mix = sql(f"SELECT regexp_extract(parent_code, '^(DRUGCLASS)', 1) <> '' AS from_class, count(*) AS n "
-                  f"FROM {h} WHERE parent_code IS NOT NULL GROUP BY 1") if hier.startswith("rxnorm") else []
-        if mix:
-            kinds = {("class -> ingredient" if r["from_class"] in (True, "true") else "ingredient -> product"): r["n"]
-                     for r in mix}
-            print(f"  note relationships mixed in one closure: {kinds}")
+        if clos == "rxnorm_closure":
+            paths = sql(f"SELECT relationship_path, count(*) AS n FROM {c} GROUP BY 1 ORDER BY 1")
+            print("  note relationship paths in the composed closure: "
+                  + ", ".join(f"{r['relationship_path'] or '(self)'}={r['n']}" for r in paths))
     print("ALL CHECKS PASSED" if ok else "SOME CHECKS FAILED")
     sys.exit(0 if ok else 1)
 

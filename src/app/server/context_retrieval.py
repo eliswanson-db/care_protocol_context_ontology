@@ -243,12 +243,19 @@ def resolve_nodes(question: str, run_sql, term: str) -> list[dict]:
     candidate under another candidate with the same matched words is dropped too (keep the top of the subtree).
     Returns [{code, name, h, matched}], where `matched` groups synonyms: same words -> same concept -> OR."""
     q = _toks(question)
-    nodes = {n["code"]: n for n in _closure_nodes(run_sql, term)}
+    nodes: dict[str, dict] = {}
+    for n in _closure_nodes(run_sql, term):
+        e = nodes.setdefault(n["code"], {"code": n["code"], "name": n["name"], "h": n["h"], "parents": []})
+        if n.get("parent_code"):
+            e["parents"].append(n["parent_code"])
     cands: dict[str, frozenset] = {}
     for n in nodes.values():
         c = _toks(n["name"]) - _GENERIC
         if c and c <= q:
             cands[n["code"]] = frozenset(c)
+    for code in nodes:  # a code written literally in the question ("E11.22", "DRUGCLASS-STATIN")
+        if re.search(rf"(?<![\w.]){re.escape(code)}(?![\w.])", question, re.I):
+            cands[code] = frozenset({code.lower()})
     ql = question.lower()
     for term_, anchors in LEXICON.items():
         if term_ in ql:
@@ -259,10 +266,12 @@ def resolve_nodes(question: str, run_sql, term: str) -> list[dict]:
     keep = {k: v for k, v in cands.items() if not any(v < w for w in cands.values())}
 
     def ancestors(code):
-        seen, p = [], nodes.get(code, {}).get("parent_code")
-        while p and p not in seen:
-            seen.append(p)
-            p = nodes.get(p, {}).get("parent_code")
+        seen, todo = [], list(nodes.get(code, {}).get("parents", []))
+        while todo:
+            p = todo.pop()
+            if p not in seen:
+                seen.append(p)
+                todo.extend(nodes.get(p, {}).get("parents", []))
         return seen
     keep = {k: v for k, v in keep.items() if not any(a in keep and keep[a] == v for a in ancestors(k))}
     return [{"code": k, "name": nodes[k]["name"], "h": nodes[k]["h"], "matched": sorted(v)} for k, v in keep.items()]
@@ -293,9 +302,10 @@ def closure_context(question: str, run_sql, catalog: str, schema: str, term_sche
                       f"WHERE descendant_code = {q(a['code'])} AND depth > 0 ORDER BY depth DESC")
         desc = run_sql(f"SELECT descendant_code, descendant_name, depth FROM {clos[a['h']]} "
                        f"WHERE ancestor_code = {q(a['code'])} ORDER BY depth, descendant_code LIMIT 40")
-        crumb = " > ".join([f"{r['ancestor_code']}" for r in anc] + [a["code"]])
+        ancs = ", ".join(f"{r['ancestor_code']} [{r['depth']}]" for r in sorted(anc, key=lambda r: int(r["depth"])))
         docs.append({"page_content": (f"resolve_node(\"{' '.join(a['matched'])}\") -> {a['code']} ({a['name']}). "
-                                      f"Ancestors: {crumb}. Descendants ({len(desc)}, incl. itself): "
+                                      f"Ancestors (shortest distance; the closure keeps no routes): {ancs or 'none'}. "
+                                      f"Descendants ({len(desc)}, incl. itself): "
                                       + "; ".join(f"{r['descendant_code']} {r['descendant_name']} [depth {r['depth']}]"
                                                   for r in desc)),
                      "metadata": {"source": "closure", "kind": "subtree", "anchor": a["code"], "h": a["h"]}})
@@ -317,3 +327,60 @@ def closure_context(question: str, run_sql, catalog: str, schema: str, term_sche
     docs.append({"page_content": "patients_under(...) -> " + " | ".join(counts),
                  "metadata": {"source": "closure", "kind": "content"}})
     return docs
+
+
+# ---- closure tools as single calls (the one-shot query for the closure approach) --------------------------------
+CLOSURE_TOOLS = {
+    "resolve": "resolve(text): hierarchy nodes whose name (or alias) the text names",
+    "ancestors": "ancestors(code): every ancestor with its SHORTEST distance (no routes are stored)",
+    "descendants": "descendants(code, max_depth=None): the subtree under a code, with distance",
+    "is_under": "is_under(code, ancestor): the shortest distance from ancestor down to code, or null",
+    "patients_under": "patients_under(groups): distinct patients with a diagnosis / medication order in the subtrees; "
+                      "groups = [[codes ORed], [codes ORed], ...], groups are ANDed",
+}
+
+
+def closure_tool(tool: str, args: dict, run_sql, catalog: str, schema: str, term_schema: str) -> dict:
+    term = f"{catalog}.{term_schema}"
+    args = args or {}
+    q = lambda v: "'" + str(v).replace("'", "") + "'"  # noqa: E731
+    rx_codes = {n["code"] for n in _closure_nodes(run_sql, term) if n["h"] == "rx"}
+
+    def clos(code):
+        return f"{term}.rxnorm_closure" if (code in rx_codes or str(code).startswith("DRUGCLASS-")) else f"{term}.icd10_closure"
+    if tool == "resolve":
+        rows = resolve_nodes(args.get("text", ""), run_sql, term)
+        return {"count": len(rows), "rows": [{"code": r["code"], "name": r["name"]} for r in rows]}
+    if tool == "ancestors":
+        c = args["code"]
+        rows = run_sql(f"SELECT ancestor_code, ancestor_name, depth FROM {clos(c)} WHERE descendant_code = {q(c)} "
+                       f"AND depth > 0 ORDER BY depth, ancestor_code")
+        return {"count": len(rows), "rows": rows}
+    if tool == "descendants":
+        c, md = args["code"], args.get("max_depth")
+        lim = f" AND depth <= {int(md)}" if md is not None else ""
+        rows = run_sql(f"SELECT descendant_code, descendant_name, depth FROM {clos(c)} WHERE ancestor_code = {q(c)}{lim} "
+                       f"ORDER BY depth, descendant_code LIMIT 200")
+        return {"count": len(rows), "rows": rows}
+    if tool == "is_under":
+        c, a = args["code"], args["ancestor"]
+        rows = run_sql(f"SELECT depth FROM {clos(c)} WHERE ancestor_code = {q(a)} AND descendant_code = {q(c)}")
+        return {"count": len(rows), "rows": rows or [{"depth": None}]}
+    if tool == "patients_under":
+        groups = args.get("groups") or []
+        if not groups or not all(isinstance(g, list) and g for g in groups):
+            raise ValueError("groups must be a non-empty list of non-empty code lists")
+        subs, rows = [], []
+        for g in groups:
+            h = "rx" if clos(g[0]).endswith("rxnorm_closure") else "icd"
+            tbl, col = ((f"{catalog}.{schema}.bronze_order_med", "rxnorm_code") if h == "rx"
+                        else (f"{catalog}.{schema}.bronze_pat_enc_dx", "icd10_code"))
+            sub = (f"SELECT DISTINCT f.patient_id FROM {tbl} f JOIN {clos(g[0])} c ON f.{col} = c.descendant_code "
+                   f"WHERE c.ancestor_code IN ({', '.join(q(x) for x in g)})")
+            subs.append(sub)
+            rows.append({"group": g, "patients": run_sql(f"SELECT COUNT(*) AS n FROM ({sub})")[0]["n"]})
+        if len(subs) > 1:
+            rows.append({"group": "ALL groups", "patients": run_sql(
+                f"SELECT COUNT(*) AS n FROM ({' INTERSECT '.join('(' + x + ')' for x in subs)})")[0]["n"]})
+        return {"count": len(rows), "rows": rows}
+    raise ValueError(f"unknown closure tool {tool!r}; choose one of {sorted(CLOSURE_TOOLS)}")

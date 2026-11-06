@@ -3,6 +3,14 @@
 @prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
+# 2026-11-06 rev 7 -- names + typed drug relationships (after the closure review):
+#   * rdfs:label on every Condition (ICD name), Medication (hierarchy name or order description), Ingredient,
+#     DrugClass and ValueSet, so "metformin" / "kidney complications" resolve to graph nodes by name;
+#   * rxnorm_hier.relationship splits the drug edges: class_member -> cp:inDrugClass for EVERY class (was statins
+#     only, via rxnorm_statin), ingredient_of -> cp:hasIngredient (class->ingredient rows were mis-mapped as
+#     hasIngredient);
+#   * icd10_hier is a DAG now (E11.22 has two parents), which IcdSubClassMap emits as two subClassOf edges.
+# Republish the Ontobricks graph to pick these up (manual; ADR-0005).
 # =====================================================================================
 # R2RML mappings: Unity Catalog tables -> Care Protocol Ontology (care_protocol.owl.ttl).
 # Logical tables name UC tables as catalog.schema.table — adjust connector/quoting to what
@@ -40,9 +48,10 @@
 
 # ---- Condition (ICD-10 concept) — icd/{icd_code}, carries icd10Code ----
 <#ConditionEntity> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT code AS icd_code FROM eli_test_classic_catalog.care_protocol_terminology.icd10_hier WHERE code IS NOT NULL" ] ;
+  rr:logicalTable [ rr:sqlQuery "SELECT code AS icd_code, MAX(name) AS icd_name FROM eli_test_classic_catalog.care_protocol_terminology.icd10_hier WHERE code IS NOT NULL GROUP BY code" ] ;
   rr:subjectMap [ rr:template "https://care-protocol.example/icd/{icd_code}" ; rr:class cp:Condition ] ;
-  rr:predicateObjectMap [ rr:predicate cp:icd10Code ; rr:objectMap [ rr:column "icd_code" ] ] .
+  rr:predicateObjectMap [ rr:predicate cp:icd10Code ; rr:objectMap [ rr:column "icd_code" ] ] ;
+  rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "icd_name" ] ] .
 
 # ---- LabTest (LOINC term) — loinc/{loinc_code}, carries loincCode ----
 <#LabTestEntity> a rr:TriplesMap ;
@@ -57,22 +66,25 @@
 
 # ---- Medication (RxNorm clinical drug) — rx/{rx_code}. Descendants in rxnorm_hier are drugs. ----
 <#MedicationEntity> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT DISTINCT code AS rx_code FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE code IS NOT NULL" ] ;
+  rr:logicalTable [ rr:sqlQuery "SELECT rx_code, MAX(rx_name) AS rx_name FROM (SELECT code AS rx_code, name AS rx_name FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE relationship = 'ingredient_of' UNION ALL SELECT rxnorm_code, description FROM eli_test_classic_catalog.care_protocol.bronze_order_med WHERE rxnorm_code IS NOT NULL) m GROUP BY rx_code" ] ;
   rr:subjectMap [ rr:template "https://care-protocol.example/rx/{rx_code}" ; rr:class cp:Medication ] ;
-  rr:predicateObjectMap [ rr:predicate cp:rxnormCode ; rr:objectMap [ rr:column "rx_code" ] ] .
+  rr:predicateObjectMap [ rr:predicate cp:rxnormCode ; rr:objectMap [ rr:column "rx_code" ] ] ;
+  rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "rx_name" ] ] .
 
 # ---- Ingredient (RxNorm ingredient) — ing/{ing_code}, its OWN prefix (not rx/). ----
 # Parents in rxnorm_hier are ingredients; keeping them on a separate prefix stops the
 # Medication/Ingredient prefix collision that failed every rx/ endpoint last pass.
 <#IngredientEntity> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT DISTINCT parent_code AS ing_code FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE parent_code IS NOT NULL" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/ing/{ing_code}" ; rr:class cp:Ingredient ] .
+  rr:logicalTable [ rr:sqlQuery "SELECT code AS ing_code, MAX(name) AS ing_name FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE relationship = 'class_member' GROUP BY code" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ing/{ing_code}" ; rr:class cp:Ingredient ] ;
+  rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "ing_name" ] ] .
 
 # ---- DrugClass — drugclass/{drug_class}. Every DRUGCLASS-* node in protocol_edges (rev 6: robust
 #      prefix match; the old UNION missed classes that only appear in firstLineFor/contraindicatedWhen). ----
 <#DrugClassEntity> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT DISTINCT subject AS drug_class FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE subject LIKE 'DRUGCLASS-%'" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/drugclass/{drug_class}" ; rr:class cp:DrugClass ] .
+  rr:logicalTable [ rr:sqlQuery "SELECT code AS drug_class, MAX(name) AS drug_class_name FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE code LIKE 'DRUGCLASS-%' GROUP BY code" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/drugclass/{drug_class}" ; rr:class cp:DrugClass ] ;
+  rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "drug_class_name" ] ] .
 
 # ---- ValueSet — valueset/{vs_id}. rev 6 (ADR-0014): the population a guideline targets. Unifies
 #      (a) curated value sets in value_set_segment (COMORBID_CKD, CONTRA_PREGNANCY, ...) and
@@ -80,9 +92,10 @@
 #      defined via protocol_edges.definedBy (ALBUMINURIA, GLYCEMIC). SPD is NOT a ValueSet (it is a
 #      Measure) so it is excluded here and handled by RecommendedForSpdMap -> measure/. ----
 <#ValueSetEntity> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT DISTINCT vs_id FROM (SELECT segment_id AS vs_id FROM eli_test_classic_catalog.care_protocol_terminology.value_set_segment UNION SELECT object AS vs_id FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE predicate IN ('recommendedFor','contraindicatedWith','firstLineFor') UNION SELECT subject AS vs_id FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE predicate = 'definedBy') v WHERE vs_id <> 'SPD'" ] ;
+  rr:logicalTable [ rr:sqlQuery "SELECT v.vs_id, COALESCE(MAX(s.segment_name), v.vs_id) AS vs_name FROM (SELECT segment_id AS vs_id FROM eli_test_classic_catalog.care_protocol_terminology.value_set_segment UNION SELECT object AS vs_id FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE predicate IN ('recommendedFor','contraindicatedWith','firstLineFor') UNION SELECT subject AS vs_id FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE predicate = 'definedBy') v LEFT JOIN eli_test_classic_catalog.care_protocol_terminology.value_set_segment s ON s.segment_id = v.vs_id WHERE v.vs_id <> 'SPD' GROUP BY v.vs_id" ] ;
   rr:subjectMap [ rr:template "https://care-protocol.example/valueset/{vs_id}" ; rr:class cp:ValueSet ] ;
-  rr:predicateObjectMap [ rr:predicate cp:valueSetId ; rr:objectMap [ rr:column "vs_id" ] ] .
+  rr:predicateObjectMap [ rr:predicate cp:valueSetId ; rr:objectMap [ rr:column "vs_id" ] ] ;
+  rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "vs_name" ] ] .
 
 # ---- Threshold — threshold/{thr}. rev 6 (ADR-0014): the clinical decision cutoffs that carry the
 #      renal-dosing / glycemic-band knowledge (contraindicatedWhen, definedBy, hasThreshold objects),
@@ -208,7 +221,7 @@
 
 # ---- Medication -hasIngredient-> Ingredient  (rxnorm_hier: drug rx_code -> ingredient ing_code) ----
 <#RxnormHierMap> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT code AS rx_code, parent_code AS ing_code FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE parent_code IS NOT NULL" ] ;
+  rr:logicalTable [ rr:sqlQuery "SELECT code AS rx_code, parent_code AS ing_code FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE relationship = 'ingredient_of'" ] ;
   rr:subjectMap [ rr:template "https://care-protocol.example/rx/{rx_code}" ] ;
   rr:predicateObjectMap [ rr:predicate cp:hasIngredient ;
      rr:objectMap [ rr:template "https://care-protocol.example/ing/{ing_code}" ] ] .
@@ -220,7 +233,7 @@
 #      enumerated in the demo terminology subset -> only DRUGCLASS-STATIN is populated here; ACE/ARB/
 #      SGLT2/BIGUANIDE ingredient lists are a data-gen follow-on. ----
 <#InDrugClassMap> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT DISTINCT s.rxcui AS ing_code, 'DRUGCLASS-STATIN' AS drug_class FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_statin s JOIN (SELECT DISTINCT parent_code FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE parent_code IS NOT NULL) h ON s.rxcui = h.parent_code" ] ;
+  rr:logicalTable [ rr:sqlQuery "SELECT code AS ing_code, parent_code AS drug_class FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE relationship = 'class_member'" ] ;
   rr:subjectMap [ rr:template "https://care-protocol.example/ing/{ing_code}" ] ;
   rr:predicateObjectMap [ rr:predicate cp:inDrugClass ;
      rr:objectMap [ rr:template "https://care-protocol.example/drugclass/{drug_class}" ] ] .

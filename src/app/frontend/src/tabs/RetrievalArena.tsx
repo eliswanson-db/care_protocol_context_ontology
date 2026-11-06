@@ -4,6 +4,7 @@ import { api, type A1Runs, type ArenaContext, type CapabilityMap, type CapQuesti
 import { Collapsible } from "../components/Collapsible";
 import { TierChip, tierKey } from "../components/TierChip";
 import { GenieMarkdown } from "../components/GenieMarkdown";
+import { EvalExplainer } from "../components/EvalExplainer";
 import { SIMPLE_APPROACHES, SIMPLE_QIDS, useSettings } from "../settings";
 
 const VERDICT: Record<string, { label: string; cls: string }> = {
@@ -44,18 +45,54 @@ function AgentVerdict({ s }: { s?: Scored }) {
 }
 
 /** The single SQL query the retrieved context let the agent write, run against the warehouse, and its result. */
-function OneQuery({ s }: { s: Scored }) {
-  // Tier 1: the answer is in the retrieved context itself, so the query step doesn't apply.
-  if (s.tier === 1 || !s.sql) return null;
+function FactRow({ fact, j, where }: { fact: string; j: { ok: boolean; rationale: string }; where: string }) {
+  return (
+    <li className="flex gap-1.5">
+      <span className={j.ok ? "text-success" : "text-destructive"}>{j.ok ? "✓" : "✗"}</span>
+      <span>
+        <span className="text-fg">{fact}</span>
+        <span className="text-muted"> — {where}: {j.rationale || "(no rationale)"}</span>
+      </span>
+    </li>
+  );
+}
+
+/** Exactly how the cell was judged: each gold fact against the retrieved context, then (if needed) the one query
+ *  in the approach's own interface, what it returned or how it failed, and each fact against that result. */
+function Evidence({ s }: { s: Scored }) {
+  const q = s.query;
+  const shown = q ? (q.kind === "sql" ? q.sql : `${q.tool}(${JSON.stringify(q.args ?? {})})`) : null;
   return (
     <details className="mt-1.5 text-[11px]">
-      <summary className="cursor-pointer font-semibold text-primary">
-        The one query it enabled {s.query_correct ? "✓ returned the answer" : s.sql_error ? "· failed" : "· wrong result"}
-      </summary>
-      <pre className="mt-1 max-h-44 overflow-auto whitespace-pre-wrap rounded bg-surface-2 p-2 font-mono text-[10.5px] leading-4">{s.sql}</pre>
-      <pre className={`mt-1 max-h-32 overflow-auto whitespace-pre-wrap rounded p-2 font-mono text-[10.5px] leading-4 ${s.sql_error ? "bg-destructive/10 text-destructive" : "bg-surface-2"}`}>
-        {s.sql_error ?? s.sql_result ?? ""}
-      </pre>
+      <summary className="cursor-pointer font-semibold text-primary">How it was judged</summary>
+      {s.facts?.length ? (
+        <>
+          <div className="mt-1.5 font-semibold text-muted">1 · Gold facts vs. what it retrieved</div>
+          <ul className="mt-0.5 space-y-1">
+            {s.facts.map((f, k) => <FactRow key={k} fact={f.fact} j={f.in_context} where="in context" />)}
+          </ul>
+        </>
+      ) : null}
+      {s.tier !== 1 && (
+        <>
+          <div className="mt-2 font-semibold text-muted">2 · One {s.interface ?? "query"}</div>
+          {shown ? (
+            <>
+              <pre className="mt-0.5 max-h-44 overflow-auto whitespace-pre-wrap rounded bg-surface-2 p-2 font-mono text-[10.5px] leading-4">{shown}</pre>
+              <pre className={`mt-1 max-h-32 overflow-auto whitespace-pre-wrap rounded p-2 font-mono text-[10.5px] leading-4 ${s.sql_error ? "bg-destructive/10 text-destructive" : "bg-surface-2"}`}>
+                {s.sql_error ?? s.sql_result ?? ""}
+              </pre>
+              {s.facts?.some((f) => f.in_result) && (
+                <ul className="mt-1 space-y-1">
+                  {s.facts.map((f, k) => f.in_result && <FactRow key={k} fact={f.fact} j={f.in_result} where="in result" />)}
+                </ul>
+              )}
+            </>
+          ) : (
+            <div className="mt-0.5 text-muted">The agent declined: what was retrieved didn't name enough to write one.</div>
+          )}
+        </>
+      )}
     </details>
   );
 }
@@ -331,6 +368,10 @@ export function RetrievalArena() {
             </div>
 
             <div className="space-y-6">
+              <Collapsible title="What this page evaluates, and how" hint="the pipeline every card goes through">
+                <EvalExplainer judge={ctx?.scored_meta?.judge} agent={ctx?.scored_meta?.agent} />
+              </Collapsible>
+
               <Collapsible title={`${simple ? "Three" : "Five"} approaches, one question`}
                 hint="✓ answered from the retrieved context alone">
                 <div className={`grid grid-cols-2 gap-3 sm:grid-cols-3 ${simple ? "" : "xl:grid-cols-5"}`}>
@@ -354,17 +395,19 @@ export function RetrievalArena() {
                             <TierChip k={tierKey(sc)} runs={sc.tier_runs} stable={sc.stable} />
                           )}
                         </div>
-                        {q.why?.[a.id] && <div className="mt-1.5 text-[11.5px] leading-snug text-fg/80">{q.why[a.id]}</div>}
+                        {!simple && sc?.reason && <div className="mt-1.5 text-[11.5px] leading-snug text-fg/85">{sc.reason}</div>}
                         {sc && (
                           <>
-                            <div className="mt-1.5 text-[10.5px] text-muted">{sc.n_docs} item{sc.n_docs === 1 ? "" : "s"} retrieved</div>
+                            <div className="mt-1.5 text-[10.5px] leading-snug text-muted">
+                              <span className="font-semibold">Retrieved:</span> {sc.retrieved ?? `${sc.n_docs} items`}
+                            </div>
                             {sc.n_docs > 0 && sc.context && (
                               <details className="mt-2 text-[11px]">
-                                <summary className="cursor-pointer font-semibold text-primary">What it retrieved</summary>
+                                <summary className="cursor-pointer font-semibold text-primary">Everything it retrieved</summary>
                                 <pre className="mt-1 max-h-56 overflow-auto whitespace-pre-wrap rounded bg-surface-2 p-2 font-mono text-[10.5px] leading-4">{sc.context}</pre>
                               </details>
                             )}
-                            {!simple && !sc.skipped_search && <OneQuery s={sc} />}
+                            {!simple && !sc.skipped_search && <Evidence s={sc} />}
                           </>
                         )}
                       </div>

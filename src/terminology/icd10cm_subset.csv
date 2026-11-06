@@ -5,6 +5,7 @@ E13,,Other specified diabetes mellitus
 E11.2,E11,Type 2 diabetes mellitus with kidney complications
 E11.21,E11.2,Type 2 diabetes mellitus with diabetic nephropathy
 E11.22,E11.2,Type 2 diabetes mellitus with diabetic chronic kidney disease
+E11.22,N18,Type 2 diabetes mellitus with diabetic chronic kidney disease
 E11.29,E11.2,Type 2 diabetes mellitus with other diabetic kidney complication
 E11.3,E11,Type 2 diabetes mellitus with ophthalmic complications
 E11.31,E11.3,Type 2 diabetes mellitus with unspecified diabetic retinopathy

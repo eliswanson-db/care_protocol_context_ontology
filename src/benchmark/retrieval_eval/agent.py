@@ -6,7 +6,9 @@ If the injected context cannot support an answer it must say so verbatim -- that
 structurally-insufficient arms score a clean miss instead of hallucinating."""
 from __future__ import annotations
 
+import json
 import os
+import re
 from functools import lru_cache
 
 import mlflow
@@ -109,37 +111,145 @@ def write_sql(question: str, context_docs: list[dict]) -> str | None:
     return sql
 
 
-# --- Schema-aided tier: semantic context + the shared physical schema + a few tries with the error fed back. --------
-_SQL_SCHEMA_SYSTEM = (
-    "You write Databricks SQL. You get a QUESTION, the CONTEXT retrieved by one retrieval approach (it may be empty), "
-    "and the physical SCHEMA (table and column names and types only). Use the CONTEXT for meaning -- definitions, "
-    "rules, codes, which asset answers what -- and the SCHEMA for exact names. Do not use outside knowledge of the "
-    "business rules or codes; if the meaning you need is not in the CONTEXT, you may only use what the names in the "
-    "SCHEMA make obvious. Metric views (care_protocol_semantic) are queried as "
-    "SELECT `Dim`, MEASURE(`Measure Name`) FROM <view> [WHERE `Dim` = ...] GROUP BY `Dim`; backtick names with "
-    "spaces. Write exactly ONE read-only SELECT (CTEs allowed) whose result answers the question, or reply exactly "
-    "NO_QUERY if you cannot. Reply with SQL only, no markdown."
+# --- One-shot query in each approach's NATIVE interface ----------------------------------------------------------
+# metric view / Genie Ontology / RAG / closed book -> one read-only SQL statement over Unity Catalog
+# closure tables                                   -> one closure-tool call
+# Ontobricks graph                                 -> one graph-runner call
+_TOOL_SYSTEM = (
+    "You get a QUESTION and the CONTEXT retrieved by one retrieval approach. You may make exactly ONE call to the "
+    "{name}. Use only node ids / codes that appear in the CONTEXT (or that the CONTEXT's naming scheme makes "
+    "unambiguous). Tools:\n{tools}\n"
+    "Reply with JSON only: {{\"tool\": \"<name>\", \"args\": {{...}}}}. If one call cannot answer the question, reply "
+    "exactly NO_QUERY."
 )
 
 
-@mlflow.trace(span_type="CHAT_MODEL", name="write_sql_with_schema")
-def write_sql_with_schema(question: str, context_docs: list[dict], schema: str, previous: list[tuple[str, str]]):
-    """One attempt; `previous` = [(sql, error)] from earlier failed attempts, fed back so the agent can fix them."""
+def _parse_tool(text: str) -> dict | None:
+    t = text.strip()
+    if t.upper().startswith("NO_QUERY"):
+        return None
+    m = re.search(r"\{.*\}", t, re.S)
+    if not m:
+        return None
+    try:
+        d = json.loads(m.group(0))
+    except json.JSONDecodeError:
+        return None
+    return d if isinstance(d, dict) and d.get("tool") else None
+
+
+@mlflow.trace(span_type="CHAT_MODEL", name="write_query")
+def write_query(question: str, context_docs: list[dict], interface: str, tools: dict[str, str] | None = None):
+    """Return {"kind": "sql", "sql": ...} | {"kind": "tool", "tool": ..., "args": {...}} | None (NO_QUERY)."""
+    if interface == "sql":
+        sql = write_sql(question, context_docs)
+        return {"kind": "sql", "sql": sql} if sql else None
+    name = {"graph": "graph runner (in-memory traversal over the Ontobricks graph)",
+            "closure": "closure-table tools"}[interface]
     ctx = "\n\n".join(f"[{i + 1}] {d.get('page_content', '')}".strip() for i, d in enumerate(context_docs)) \
         or "(no context was retrieved)"
-    user = f"QUESTION:\n{question}\n\nCONTEXT:\n{ctx}\n\nSCHEMA:\n{schema}"
-    for sql, err in previous:
-        user += f"\n\nYOUR EARLIER QUERY FAILED:\n{sql}\nERROR: {err}\nFix it."
-    resp = _client().chat.completions.create(
-        model=AGENT_MODEL, max_tokens=16000,
-        messages=[{"role": "system", "content": _SQL_SCHEMA_SYSTEM}, {"role": "user", "content": user}])
+    msg = [{"role": "system", "content": _TOOL_SYSTEM.format(
+               name=name, tools="\n".join(f"- {v}" for v in (tools or {}).values()))},
+           {"role": "user", "content": f"QUESTION:\n{question}\n\nCONTEXT:\n{ctx}"}]
+    resp = _client().chat.completions.create(model=AGENT_MODEL, messages=msg, max_tokens=16000)
     if resp.choices[0].finish_reason == "length":
-        raise HarnessError("write_sql_with_schema hit max_tokens (output truncated)")
-    sql = _as_text(resp.choices[0].message.content).strip()
-    if sql.startswith("```"):
-        sql = sql.strip("`").split("\n", 1)[-1] if "\n" in sql else ""
-        sql = sql.rsplit("```", 1)[0]
-    sql = sql.strip().rstrip(";").strip()
-    if not sql or sql.upper().startswith("NO_QUERY") or not _LOOKS_LIKE_SQL.match(sql):
-        return None  # empty, an explicit NO_QUERY, or prose instead of SQL
-    return sql
+        raise HarnessError("write_query hit max_tokens (output truncated)")
+    call = _parse_tool(_as_text(resp.choices[0].message.content))
+    return {"kind": "tool", "interface": interface, **call} if call else None
+
+
+APPROACH_DOES = {
+    "metric_view": "retrieves the YAML definitions of the certified metric views most relevant to the question",
+    "closure_sql": "resolves diagnosis / drug concepts named in the question to ICD-10 / RxNorm hierarchy nodes and "
+                   "returns their ancestors, subtree and the patients recorded under it; nothing else",
+    "genie_ontology": "Genie's own retrieval: inferred snippets mined from Genie spaces and query history, plus Pages",
+    "genie_ontology_dmvm": "Genie's own retrieval on the DMVM workspace: inferred snippets plus Pages",
+    "rag": "the top 5 passages of the care-protocol documents (prose, no tables)",
+    "ontobricks": "the subgraph around the entities the question names, from the published Ontobricks graph",
+    "closed_book": "nothing (the no-retrieval floor)",
+}
+
+
+@mlflow.trace(span_type="CHAT_MODEL", name="explain")
+def explain(question: str, approach: str, outcome: dict) -> str:
+    """One plain sentence (<= 16 words) saying exactly why this approach did or didn't answer, from the judged
+    evidence: which gold fact was or wasn't in the context, what the one query returned, or how it failed."""
+    msg = [{"role": "system", "content": (
+        "Write ONE plain sentence of at most 18 words saying why this retrieval approach did or did not answer the "
+        "question, based ONLY on the evidence. Follow EVIDENCE.what_happened:\n"
+        "- facts stated in what it retrieved: say which retrieved item states them (e.g. 'The KED Page states ages "
+        "18-85 and both tests.').\n"
+        "- agent declined to query: say what the retrieval had and what it lacked (e.g. 'Has the >9% cut-off but "
+        "nothing on who is counted.').\n"
+        "- a query ran: read the query, say what it computed, and, if wrong, how that differs from the question (e.g. "
+        "'Counted diabetes AND CKD, not diabetes with kidney complications: 1,791.'). Name it by its interface (SQL, "
+        "closure-tool call, graph-runner call). If the result matches the gold, do not invent shortcomings.\n"
+        "- retrieved nothing: say why this approach has nothing for this question, using APPROACH_DOES.\n"
+        "Never write 'no SQL query was executed'. No preamble, no markdown.")},
+        {"role": "user", "content": f"QUESTION: {question}\nAPPROACH: {approach}\n"
+                                    f"APPROACH_DOES: {APPROACH_DOES.get(approach, '')}\nEVIDENCE: "
+                                    f"{json.dumps(outcome, ensure_ascii=False)[:6000]}"}]
+    resp = _client().chat.completions.create(model=AGENT_MODEL, messages=msg, max_tokens=4000)
+    return _as_text(resp.choices[0].message.content).strip().strip('"')[:220]
+
+
+# --- Evidence-based fact judge: the verdict must come with a verbatim quote, and the quote is checked in code --------
+JUDGE_MODEL = os.environ.get("CARE_JUDGE_MODEL", "databricks:/databricks-claude-sonnet-5").replace("databricks:/", "")
+_JUDGE_SYSTEM = (
+    "You check whether a TEXT states a FACT. The fact counts as stated only if the TEXT says it explicitly about the "
+    "entities in the question -- not if it states a general rule the fact could be inferred from, lists codes it could "
+    "be looked up with, or describes how it could be computed. For a query RESULT, the rows must show the fact (allow "
+    "formatting differences: a rate as a fraction or percent, rounding to 3 significant figures, a count as the number "
+    "of rows, codes with or without a prefix). The quote must state the fact ON ITS OWN, read by someone who does not "
+    "already know the answer; if you have to add an inference to get from the quote to the fact, it is not stated. "
+    "Reply with JSON only: "
+    '{"stated": true|false, "quote": "<the shortest verbatim span of the TEXT that states it, or empty>", '
+    '"why": "<one short sentence>"}'
+)
+
+
+def _norm(t: str) -> str:
+    """Compare quotes on word tokens only: YAML line continuations (backslash + newline), dash and quote styles and
+    markdown punctuation must not make a real quote look invented."""
+    t = re.sub(r"\\[nrt]", " ", (t or "").lower()).replace("\\", " ")
+    return " ".join(re.findall(r"[a-z0-9]+(?:\.[a-z0-9]+)*", t))
+
+
+def _loads_lenient(raw: str) -> dict:
+    m = re.search(r"\{.*\}", raw or "", re.S)
+    if not m:
+        return {}
+    s = m.group(0)
+    for cand in (s, re.sub(r'\\(?!["\\/bfnrtu])', r"\\\\", s)):
+        try:
+            return json.loads(cand)
+        except json.JSONDecodeError:
+            continue
+    return {}
+
+
+@mlflow.trace(span_type="LLM", name="judge_fact")
+def judge_fact(question: str, fact: str, text: str, where: str) -> dict:
+    """{"ok", "quote", "rationale"}. ok requires stated=true AND the quote to appear verbatim in the text."""
+    if not text or not text.strip() or text.startswith("(no context retrieved)"):
+        return {"ok": False, "quote": "", "rationale": f"Nothing in the {where}."}
+    msg = [{"role": "system", "content": _JUDGE_SYSTEM},
+           {"role": "user", "content": f"QUESTION: {question}\nFACT: {fact}\nTEXT ({where}):\n{text[:24000]}"}]
+    for attempt in range(2):
+        resp = _client().chat.completions.create(model=JUDGE_MODEL, messages=msg, max_tokens=8000)
+        raw = _as_text(resp.choices[0].message.content)
+        d = _loads_lenient(raw)
+        if not d:
+            raise HarnessError("judge_fact: unparseable judge reply")
+        stated, quote, why = bool(d.get("stated")), str(d.get("quote") or ""), str(d.get("why") or "")
+        if not (stated and quote and _norm(quote) not in _norm(text)):
+            break
+        # One retry: the quote must be copied exactly, or the fact isn't stated.
+        msg = msg + [{"role": "assistant", "content": raw},
+                     {"role": "user", "content": "That quote does not appear verbatim in the TEXT. Copy the exact span "
+                                                 "from the TEXT, or answer stated=false."}]
+    if stated and quote and _norm(quote) not in _norm(text):
+        return {"ok": False, "quote": quote, "rationale": f"Judge quoted text that is not in the {where}: {why}"}
+    if stated and not quote:
+        return {"ok": False, "quote": "", "rationale": f"Judge gave no supporting quote. {why}"}
+    return {"ok": stated, "quote": quote if stated else "", "rationale": why}

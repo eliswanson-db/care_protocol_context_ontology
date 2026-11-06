@@ -350,6 +350,22 @@ Also: the ECT `(Clone) [dev]` Genie space was migrated to current names (`script
 before-state in `docs/benchmark/genie_space_migrations/`). Genie Ontology snippets still carry the old names until
 Genie re-mines it.
 
+**Addendum 2026-11-06 (b) — one native query per approach, quote-checked judging, typed and multi-parent closures.**
+(1) The one-shot step now uses each approach's own interface: SQL for metric views, Genie Ontology and RAG; one
+closure-tool call (resolve / ancestors / descendants / is_under / patients_under); one graph-runner call
+(`src/app/server/graph_runner.py`: find_nodes / neighbors / routes / paths / match over the published graph's node
+and edge layer, in memory, ~194k edges, no extra dependency). One `match` call answers the statin-contraindication
+cohort (198) deterministically. (2) Judging: each gold fact is judged against the retrieved context, and only if one
+is missing, against the query result. The judge must return a verbatim quote, which code checks in the text (one
+retry if it paraphrased), so every verdict shows the exact span or the exact gap. The quote must state the fact on
+its own; an inference doesn't count. Each cell gets a one-line reason generated from that evidence. (3) Data: the RxNorm
+edges are typed (`rxnorm_hier.relationship` = class_member / ingredient_of), with a closure per relationship;
+`rxnorm_closure` is their explicit composition (identical rows, plus `relationship_path`), so no downstream job
+changed. `icd10_hier` is a DAG: E11.22 is under E11.2 and N18. `build_closure.py` now uses the review's deduplicated
+frontier (one row per pair at the shortest distance) and validates before publishing; `validate_closure.py` passes
+for all four closures. (4) The Ontobricks mapping gains labels and every drug class's membership, but the published
+graph (v3) predates it: the graph misses the E11.22 -> N18 route until it is republished. Demo set: 6 questions.
+
 ## ADR-0009 — A4 Lakebase = Autoscaling project; hybrid retrieval over the ontology corpus
 **Date:** 2026-10-30 · **Status:** accepted
 A4 (Lakebase hybrid retrieval) uses a **Lakebase Autoscaling** project, not the retired **Provisioned**

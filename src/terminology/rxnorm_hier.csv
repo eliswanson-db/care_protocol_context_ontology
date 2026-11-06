@@ -1,49 +1,49 @@
-code,parent_code,name
-DRUGCLASS-STATIN,,HMG-CoA reductase inhibitor (statin)
-DRUGCLASS-ACE,,ACE inhibitor
-DRUGCLASS-ARB,,Angiotensin II receptor blocker (ARB)
-DRUGCLASS-SGLT2,,SGLT2 inhibitor
-DRUGCLASS-BIGUANIDE,,Biguanide
-DRUGCLASS-ANTIPSYCHOTIC,,Antipsychotic (SSD cohort; diabetogenic drug class)
-5093,DRUGCLASS-ANTIPSYCHOTIC,haloperidol
-2626,DRUGCLASS-ANTIPSYCHOTIC,clozapine
-61381,DRUGCLASS-ANTIPSYCHOTIC,olanzapine
-35636,DRUGCLASS-ANTIPSYCHOTIC,risperidone
-89013,DRUGCLASS-ANTIPSYCHOTIC,aripiprazole
-83367,DRUGCLASS-STATIN,atorvastatin
-36567,DRUGCLASS-STATIN,simvastatin
-301542,DRUGCLASS-STATIN,rosuvastatin
-42463,DRUGCLASS-STATIN,pravastatin
-41127,DRUGCLASS-STATIN,fluvastatin
-6472,DRUGCLASS-STATIN,lovastatin
-29046,DRUGCLASS-ACE,lisinopril
-52175,DRUGCLASS-ARB,losartan
-6809,DRUGCLASS-BIGUANIDE,metformin
-1545653,DRUGCLASS-SGLT2,empagliflozin
-1488564,DRUGCLASS-SGLT2,dapagliflozin
-314231,36567,Simvastatin 10 MG Oral Tablet
-312961,36567,Simvastatin 20 MG Oral Tablet
-476349,36567,ezetimibe 10 MG / simvastatin 20 MG Oral Tablet
-617312,83367,atorvastatin 10 MG Oral Tablet
-617310,83367,atorvastatin 20 MG Oral Tablet
-617311,83367,atorvastatin 40 MG Oral Tablet
-259255,83367,atorvastatin 80 MG Oral Tablet
-859747,301542,rosuvastatin calcium 10 MG Oral Tablet
-859424,301542,rosuvastatin calcium 5 MG Oral Tablet
-314076,29046,lisinopril 10 MG Oral Tablet
-314077,29046,lisinopril 20 MG Oral Tablet
-205326,29046,lisinopril 30 MG Oral Tablet
-197885,29046,hydrochlorothiazide 12.5 MG / lisinopril 10 MG Oral Tablet
-197886,29046,hydrochlorothiazide 12.5 MG / lisinopril 20 MG Oral Tablet
-197887,29046,hydrochlorothiazide 25 MG / lisinopril 20 MG Oral Tablet
-979480,52175,losartan potassium 100 MG Oral Tablet
-979485,52175,losartan potassium 25 MG Oral Tablet
-979492,52175,losartan potassium 50 MG Oral Tablet
-860975,6809,24 HR Metformin hydrochloride 500 MG Extended Release Oral Tablet
-197536,5093,Haloperidol 1 MG Oral Tablet (demo SCD)
-198363,5093,Haloperidol 5 MG Oral Tablet (demo SCD)
-309438,2626,Clozapine 100 MG Oral Tablet (demo SCD)
-312077,61381,Olanzapine 5 MG Oral Tablet (demo SCD)
-312078,61381,Olanzapine 10 MG Oral Tablet (demo SCD)
-312406,35636,Risperidone 1 MG Oral Tablet (demo SCD)
-757688,89013,Aripiprazole 10 MG Oral Tablet (demo SCD)
+code,parent_code,name,relationship
+DRUGCLASS-STATIN,,HMG-CoA reductase inhibitor (statin),
+DRUGCLASS-ACE,,ACE inhibitor,
+DRUGCLASS-ARB,,Angiotensin II receptor blocker (ARB),
+DRUGCLASS-SGLT2,,SGLT2 inhibitor,
+DRUGCLASS-BIGUANIDE,,Biguanide,
+DRUGCLASS-ANTIPSYCHOTIC,,Antipsychotic (SSD cohort; diabetogenic drug class),
+5093,DRUGCLASS-ANTIPSYCHOTIC,haloperidol,class_member
+2626,DRUGCLASS-ANTIPSYCHOTIC,clozapine,class_member
+61381,DRUGCLASS-ANTIPSYCHOTIC,olanzapine,class_member
+35636,DRUGCLASS-ANTIPSYCHOTIC,risperidone,class_member
+89013,DRUGCLASS-ANTIPSYCHOTIC,aripiprazole,class_member
+83367,DRUGCLASS-STATIN,atorvastatin,class_member
+36567,DRUGCLASS-STATIN,simvastatin,class_member
+301542,DRUGCLASS-STATIN,rosuvastatin,class_member
+42463,DRUGCLASS-STATIN,pravastatin,class_member
+41127,DRUGCLASS-STATIN,fluvastatin,class_member
+6472,DRUGCLASS-STATIN,lovastatin,class_member
+29046,DRUGCLASS-ACE,lisinopril,class_member
+52175,DRUGCLASS-ARB,losartan,class_member
+6809,DRUGCLASS-BIGUANIDE,metformin,class_member
+1545653,DRUGCLASS-SGLT2,empagliflozin,class_member
+1488564,DRUGCLASS-SGLT2,dapagliflozin,class_member
+314231,36567,Simvastatin 10 MG Oral Tablet,ingredient_of
+312961,36567,Simvastatin 20 MG Oral Tablet,ingredient_of
+476349,36567,ezetimibe 10 MG / simvastatin 20 MG Oral Tablet,ingredient_of
+617312,83367,atorvastatin 10 MG Oral Tablet,ingredient_of
+617310,83367,atorvastatin 20 MG Oral Tablet,ingredient_of
+617311,83367,atorvastatin 40 MG Oral Tablet,ingredient_of
+259255,83367,atorvastatin 80 MG Oral Tablet,ingredient_of
+859747,301542,rosuvastatin calcium 10 MG Oral Tablet,ingredient_of
+859424,301542,rosuvastatin calcium 5 MG Oral Tablet,ingredient_of
+314076,29046,lisinopril 10 MG Oral Tablet,ingredient_of
+314077,29046,lisinopril 20 MG Oral Tablet,ingredient_of
+205326,29046,lisinopril 30 MG Oral Tablet,ingredient_of
+197885,29046,hydrochlorothiazide 12.5 MG / lisinopril 10 MG Oral Tablet,ingredient_of
+197886,29046,hydrochlorothiazide 12.5 MG / lisinopril 20 MG Oral Tablet,ingredient_of
+197887,29046,hydrochlorothiazide 25 MG / lisinopril 20 MG Oral Tablet,ingredient_of
+979480,52175,losartan potassium 100 MG Oral Tablet,ingredient_of
+979485,52175,losartan potassium 25 MG Oral Tablet,ingredient_of
+979492,52175,losartan potassium 50 MG Oral Tablet,ingredient_of
+860975,6809,24 HR Metformin hydrochloride 500 MG Extended Release Oral Tablet,ingredient_of
+197536,5093,Haloperidol 1 MG Oral Tablet (demo SCD),ingredient_of
+198363,5093,Haloperidol 5 MG Oral Tablet (demo SCD),ingredient_of
+309438,2626,Clozapine 100 MG Oral Tablet (demo SCD),ingredient_of
+312077,61381,Olanzapine 5 MG Oral Tablet (demo SCD),ingredient_of
+312078,61381,Olanzapine 10 MG Oral Tablet (demo SCD),ingredient_of
+312406,35636,Risperidone 1 MG Oral Tablet (demo SCD),ingredient_of
+757688,89013,Aripiprazole 10 MG Oral Tablet (demo SCD),ingredient_of

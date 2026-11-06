@@ -50,6 +50,46 @@ resources:
               - "--label"
               - "rxnorm_hier"
           environment_key: serverless
+        # Relationship-scoped RxNorm closures (the review: keep relationship semantics separate). rxnorm_closure above
+        # stays the explicit composition (class -> ingredient -> product) the measures read, now with relationship_path.
+        - task_key: build_drug_class_closure
+          depends_on:
+            - task_key: load_terminology
+          spark_python_task:
+            python_file: ../src/semantic/build_closure.py
+            parameters:
+              - "--catalog"
+              - "${var.catalog}"
+              - "--schema"
+              - "care_protocol_terminology"
+              - "--hier_table"
+              - "rxnorm_hier"
+              - "--closure_table"
+              - "drug_class_closure"
+              - "--relationship"
+              - "class_member"
+              - "--label"
+              - "rxnorm_hier"
+          environment_key: serverless
+        - task_key: build_ingredient_closure
+          depends_on:
+            - task_key: load_terminology
+          spark_python_task:
+            python_file: ../src/semantic/build_closure.py
+            parameters:
+              - "--catalog"
+              - "${var.catalog}"
+              - "--schema"
+              - "care_protocol_terminology"
+              - "--hier_table"
+              - "rxnorm_hier"
+              - "--closure_table"
+              - "rxnorm_ingredient_closure"
+              - "--relationship"
+              - "ingredient_of"
+              - "--label"
+              - "rxnorm_hier"
+          environment_key: serverless
       environments:
         - environment_key: serverless
           spec:

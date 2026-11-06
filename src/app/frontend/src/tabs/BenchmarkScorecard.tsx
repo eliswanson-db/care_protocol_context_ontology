@@ -3,6 +3,7 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import { api, type A1Runs, type CapabilityMap } from "../api";
 import { Collapsible } from "../components/Collapsible";
 import { SIMPLE_TIER, TIER, TierChip, simpleKey } from "../components/TierChip";
+import { EvalExplainer } from "../components/EvalExplainer";
 import { SIMPLE_APPROACHES, SIMPLE_QIDS, useSettings } from "../settings";
 
 /** Simple mode: the same map cut to the simple questions x approaches, with the bars recounted from those cells. */
@@ -163,7 +164,7 @@ function Matrix({ map }: { map: CapabilityMap }) {
                       ) : (
                         <TierChip k={q.verdicts[a.id]} short runs={q.evidence?.[a.id]?.tier_runs} stable={q.evidence?.[a.id]?.stable} />
                       )}
-                      {q.why?.[a.id] && (
+                      {!simple && q.why?.[a.id] && (
                         <div className="mx-auto mt-1 max-w-[11rem] text-[10.5px] leading-snug text-muted">{q.why[a.id]}</div>
                       )}
                     </td>
@@ -272,17 +273,21 @@ export function BenchmarkScorecard() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">When each layer earns its place</h1>
         <p className="mt-1.5 text-[15px] text-muted">
-          {simple ? "Three" : "Five"} questions. <span className="font-semibold text-success">✓</span> = what the approach
+          {simple ? "Three" : map.classes.reduce((n, c) => n + c.questions.length, 0)} questions. <span className="font-semibold text-success">✓</span> = what the approach
           retrieved was enough to answer.
         </p>
       </div>
 
       <div className="space-y-6">
+        <Collapsible title="What this page evaluates, and how" defaultOpen={false} hint="the same pipeline as the Arena">
+          <EvalExplainer judge={map.scored_by?.judge} agent={map.scored_by?.agent} />
+        </Collapsible>
+
         <Collapsible title="How often each approach's retrieval was enough">
           <Ladder map={map} />
         </Collapsible>
 
-        <Collapsible title={simple ? "The three questions" : "The five questions"}>
+        <Collapsible title="The questions">
           <div className="mb-2 flex flex-wrap gap-2 text-[11px]">
             {(simple ? ["answered", "not_answered"] : ["tier1", "tier2", "wrong_answer", "query_failed", "no_query", "no_retrieval", "skipped"])
               .filter((k) => map.classes.some((c) => c.questions.some((q) =>
