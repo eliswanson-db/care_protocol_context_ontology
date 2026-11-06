@@ -258,7 +258,7 @@
           "How many patients have a KED care gap?"
         ],
         "sql": [
-          "SELECT COUNT(*) AS ked_care_gaps FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked WHERE status = 'NOT_MET'"
+          "SELECT COUNT(*) AS ked_care_gaps FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked WHERE egfr_datetime IS NULL OR uacr_datetime IS NULL"
         ]
       },
       {
@@ -267,7 +267,7 @@
           "List the clinics ranked by EED care-gap count."
         ],
         "sql": [
-          "SELECT clinic_id, COUNT(*) AS care_gaps FROM eli_test_classic_catalog.care_protocol.gold_adherence_eed WHERE status = 'NOT_MET' GROUP BY clinic_id ORDER BY care_gaps DESC"
+          "SELECT clinic_id, COUNT(*) AS care_gaps FROM eli_test_classic_catalog.care_protocol.gold_adherence_eed WHERE evidence_datetime IS NULL GROUP BY clinic_id ORDER BY care_gaps DESC"
         ]
       },
       {
@@ -293,7 +293,7 @@
           "SPD = Statin Therapy: diabetics aged 40-75 dispensed a statin in the measurement year.",
           "EED = Eye Exam: diabetics aged 18-75 with a retinal/diabetic eye exam in the measurement year.",
           "SSD = Diabetes Screening for People on Antipsychotics: this is a SEPARATE cohort (serious mental illness + antipsychotic dispensing, ages 18-64), NOT the diabetes cohort. Numerator is a glucose or HbA1c screen.",
-          "For patient-level detail or care gaps, use gold_adherence_<measure>. status = 'NOT_MET' means a care gap; 'MET' means compliant. clinic_id / panel_id are on every gold table.",
+          "For patient-level detail or care gaps, use gold_adherence_<measure>. The MET / NOT_MET rule lives in each metric view's Compliance Status dimension; over the gold tables a care gap is: GSD/SPD/EED evidence_datetime IS NULL, KED egfr_datetime IS NULL OR uacr_datetime IS NULL, BPD NOT (systolic < 140 AND diastolic < 90) or no reading. clinic_id / panel_id are on every gold table.",
           "The diabetes cohort is defined by subsumption over the ICD-10-CM hierarchy (diagnoses under E10/E11/E13)."
         ]
       }

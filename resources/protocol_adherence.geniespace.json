@@ -186,7 +186,7 @@
           "How many high-A1c triggers were not followed up within 90 days?"
         ],
         "sql": [
-          "SELECT COUNT(*) AS missed_followups FROM eli_test_classic_catalog.care_protocol.gold_protocol_adherence WHERE status = 'NOT_MET'"
+          "SELECT COUNT(*) AS missed_followups FROM eli_test_classic_catalog.care_protocol.gold_protocol_adherence WHERE window_closed AND NOT followup_within_90d"
         ]
       },
       {
@@ -218,7 +218,7 @@
           "MAD: diabetes patients 18+ with >=2 med fills; adherent = PDC >= 80%. `MAD Adherence Rate` and `Avg PDC`. Dimensions: Measurement Year, Clinic, Panel, Adherence Status, Age Band.",
           "One clinic (CLINIC-08) had a mid-year PCP handoff (panel_pcp_transition) that degraded timely follow-up for a few months then recovered; the effect is confounded with that clinic's higher patient complexity. Use panel_roster.is_handoff to identify the disrupted clinic.",
           "protocol_watch_findings is the weekly protocol-watch log (append-only; filter to the latest as_of). finding_type='STEP_DRIFT' rows flag a clinic-month where Step-3 adherence dropped vs that clinic's own prior baseline (delta < 0, worst = most negative); NO_DRIFT means it held steady.",
-          "For patient-level detail use gold_protocol_adherence (one row per high-A1c trigger; status NOT_MET = no timely follow-up) and gold_adherence_mad (one row per eligible patient, with pdc). clinic_id / panel_id are on both."
+          "For patient-level detail use gold_protocol_adherence (one row per high-A1c trigger; a missed follow-up = window_closed AND NOT followup_within_90d; an open window is not yet a miss) and gold_adherence_mad (one row per eligible patient, with pdc). clinic_id / panel_id are on both."
         ]
       }
     ]

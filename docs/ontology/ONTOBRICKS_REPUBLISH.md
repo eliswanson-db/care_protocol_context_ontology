@@ -40,7 +40,5 @@ Simulated (no tables written) in `docs/benchmark/republish_check/simulated_graph
 - The ICD closure is already DAG-aware in the shared catalog: CKD found *through the closure* is 1,882 patients
   (1,792 by N18 code prefix; +90 with E11.22 and no N18 code); a closure-based cardiorenal cohort is 12 (gold, by
   code prefix, stays 10). Gold queries, measures and the demo questions are unaffected.
-- The Tracer's graph stage prints ancestors joined by "→", which would misstate a multi-parent chain; no hero
-  patient has E11.22.
-- Pre-existing, unrelated: `src/mcp/care_protocol_tools.py:get_measure_rate` asks the SPD metric view for
-  `Compliant Patients` (the view names it `On Statin Patients` since the Nov 4 refactor), so `src/mcp/_selftest.py` fails.
+- Fixed 2026-11-06: the Tracer's graph stage shows a code's ancestors as a chain only when it is one (a code with
+  two parents lists `ancestor [hops]`); the MCP `get_measure_rate` tool uses each metric view's own numerator.

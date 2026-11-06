@@ -516,9 +516,21 @@ def _ontobricks(pid, my, log):
     chain = [{"code": dx, "name": "patient's diagnosis", "depth": 0}] + \
             [{"code": _short(r["ancestor"]).replace("icd/", ""), "name": f"subClassOf* hop {r['hops']}",
               "depth": r["hops"]} for r in walk]
-    graph_anc = [n["code"] for n in chain[1:]]
+    graph_anc = list(dict.fromkeys(n["code"] for n in chain[1:]))   # a node reachable by two routes counts once
     mat_anc = [r["ancestor_code"] for r in mat]
     agrees = sorted(graph_anc) == sorted(mat_anc)
+    # One parent per hop = a real chain; otherwise (a code with several parents) list ancestors with their hop count,
+    # because "A -> B -> C" would claim a route that doesn't exist.
+    hops: dict[int, list[str]] = {}
+    for n in chain[1:]:
+        hops.setdefault(n["depth"], []).append(n["code"])
+    is_chain = all(len(set(v)) == 1 for v in hops.values()) and len(graph_anc) == len(chain) - 1
+
+    def show(codes_with_hops):
+        return (" → ".join([dx] + [c for c, _ in codes_with_hops]) if is_chain
+                else ", ".join(f"{c} [{h}]" for c, h in codes_with_hops))
+    walk_txt = show([(n["code"], n["depth"]) for n in chain[1:]])
+    sep = " → " if is_chain else ", "
     guide_rows = [{"subject": _short(r["subject"]), "predicate": _short(r["predicate"]),
                    "object": _short(r["object"])} for r in guide]
     graph_gap = any(e["predicate"] == "hasCareGap" and e["object"] == "Measure/GSD" for e in edges)
@@ -536,8 +548,8 @@ def _ontobricks(pid, my, log):
         meas = _short(p0["measure"]).split("/")[-1]
         path_txt = (f"Graph-native path: this patient is prescribed {drug} → ingredient → {cls} → recommendedFor "
                     f"{meas} — found by generic traversal, no path-specific SQL. ")
-    takeaway = (path_txt + f"subClassOf* walked live from icd/{dx}: {' → '.join(n['code'] for n in chain)} "
-                f"({len(chain) - 1} hops, query-time) — {'identical to' if agrees else 'differs from'} the "
+    takeaway = (path_txt + f"subClassOf* walked live from icd/{dx}: {walk_txt} "
+                f"({len(graph_anc)} ancestors, query-time) — {'identical to' if agrees else 'differs from'} the "
                 f"materialized icd10_closure.")
     return {
         "what": "The explicit OWL graph, queried live: typed edges + a closure computed by traversal.",
@@ -556,8 +568,8 @@ def _ontobricks(pid, my, log):
                for pth in paths[:2]]),
             {"label": "Graph closure — subClassOf* walked live", "kind": "chain", "nodes": chain},
             {"label": "Closure comparison", "kind": "kv", "data": {
-                "Graph (traversal, query-time)": " → ".join(graph_anc) or "—",
-                "icd10_closure (materialized, build-time)": " → ".join(mat_anc) or "—",
+                "Graph (traversal, query-time)": sep.join(graph_anc) or "—",
+                "icd10_closure (materialized, build-time)": sep.join(mat_anc) or "—",
                 "Same ancestors": "✓" if agrees else "✗"}},
 
             {"label": "Patient's typed edges (grouped)", "kind": "kv", "data": {

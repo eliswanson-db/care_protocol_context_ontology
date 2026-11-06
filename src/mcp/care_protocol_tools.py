@@ -13,15 +13,15 @@ from __future__ import annotations
 # table = gold EVIDENCE base; view = governed metric view (the rule lives here, computed live); gap = the
 # NOT_MET predicate derived from evidence (same rule the metric view applies), for the per-patient care-gap list.
 MEASURES = {
-    "GSD": {"table": "gold_adherence_gsd", "view": "gsd_compliance_metrics", "rate": "GSD Compliance Rate",
+    "GSD": {"table": "gold_adherence_gsd", "view": "gsd_compliance_metrics", "rate": "GSD Compliance Rate", "numerator": "Compliant Patients",
             "gap": "evidence_datetime IS NULL", "name": "Glycemic Status Assessment", "age": "18-75"},
-    "KED": {"table": "gold_adherence_ked", "view": "ked_compliance_metrics", "rate": "KED Compliance Rate",
+    "KED": {"table": "gold_adherence_ked", "view": "ked_compliance_metrics", "rate": "KED Compliance Rate", "numerator": "Compliant Patients",
             "gap": "egfr_datetime IS NULL OR uacr_datetime IS NULL", "name": "Kidney Health Evaluation", "age": "18-85"},
-    "BPD": {"table": "gold_adherence_bpd", "view": "bpd_compliance_metrics", "rate": "BPD Compliance Rate",
+    "BPD": {"table": "gold_adherence_bpd", "view": "bpd_compliance_metrics", "rate": "BPD Compliance Rate", "numerator": "Controlled Patients",
             "gap": "systolic IS NULL OR systolic >= 140 OR diastolic >= 90", "name": "Blood Pressure control", "age": "18-75"},
-    "SPD": {"table": "gold_adherence_spd", "view": "spd_compliance_metrics", "rate": "SPD Compliance Rate",
+    "SPD": {"table": "gold_adherence_spd", "view": "spd_compliance_metrics", "rate": "SPD Compliance Rate", "numerator": "On Statin Patients",
             "gap": "evidence_datetime IS NULL", "name": "Statin Therapy", "age": "40-75"},
-    "EED": {"table": "gold_adherence_eed", "view": "eed_compliance_metrics", "rate": "EED Compliance Rate",
+    "EED": {"table": "gold_adherence_eed", "view": "eed_compliance_metrics", "rate": "EED Compliance Rate", "numerator": "Eye Exam Patients",
             "gap": "evidence_datetime IS NULL", "name": "Eye Exam", "age": "18-75"},
 }
 CLOSURES = {"ICD10CM": "icd10_closure", "RXNORM": "rxnorm_closure"}
@@ -41,7 +41,7 @@ def make_tools(catalog: str, schema: str = "care_protocol", term_schema: str = "
         if not m:
             return {"error": f"unknown measure {measure_id!r}; known: {', '.join(MEASURES)}"}
         rows = query(
-            f"SELECT MEASURE(`Eligible Patients`) AS eligible, MEASURE(`Compliant Patients`) AS numerator, "
+            f"SELECT MEASURE(`Eligible Patients`) AS eligible, MEASURE(`{m['numerator']}`) AS numerator, "
             f"ROUND(MEASURE(`{m['rate']}`), 4) AS rate FROM {sem}.{m['view']}")
         r = rows[0]
         return {"measure_id": measure_id.upper(), "measure_name": m["name"], "eligible_ages": m["age"],
