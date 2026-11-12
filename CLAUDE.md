@@ -4,28 +4,39 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A Databricks demo ("Care Protocol Context & Evidence Lab") that shows what **semantics, ontology, and a
-context layer** add to HEDIS diabetes quality measures computed over **synthetic, Epic/Clarity-shaped data**.
-Genie One is the front door. Several retrieval approaches ("arms") are benchmarked against a hand-verified
-gold answer key, and there is record-level tracer traceability plus a measure-drift demo. All outputs are
-labeled *Synthetic · HEDIS-aligned · Not NCQA-certified · Not for clinical use*.
+A Databricks **two-demo "Context & Evidence Lab"** (ADR-0021). One app has a demo switcher (`demo_id`), and both
+demos share one catalog:
 
-The plan of record is `docs/UNIFIED_BUILD_ROADMAP.md`. Design decisions live as ADRs in `docs/decisions.md`,
+- **`healthcare_hedis`**: shows what **semantics, ontology, and a context layer** add to HEDIS diabetes quality
+  measures computed over **synthetic, Epic/Clarity-shaped data**. Genie One is the front door. Several retrieval
+  approaches ("arms") are benchmarked against a hand-verified gold answer key, with record-level tracer
+  traceability and a measure-drift demo. Labeled *Synthetic · HEDIS-aligned · Not NCQA-certified · Not for clinical use*.
+- **`life_sciences_clinical`**: the **Clinical Study Context & Evidence Lab**. It uses CDISC-grounded semantics
+  (CT + COSMoS BC/DSS, USDM-aligned study design) over **SDTM-shaped synthetic study data**, a versioned Week-24
+  body-weight endpoint, and a protocol-amendment lab. Diseases are reasoned over with MONDO, drugs with MED-RT, and
+  MeSH bridges the two (ADR-0022). Labeled *Synthetic · SDTM-/ADaM-shaped · Not submission-ready · Not for clinical use*.
+  Plan of record: `docs/life_sciences/PLAN.md`.
+
+Demo materials are customer-neutral: no customer names in code, docs, Pages, or the app.
+
+The HEDIS plan of record is `docs/UNIFIED_BUILD_ROADMAP.md`. Design decisions live as ADRs in `docs/decisions.md`,
 and many code comments cite them (e.g. "ADR-0018"). Read the relevant ADR before changing behavior it governs.
 Manual (⚙) and async-wait (⏳) steps are in `docs/RUNBOOK.md`.
 
 ## Workspaces, catalog, and bundle targets (the key constraint)
 
-- **One shared UC catalog**, `eli_test_classic_catalog`, holds schemas `care_protocol` (medallion + base
-  tables), `care_protocol_semantic` (metric views only, ADR-0013), and `care_protocol_terminology`.
-- **Two workspaces read that catalog** (ADR-0018). `ect` (profile `ECT`) is the ontology-OFF baseline.
-  `dmvm` (profile `DMVM`) is the ontology-ON arm. Genie Ontology can't be toggled. The variable being tested
-  is the workspace snippet count: inferred snippets are only fetched above roughly 1,000.
+- **One shared UC catalog**, `eli_test_classic_catalog`.
+- HEDIS schemas: `care_protocol` (medallion + base tables), `care_protocol_semantic` (metric views only,
+  ADR-0013), `care_protocol_terminology`. Life-sciences schemas (ADR-0023): `clinical_study`,
+  `clinical_study_semantic`, `clinical_study_standards`.
+- **ECT (profile `ECT`) is the working workspace for both demos.** DMVM (profile `DMVM`) also reads the catalog, but
+  the ECT-off / DMVM-on Genie Ontology comparison is **retired** (ADR-0021). Life sciences deploys to ECT only. Genie
+  One is shared across demos (not scoped per demo), and rising snippet density is fine.
 - **Only `dev` and `ect` own the shared schemas and volumes**, through the `&shared_uc` anchor in
   `databricks.yml` (ADR-0019). Do not add `resources/schemas.yml`/`volumes.yml` to `include:`, and do not give
   `dmvm` those resources: its Terraform state would try to create, or later drop, the shared schemas.
 - **Do not run the data jobs/pipeline on DMVM.** Their outputs already live in the shared catalog. DMVM only
-  gets workspace-local assets: Genie spaces, dashboards, query-history seeding, and analytics notebooks.
+  gets workspace-local HEDIS assets: Genie spaces, dashboards, query-history seeding, and analytics notebooks.
 - Always pass `--profile` explicitly. Never pick one automatically.
 
 ## Commands
@@ -133,4 +144,6 @@ and `vite build` does not type-check.
   Domains: `scripts/create_domains.py`, which is scripted and outside the DAB. ECT hit the tag-policy cap and
   reuses the `Clinical Domain` tag.
 - Terminology covers free code systems only, vendored as curated subsets in `src/terminology/` (ADR-0002/0007).
-  Never commit licensed LOINC/SNOMED raw content (see `.gitignore`).
+  Never commit licensed LOINC/SNOMED raw content (see `.gitignore`). Life-sciences standards are vendored as subsets
+  in `src/standards/life_sciences/`, pinned and checksummed in `standards_manifest.yaml`. Never vendor MedDRA, SNOMED
+  CT, ATC, or CDISC Library content (ADR-0022).

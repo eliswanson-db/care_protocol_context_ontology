@@ -1,12 +1,12 @@
 # Plan — one spine, five lenses (consistent trace + benchmark)
 
 **Owner thread:** Eli + Claude · started 2026-11-03
-**Serves:** the Kaiser Permanente "A Monday with Genie" deck (`~/Downloads/index (2).html`) — the business case.
+**Serves:** the "A Monday with Genie" diabetes storyboard — the business case.
 **Framing rule:** this is demo engineering. No promo-signal / WLB / project-management framing (see memory `no-project-management-framing`).
 
 ## The goal (4 things, one design)
 
-1. Everything frames to the KP deck (diabetes / Star Ratings; hero concept = **Step 3: intensify + recheck A1c within 90 days of a result >9%**).
+1. Everything frames to the storyboard (diabetes / Star Ratings; hero concept = **Step 3: intensify + recheck A1c within 90 days of a result >9%**).
 2. Explain Genie Ontology + other Databricks graph/semantic options by benchmarking **FIVE retrieval approaches consistently**: `metric_view · closure · genie_ontology · rag · graph(ontobricks)`.
 3. **Trace journeys**: each hero concept/patient realized in every layer — `PDF/raw → bronze → silver → gold → semantic (metric view · Genie agent · Page) → retrieval (metric view · closure · RAG · Genie Ontology · graph)`. Same spine every hero.
 4. **Benchmark**: what each approach gets **right / wrong** (`docs/benchmark/ground_truth.yaml` 9 classes → Retrieval Arena).

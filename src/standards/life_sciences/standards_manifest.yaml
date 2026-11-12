@@ -1,0 +1,134 @@
+# Standards source manifest — Clinical Study Context & Evidence Lab (demo_id: life_sciences_clinical)
+# Open standards only (no CDISC Library membership/API key). Pinned releases. ADR-0022.
+# Raw downloads are NOT committed; the acquisition script caches them under the standards-cache path and
+# verifies the checksums below. Only small curated subsets are vendored (ADR-0007 pattern).
+standards_cache: /Volumes/${catalog}/clinical_study_standards/standards_cache   # UC volume; local: ~/.cache/care_lab/standards
+
+artifacts:
+  - artifact_id: cdisc_sdtm_ct
+    publisher: CDISC (distributed by NCI EVS)
+    artifact_type: controlled_terminology
+    source_location: https://evs.nci.nih.gov/ftp1/CDISC/SDTM/SDTM%20Terminology.txt
+    release_version: "2026-09-25"   # HTTP Last-Modified of the unversioned file; pin to the dated Archive file when vendoring
+    retrieved_at: "2026-11-12"
+    checksum: sha256:9e8117a90e28e5aade3ac2d52fe1b60adfcccc92a8894891f04ad05c7cf1f88d
+    license_or_terms_reference: https://www.cdisc.org/standards/terminology (CDISC CT published publicly via NCI EVS)
+    access_method: anonymous HTTPS
+    local_storage_location: src/standards/life_sciences/cdisc_ct_subset.csv
+    transformation_version: "1"
+
+  - artifact_id: cdisc_cosmos_bc
+    publisher: CDISC (COSMoS)
+    artifact_type: biomedical_concepts
+    source_location: https://github.com/cdisc-org/COSMoS/blob/41fdf29f50cfb6e233861bbcbc8e3b339dcea3b4/export/cdisc_biomedical_concepts_latest.csv
+    release_version: "package 2026-11-02 @ 41fdf29"
+    retrieved_at: "2026-11-12"
+    checksum: sha256:5f1927a3e08a7b009e9181d4951bffc3b15baa8ab4dc5e908b5abad053c210fa
+    license_or_terms_reference: MIT (cdisc-org/COSMoS LICENSE)
+    access_method: anonymous HTTPS (GitHub raw, pinned commit)
+    local_storage_location: src/standards/life_sciences/cosmos_bc_subset.csv
+    transformation_version: "1"
+
+  - artifact_id: cdisc_cosmos_bc_hierarchy
+    publisher: CDISC (COSMoS)
+    artifact_type: biomedical_concept_hierarchy
+    source_location: https://github.com/cdisc-org/COSMoS/blob/41fdf29f50cfb6e233861bbcbc8e3b339dcea3b4/export/cdisc_biomedical_concepts_hierarchy_latest.csv
+    release_version: "package 2026-11-02 @ 41fdf29"
+    retrieved_at: "2026-11-12"
+    checksum: sha256:9e2855349c6d8cd3476565bff0747d40ba67c75dbffc1c8225895d67a7f88e92
+    license_or_terms_reference: MIT (cdisc-org/COSMoS LICENSE)
+    access_method: anonymous HTTPS (GitHub raw, pinned commit)
+    local_storage_location: src/standards/life_sciences/cosmos_bc_hierarchy_subset.csv
+    transformation_version: "1"
+
+  - artifact_id: cdisc_cosmos_sdtm_dss
+    publisher: CDISC (COSMoS)
+    artifact_type: sdtm_dataset_specializations
+    source_location: https://github.com/cdisc-org/COSMoS/blob/41fdf29f50cfb6e233861bbcbc8e3b339dcea3b4/export/cdisc_sdtm_dataset_specializations_latest.csv
+    release_version: "package 2026-11-02 @ 41fdf29"
+    retrieved_at: "2026-11-12"
+    checksum: sha256:21981bcffc6739bab02510d87fead6de8c0e10634f77b2eb2aa6f2bb5e8839d7
+    license_or_terms_reference: MIT (cdisc-org/COSMoS LICENSE)
+    access_method: anonymous HTTPS (GitHub raw, pinned commit)
+    local_storage_location: src/standards/life_sciences/cosmos_dss_subset.csv
+    transformation_version: "1"
+
+  - artifact_id: cdisc_usdm
+    publisher: CDISC / TransCelerate DDF (DDF-RA)
+    artifact_type: study_definition_model
+    source_location: https://github.com/cdisc-org/DDF-RA
+    release_version: TBD-pin-at-phase-3   # pin a tagged USDM release + commit when the TBox is written
+    retrieved_at: null
+    checksum: null
+    license_or_terms_reference: MIT (code) / CC BY 4.0 (content), trademarks excluded — DDF-RA README
+    access_method: anonymous HTTPS (GitHub)
+    local_storage_location: src/ontology/life_sciences/ (USDM-aligned classes, namespaced)
+    transformation_version: "1"
+
+  - artifact_id: ncit
+    publisher: National Cancer Institute (EVS)
+    artifact_type: thesaurus (code backbone for CDISC C-codes)
+    source_location: https://evs.nci.nih.gov/ftp1/NCI_Thesaurus/Thesaurus_26.10d.FLAT.zip
+    release_version: "26.10d"
+    retrieved_at: "2026-11-12"
+    checksum: sha256:bbb28631799046e1227ac221636c2de6bb1d2b79bf6c8e0a1143a797176d6736
+    license_or_terms_reference: CC BY 4.0 — https://evs.nci.nih.gov/ftp1/NCI_Thesaurus/ThesaurusTermsofUse.htm ("NCI Thesaurus" is a trademark)
+    access_method: anonymous HTTPS
+    local_storage_location: src/standards/life_sciences/ncit_subset.csv
+    transformation_version: "1"
+
+  - artifact_id: mondo
+    publisher: Monarch Initiative
+    artifact_type: disease_ontology
+    source_location: https://github.com/monarch-initiative/mondo/releases/download/v2026-11-03/mondo.obo
+    release_version: "2026-11-03"
+    retrieved_at: "2026-11-12"
+    checksum: sha256:b5a3d848578694601dffb1c2866798d4f6f4b4a12c315030c4d4c62ffe4e7e22
+    license_or_terms_reference: CC BY 4.0 (terms:license in mondo.obo)
+    access_method: anonymous HTTPS (GitHub release)
+    local_storage_location: src/standards/life_sciences/mondo_subset.csv
+    transformation_version: "1"
+
+  - artifact_id: medrt
+    publisher: U.S. Department of Veterans Affairs (distributed by NCI EVS)
+    artifact_type: drug_knowledge (MoA, PE, may_treat, CI_with)
+    source_location: https://evs.nci.nih.gov/ftp1/MED-RT/Core_MEDRT_XML.zip
+    release_version: "2026.11.02"
+    retrieved_at: "2026-11-12"
+    checksum: sha256:b02c7f44e812e79ed1a87b3e9eb1ab14bb934d987d4fac29751bb5e542c057b6
+    license_or_terms_reference: >-
+      Public VA release via NCI EVS. MED-RT docs note "some proprietary data requires licensing" (UMLS-distributed content).
+      OPEN ITEM: confirm terms before external distribution. Vendored subset excludes SNOMED CT targets; Authority kept per edge.
+    access_method: anonymous HTTPS
+    local_storage_location: src/standards/life_sciences/medrt_subset.csv
+    transformation_version: "1"
+
+  - artifact_id: mesh
+    publisher: U.S. National Library of Medicine
+    artifact_type: vocabulary (bridge: MED-RT concept UI -> descriptor UI -> MONDO xref)
+    source_location: https://nlmpubs.nlm.nih.gov/projects/mesh/MESH_FILES/xmlmesh/desc2026.gz
+    release_version: "2026"
+    retrieved_at: "2026-11-12"
+    checksum: sha256:ccd4d0d33bebfd4c836a59e7dd0c635b1d4e20c4f5a6abc55e2eb0ba4c8716dd
+    license_or_terms_reference: https://www.nlm.nih.gov/databases/download/terms_and_conditions_mesh.html
+    access_method: anonymous HTTPS
+    local_storage_location: src/standards/life_sciences/mesh_bridge_subset.csv
+    transformation_version: "1"
+
+  - artifact_id: rxnorm
+    publisher: U.S. National Library of Medicine
+    artifact_type: drug_vocabulary
+    source_location: reused from src/terminology/rxnorm_hier.csv (HEDIS lab) + MED-RT RxNorm references
+    release_version: "2026.10.05.26AA (as referenced by MED-RT)"
+    retrieved_at: "2026-11-12"
+    checksum: null
+    license_or_terms_reference: see src/terminology/LICENSES.md
+    access_method: vendored
+    local_storage_location: src/terminology/rxnorm_hier.csv
+    transformation_version: "1"
+
+not_used:
+  - {artifact: CDISC Library API (SDTM/SDTMIG metadata, RDF), reason: requires CDISC membership + API key — not available}
+  - {artifact: MedDRA, reason: licensed; MH coded with MONDO + ICD-10-CM xrefs instead (labeled deviation)}
+  - {artifact: SNOMED CT, reason: licensed; MED-RT edges to SNOMED targets are filtered out}
+  - {artifact: WHO ATC, reason: licensing restrictions; MED-RT MoA/EPC classes used instead}

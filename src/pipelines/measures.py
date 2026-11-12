@@ -313,7 +313,7 @@ def gold_adherence_eed():
 
 # ---------------- Protocol-STEP adherence (the "A Monday with Genie" hero: did the due event happen in time?) ----
 # Protocol Step: after an A1c above target, intensify therapy and recheck A1c within 90 days.
-# Trigger = A1c >9% (poor control) -- the clinically correct threshold the KP storyboard is built on. The
+# Trigger = A1c >9% (poor control) -- the clinically correct threshold the storyboard is built on. The
 # care-behavior model (ADR-0012) writes each poor-control patient's modeled A1c (>9%) into the event stream as a
 # real result, so the poorly-controlled cohort (~700) triggers here, not just the ~4 raw well-controlled highs.
 A1C_TRIGGER = 9.0

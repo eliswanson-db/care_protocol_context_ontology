@@ -5,6 +5,64 @@ statement in the source plans under `docs/sources/`.
 
 ---
 
+## ADR-0024 — Life-sciences data: dbldatagen raw EDC exports → Lakeflow pipeline → SDTM-shaped silver → ADaM-shaped gold
+**Date:** 2026-11-12 · **Status:** accepted
+Same spine as HEDIS (raw landing → bronze → silver → gold → semantic). A seeded **dbldatagen** generator on serverless
+writes EDC-style exports (participants, visits, vitals, exposure, medical history, concomitant meds) to a landing volume.
+The 20 named edge-case participants are injected deterministically on top. Scale: Study A ≈4,000 and Study B ≈2,500
+participants, ≈10 scheduled visits plus unscheduled ones. A Lakeflow pipeline builds bronze (immutable) → silver
+SDTM-shaped DM/VS/EX/MH/CM/SV (validated against COSMoS DSS value lists) → gold ADaM-shaped endpoint tables. The
+versioned endpoint engine reads the **approved** rule registry. Candidate assertions extracted from documents never
+execute. Hand-authored expected outcomes (not engine output) are the independent oracle. Synthetic protocol/SAP/
+amendment PDFs follow the HEDIS `docs/care_protocol` corpus → html → pdf pattern and feed A4 RAG, Pages, and rule
+extraction. Labels: "SDTM-shaped" / "ADaM-shaped". Not submission-ready, not validated.
+
+---
+
+## ADR-0023 — Two demos, one app and one catalog: schema isolation, demo_id scoping, ECT only
+**Date:** 2026-11-12 · **Status:** accepted
+The life-sciences lab gets its own schemas in `eli_test_classic_catalog`: `clinical_study` (medallion),
+`clinical_study_semantic` (metric views, ADR-0013 pattern) and `clinical_study_standards` (vendored standards +
+closures). They are owned by dev+ect through `&shared_uc` (ADR-0019). HEDIS tables are **not** migrated. The app gets
+a global demo switcher. Every backend route resolves its catalog/schema/Genie space/corpus from the active `demo_id`
+(`healthcare_hedis` | `life_sciences_clinical`), and cache keys include `demo_id`. Isolation is applied where it
+matters: app routes, MCP tools, RAG corpus filter, benchmark and drift runs. **Genie One is shared** (workspace-wide,
+not scoped per demo), and rising workspace snippet counts are welcome. **Deploy to ECT only.** DMVM gets no
+life-sciences assets unless a concrete need appears.
+
+---
+
+## ADR-0022 — Life-sciences ontology stack: CDISC for data shape, MONDO + MED-RT (+ MeSH bridge) for reasoning
+**Date:** 2026-11-12 · **Status:** accepted (richness gate passed — `docs/life_sciences/ONTOLOGY_RICHNESS_GATE.md`)
+There is no CDISC Library membership or API key, so only open standards are used. CDISC CT and COSMoS are an
+excellent *data-shape* layer (Body Weight BC C81328, WEIGHT DSS with `VSORRESU ∈ {LB,g,kg}`). But CDISC/NCIt is
+is-a-only and shallow for metabolic disease and drugs: Obesity sits under "Sign" with 0 roles, and semaglutide has 0
+roles. That isn't enough for the graph to beat Genie Ontology or RAG. **Decision:** layer
+- **MONDO** (CC BY 4.0) for diseases: 32k terms, 34% with multiple parents, depth 5–12;
+- **MED-RT** (VA, via NCI EVS) for drugs: 17 typed relations, ≈100k edges (MoA, PE, may_treat, CI_with);
+- **MeSH** (NLM) as the bridge: MED-RT concept UI → descriptor → MONDO xref;
+- **RxNorm** (reused from HEDIS);
+- **CDISC CT/NCIt** codes as the term backbone;
+- **COSMoS** BC/DSS for the concept → SDTM variable layer;
+- **USDM**-aligned study-design classes;
+- a namespaced `cpl:` extension for rules, amendments, approvals and provenance (never presented as official CDISC).
+
+Only curated subsets are vendored (ADR-0007 pattern), with the manifest at `src/standards/life_sciences/standards_manifest.yaml`.
+MedDRA, SNOMED CT and ATC are excluded (licensed). MH is coded with MONDO + ICD-10-CM xrefs, a labeled deviation.
+Claude writes the TBox and mapping files; Eli creates the Ontobricks domain and imports them (ADR-0005).
+
+---
+
+## ADR-0021 — The repo becomes a two-demo lab; the ECT-off / DMVM-on Genie Ontology comparison is retired
+**Date:** 2026-11-12 · **Status:** accepted · **Supersedes:** ADR-0018's tested variable (its shared-catalog mechanics stand)
+The first customer delivery is done. Next: the HEDIS lab again (for a health-system audience) and a new **Clinical Study
+Context & Evidence Lab** (CDISC, life sciences). Both live in one app behind a demo switcher. The A1-off/A1-on
+contrast (ECT vs DMVM snippet density) is **no longer a goal**. Genie One stays a single benchmark arm, and higher
+snippet density is welcome. Customer names are removed from the demo materials. Plan of record for the new lab:
+`docs/life_sciences/PLAN.md`.
+
+---
+
 ## ADR-0020 — Care-protocol knowledge edges target a ValueSet hub (not ICD codes); add Threshold; fix inDrugClass
 **Date:** 2026-11-03 · **Status:** accepted
 After ClinicalDomain V1 published cleanly (the metric-view scan-abort was fixed by rev-5), the cross-vocabulary
@@ -53,7 +111,7 @@ operation. The `measures` pipeline + data jobs still deploy to dmvm (target-suff
 ---
 
 ## ADR-0018 — Two workspaces, one shared catalog: isolate the native ontology's effect on Genie One
-**Date:** 2026-11-01 · **Status:** accepted
+**Date:** 2026-11-01 · **Status:** superseded in part by ADR-0021 (the on/off comparison is retired; shared-catalog mechanics stand)
 Genie Ontology is a **workspace-level** capability: once enabled, Genie One (A1) always consults the workspace
 ontology (inferred snippets + modeled context). There is **no per-query "ontology off" switch for Genie One**
 — the ablation ladder (`ctx_l0…ctx_l5`) only works for Genie **Agents**, which carry their own assets (P7/§11).

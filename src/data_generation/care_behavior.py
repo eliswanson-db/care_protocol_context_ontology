@@ -42,7 +42,7 @@ N_PANELS = 40
 N_CLINICS = 8                     # ~5 panels/clinic -> the disrupted clinic has enough triggers to show drift
 MY = 2026                         # current measurement year, year-to-date (data horizon = AS_OF, computed)
 MY_START, MY_END = f"{MY}-01-01", f"{MY}-12-31"
-A1C_TRIGGER = 9.0                 # poor control (the KP story's threshold)
+A1C_TRIGGER = 9.0                 # poor control (the storyboard threshold)
 FOLLOWUP_DAYS = 90
 TRANSITION_DATE = f"{MY}-05-15"     # "PCP changed in the last 6 months"; leaves closed 90-day windows to measure
 GAP_RECOVERY_DAYS = 150

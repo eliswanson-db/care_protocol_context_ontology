@@ -1,8 +1,8 @@
-# Story alignment — "A Monday with Genie" (KP diabetes storyboard)
+# Story alignment — "A Monday with Genie" (diabetes storyboard)
 
 The north-star narrative we build toward (Databricks ideation storyboard, Oct 2026). We align **conceptually**,
 not slide-for-slide: our demo deliberately goes **beyond** (benchmarks, formal graph) and is a reusable
-substrate, not a KP-specific deck. Check builds against this doc.
+substrate, not a customer-specific deck. Check builds against this doc.
 
 ## The story in one breath
 Value-based care: quality *is* revenue (Medicare Advantage Star Ratings). Diabetes protocols **drift quietly**;
@@ -11,7 +11,7 @@ with Genie": a scheduled **Weekly Protocol Watch** over governed **Metric Views 
 protocol STEP slipping*, Genie explains the **root cause** (a PCP handoff dropped the follow-up order set,
 citing doc+data), **sizes** it on certified Star measures (two 3× diabetes measures), drafts a **ranked fix**,
 **widens the watch**, supports a **P&T guideline-diff** decision, publishes a **row-filtered Page**, and next
-Monday **checks the fix**. Foundation = *"one layer that knows KP"*: Genie Ontology (**Learned** members/
+Monday **checks the fix**. Foundation = *"one layer that knows your organization"*: Genie Ontology (**Learned** members/
 encounters/orders + **Modeled** protocol→step→expected-event + certified Star Metric Views), a **shared Member**
 joining care-delivery ↔ health-plan, surfaced via Genie One / scheduled tasks / Agents / Pages, governed by
 Unity Catalog, evaluated with MLflow.
