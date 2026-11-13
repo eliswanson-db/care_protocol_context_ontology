@@ -296,3 +296,22 @@ answers fast and grounded, and leaves a lineage record Genie One can reason over
 ## Genie Ontology seeding (P7 / §7a)
 - Build Pages + metric views + Genie Agents + dashboards (over-build — see roadmap §7a), assign Domains,
   certify. Run the query-history seeding job on a schedule. Trigger early; build other arms while it extracts.
+
+
+## Clinical Study Lab (life_sciences_clinical): manual steps (⚙) and waits (⏳)
+
+Automated (bundle, ECT only): `ls_bootstrap` (generate data + everything) and `ls_context` (no data regeneration):
+standards + rule registry → closures → pipeline → gold oracle check → documents / RAG corpus / Pages staging →
+graph views (`clinical_study_graph`) + semantic validation (`clinical_study.dq_semantic_validation_summary`).
+
+1. ⚙ **Ontobricks (Eli, ADR-0005).** Follow `docs/life_sciences/ONTOBRICKS_IMPORT.md`:
+   - create a **new** project (not `clinicaldomain`);
+   - import `src/ontology/life_sciences/clinical_study.owl.ttl`, then `clinical_study.r2rml.ttl`;
+   - set source scope to `eli_test_classic_catalog.clinical_study_graph` only;
+   - publish, then send Claude the triplestore table name for verification.
+   ⏳ Publishing builds the triplestore; check that it completed before verifying.
+2. ⚙ **Pages.** Genie Code bulk import with `docs/life_sciences/PAGES_IMPORT_PROMPT.md` (15 Pages → `Clinical
+   Domain`). ⏳ Genie extracts new snippets on a roughly **daily** cadence; Genie One evaluation waits for it.
+3. ⚙ **Domain (blocked, no action now).** The account is at its 1,000-domain cap, so `Clinical Study Lab` can't be
+   created. Its governed tags exist. If a slot frees up: `python scripts/create_domains.py --profile ECT --tree
+   life_sciences`.
