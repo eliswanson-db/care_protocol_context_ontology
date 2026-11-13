@@ -1,16 +1,16 @@
 {
-  "concepts": 3871,
+  "concepts": 3875,
   "concepts_by_scheme": {
     "CDISC_CT": 145,
     "COSMOS_BC": 45,
     "COSMOS_DSS": 73,
-    "DOID": 504,
+    "DOID": 506,
     "ICD10CM": 128,
     "LOINC": 6,
     "MEDRT": 391,
     "MESH": 1044,
     "MESH_SCR": 64,
-    "MONDO": 815,
+    "MONDO": 817,
     "NCIT": 581,
     "RXNORM": 63,
     "SDTM_VAR": 12
@@ -19,7 +19,7 @@
   "dangling_by_scheme": {},
   "drugs": 63,
   "dss_bindings": 66,
-  "edges": 6238,
+  "edges": 6244,
   "edges_by_predicate": {
     "cdisc:inCodelist": 135,
     "cdisc:nciConcept": 135,
@@ -53,8 +53,8 @@
     "mesh:conceptOf": 205,
     "mesh:headingMappedTo": 94,
     "oboInOwl:hasDbXref": 455,
-    "rdfs:subClassOf": 1760,
-    "skos:exactMatch": 953
+    "rdfs:subClassOf": 1762,
+    "skos:exactMatch": 957
   },
   "mesh_unmapped_concepts": [
     "M0030233 analogs & derivatives",
@@ -70,6 +70,11 @@
     "terms": 8319
   },
   "mondo_seed_sizes": {
+    "MONDO:0000775": {
+      "descendants": 0,
+      "note": "drug allergy (MED-RT CI_with Drug Hypersensitivity is product-specific; NOT a condition-level exclusion)",
+      "role": "background"
+    },
     "MONDO:0002050": {
       "descendants": 8,
       "note": "depressive disorder",
@@ -199,6 +204,11 @@
       "descendants": 4,
       "note": "cholelithiasis",
       "role": "background"
+    },
+    "MONDO:0012819": {
+      "descendants": 0,
+      "note": "diabetic ketoacidosis (excluded only via MED-RT CI_with on a class member)",
+      "role": "exclusion_ci_only"
     },
     "MONDO:0013209": {
       "descendants": 2,

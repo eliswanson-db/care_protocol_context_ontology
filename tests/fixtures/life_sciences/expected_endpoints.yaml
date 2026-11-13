@@ -54,7 +54,8 @@ expected:
                exclusion_reason: "NO_VALID_OBSERVATION_IN_WINDOW:MISSING_RESULT|OUTSIDE_FOLLOWUP_WINDOW"}
     R2: *fx11
   CSL-A-FX-12:
-    R1: &fx12 {status: NO_VALID_BASELINE, exclusion_reason: "NO_VALID_BASELINE:NONPOSITIVE_VALUE"}
+    R1: &fx12 {status: NO_VALID_BASELINE, exclusion_reason: "NO_VALID_BASELINE:NONPOSITIVE_VALUE|OUTSIDE_BASELINE_WINDOW",
+               reasons: {1: NONPOSITIVE_VALUE, 3: OUTSIDE_BASELINE_WINDOW}}
     R2: *fx12
   CSL-A-FX-13:
     R1: &fx13 {status: DERIVED, baseline: [2], followup: 5, value: -6.862745098039215, display: -6.9,

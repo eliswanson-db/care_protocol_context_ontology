@@ -20,7 +20,7 @@ from clinical_study.standardize import load_named, load_registry  # noqa: E402
 ORACLE = yaml.safe_load(open(ROOT / "tests/fixtures/life_sciences/expected_endpoints.yaml", encoding="utf-8"))
 TOL = ORACLE["tolerance"]
 REG = load_registry()
-NAMED = {n["participant"]["usubjid"]: n for n in load_named()}
+NAMED = {n["participant"]["usubjid"]: n for n in load_named() if n["edge_case"]}
 ENDPOINT_FOR = {"CSL-A": "EP-A-WT24", "CSL-B": "EP-B-WT24"}
 
 

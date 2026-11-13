@@ -58,9 +58,10 @@ def load_named() -> list[dict]:
     for p in spec["participants"]:
         study = p.get("study_id", "CSL-A")
         d = {**spec["defaults"].get(study, {}), **p, "study_id": study}
+        u = d["usubjid"]
         obs = [
             {
-                "obs_id": obs_id(d["usubjid"], "WEIGHT", w["vsseq"]),
+                "obs_id": obs_id(u, "WEIGHT", w["vsseq"]),
                 "vsseq": w["vsseq"],
                 "visit": w["visit"],
                 "vsdtc": w["vsdtc"],
@@ -70,12 +71,25 @@ def load_named() -> list[dict]:
             }
             for w in d["weights"]
         ]
+        height = {"obs_id": obs_id(u, "HEIGHT", 1), "vsorres": str(d["height_cm"]), "vsorresu": "cm"}
         out.append(
             {
-                "participant": {"study_id": study, "usubjid": d["usubjid"], "randomized": d["randomized"]},
+                "participant": {"study_id": study, "usubjid": u, "randomized": d["randomized"]},
+                "subject": {
+                    "study_id": study,
+                    "usubjid": u,
+                    "screening_date": d["screening_date"],
+                    "age": d["age"],
+                    "sex": d["sex"],
+                    "edc_eligible": d["edc_eligible"],
+                },
                 "observations": obs,
+                "height": height,
                 "exposures": d["exposures"],
-                "edge_case": d["edge_case"],
+                "mh": [{"mh_id": f"{u}.MH.{m['mhseq']}", **m} for m in d.get("mh", [])],
+                "cm": [{"cm_id": f"{u}.CM.{m['cmseq']}", **m} for m in d.get("cm", [])],
+                "edge_case": d.get("edge_case"),
+                "eligibility_case": d.get("eligibility_case"),
                 "title": d["title"],
                 "raw": d,
             }

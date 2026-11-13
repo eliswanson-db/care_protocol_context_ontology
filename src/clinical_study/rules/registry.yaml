@@ -48,7 +48,7 @@ studies:
          change_summary: "Week 24 follow-up analysis window widened from +/-7 to +/-14 days around the target date."}
       - {protocol_version: "3.0", sap_version: "2.0", effective_date: "2025-11-01", amendment: 2,
          documents: [CSL-A-PROT-AMD2],
-         change_summary: "Sleep apnea syndrome added to the weight-related comorbidity class for new enrollment."}
+         change_summary: "Obstructive sleep apnea added to the weight-related comorbidity class for new enrollment."}
 
   CSL-B:
     title: >-
@@ -78,11 +78,18 @@ concept_classes:
     scheme: MONDO
     roots: ["MONDO:0005044", "MONDO:0021187", "MONDO:0005347", "MONDO:0005148", "MONDO:0006920",
             "MONDO:0005010", "MONDO:0005252", "MONDO:0005098", "MONDO:0005386", "MONDO:0013209"]
+    # Carve-outs: a term under ANY excluded root is not a member, even if another parent path reaches a root.
+    exclude_roots:
+      - {id: "MONDO:0005149", reason: "pulmonary hypertension is not systemic hypertension"}
+      - {id: "MONDO:0024664", reason: "pregnancy-induced hypertension is not a chronic weight-related comorbidity"}
+      - {id: "MONDO:0015203", reason: "congenital coronary malformations are not atherosclerotic cardiovascular disease"}
+    known_gaps:
+      - "MONDO 2026-11-03 does not place hypertensive heart disease (MONDO:0001302) under hypertensive disorder; it is NOT a member by is_a*. Shown as an ontology gap, not patched."
   WRC-V2:
     label: "Weight-related comorbidity (v2, Amendment 2)"
     scheme: MONDO
     extends: WRC-V1
-    add_roots: ["MONDO:0005296"]          # sleep apnea syndrome
+    add_roots: ["MONDO:0007147"]          # obstructive sleep apnea syndrome (central sleep apnea is not weight-related)
   EXCL-MH-V1:
     label: "Exclusionary medical history"
     scheme: MONDO
@@ -95,6 +102,12 @@ concept_classes:
       Condition is contraindicated if a broadening-only walk (MONDO is_a* -> equivalent MeSH record -> broader MeSH
       records) reaches a MeSH concept that a GLP-1 RA class member has CI_with.
     drug_class: "MEDRT:N0000178480"
+    class_policy: any_member        # contraindicated for ANY class member -> excluded for the class (conservative)
+    excluded_ci_targets:
+      - target: "MESH:D004342"
+        reason: >-
+          MED-RT CI_with 'Drug Hypersensitivity' means hypersensitivity to that product. It is not a
+          condition-level contraindication, so a history of unrelated drug allergy must not exclude a participant.
   PROHIB-CM-V1:
     label: "Prohibited concomitant medication"
     scheme: MEDRT
@@ -110,7 +123,8 @@ eligibility:
     criteria:
       - {id: INC-AGE, type: inclusion, text: "Age 18 to 75 years at screening", min_age: 18, max_age: 75}
       - {id: INC-BMI, type: inclusion, text: "BMI >= 30 kg/m2, or BMI >= 27 kg/m2 with >= 1 weight-related comorbidity",
-         bmi_alone: 30, bmi_with_comorbidity: 27, comorbidity_class: WRC-V1}
+         bmi_alone: 30, bmi_with_comorbidity: 27, comorbidity_class: WRC-V1,
+         bmi_source: "screening-visit weight and height; if no screening weight, the earliest valid pre-dose weight"}
       - {id: EXC-MH, type: exclusion, text: "History of an exclusionary condition", class: EXCL-MH-V1}
       - {id: EXC-CI, type: exclusion, text: "Any condition contraindicated for the study drug class", class: CI-STUDY-DRUG-CLASS}
       - {id: EXC-CM, type: exclusion, text: "Prohibited medication within 90 days before screening", class: PROHIB-CM-V1}
@@ -125,7 +139,8 @@ eligibility:
     criteria:
       - {id: INC-AGE, type: inclusion, text: "Age 18 to 75 years at screening", min_age: 18, max_age: 75}
       - {id: INC-BMI, type: inclusion, text: "BMI >= 30 kg/m2, or BMI >= 27 kg/m2 with >= 1 weight-related comorbidity",
-         bmi_alone: 30, bmi_with_comorbidity: 27, comorbidity_class: WRC-V2}
+         bmi_alone: 30, bmi_with_comorbidity: 27, comorbidity_class: WRC-V2,
+         bmi_source: "screening-visit weight and height; if no screening weight, the earliest valid pre-dose weight"}
       - {id: EXC-MH, type: exclusion, text: "History of an exclusionary condition", class: EXCL-MH-V1}
       - {id: EXC-CI, type: exclusion, text: "Any condition contraindicated for the study drug class", class: CI-STUDY-DRUG-CLASS}
       - {id: EXC-CM, type: exclusion, text: "Prohibited medication within 90 days before screening", class: PROHIB-CM-V1}

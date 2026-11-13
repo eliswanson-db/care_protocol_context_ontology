@@ -29,6 +29,8 @@ mondo_subtrees:
   - {id: "MONDO:0005266", role: exclusion, note: diabetic retinopathy}
   - {id: "MONDO:0004985", role: exclusion, note: bipolar disorder}
   - {id: "MONDO:0005090", role: exclusion, note: schizophrenia}
+  - {id: "MONDO:0012819", role: exclusion_ci_only, note: "diabetic ketoacidosis (excluded only via MED-RT CI_with on a class member)"}
+  - {id: "MONDO:0000775", role: background, note: "drug allergy (MED-RT CI_with Drug Hypersensitivity is product-specific; NOT a condition-level exclusion)"}
   # Indication and background medical history (realistic MH noise; not in any rule class)
   - {id: "MONDO:0011122", role: indication, note: obesity disorder}
   - {id: "MONDO:0005300", role: background, note: chronic kidney disease}

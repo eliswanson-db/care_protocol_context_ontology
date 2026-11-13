@@ -312,6 +312,7 @@ DOID:0060224,DOID,0060224,,,,ExternalCode,2026-11-03
 DOID:0060262,DOID,0060262,,,,ExternalCode,2026-11-03
 DOID:0060388,DOID,0060388,,,,ExternalCode,2026-11-03
 DOID:0060496,DOID,0060496,,,,ExternalCode,2026-11-03
+DOID:0060500,DOID,0060500,,,,ExternalCode,2026-11-03
 DOID:0060562,DOID,0060562,,,,ExternalCode,2026-11-03
 DOID:0060744,DOID,0060744,,,,ExternalCode,2026-11-03
 DOID:0060903,DOID,0060903,,,,ExternalCode,2026-11-03
@@ -519,6 +520,7 @@ DOID:1798,DOID,1798,,,,ExternalCode,2026-11-03
 DOID:1799,DOID,1799,,,,ExternalCode,2026-11-03
 DOID:18,DOID,18,,,,ExternalCode,2026-11-03
 DOID:1800,DOID,1800,,,,ExternalCode,2026-11-03
+DOID:1837,DOID,1837,,,,ExternalCode,2026-11-03
 DOID:1924,DOID,1924,,,,ExternalCode,2026-11-03
 DOID:193,DOID,193,,,,ExternalCode,2026-11-03
 DOID:1936,DOID,1936,,,,ExternalCode,2026-11-03
@@ -2422,6 +2424,7 @@ MONDO:0000693,MONDO,0000693,,bipolar II disorder,"A bipolar disorder that is cha
 MONDO:0000694,MONDO,0000694,,seasonal affective disorder,"A syndrome characterized by depressions that recur annually at the same time each year, usually during the winter months. Other symptoms include anxiety, irritability, decreased energy, increased appetite (carbohydrate cravings), increased duration of sleep, and weight gain. sad (seasonal affective disorder) can be treated by daily exposure to bright artificial lights (phototherapy), during the season of recurrence.",Disease,2026-11-03
 MONDO:0000761,MONDO,0000761,,syndrome caused by partial chromosomal deletion,A chromosomal disorder consisting of the absence of a part of a chromosome.,Disease,2026-11-03
 MONDO:0000771,MONDO,0000771,,allergic respiratory disease,A respiratory system disease with a basis in a pathological type I hypersensitivity reaction.,Disease,2026-11-03
+MONDO:0000775,MONDO,0000775,,drug allergy,Immunologically mediated adverse reactions to medicinal substances used legally or illegally.,Disease,2026-11-03
 MONDO:0000811,MONDO,0000811,,anomalous left coronary artery from the pulmonary artery,A congenital coronary vessel anomaly in which the left main coronary artery originates from the pulmonary artery instead of from aorta. The congenital heart defect typically results in coronary artery fistula; left-sided heart failure and mitral valve insufficiency during the first months of life.,Disease,2026-11-03
 MONDO:0000831,MONDO,0000831,,thrombotic disease,The formation of a blood clot in the lumen of a vessel or heart chamber; causes include coagulation disorders and vascular endothelial injury.,Disease,2026-11-03
 MONDO:0000919,MONDO,0000919,,ampulla of vater cancer,A primary or metastatic malignant neoplasm involving the ampulla of Vater.,Disease,2026-11-03
@@ -2896,6 +2899,7 @@ MONDO:0012685,MONDO,0012685,,major affective disorder 5,,Disease,2026-11-03
 MONDO:0012686,MONDO,0012686,,major affective disorder 6,,Disease,2026-11-03
 MONDO:0012737,MONDO,0012737,,long QT syndrome 10,Any long QT syndrome in which the cause of the disease is a mutation in the SCN4B gene.,Disease,2026-11-03
 MONDO:0012816,MONDO,0012816,,"atrial fibrillation, familial, 6",Any familial atrial fibrillation in which the cause of the disease is a mutation in the NPPA gene.,Disease,2026-11-03
+MONDO:0012819,MONDO,0012819,,diabetic ketoacidosis,"The metabolic condition resulted from uncontrolled diabetes mellitus, in which the shift of acid-base status of the body toward the acid side because of loss of base or retention of acids other than carbonic acid is accompanied by the accumulation of ketone bodies in body tissues and fluids.",Disease,2026-11-03
 MONDO:0012828,MONDO,0012828,,"atrial fibrillation, familial, 7",Any familial atrial fibrillation in which the cause of the disease is a mutation in the KCNA5 gene.,Disease,2026-11-03
 MONDO:0012877,MONDO,0012877,,major affective disorder 8,,Disease,2026-11-03
 MONDO:0012881,MONDO,0012881,,major affective disorder 7,,Disease,2026-11-03

@@ -1,0 +1,87 @@
+# INDEPENDENT ORACLE: hand-authored eligibility, deviation and population outcomes (SYNTHETIC).
+# Paths come from the MONDO / MED-RT source chains (mondo.obo is_a lines; MED-RT CI_with records), read by hand.
+# BMI = screening weight / (1.70 m)^2 (all fixtures are 170 cm tall).
+#
+# criteria: only the criteria listed are checked; `path` is the full is_a path (term ... class root).
+
+expected:
+  CSL-A-FX-21:   # 82.1 / 2.89 = 28.41
+    protocol_version: "1.0"
+    rule: ELIG-A-V1
+    eligible: true
+    criteria:
+      INC-BMI: {outcome: MET, evidence_mh: 1, path: ["MONDO:0005439", "MONDO:0001336", "MONDO:0021187"]}
+    deviations: []
+    fas: true
+    pps: true
+  CSL-A-FX-22:   # 80.9 / 2.89 = 27.99; OSA is not in WRC-V1
+    protocol_version: "1.0"
+    rule: ELIG-A-V1
+    eligible: false
+    criteria:
+      INC-BMI: {outcome: NOT_MET}
+    fas: false
+  CSL-A-FX-23:   # 81.5 / 2.89 = 28.20; OSA added by Amendment 2 (protocol 3.0, effective 2025-11-01)
+    protocol_version: "3.0"
+    rule: ELIG-A-V2
+    eligible: true
+    criteria:
+      INC-BMI: {outcome: MET, evidence_mh: 1, path: ["MONDO:0007147"]}
+    deviations: []
+    fas: true
+    pps: true
+  CSL-A-FX-24:   # familial MTC is_a MTC (an explicit exclusion root); also MED-RT CI_with on class members
+    protocol_version: "1.0"
+    rule: ELIG-A-V1
+    eligible: false
+    criteria:
+      INC-BMI: {outcome: MET}
+      EXC-MH: {outcome: TRIGGERED, evidence_mh: 1, path: ["MONDO:0007958", "MONDO:0015277"]}
+      EXC-CI: {outcome: TRIGGERED, evidence_mh: 1}
+    fas: false
+  CSL-A-FX-25:   # DKA is not on the explicit list; MED-RT: exenatide CI_with Diabetic Ketoacidosis (D016883)
+    protocol_version: "1.0"
+    rule: ELIG-A-V1
+    eligible: false
+    criteria:
+      EXC-MH: {outcome: NOT_TRIGGERED}
+      EXC-CI: {outcome: TRIGGERED, evidence_mh: 2, drug: "RXNORM:60548"}
+    fas: false
+  CSL-A-FX-26:   # phentermine ended 2025-03-20 >= 2025-05-05 - 90d (2025-02-04); has_PE Appetite Suppression
+    protocol_version: "1.0"
+    rule: ELIG-A-V1
+    eligible: false
+    criteria:
+      EXC-CM: {outcome: TRIGGERED, evidence_cm: 1, basis: physiologic_effect}
+    fas: false
+  CSL-A-FX-27:   # eligible; liraglutide (memberOf GLP-1 RA EPC) started 2025-07-01, after first dose 2025-04-14
+    protocol_version: "1.0"
+    rule: ELIG-A-V1
+    eligible: true
+    deviations: [{deviation: PROHIBITED_MEDICATION_ON_TREATMENT, evidence_cm: 2}]
+    fas: true
+    pps: false
+  CSL-A-FX-28:   # MEN2A is_a MEN2 (explicit exclusion root); EDC recorded eligible -> eligibility violation
+    protocol_version: "1.0"
+    rule: ELIG-A-V1
+    eligible: false
+    criteria:
+      EXC-MH: {outcome: TRIGGERED, evidence_mh: 2, path: ["MONDO:0008234", "MONDO:0019003"]}
+      EXC-CI: {outcome: TRIGGERED, evidence_mh: 2}
+    deviations: [{deviation: ELIGIBILITY_VIOLATION}]
+    fas: true
+    pps: false
+  CSL-A-FX-29:   # drug allergy = Drug Hypersensitivity D004342, an excluded CI target (product-specific)
+    protocol_version: "1.0"
+    rule: ELIG-A-V1
+    eligible: true
+    criteria:
+      EXC-CI: {outcome: NOT_TRIGGERED}
+    deviations: []
+    fas: true
+    pps: true
+
+# All 20 endpoint fixtures are eligible ordinary participants (BMI >= 30 at screening, or at baseline if no
+# screening weight). FX-14 is randomized but never dosed (not in FAS); FX-18 is Study B (T2DM required).
+endpoint_fixtures_all_eligible: true
+not_in_fas: [CSL-A-FX-14]

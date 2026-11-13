@@ -9,12 +9,31 @@
 #   Baseline window study days -28..-1 = 2025-02-03 .. 2025-03-02, plus day-1 records timed before 09:00.
 # Raw unit strings are EDC values; silver maps them to CDISC CT (kg, LB, g). Anything else stays unmapped.
 
+# Eligibility inputs (age, sex, height, screening date, MH coded to MONDO, CM coded to RxNorm) default so the
+# endpoint fixtures are ordinary eligible participants; the eligibility fixtures (eligibility_case) override them.
 defaults:
   CSL-A:
     arm: CSL101
     randomized: true
     exposures: [{exstdtc: "2025-03-03T09:00", exdose: 10, exdosu: mg}]
     site: "SITE-104"
+    age: 52
+    sex: F
+    height_cm: 170
+    screening_date: "2025-02-10"
+    edc_eligible: Y
+    mh: [{mhseq: 1, term: "essential hypertension", mondo_id: "MONDO:0001134", mhstdtc: "2019"}]
+    cm: [{cmseq: 1, term: "lisinopril 10 mg", rxnorm: "RXNORM:29046", cmstdtc: "2019-06"}]
+  CSL-B:
+    arm: CSL101
+    randomized: true
+    site: "SITE-212"
+    age: 58
+    sex: M
+    height_cm: 170
+    edc_eligible: Y
+    mh: [{mhseq: 1, term: "type 2 diabetes", mondo_id: "MONDO:0005148", mhstdtc: "2016"}]
+    cm: [{cmseq: 1, term: "metformin 1000 mg", rxnorm: "RXNORM:6809", cmstdtc: "2016-04"}]
 
 participants:
   - usubjid: CSL-A-FX-01
@@ -109,10 +128,12 @@ participants:
 
   - usubjid: CSL-A-FX-12
     edge_case: 12
-    title: Invalid (nonpositive) baseline is the only pre-treatment record
+    title: Invalid (nonpositive) baseline is the only in-window pre-treatment record
+    screening_date: "2025-01-27"
     weights:
       - {vsseq: 1, visit: BASELINE, vsdtc: "2025-03-03T08:30", orres: "0", unit: kg}
       - {vsseq: 2, visit: WEEK 24, vsdtc: "2025-08-18", orres: "88.0", unit: kg}
+      - {vsseq: 3, visit: SCREENING, vsdtc: "2025-01-27", orres: "95.0", unit: kg}   # study day -35: outside window
 
   - usubjid: CSL-A-FX-13
     edge_case: 13
@@ -163,6 +184,7 @@ participants:
     arm: CSL101
     randomized: true
     site: "SITE-212"
+    screening_date: "2025-03-24"
     # reference 2025-04-07; B target = +167 days = 2025-09-21 (window 09-11..10-01); A-style target = 2025-09-22
     exposures: [{exstdtc: "2025-04-07T10:00", exdose: 10, exdosu: mg}]
     weights:
@@ -187,3 +209,118 @@ participants:
       - {vsseq: 1, visit: BASELINE, vsdtc: "2025-03-03T08:30", orres: "100.0", unit: kg}
       - {vsseq: 2, visit: WEEK 24, vsdtc: "2025-08-13", orres: "92.0", unit: kg}
       - {vsseq: 3, visit: UNSCHEDULED 8.01, vsdtc: "2025-08-30", orres: "90.0", unit: kg}
+
+  # ---------------------------------------------------------------- eligibility / deviation fixtures (G1-G4)
+  # Expected outcomes: tests/fixtures/life_sciences/expected_eligibility.yaml (hand-authored from the MONDO / MED-RT
+  # source chains, e.g. familial hypercholesterolemia is_a familial hyperlipidemia is_a hyperlipidemia).
+  - usubjid: CSL-A-FX-21
+    eligibility_case: E1
+    title: "BMI 27-30 qualified by a multi-hop, multi-parent comorbidity (familial hypercholesterolemia)"
+    screening_date: "2025-04-07"
+    exposures: [{exstdtc: "2025-04-28T09:00", exdose: 10, exdosu: mg}]
+    mh: [{mhseq: 1, term: "familial hypercholesterolaemia", mondo_id: "MONDO:0005439", mhstdtc: "2011"}]
+    cm: [{cmseq: 1, term: "atorvastatin 40 mg", rxnorm: "RXNORM:83367", cmstdtc: "2012-01"}]
+    weights:
+      - {vsseq: 1, visit: SCREENING, vsdtc: "2025-04-07", orres: "82.1", unit: kg}
+      - {vsseq: 2, visit: BASELINE, vsdtc: "2025-04-28T08:30", orres: "81.8", unit: kg}
+      - {vsseq: 3, visit: WEEK 24, vsdtc: "2025-10-13", orres: "77.0", unit: kg}
+
+  - usubjid: CSL-A-FX-22
+    eligibility_case: E2
+    title: "BMI 27-30 with obstructive sleep apnea only, screened under protocol 1.0 (screen failure)"
+    screening_date: "2025-06-02"
+    randomized: false
+    edc_eligible: N
+    exposures: []
+    mh: [{mhseq: 1, term: "obstructive sleep apnoea", mondo_id: "MONDO:0007147", mhstdtc: "2021"}]
+    cm: []
+    weights:
+      - {vsseq: 1, visit: SCREENING, vsdtc: "2025-06-02", orres: "80.9", unit: kg}
+
+  - usubjid: CSL-A-FX-23
+    eligibility_case: E3
+    title: "Same profile screened after Amendment 2 (protocol 3.0): eligible only because of the amendment"
+    screening_date: "2025-11-10"
+    exposures: [{exstdtc: "2025-12-01T09:00", exdose: 10, exdosu: mg}]
+    mh: [{mhseq: 1, term: "OSA on CPAP", mondo_id: "MONDO:0007147", mhstdtc: "2020"}]
+    cm: []
+    weights:
+      - {vsseq: 1, visit: SCREENING, vsdtc: "2025-11-10", orres: "81.5", unit: kg}
+      - {vsseq: 2, visit: BASELINE, vsdtc: "2025-12-01T08:30", orres: "81.2", unit: kg}
+      - {vsseq: 3, visit: WEEK 24, vsdtc: "2026-05-18", orres: "77.9", unit: kg}
+
+  - usubjid: CSL-A-FX-24
+    eligibility_case: E4
+    title: "Familial medullary thyroid carcinoma (excluded by the explicit list AND by the class contraindication)"
+    screening_date: "2025-05-12"
+    randomized: false
+    edc_eligible: N
+    exposures: []
+    mh: [{mhseq: 1, term: "familial MTC", mondo_id: "MONDO:0007958", mhstdtc: "2018"}]
+    cm: []
+    weights:
+      - {vsseq: 1, visit: SCREENING, vsdtc: "2025-05-12", orres: "98.3", unit: kg}
+
+  - usubjid: CSL-A-FX-25
+    eligibility_case: E5
+    title: "History of diabetic ketoacidosis: excluded ONLY via MED-RT CI_with on a class member (exenatide)"
+    screening_date: "2025-05-19"
+    randomized: false
+    edc_eligible: N
+    exposures: []
+    mh:
+      - {mhseq: 1, term: "type 2 diabetes", mondo_id: "MONDO:0005148", mhstdtc: "2015"}
+      - {mhseq: 2, term: "DKA admission 2022", mondo_id: "MONDO:0012819", mhstdtc: "2022-08"}
+    cm: [{cmseq: 1, term: "metformin", rxnorm: "RXNORM:6809", cmstdtc: "2015-03"}]
+    weights:
+      - {vsseq: 1, visit: SCREENING, vsdtc: "2025-05-19", orres: "104.0", unit: kg}
+
+  - usubjid: CSL-A-FX-26
+    eligibility_case: E6
+    title: "Phentermine stopped 46 days before screening (prohibited by physiologic effect, 90-day lookback)"
+    screening_date: "2025-05-05"
+    randomized: false
+    edc_eligible: N
+    exposures: []
+    cm: [{cmseq: 1, term: "phentermine 37.5 mg", rxnorm: "RXNORM:8152", cmstdtc: "2025-01-10", cmendtc: "2025-03-20"}]
+    weights:
+      - {vsseq: 1, visit: SCREENING, vsdtc: "2025-05-05", orres: "89.9", unit: kg}
+
+  - usubjid: CSL-A-FX-27
+    eligibility_case: E7
+    title: "Eligible, but started liraglutide on treatment (major deviation: in FAS, not in PPS)"
+    screening_date: "2025-03-24"
+    exposures: [{exstdtc: "2025-04-14T09:00", exdose: 10, exdosu: mg}]
+    cm:
+      - {cmseq: 1, term: "lisinopril 10 mg", rxnorm: "RXNORM:29046", cmstdtc: "2019-06"}
+      - {cmseq: 2, term: "Victoza", rxnorm: "RXNORM:475968", cmstdtc: "2025-07-01"}
+    weights:
+      - {vsseq: 1, visit: SCREENING, vsdtc: "2025-03-24", orres: "95.4", unit: kg}
+      - {vsseq: 2, visit: BASELINE, vsdtc: "2025-04-14T08:30", orres: "95.0", unit: kg}
+      - {vsseq: 3, visit: WEEK 24, vsdtc: "2025-09-29", orres: "86.0", unit: kg}
+
+  - usubjid: CSL-A-FX-28
+    eligibility_case: E8
+    title: "Enrolled in error: MEN2A history recorded, EDC marked eligible (eligibility violation)"
+    screening_date: "2025-03-17"
+    exposures: [{exstdtc: "2025-04-07T09:00", exdose: 10, exdosu: mg}]
+    mh:
+      - {mhseq: 1, term: "essential hypertension", mondo_id: "MONDO:0001134", mhstdtc: "2019"}
+      - {mhseq: 2, term: "MEN 2A (RET carrier)", mondo_id: "MONDO:0008234", mhstdtc: "2010"}
+    weights:
+      - {vsseq: 1, visit: SCREENING, vsdtc: "2025-03-17", orres: "99.0", unit: kg}
+      - {vsseq: 2, visit: BASELINE, vsdtc: "2025-04-07T08:30", orres: "98.6", unit: kg}
+      - {vsseq: 3, visit: WEEK 24, vsdtc: "2025-09-22", orres: "90.1", unit: kg}
+
+  - usubjid: CSL-A-FX-29
+    eligibility_case: E9
+    title: "Drug allergy history is NOT a class contraindication (MED-RT Drug Hypersensitivity is product-specific)"
+    screening_date: "2025-03-10"
+    exposures: [{exstdtc: "2025-03-31T09:00", exdose: 10, exdosu: mg}]
+    mh:
+      - {mhseq: 1, term: "essential hypertension", mondo_id: "MONDO:0001134", mhstdtc: "2019"}
+      - {mhseq: 2, term: "penicillin allergy", mondo_id: "MONDO:0000775", mhstdtc: "2001"}
+    weights:
+      - {vsseq: 1, visit: SCREENING, vsdtc: "2025-03-10", orres: "92.5", unit: kg}
+      - {vsseq: 2, visit: BASELINE, vsdtc: "2025-03-31T08:30", orres: "92.0", unit: kg}
+      - {vsseq: 3, visit: WEEK 24, vsdtc: "2025-09-15", orres: "85.1", unit: kg}
