@@ -1,0 +1,189 @@
+# Named edge-case participants (SYNTHETIC). Hand-authored, raw EDC-shaped records.
+# The generator injects these verbatim into the landing files alongside the dbldatagen population, so they flow
+# through bronze -> silver -> gold like everyone else. Their EXPECTED outcomes are hand-calculated in
+# tests/fixtures/life_sciences/expected_endpoints.yaml. They are never computed by the engine. That file is the oracle.
+#
+# Study A defaults for these fixtures: first dose 2025-03-03T09:00 (reference date 2025-03-03).
+#   Week 24 target date = 2025-03-03 + 168 days = 2025-08-18.
+#   R1 window (+/-7):  2025-08-11 .. 2025-08-25.   R2 window (+/-14): 2025-08-04 .. 2025-09-01.
+#   Baseline window study days -28..-1 = 2025-02-03 .. 2025-03-02, plus day-1 records timed before 09:00.
+# Raw unit strings are EDC values; silver maps them to CDISC CT (kg, LB, g). Anything else stays unmapped.
+
+defaults:
+  CSL-A:
+    arm: CSL101
+    randomized: true
+    exposures: [{exstdtc: "2025-03-03T09:00", exdose: 10, exdosu: mg}]
+    site: "SITE-104"
+
+participants:
+  - usubjid: CSL-A-FX-01
+    edge_case: 1
+    title: One unambiguous baseline and Week 24 observation
+    weights:
+      - {vsseq: 1, visit: BASELINE, vsdtc: "2025-03-03T08:30", orres: "104.0", unit: kg}
+      - {vsseq: 2, visit: WEEK 24, vsdtc: "2025-08-18", orres: "94.6", unit: kg}
+
+  - usubjid: CSL-A-FX-02
+    edge_case: 2
+    title: Multiple pre-treatment observations (last valid wins)
+    weights:
+      - {vsseq: 1, visit: SCREENING, vsdtc: "2025-02-10", orres: "98.0", unit: kg}
+      - {vsseq: 2, visit: UNSCHEDULED 1.01, vsdtc: "2025-02-21", orres: "97.4", unit: kg}
+      - {vsseq: 3, visit: BASELINE, vsdtc: "2025-03-03T08:15", orres: "97.0", unit: kg}
+      - {vsseq: 4, visit: WEEK 24, vsdtc: "2025-08-20", orres: "90.2", unit: kg}
+      - {vsseq: 5, visit: UNSCHEDULED 1.02, vsdtc: "2025-02-02", orres: "98.3", unit: kg}   # study day -29: outside
+      - {vsseq: 6, visit: UNSCHEDULED 1.03, vsdtc: "2025-02-03", orres: "98.1", unit: kg}   # study day -28: inside
+
+  - usubjid: CSL-A-FX-03
+    edge_case: 3
+    title: No qualifying baseline (screening too early; day-1 weight not done)
+    weights:
+      - {vsseq: 1, visit: SCREENING, vsdtc: "2025-01-22", orres: "110.0", unit: kg}
+      - {vsseq: 2, visit: BASELINE, vsdtc: "2025-03-03T08:20", orres: "", unit: "", status: NOT DONE}
+      - {vsseq: 3, visit: WEEK 24, vsdtc: "2025-08-18", orres: "100.0", unit: kg}
+
+  - usubjid: CSL-A-FX-04
+    edge_case: 4
+    title: Follow-up just inside the original window (+7 days, inclusive); -8 days is just outside it
+    weights:
+      - {vsseq: 1, visit: BASELINE, vsdtc: "2025-03-03T08:45", orres: "100.0", unit: kg}
+      - {vsseq: 2, visit: WEEK 24, vsdtc: "2025-08-25", orres: "93.0", unit: kg}
+      - {vsseq: 3, visit: UNSCHEDULED 7.01, vsdtc: "2025-08-10", orres: "93.4", unit: kg}
+
+  - usubjid: CSL-A-FX-05
+    edge_case: 5
+    title: Follow-up outside the original window but inside the amended window (+10 days)
+    weights:
+      - {vsseq: 1, visit: BASELINE, vsdtc: "2025-03-03T08:10", orres: "120.0", unit: kg}
+      - {vsseq: 2, visit: WEEK 20, vsdtc: "2025-07-21", orres: "112.4", unit: kg}
+      - {vsseq: 3, visit: WEEK 24, vsdtc: "2025-08-28", orres: "111.0", unit: kg}
+
+  - usubjid: CSL-A-FX-06
+    edge_case: 6
+    title: Multiple follow-up candidates in the window (closest wins)
+    weights:
+      - {vsseq: 1, visit: BASELINE, vsdtc: "2025-03-03T08:30", orres: "95.0", unit: kg}
+      - {vsseq: 2, visit: WEEK 24, vsdtc: "2025-08-14", orres: "89.0", unit: kg}
+      - {vsseq: 3, visit: UNSCHEDULED 8.01, vsdtc: "2025-08-17", orres: "88.4", unit: kg}
+      - {vsseq: 4, visit: UNSCHEDULED 8.02, vsdtc: "2025-08-21", orres: "88.0", unit: kg}
+
+  - usubjid: CSL-A-FX-07
+    edge_case: 7
+    title: Equal-distance follow-up candidates (tie-breaker -> later date)
+    weights:
+      - {vsseq: 1, visit: BASELINE, vsdtc: "2025-03-03T08:30", orres: "100.0", unit: kg}
+      - {vsseq: 2, visit: WEEK 24, vsdtc: "2025-08-15", orres: "92.0", unit: kg}
+      - {vsseq: 3, visit: UNSCHEDULED 8.01, vsdtc: "2025-08-21", orres: "91.0", unit: kg}
+
+  - usubjid: CSL-A-FX-08
+    edge_case: 8
+    title: Missing follow-up (discontinued after Week 4)
+    weights:
+      - {vsseq: 1, visit: BASELINE, vsdtc: "2025-03-03T08:30", orres: "101.0", unit: kg}
+      - {vsseq: 2, visit: WEEK 4, vsdtc: "2025-03-31", orres: "99.0", unit: kg}
+
+  - usubjid: CSL-A-FX-09
+    edge_case: 9
+    title: Pounds recorded at site (lb -> LB -> kg)
+    weights:
+      - {vsseq: 1, visit: BASELINE, vsdtc: "2025-03-03T08:30", orres: "231.5", unit: lb}
+      - {vsseq: 2, visit: WEEK 24, vsdtc: "2025-08-18", orres: "211.0", unit: lb}
+
+  - usubjid: CSL-A-FX-10
+    edge_case: 10
+    title: Unsupported unit (stone) and missing unit
+    weights:
+      - {vsseq: 1, visit: SCREENING, vsdtc: "2025-02-10", orres: "103.0", unit: kg}
+      - {vsseq: 2, visit: BASELINE, vsdtc: "2025-03-03T08:30", orres: "16.2", unit: st}
+      - {vsseq: 3, visit: WEEK 24, vsdtc: "2025-08-18", orres: "97.0", unit: ""}
+      - {vsseq: 4, visit: UNSCHEDULED 8.01, vsdtc: "2025-08-22", orres: "96.5", unit: kg}
+
+  - usubjid: CSL-A-FX-11
+    edge_case: 11
+    title: Missing result at the Week 24 visit (blank, not flagged NOT DONE)
+    weights:
+      - {vsseq: 1, visit: BASELINE, vsdtc: "2025-03-03T08:30", orres: "99.0", unit: kg}
+      - {vsseq: 2, visit: WEEK 20, vsdtc: "2025-07-21", orres: "93.2", unit: kg}
+      - {vsseq: 3, visit: WEEK 24, vsdtc: "2025-08-18", orres: "", unit: kg}
+
+  - usubjid: CSL-A-FX-12
+    edge_case: 12
+    title: Invalid (nonpositive) baseline is the only pre-treatment record
+    weights:
+      - {vsseq: 1, visit: BASELINE, vsdtc: "2025-03-03T08:30", orres: "0", unit: kg}
+      - {vsseq: 2, visit: WEEK 24, vsdtc: "2025-08-18", orres: "88.0", unit: kg}
+
+  - usubjid: CSL-A-FX-13
+    edge_case: 13
+    title: Duplicate source observations (same timestamp, value and unit entered twice)
+    weights:
+      - {vsseq: 1, visit: SCREENING, vsdtc: "2025-02-10", orres: "102.6", unit: kg}
+      - {vsseq: 2, visit: BASELINE, vsdtc: "2025-03-03T08:40", orres: "102.0", unit: kg}
+      - {vsseq: 3, visit: BASELINE, vsdtc: "2025-03-03T08:40", orres: "102.0", unit: kg}
+      - {vsseq: 4, visit: WEEK 20, vsdtc: "2025-07-21", orres: "96.1", unit: kg}
+      - {vsseq: 5, visit: WEEK 24, vsdtc: "2025-08-18", orres: "95.0", unit: kg}
+      - {vsseq: 6, visit: WEEK 24, vsdtc: "2025-08-18", orres: "95.0", unit: kg}
+
+  - usubjid: CSL-A-FX-14
+    edge_case: 14
+    title: Randomized but never dosed (outside the full analysis set)
+    exposures: []
+    weights:
+      - {vsseq: 1, visit: SCREENING, vsdtc: "2025-02-10", orres: "107.0", unit: kg}
+
+  - usubjid: CSL-A-FX-15
+    edge_case: 15
+    title: Unscheduled visit qualifies by actual date; day-1 weight has no time (ambiguous)
+    weights:
+      - {vsseq: 1, visit: SCREENING, vsdtc: "2025-02-10", orres: "101.0", unit: kg}
+      - {vsseq: 2, visit: BASELINE, vsdtc: "2025-03-03", orres: "100.0", unit: kg}
+      - {vsseq: 3, visit: UNSCHEDULED 8.01, vsdtc: "2025-08-19", orres: "93.5", unit: kg}
+
+  - usubjid: CSL-A-FX-16
+    edge_case: 16
+    title: Visit labeled Week 24 does not qualify by actual date (+18 days)
+    weights:
+      - {vsseq: 1, visit: BASELINE, vsdtc: "2025-03-03T08:30", orres: "100.0", unit: kg}
+      - {vsseq: 2, visit: WEEK 20, vsdtc: "2025-07-21", orres: "93.0", unit: kg}
+      - {vsseq: 3, visit: WEEK 24, vsdtc: "2025-09-05", orres: "90.0", unit: kg}
+
+  - usubjid: CSL-A-FX-17
+    edge_case: 17
+    title: First-dose date is partial (month only); reference date cannot be established
+    exposures: [{exstdtc: "2025-03", exdose: 10, exdosu: mg}]
+    weights:
+      - {vsseq: 1, visit: BASELINE, vsdtc: "2025-03-03T08:30", orres: "100.0", unit: kg}
+      - {vsseq: 2, visit: WEEK 24, vsdtc: "2025-08-18", orres: "92.0", unit: kg}
+
+  - usubjid: CSL-B-FX-18
+    edge_case: 18
+    study_id: CSL-B
+    title: Cross-study definition mismatch (Study B baseline mean, target day 168, +/-10, earlier-date tie-breaker)
+    arm: CSL101
+    randomized: true
+    site: "SITE-212"
+    # reference 2025-04-07; B target = +167 days = 2025-09-21 (window 09-11..10-01); A-style target = 2025-09-22
+    exposures: [{exstdtc: "2025-04-07T10:00", exdose: 10, exdosu: mg}]
+    weights:
+      - {vsseq: 1, visit: SCREENING, vsdtc: "2025-03-24", orres: "102.0", unit: kg}
+      - {vsseq: 2, visit: RUN-IN, vsdtc: "2025-03-31", orres: "101.0", unit: kg}
+      - {vsseq: 3, visit: UNSCHEDULED 2.01, vsdtc: "2025-04-04", orres: "100.0", unit: kg}
+      - {vsseq: 4, visit: BASELINE, vsdtc: "2025-04-07T09:30", orres: "99.5", unit: kg}
+      - {vsseq: 5, visit: WEEK 24, vsdtc: "2025-09-16", orres: "95.0", unit: kg}
+      - {vsseq: 6, visit: UNSCHEDULED 5.01, vsdtc: "2025-09-26", orres: "94.0", unit: kg}
+
+  - usubjid: CSL-A-FX-19
+    edge_case: 19
+    title: Only a draft (unapproved) window would qualify this follow-up (+19 days)
+    weights:
+      - {vsseq: 1, visit: BASELINE, vsdtc: "2025-03-03T08:30", orres: "100.0", unit: kg}
+      - {vsseq: 2, visit: WEEK 24, vsdtc: "2025-09-06", orres: "92.0", unit: kg}
+
+  - usubjid: CSL-A-FX-20
+    edge_case: 20
+    title: Amendment adds an eligible candidate but the closest-record selection does not change
+    weights:
+      - {vsseq: 1, visit: BASELINE, vsdtc: "2025-03-03T08:30", orres: "100.0", unit: kg}
+      - {vsseq: 2, visit: WEEK 24, vsdtc: "2025-08-13", orres: "92.0", unit: kg}
+      - {vsseq: 3, visit: UNSCHEDULED 8.01, vsdtc: "2025-08-30", orres: "90.0", unit: kg}

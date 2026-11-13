@@ -1,0 +1,235 @@
+# Approved executable rule registry — Clinical Study Context & Evidence Lab (demo_id: life_sciences_clinical)
+# SYNTHETIC. Illustrative rules for an educational demo, not any real protocol or product. Not submission-ready.
+#
+# Only rules with review_state: approved are executed by the endpoint engine (src/clinical_study/engine.py).
+# Candidate assertions extracted from documents live in the pipeline's rule_candidate table and NEVER execute.
+# Structure follows CDISC USDM concepts (StudyVersion, Encounter, Timing, Endpoint, Population,
+# EligibilityCriterion). Keys prefixed cpl_ are demo-extension semantics, not official CDISC (ADR-0022).
+# Every rule here is also emitted as kb_edge rows with cpl: predicates (ADR-0025 parity).
+
+registry_version: "2026-11-13.1"
+demo_fixture_approval_note: >-
+  All approvals below are SEEDED DEMO FIXTURES (approved_by: demo-fixture). They represent no real human review.
+
+compound:
+  id: CSL-101
+  label: "CSL-101 (synthetic investigational GLP-1 receptor agonist)"
+  cpl_mechanism: "MEDRT:N0000020058"     # Glucagon-like Peptide-1 (GLP-1) Agonists [MoA] -- links the fictional compound to MED-RT
+  cpl_drug_class: "MEDRT:N0000178480"    # GLP-1 Receptor Agonist [EPC]
+  route: SUBCUTANEOUS
+  frequency: "1 TIME PER WEEK"
+
+studies:
+  CSL-A:
+    title: >-
+      CSL-A: a 72-week, randomized, double-blind, placebo-controlled study of once-weekly CSL-101 in adults with
+      obesity, or overweight with at least one weight-related comorbidity (SYNTHETIC)
+    phase: PHASE III TRIAL
+    arms:
+      - {armcd: CSL101, arm: "CSL-101 10 mg once weekly", ratio: 2}
+      - {armcd: PBO, arm: "Placebo once weekly", ratio: 1}
+    duration_weeks: 72
+    encounters:   # scheduled visits; target study day (day 1 = first dose); collection window is operational only
+      - {visit: SCREENING, visitnum: 1, target_day: -21, window: [-28, -7]}
+      - {visit: BASELINE, visitnum: 2, target_day: 1, window: [1, 1], note: "pre-dose weight on day 1"}
+      - {visit: WEEK 4, visitnum: 3, target_day: 29, window: [26, 32]}
+      - {visit: WEEK 8, visitnum: 4, target_day: 57, window: [54, 60]}
+      - {visit: WEEK 12, visitnum: 5, target_day: 85, window: [82, 88]}
+      - {visit: WEEK 16, visitnum: 6, target_day: 113, window: [110, 116]}
+      - {visit: WEEK 20, visitnum: 7, target_day: 141, window: [138, 144]}
+      - {visit: WEEK 24, visitnum: 8, target_day: 169, window: [162, 176]}
+      - {visit: WEEK 36, visitnum: 9, target_day: 253, window: [246, 260]}
+      - {visit: WEEK 52, visitnum: 10, target_day: 365, window: [358, 372]}
+      - {visit: WEEK 72, visitnum: 11, target_day: 505, window: [498, 512]}
+    study_versions:
+      - {protocol_version: "1.0", sap_version: "1.0", effective_date: "2025-01-15", documents: [CSL-A-PROT-v1.0, CSL-A-SAP-v1.0]}
+      - {protocol_version: "2.0", sap_version: "2.0", effective_date: "2025-09-01", amendment: 1,
+         documents: [CSL-A-PROT-AMD1, CSL-A-SAP-v2.0],
+         change_summary: "Week 24 follow-up analysis window widened from +/-7 to +/-14 days around the target date."}
+      - {protocol_version: "3.0", sap_version: "2.0", effective_date: "2025-11-01", amendment: 2,
+         documents: [CSL-A-PROT-AMD2],
+         change_summary: "Sleep apnea syndrome added to the weight-related comorbidity class for new enrollment."}
+
+  CSL-B:
+    title: >-
+      CSL-B: a 52-week, randomized, double-blind, placebo-controlled study of once-weekly CSL-101 in adults with
+      type 2 diabetes and overweight or obesity (SYNTHETIC)
+    phase: PHASE III TRIAL
+    arms:
+      - {armcd: CSL101, arm: "CSL-101 10 mg once weekly", ratio: 1}
+      - {armcd: PBO, arm: "Placebo once weekly", ratio: 1}
+    duration_weeks: 52
+    encounters:
+      - {visit: SCREENING, visitnum: 1, target_day: -14, window: [-21, -7]}
+      - {visit: RUN-IN, visitnum: 2, target_day: -7, window: [-9, -5]}
+      - {visit: BASELINE, visitnum: 3, target_day: 1, window: [1, 1]}
+      - {visit: WEEK 12, visitnum: 4, target_day: 84, window: [80, 88]}
+      - {visit: WEEK 24, visitnum: 5, target_day: 168, window: [161, 175]}
+      - {visit: WEEK 52, visitnum: 6, target_day: 364, window: [357, 371]}
+    study_versions:
+      - {protocol_version: "1.0", sap_version: "1.0", effective_date: "2025-02-01", documents: [CSL-B-PROT-v1.0, CSL-B-SAP-v1.0]}
+
+# ---------------------------------------------------------------------------------------------------------------
+# Concept classes used by eligibility and prohibited-medication rules. Membership = is_a* over the KB (closure /
+# graph), never a flat code list. Versioned so amendments that change a class are explicit.
+concept_classes:
+  WRC-V1:
+    label: "Weight-related comorbidity (v1)"
+    scheme: MONDO
+    roots: ["MONDO:0005044", "MONDO:0021187", "MONDO:0005347", "MONDO:0005148", "MONDO:0006920",
+            "MONDO:0005010", "MONDO:0005252", "MONDO:0005098", "MONDO:0005386", "MONDO:0013209"]
+  WRC-V2:
+    label: "Weight-related comorbidity (v2, Amendment 2)"
+    scheme: MONDO
+    extends: WRC-V1
+    add_roots: ["MONDO:0005296"]          # sleep apnea syndrome
+  EXCL-MH-V1:
+    label: "Exclusionary medical history"
+    scheme: MONDO
+    roots: ["MONDO:0015277", "MONDO:0019003", "MONDO:0004982", "MONDO:0005147", "MONDO:0005266",
+            "MONDO:0004985", "MONDO:0005090"]
+  CI-STUDY-DRUG-CLASS:
+    label: "Any condition contraindicated for a member of the study drug class (MED-RT CI_with, GLP-1 RA)"
+    scheme: MEDRT_DERIVED
+    cpl_derivation: >-
+      Condition is contraindicated if a broadening-only walk (MONDO is_a* -> equivalent MeSH record -> broader MeSH
+      records) reaches a MeSH concept that a GLP-1 RA class member has CI_with.
+    drug_class: "MEDRT:N0000178480"
+  PROHIB-CM-V1:
+    label: "Prohibited concomitant medication"
+    scheme: MEDRT
+    member_of_classes: ["MEDRT:N0000178480"]                       # GLP-1 Receptor Agonist [EPC]
+    has_physiologic_effect: ["Appetite Suppression [PE]"]
+    lookback_days_before_screening: 90
+
+# ---------------------------------------------------------------------------------------------------------------
+eligibility:
+  ELIG-A-V1:
+    study: CSL-A
+    applies_to_protocol_versions: ["1.0", "2.0"]
+    criteria:
+      - {id: INC-AGE, type: inclusion, text: "Age 18 to 75 years at screening", min_age: 18, max_age: 75}
+      - {id: INC-BMI, type: inclusion, text: "BMI >= 30 kg/m2, or BMI >= 27 kg/m2 with >= 1 weight-related comorbidity",
+         bmi_alone: 30, bmi_with_comorbidity: 27, comorbidity_class: WRC-V1}
+      - {id: EXC-MH, type: exclusion, text: "History of an exclusionary condition", class: EXCL-MH-V1}
+      - {id: EXC-CI, type: exclusion, text: "Any condition contraindicated for the study drug class", class: CI-STUDY-DRUG-CLASS}
+      - {id: EXC-CM, type: exclusion, text: "Prohibited medication within 90 days before screening", class: PROHIB-CM-V1}
+    review_state: approved
+    approved_by: demo-fixture
+    approved_on: "2025-01-10"
+    source_section: {document: CSL-A-PROT-v1.0, section: "5.1-5.2"}
+  ELIG-A-V2:
+    study: CSL-A
+    applies_to_protocol_versions: ["3.0"]
+    supersedes: ELIG-A-V1
+    criteria:
+      - {id: INC-AGE, type: inclusion, text: "Age 18 to 75 years at screening", min_age: 18, max_age: 75}
+      - {id: INC-BMI, type: inclusion, text: "BMI >= 30 kg/m2, or BMI >= 27 kg/m2 with >= 1 weight-related comorbidity",
+         bmi_alone: 30, bmi_with_comorbidity: 27, comorbidity_class: WRC-V2}
+      - {id: EXC-MH, type: exclusion, text: "History of an exclusionary condition", class: EXCL-MH-V1}
+      - {id: EXC-CI, type: exclusion, text: "Any condition contraindicated for the study drug class", class: CI-STUDY-DRUG-CLASS}
+      - {id: EXC-CM, type: exclusion, text: "Prohibited medication within 90 days before screening", class: PROHIB-CM-V1}
+    review_state: approved
+    approved_by: demo-fixture
+    approved_on: "2025-10-20"
+    source_section: {document: CSL-A-PROT-AMD2, section: "5.1"}
+  ELIG-B-V1:
+    study: CSL-B
+    applies_to_protocol_versions: ["1.0"]
+    criteria:
+      - {id: INC-AGE, type: inclusion, text: "Age 18 to 80 years at screening", min_age: 18, max_age: 80}
+      - {id: INC-T2D, type: inclusion, text: "Diagnosis of type 2 diabetes mellitus", required_class_roots: ["MONDO:0005148"]}
+      - {id: INC-BMI, type: inclusion, text: "BMI >= 27 kg/m2", bmi_alone: 27}
+      - {id: EXC-MH, type: exclusion, text: "History of an exclusionary condition", class: EXCL-MH-V1,
+         except_roots: ["MONDO:0005266"]}   # B allows non-proliferative diabetic retinopathy history
+      - {id: EXC-CI, type: exclusion, text: "Any condition contraindicated for the study drug class", class: CI-STUDY-DRUG-CLASS}
+      - {id: EXC-CM, type: exclusion, text: "Prohibited medication within 90 days before screening", class: PROHIB-CM-V1}
+    review_state: approved
+    approved_by: demo-fixture
+    approved_on: "2025-01-25"
+    source_section: {document: CSL-B-PROT-v1.0, section: "5.1-5.2"}
+
+# ---------------------------------------------------------------------------------------------------------------
+populations:
+  FAS:
+    label: "Full analysis set"
+    definition: "All randomized participants who received at least one dose of study treatment"
+    requires: [randomized, dosed]
+  PPS:
+    label: "Per-protocol set"
+    definition: "FAS participants with no major protocol deviation (eligibility violation at the applicable protocol version, or prohibited medication on treatment)"
+    requires: [randomized, dosed, no_major_deviation]
+
+# ---------------------------------------------------------------------------------------------------------------
+# Endpoint rules. Day arithmetic: study day = (date - reference_date) + 1 if date >= reference_date, else
+# (date - reference_date). No day 0. Dates only (time used solely to order same-day pre-dose records).
+# Simplified; does not implement every CDISC study-day convention.
+endpoints:
+  EP-A-WT24:
+    study: CSL-A
+    label: "Percent change in body weight from baseline to Week 24"
+    biomedical_concept: "COSMOS_BC:C81328"         # Body Weight
+    dataset_specialization: "COSMOS_DSS:WEIGHT"
+    population: FAS
+    formula: "100 * (followup_kg - baseline_kg) / baseline_kg"
+    rule_versions:
+      R1:
+        protocol_version: "1.0"
+        sap_version: "1.0"
+        source_section: {document: CSL-A-SAP-v1.0, section: "9.4.1"}
+        reference_date: first_dose_date              # date part of earliest EX.EXSTDTC with dose > 0
+        baseline:
+          method: last                               # last valid observation in the window
+          window_days: [-28, -1]                     # study days, inclusive
+          same_day_predose: allowed_with_time        # day-1 record counts only if it has a time before first dose
+        followup:
+          target_offset_days: 168                    # target date = reference date + 168 days (study day 169)
+          window_half_width_days: 7                  # inclusive: |date - target| <= 7
+          select: closest
+          tie_breaker: [later_date, lower_seq]       # equal distance -> the later date; then lower VSSEQ
+        validity: {units_from_dss: true, min_kg_exclusive: 0}
+        review_state: approved
+        approved_by: demo-fixture
+        approved_on: "2025-01-10"
+      R2:
+        protocol_version: "2.0"
+        sap_version: "2.0"
+        amends: R1
+        source_section: {document: CSL-A-SAP-v2.0, section: "9.4.1"}
+        reference_date: first_dose_date
+        baseline: {method: last, window_days: [-28, -1], same_day_predose: allowed_with_time}
+        followup: {target_offset_days: 168, window_half_width_days: 14, select: closest, tie_breaker: [later_date, lower_seq]}
+        validity: {units_from_dss: true, min_kg_exclusive: 0}
+        review_state: approved
+        approved_by: demo-fixture
+        approved_on: "2025-08-25"
+
+  EP-B-WT24:
+    study: CSL-B
+    label: "Percent change in body weight from baseline to Week 24"
+    biomedical_concept: "COSMOS_BC:C81328"
+    dataset_specialization: "COSMOS_DSS:WEIGHT"
+    population: FAS
+    formula: "100 * (followup_kg - baseline_kg) / baseline_kg"
+    rule_versions:
+      R1:
+        protocol_version: "1.0"
+        sap_version: "1.0"
+        source_section: {document: CSL-B-SAP-v1.0, section: "8.3"}
+        reference_date: first_dose_date
+        baseline:
+          method: mean                               # mean of ALL valid observations in the window
+          window_days: [-14, -1]
+          same_day_predose: not_allowed
+        followup:
+          target_offset_days: 167                    # target = study day 168 (Week 24 counted from day 1)
+          window_half_width_days: 10
+          select: closest
+          tie_breaker: [earlier_date, lower_seq]
+        validity: {units_from_dss: true, min_kg_exclusive: 0}
+        review_state: approved
+        approved_by: demo-fixture
+        approved_on: "2025-01-25"
+
+# Valid weight units come from the COSMoS WEIGHT dataset specialization (VSORRESU in {LB, g, kg}).
+unit_conversion_to_kg: {kg: 1.0, LB: 0.45359237, g: 0.001}

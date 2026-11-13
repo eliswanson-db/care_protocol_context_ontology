@@ -1,0 +1,93 @@
+# INDEPENDENT ORACLE: hand-authored expected endpoint outcomes for the named participants (SYNTHETIC).
+# Selections, statuses and reasons were worked out by hand from the registry rules. The numbers are the stated
+# formula applied to the hand-selected values (calculator arithmetic). Nothing here was produced by the engine.
+# Compared with abs tolerance 1e-9 on analysis_value. `selected` / `reasons` use vsseq numbers.
+#
+# Study A reference 2025-03-03; Week 24 target 2025-08-18. R1 = +/-7 days, R2 = +/-14 days.
+
+tolerance: 1.0e-9
+
+expected:
+  CSL-A-FX-01:
+    R1: &fx01 {status: DERIVED, baseline: [1], followup: 2, baseline_kg: 104.0, followup_kg: 94.6,
+               value: -9.038461538461544, display: -9.0}
+    R2: *fx01
+  CSL-A-FX-02:
+    R1: &fx02 {status: DERIVED, baseline: [3], followup: 4, baseline_kg: 97.0, followup_kg: 90.2,
+               value: -7.010309278350513, display: -7.0,
+               reasons: {1: BASELINE_NOT_LAST, 2: BASELINE_NOT_LAST, 3: BASELINE_LAST_VALID, 4: FOLLOWUP_CLOSEST_TO_TARGET,
+                         5: OUTSIDE_BASELINE_WINDOW, 6: BASELINE_NOT_LAST}}
+    R2: *fx02
+  CSL-A-FX-03:
+    R1: &fx03 {status: NO_VALID_BASELINE, exclusion_reason: "NO_VALID_BASELINE:NOT_DONE|OUTSIDE_BASELINE_WINDOW",
+               reasons: {1: OUTSIDE_BASELINE_WINDOW, 2: NOT_DONE, 3: FOLLOWUP_ELIGIBLE_NO_BASELINE}}
+    R2: *fx03
+  CSL-A-FX-04:
+    R1: {status: DERIVED, baseline: [1], followup: 2, value: -7.0, display: -7.0, reasons: {3: OUTSIDE_FOLLOWUP_WINDOW}}
+    R2: {status: DERIVED, baseline: [1], followup: 2, value: -7.0, display: -7.0, reasons: {3: FOLLOWUP_NOT_CLOSEST}}
+  CSL-A-FX-05:
+    R1: {status: NO_QUALIFYING_FOLLOWUP, exclusion_reason: "NO_OBSERVATION_IN_WINDOW:closest_+10d",
+         reasons: {2: OUTSIDE_FOLLOWUP_WINDOW, 3: OUTSIDE_FOLLOWUP_WINDOW}}
+    R2: {status: DERIVED, baseline: [1], followup: 3, value: -7.5, display: -7.5,
+         reasons: {2: OUTSIDE_FOLLOWUP_WINDOW, 3: FOLLOWUP_CLOSEST_TO_TARGET}}
+  CSL-A-FX-06:
+    R1: &fx06 {status: DERIVED, baseline: [1], followup: 3, value: -6.947368421052626, display: -6.9,
+               reasons: {2: FOLLOWUP_NOT_CLOSEST, 3: FOLLOWUP_CLOSEST_TO_TARGET, 4: FOLLOWUP_NOT_CLOSEST}}
+    R2: *fx06
+  CSL-A-FX-07:
+    R1: &fx07 {status: DERIVED, baseline: [1], followup: 3, value: -9.0, display: -9.0,
+               reasons: {2: FOLLOWUP_TIE_LOST, 3: FOLLOWUP_CLOSEST_TO_TARGET}}
+    R2: *fx07
+  CSL-A-FX-08:
+    R1: &fx08 {status: NO_QUALIFYING_FOLLOWUP, exclusion_reason: "NO_OBSERVATION_IN_WINDOW:closest_-140d"}
+    R2: *fx08
+  CSL-A-FX-09:
+    R1: &fx09 {status: DERIVED, baseline: [1], followup: 2, baseline_kg: 105.006633655, followup_kg: 95.70799007,
+               value: -8.855291576673865, display: -8.9}
+    R2: *fx09
+  CSL-A-FX-10:
+    R1: &fx10 {status: DERIVED, baseline: [1], followup: 4, value: -6.310679611650485, display: -6.3,
+               reasons: {2: UNSUPPORTED_UNIT, 3: MISSING_UNIT}}
+    R2: *fx10
+  CSL-A-FX-11:
+    R1: &fx11 {status: NO_QUALIFYING_FOLLOWUP,
+               exclusion_reason: "NO_VALID_OBSERVATION_IN_WINDOW:MISSING_RESULT|OUTSIDE_FOLLOWUP_WINDOW"}
+    R2: *fx11
+  CSL-A-FX-12:
+    R1: &fx12 {status: NO_VALID_BASELINE, exclusion_reason: "NO_VALID_BASELINE:NONPOSITIVE_VALUE"}
+    R2: *fx12
+  CSL-A-FX-13:
+    R1: &fx13 {status: DERIVED, baseline: [2], followup: 5, value: -6.862745098039215, display: -6.9,
+               reasons: {3: DUPLICATE_RECORD, 6: DUPLICATE_RECORD, 4: OUTSIDE_FOLLOWUP_WINDOW}}
+    R2: *fx13
+  CSL-A-FX-14:
+    R1: &fx14 {status: NOT_IN_POPULATION, exclusion_reason: NOT_DOSED, population: NOT_IN_FAS}
+    R2: *fx14
+  CSL-A-FX-15:
+    R1: &fx15 {status: DERIVED, baseline: [1], followup: 3, value: -7.425742574257426, display: -7.4,
+               reasons: {2: SAME_DAY_NO_TIME}}
+    R2: *fx15
+  CSL-A-FX-16:
+    R1: &fx16 {status: NO_QUALIFYING_FOLLOWUP, exclusion_reason: "NO_OBSERVATION_IN_WINDOW:closest_+18d"}
+    R2: *fx16
+  CSL-A-FX-17:
+    R1: &fx17 {status: NO_REFERENCE_DATE, exclusion_reason: FIRST_DOSE_DATE_INCOMPLETE, population: IN_FAS}
+    R2: *fx17
+  CSL-B-FX-18:
+    R1: {status: DERIVED, baseline: [1, 2, 3], followup: 5, baseline_kg: 101.0, value: -5.9405940594059405,
+         display: -5.9, reasons: {4: SAME_DAY_NOT_ALLOWED, 5: FOLLOWUP_CLOSEST_TO_TARGET, 6: FOLLOWUP_TIE_LOST}}
+    # Comparability illustration: the SAME data under Study A's R1 definition gives a different answer
+    A_R1_what_if: {status: DERIVED, baseline: [4], followup: 6, baseline_kg: 99.5, value: -5.527638190954774}
+  CSL-A-FX-19:
+    R1: &fx19 {status: NO_QUALIFYING_FOLLOWUP, exclusion_reason: "NO_OBSERVATION_IN_WINDOW:closest_+19d"}
+    R2: *fx19
+  CSL-A-FX-20:
+    R1: {status: DERIVED, baseline: [1], followup: 2, value: -8.0, reasons: {3: OUTSIDE_FOLLOWUP_WINDOW}}
+    R2: {status: DERIVED, baseline: [1], followup: 2, value: -8.0, reasons: {3: FOLLOWUP_NOT_CLOSEST}}
+
+# Amendment 1 (R1 -> R2) impact over the named participants, derived by hand from the table above:
+amendment_1_impact:
+  endpoint_became_derivable: [CSL-A-FX-05]
+  selected_followup_changed: [CSL-A-FX-05]
+  eligible_candidates_changed: [CSL-A-FX-04, CSL-A-FX-05, CSL-A-FX-20]
+  endpoint_value_changed: [CSL-A-FX-05]
