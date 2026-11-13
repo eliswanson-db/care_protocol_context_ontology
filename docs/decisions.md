@@ -47,6 +47,19 @@ execute. Hand-authored expected outcomes (not engine output) are the independent
 amendment PDFs follow the HEDIS `docs/care_protocol` corpus → html → pdf pattern and feed A4 RAG, Pages, and rule
 extraction. Labels: "SDTM-shaped" / "ADaM-shaped". Not submission-ready, not validated.
 
+**Implementation findings (2026-11-13).**
+- dbldatagen's `random=True` columns (`rand(seed)`, distribution UDFs) were not byte-stable across Spark
+  partitionings. Every draw is therefore an `xxhash64(seed, field, key)` expression (dbldatagen `expr=` for the
+  subject master). `tests/test_ls_generator.py` asserts byte-identical output under different shuffle settings.
+- The engine and eligibility modules run on Spark workers through `mapInPandas` and are shipped by value with
+  cloudpickle. Module objects used as globals still pickle by reference, so the worker code path imports
+  functions only. The local test runs with workers that do not have the package, which reproduces the
+  serverless condition.
+- Spark resolves column names case-insensitively, so deriving `VSORRESU` from raw `vsorresu` overwrote the raw
+  unit. The raw unit is now renamed first, and the local test checks unit lineage.
+- Life-sciences schemas, volumes, pipeline and jobs live inside the `&shared_uc` anchor (dev + ect only), which
+  keeps them off DMVM (ADR-0023).
+
 ---
 
 ## ADR-0023 — Two demos, one app and one catalog: schema isolation, demo_id scoping, ECT only

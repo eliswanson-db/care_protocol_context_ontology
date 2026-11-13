@@ -74,6 +74,27 @@ targets:
           comment: >-
             Terminology-as-data: curated LOINC/ICD-10-CM/RxNorm subsets + demo value sets + ICD-10 closure
             (HEDIS demo, not NCQA-certified).
+        # ---- Clinical Study Context & Evidence Lab (life_sciences_clinical; ADR-0023). ECT/dev only: these, the
+        # life-sciences pipeline and jobs all live inside this anchor, so dmvm never deploys them.
+        clinical_study:
+          catalog_name: ${var.catalog}
+          name: clinical_study
+          comment: >-
+            Clinical Study lab medallion: bronze_edc_* (raw EDC exports) -> silver_* (SDTM-shaped) -> gold_*
+            (ADaM-shaped endpoint results, every candidate observation, eligibility, populations, provenance).
+            SYNTHETIC. Not submission-ready SDTM/ADaM.
+        clinical_study_semantic:
+          catalog_name: ${var.catalog}
+          name: clinical_study_semantic
+          comment: >-
+            Governed UC metric views for the Clinical Study lab (consumption layer only, ADR-0013 pattern). Every
+            metric keeps study + rule-version context; nothing is pooled across studies. SYNTHETIC.
+        clinical_study_standards:
+          catalog_name: ${var.catalog}
+          name: clinical_study_standards
+          comment: >-
+            Vendored open standards for the Clinical Study lab (MONDO, MED-RT, MeSH, RxNorm, CDISC CT, COSMoS,
+            NCIt) as kb_concept/kb_edge (direct facts only), closures, and the approved rule registry (ADR-0022).
       volumes:
         synthea:
           catalog_name: ${var.catalog}
@@ -102,6 +123,138 @@ targets:
             Pages-ready SOURCE material (facts-only mined extracts + synthesized corpus Markdown) for Genie Code
             Pages bulk import — a second volume so source docs stay separate from the finished ontology_pages.
             Staged by scripts/stage_source_documents.py. Raw proprietary PDFs are NOT stored here (see RUNBOOK).
+
+        raw_edc:
+          catalog_name: ${var.catalog}
+          schema_name: ${resources.schemas.clinical_study.name}
+          name: raw_edc
+          volume_type: MANAGED
+          comment: Landing zone for the synthetic EDC CSV exports (scripts/ls_generate.py). SYNTHETIC.
+        clinical_documents:
+          catalog_name: ${var.catalog}
+          schema_name: ${resources.schemas.clinical_study.name}
+          name: documents
+          volume_type: MANAGED
+          comment: Synthetic protocol / SAP / amendment / mapping-spec documents (md, html, pdf) for RAG and Pages.
+        clinical_pages:
+          catalog_name: ${var.catalog}
+          schema_name: ${resources.schemas.clinical_study.name}
+          name: ontology_pages
+          volume_type: MANAGED
+          comment: Clinical Study lab Pages sources (docs/life_sciences/pages/*.md), staged for manual import.
+        standards_cache:
+          catalog_name: ${var.catalog}
+          schema_name: ${resources.schemas.clinical_study_standards.name}
+          name: standards_cache
+          volume_type: MANAGED
+          comment: Pinned raw standards releases (checksummed against standards_manifest.yaml) for reproducible KB rebuilds.
+
+      pipelines:
+        clinical_study:
+          name: clinical_study_${bundle.target}
+          catalog: ${var.catalog}
+          schema: ${resources.schemas.clinical_study.name}
+          serverless: true
+          configuration:
+            cs.catalog: ${var.catalog}
+            cs.landing: /Volumes/${var.catalog}/${resources.schemas.clinical_study.name}/raw_edc/current
+            cs.src_path: ${workspace.file_path}/src
+          environment:
+            dependencies:
+              - pyyaml
+          libraries:
+            - file:
+                path: src/pipelines/clinical_study.py
+
+      jobs:
+        ls_bootstrap:
+          name: ls_bootstrap_${bundle.target}
+          description: >-
+            Clinical Study lab end to end: load vendored standards + rule registry -> closures; generate synthetic
+            EDC exports -> pipeline (bronze/silver/gold) -> gold oracle check. Reruns are idempotent (same seed =
+            same bytes). Never resets other demos.
+          parameters:
+            - {name: scale, default: demo}
+            - {name: seed, default: "2026"}
+          tasks:
+            - task_key: load_standards
+              spark_python_task:
+                python_file: scripts/ls_load_standards.py
+                parameters: ["--catalog", "${var.catalog}", "--src_dir", "${workspace.file_path}/src"]
+              environment_key: ls
+            - task_key: closure_mondo
+              depends_on: [{task_key: load_standards}]
+              spark_python_task:
+                python_file: src/semantic/build_closure.py
+                parameters: ["--catalog", "${var.catalog}", "--schema", "clinical_study_standards",
+                             "--hier_table", "mondo_hier", "--closure_table", "mondo_closure", "--label", "mondo_hier"]
+              environment_key: ls
+            - task_key: closure_medrt
+              depends_on: [{task_key: load_standards}]
+              spark_python_task:
+                python_file: src/semantic/build_closure.py
+                parameters: ["--catalog", "${var.catalog}", "--schema", "clinical_study_standards",
+                             "--hier_table", "medrt_class_hier", "--closure_table", "medrt_class_closure",
+                             "--label", "medrt_class_hier"]
+              environment_key: ls
+            - task_key: closure_mesh
+              depends_on: [{task_key: load_standards}]
+              spark_python_task:
+                python_file: src/semantic/build_closure.py
+                parameters: ["--catalog", "${var.catalog}", "--schema", "clinical_study_standards",
+                             "--hier_table", "mesh_hier", "--closure_table", "mesh_closure", "--label", "mesh_hier"]
+              environment_key: ls
+            - task_key: closure_bc
+              depends_on: [{task_key: load_standards}]
+              spark_python_task:
+                python_file: src/semantic/build_closure.py
+                parameters: ["--catalog", "${var.catalog}", "--schema", "clinical_study_standards",
+                             "--hier_table", "bc_hier", "--closure_table", "bc_closure", "--label", "bc_hier"]
+              environment_key: ls
+            - task_key: generate_edc
+              spark_python_task:
+                python_file: scripts/ls_generate.py
+                parameters: ["--src_dir", "${workspace.file_path}/src",
+                             "--out", "/Volumes/${var.catalog}/clinical_study/raw_edc/current",
+                             "--scale", "{{job.parameters.scale}}", "--seed", "{{job.parameters.seed}}"]
+              environment_key: ls
+            - task_key: pipeline
+              depends_on: [{task_key: load_standards}, {task_key: generate_edc}]
+              pipeline_task:
+                pipeline_id: ${resources.pipelines.clinical_study.id}
+            - task_key: verify_gold
+              depends_on: [{task_key: pipeline}, {task_key: closure_mondo}]
+              spark_python_task:
+                python_file: scripts/ls_verify_gold.py
+                parameters: ["--catalog", "${var.catalog}", "--src_dir", "${workspace.file_path}/src"]
+              environment_key: ls
+          environments:
+            - environment_key: ls
+              spec:
+                client: "3"
+                dependencies:
+                  - dbldatagen==0.4.0post1
+                  - pyyaml
+
+        ls_refresh:
+          name: ls_refresh_${bundle.target}
+          description: Clinical Study lab refresh without regenerating data (pipeline -> gold oracle check).
+          tasks:
+            - task_key: pipeline
+              pipeline_task:
+                pipeline_id: ${resources.pipelines.clinical_study.id}
+            - task_key: verify_gold
+              depends_on: [{task_key: pipeline}]
+              spark_python_task:
+                python_file: scripts/ls_verify_gold.py
+                parameters: ["--catalog", "${var.catalog}", "--src_dir", "${workspace.file_path}/src"]
+              environment_key: ls
+          environments:
+            - environment_key: ls
+              spec:
+                client: "3"
+                dependencies:
+                  - pyyaml
 
   # BASELINE arm (ADR-0018): Genie Ontology OFF — Genie One answers from raw governed metric-views/comments
   # only. ECT also OWNS the shared catalog's schemas/volumes (via *shared_uc). Shares the catalog with dmvm.
