@@ -55,8 +55,8 @@ Status vocabulary (kept strictly separate): **implemented** · **tested** · **d
 |---|---|---|
 | 1 Inspect & plan | Inventory, ontology gate, manifest, ADR-0021..0024, CLAUDE.md, customer-name removal | implemented |
 | 2 Deterministic data path | dbldatagen generator + 20 endpoint and 9 eligibility fixtures, pipeline, endpoint engine R1/R2 + Study B, eligibility over the KB, provenance, oracle | implemented · tested · **deployed on ECT** (ls_bootstrap SUCCESS 2026-11-13, gold oracle PASS RUN-cc1b4b5b76a92061; HEDIS gold 20/20 unchanged) |
-| 3 Semantic path | Vendored subsets + closures, TBox/R2RML (USDM-aligned + `cpl:`), validation checks | KB + closures deployed; TBox/R2RML not started |
-| 4 Documents & governed context | Protocol/SAP/amendment PDFs, parsing, candidate→approved registry, Pages | — |
+| 3 Semantic path | KB + closures, graph spec → TBox/R2RML/104 views, semantic validation | implemented · tested · **deployed** (104 views, 567k rows, 0 dangling endpoints, 0 validation errors) · **manual: Ontobricks import/publish (Eli)** |
+| 4 Documents & governed context | 10 documents (md/html/pdf), assertions with review state, RAG corpus (3,251 entries), 15 Pages | implemented · tested · **deployed** · **manual: Pages bulk import (Eli)** |
 | 5 Deployment & agents | Bundle resources, Genie spaces, MCP tools, RAG corpus, readiness tracking | — |
 | 6 App | Demo switcher, `DemoContext` refactor, LS tabs, Drift/Amendment + Ontology Explorer for both | — |
 | 7 Evaluation & hardening | LS benchmark (10 categories), HEDIS regression, isolation tests | — |
