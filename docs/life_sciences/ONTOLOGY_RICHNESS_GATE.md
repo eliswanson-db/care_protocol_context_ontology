@@ -28,21 +28,31 @@ The probes ran locally on pinned releases (see `src/standards/life_sciences/stan
 - **Obstructive sleep apnea** → D020181 (`may_treat`, 3 drugs). Its ancestor "sleep apnea syndrome" (D012891) has `CI_with` 4 drugs, so contraindications differ by level of the hierarchy.
 - **Polyhierarchy:** OSA has 2 parents. Diabetic complications sit under both diabetes and the target-organ disorder. Counting distinct participants in "weight-related comorbidity" therefore needs closure semantics, not a union of flat lists.
 
-## Graph problems the demo will pose (each fails on flat value sets, RAG, or inferred snippets)
+## Graph problems the demo will pose (a test of retrieval *mechanism*, not of missing content)
 
-| # | Problem | Why the graph is necessary |
+**Knowledge parity (ADR-0025).** Every approach gets the same direct facts: each `is_a`, xref, `CI_with`,
+`has_MoA`, `has_PE`, BC → DSS → variable link, and rule parameter. The graph stores them as triples. RAG gets them as
+one generated reference entry per concept plus the protocol/SAP documents. Genie gets them as governed UC tables,
+comments and Pages. Neither the graph nor RAG gets a pre-computed transitive closure; only the closure approach
+materializes one, and that is its mechanism. So when an approach misses one of these, the cause is how it retrieves
+and combines facts, not that it never had them.
+
+| # | Problem | What the retrieval mechanism has to do |
 |---|---|---|
-| G1 | **Eligibility:** BMI ≥27 **and** ≥1 weight-related comorbidity (a MONDO class over hypertension, dyslipidemia, OSA, prediabetes/T2DM, CVD) | MH is coded at leaves (e.g. "hypertensive heart disease", "familial hypercholesterolemia"). Membership needs `is_a*` with multiple parents. RAG only sees the protocol's prose list. Genie Ontology snippets have no transitive closure. |
-| G2 | **Exclusion by contraindication:** "history of MTC or MEN2, or any condition contraindicated for the study drug class" | Four hops across three vocabularies (MONDO → MeSH → MED-RT → MoA class), with subsumption at both ends. |
-| G3 | **Prohibited concomitant medication by mechanism:** any GLP-1 RA, or any `Appetite Suppression [PE]` agent (29 drugs in MED-RT) | Needs CM records (RxNorm) → MED-RT MoA/PE. The protocol names classes, not products. |
-| G4 | **Amendment 2 class expansion:** adds a subtree (e.g. sleep apnea) to the comorbidity class | The diff of two closures gives exactly the participants who change. That's a graph diff, not a text diff. |
-| G5 | **Concept → data lineage:** endpoint measures Body Weight C81328 → DSS `WEIGHT` → `VS.VSSTRESN` where `VSTESTCD='WEIGHT'` → physical column | Typed path across the COSMoS BC, DSS and physical layers. The DSS unit list is also the validation rule for unsupported units. |
-| G6 | **Cross-study comparability:** Study A and Study B Week 24 endpoints | Both measure the same BC, but the USDM timing windows and baseline rules differ. Shown as a structural graph comparison, not a string match. |
+| G1 | **Eligibility:** BMI ≥27 **and** ≥1 weight-related comorbidity (a MONDO class over hypertension, dyslipidemia, OSA, prediabetes/T2DM, CVD) | MH is coded at leaves ("hypertensive heart disease", "familial hypercholesterolemia"). Membership is `is_a*` over a polyhierarchy, 1–6 hops. The graph walks `subClassOf*`; the closure approach looks up a precomputed pair. RAG has the same `is_a` facts, but must retrieve and chain one entry per hop, and top-k similarity rarely returns the whole chain. Genie has the same edge table, but must write recursive SQL or find the right snippets. |
+| G2 | **Exclusion by contraindication:** "history of MTC or MEN2, or any condition contraindicated for the study drug class" | Four hops across three vocabularies (MONDO → MeSH → MED-RT → MoA class), with subsumption at both ends. Every hop is written down in each approach; what differs is the ability to join across them. |
+| G3 | **Prohibited concomitant medication by mechanism:** any GLP-1 RA, or any `Appetite Suppression [PE]` agent (29 drugs in MED-RT) | CM records (RxNorm) → MED-RT MoA/PE. The protocol names classes, not products. This is an inverse lookup ("which drugs have this MoA") followed by a join to participants. |
+| G4 | **Amendment 2 class expansion:** adds a subtree (e.g. sleep apnea) to the comorbidity class | The participants who change are exactly the difference of two closures. Both amendment texts are in RAG and the class definitions are in all three, so this tests set difference over derived membership. |
+| G5 | **Concept → data lineage:** endpoint measures Body Weight C81328 → DSS `WEIGHT` → `VS.VSSTRESN` where `VSTESTCD='WEIGHT'` → physical column | Typed path across the COSMoS BC, DSS and physical layers. The DSS unit list doubles as the validation rule for unsupported units. |
+| G6 | **Cross-study comparability:** Study A and Study B Week 24 endpoints | Both measure the same BC, but the timing windows and baseline rules differ. This is a structural comparison of two rule records, not a string match. |
+
+Questions that only work because one approach holds extra content are **context-availability experiments**. They are
+reported separately and never mixed into the mechanism comparison (prompt §15, ADR-0025).
 
 ## Known gaps (documented, not hidden)
 
 - **MedDRA is licensed and not used.** Real SDTM MH/AE use MedDRA. This demo codes MH with MONDO plus ICD-10-CM xrefs. That's a labeled deviation.
 - **The MeSH bridge is lossy.** Some MONDO leaves (e.g. MTC) have no MeSH xref and resolve only through an ancestor. The graph shows the hop it used.
 - **MED-RT is inconsistent across class members** (see semaglutide above). The demo surfaces this rather than patching it.
-- **MED-RT licensing.** MED-RT is a VA work posted publicly by NCI EVS. Its documentation says "some proprietary data requires licensing", which refers to the UMLS-distributed parts. Only associations from the public EVS release are vendored, filtered to non-SNOMED targets. The `Authority` qualifier is recorded per edge. **Open item: confirm the terms before external distribution.**
+- **MED-RT licensing (resolved 2026-11-13).** MED-RT is a VA work posted publicly by NCI EVS. Its documentation says "some proprietary data requires licensing"; that refers to content distributed through the UMLS, which this demo does not use. **Only the public NCI EVS release is used.** Vendored associations are filtered to RxNorm/MeSH/MED-RT endpoints (no SNOMED CT targets), and the `Authority` qualifier is kept on each edge.
 - **No weight-gain physiologic effect exists in MED-RT** (searched has_PE names). "Drugs associated with weight gain" would be a namespaced demo extension, not MED-RT.

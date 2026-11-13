@@ -5,6 +5,36 @@ statement in the source plans under `docs/sources/`.
 
 ---
 
+## ADR-0025 — Knowledge parity: every retrieval approach gets the same facts, so the benchmark measures mechanism
+**Date:** 2026-11-13 · **Status:** accepted · **Applies to:** life sciences now; HEDIS gaps to be audited
+The benchmark tests *how* each approach retrieves, not whether we fed it different content. **Decision:** one
+canonical study knowledge base (KB) in `clinical_study_standards`:
+- `kb_concept`: id, scheme, label, definition, release;
+- `kb_edge`: subject, predicate, object, source artifact, authority, release. **Direct assertions only.**
+- The approved rule registry, also emitted as `kb_edge` rows with `cpl:` predicates.
+
+Each approach gets the KB rendered in its native form:
+- **graph (A5):** R2RML over `kb_concept`/`kb_edge` plus the data tables. Direct triples; traversal is the mechanism.
+- **closure:** closures derived from `kb_edge` is-a (and typed or composed variants). Materialization is the mechanism.
+- **RAG (A4):** a generated **knowledge reference corpus** (one entry per KB concept stating its direct facts in
+  sentences, each tagged with the `kb_edge` ids it expresses) alongside the protocol/SAP/amendment documents.
+  No transitive facts are pre-written.
+- **Genie One / Genie Ontology:** the same KB tables with UC comments, Pages for class definitions and rules, and
+  metric views.
+- **Documents ↔ registry:** every approved rule's parameters appear both in its document section and in the registry
+  that the graph and Genie read.
+
+**Parity is tested.** `tests/test_ls_knowledge_parity.py` asserts that every `kb_edge` is expressed in the RAG reference
+corpus and covered by an R2RML mapping. Exceptions go in an explicit allowlist with a reason.
+
+**Reasonable-extent exception:** Pages carry class definitions and rules, not one page per concept (≈thousands). Genie
+reaches per-concept facts through the governed KB tables instead.
+
+**Benchmark rule:** a question that only one approach can answer because of extra content is a
+**context-availability experiment**. It is labeled and reported separately from mechanism results (prompt §15).
+
+---
+
 ## ADR-0024 — Life-sciences data: dbldatagen raw EDC exports → Lakeflow pipeline → SDTM-shaped silver → ADaM-shaped gold
 **Date:** 2026-11-12 · **Status:** accepted
 Same spine as HEDIS (raw landing → bronze → silver → gold → semantic). A seeded **dbldatagen** generator on serverless
@@ -50,6 +80,8 @@ roles. That isn't enough for the graph to beat Genie Ontology or RAG. **Decision
 Only curated subsets are vendored (ADR-0007 pattern), with the manifest at `src/standards/life_sciences/standards_manifest.yaml`.
 MedDRA, SNOMED CT and ATC are excluded (licensed). MH is coded with MONDO + ICD-10-CM xrefs, a labeled deviation.
 Claude writes the TBox and mapping files; Eli creates the Ontobricks domain and imports them (ADR-0005).
+**MED-RT terms (2026-11-13):** only the public NCI EVS release is used. UMLS-distributed content is not, which settles
+the documentation's "some proprietary data requires licensing" caveat.
 
 ---
 

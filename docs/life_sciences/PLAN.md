@@ -78,4 +78,4 @@ Status vocabulary (kept strictly separate): **implemented** · **tested** · **d
 - ⚙ Ontobricks: create the life-sciences domain and import the TBox + R2RML, then publish (Eli, ADR-0005).
 - ⚙ Pages: bulk import per workspace (no API) using `PAGES_IMPORT_PROMPT.md`.
 - ⚙ Domains: ECT has hit the tag-policy cap, so the existing tag may need reuse (same as HEDIS).
-- ⚙ MED-RT terms: confirm before external distribution (open item in the manifest).
+- MED-RT terms: resolved. Only the public NCI EVS release is used (gate doc, manifest).

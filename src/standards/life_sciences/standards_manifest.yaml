@@ -97,8 +97,9 @@ artifacts:
     retrieved_at: "2026-11-12"
     checksum: sha256:b02c7f44e812e79ed1a87b3e9eb1ab14bb934d987d4fac29751bb5e542c057b6
     license_or_terms_reference: >-
-      Public VA release via NCI EVS. MED-RT docs note "some proprietary data requires licensing" (UMLS-distributed content).
-      OPEN ITEM: confirm terms before external distribution. Vendored subset excludes SNOMED CT targets; Authority kept per edge.
+      Public VA release via NCI EVS — the only part used (decision 2026-11-13, ADR-0022). MED-RT docs note "some
+      proprietary data requires licensing"; that is UMLS-distributed content, which is not used. Vendored subset keeps
+      RxNorm/MeSH/MED-RT endpoints only (no SNOMED CT targets) and the Authority qualifier per edge.
     access_method: anonymous HTTPS
     local_storage_location: src/standards/life_sciences/medrt_subset.csv
     transformation_version: "1"
