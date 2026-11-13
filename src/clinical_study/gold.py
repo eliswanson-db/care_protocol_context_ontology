@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import zlib
 from collections.abc import Iterator
 
 import pandas as pd
@@ -67,6 +68,31 @@ def execution_run_id(registry: dict, kb_release: list[str], data_manifest: dict)
         sort_keys=True,
     )
     return "RUN-" + hashlib.sha256(blob.encode()).hexdigest()[:16]
+
+
+# KB payload. Serverless rejects Python broadcast variables, and Spark broadcasts any pickled UDF command over
+# ~1 MB. The KB therefore travels as a compact zlib blob (only the fields the engines read) and is rebuilt on
+# the worker, once per process.
+UDF_PAYLOAD_LIMIT = 512 * 1024
+
+
+def pack_kb(concepts: list[dict], edges: list[dict]) -> bytes:
+    c = [[x["concept_id"], x["scheme"], x["label"], x["release"]] for x in concepts]
+    e = [[x["subject"], x["predicate"], x["object"]] for x in edges]
+    return zlib.compress(json.dumps({"c": c, "e": e}, separators=(",", ":")).encode(), 9)
+
+
+_ONTO_CACHE: dict[str, Ontology] = {}
+
+
+def onto_from_blob(blob: bytes) -> Ontology:
+    key = hashlib.sha1(blob).hexdigest()
+    if key not in _ONTO_CACHE:
+        d = json.loads(zlib.decompress(blob))
+        concepts = [{"concept_id": a, "scheme": b, "label": c, "release": r} for a, b, c, r in d["c"]]
+        edges = [{"subject": a, "predicate": b, "object": c} for a, b, c in d["e"]]
+        _ONTO_CACHE[key] = Ontology(concepts, edges)
+    return _ONTO_CACHE[key]
 
 
 # ------------------------------------------------------------------------------------------ subject bundles
@@ -188,8 +214,9 @@ def _assess_row(r: pd.Series, registry: dict, onto: Ontology):
     return assess(subj, sv, _lst(r["mh"]), _lst(r["cm"]), registry, onto)
 
 
-def make_eligibility_fn(registry: dict, onto: Ontology, run_id: str):
+def make_eligibility_fn(registry: dict, kb_blob: bytes, run_id: str):
     def fn(it: Iterator[pd.DataFrame]) -> Iterator[pd.DataFrame]:
+        onto = onto_from_blob(kb_blob)
         for pdf in it:
             rows = []
             for _, r in pdf.iterrows():
@@ -218,8 +245,9 @@ def make_eligibility_fn(registry: dict, onto: Ontology, run_id: str):
     return fn
 
 
-def make_population_fn(registry: dict, onto: Ontology, run_id: str):
+def make_population_fn(registry: dict, kb_blob: bytes, run_id: str):
     def fn(it: Iterator[pd.DataFrame]) -> Iterator[pd.DataFrame]:
+        onto = onto_from_blob(kb_blob)
         for pdf in it:
             rows = []
             for _, r in pdf.iterrows():

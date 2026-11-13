@@ -39,11 +39,24 @@ def build(spark, landing: str) -> dict:
     ex = sdtm.ex(raw["ex"], dm)
     mh, cm = sdtm.mh(raw["mh"], labels), sdtm.cm(raw["cm"], labels)
     b = gold.subject_bundles(dm, vs, ex, mh, cm)
-    elig = b.mapInPandas(gold.make_eligibility_fn(reg, onto, run_id), gold.ELIG_SCHEMA)
-    pop = b.mapInPandas(gold.make_population_fn(reg, onto, run_id), gold.POP_SCHEMA)
+    blob = gold.pack_kb(concepts, edges)
+    fns = {
+        "eligibility": gold.make_eligibility_fn(reg, blob, run_id),
+        "population": gold.make_population_fn(reg, blob, run_id),
+        "result": gold.make_result_fn(reg, tv, run_id),
+        "candidate": gold.make_candidate_fn(reg, tv, run_id),
+    }
+    # serverless broadcasts (and then fails on) any pickled UDF over ~1 MB: keep every closure well under it
+    from pyspark import cloudpickle
+
+    sizes = {k: len(cloudpickle.dumps(f)) for k, f in fns.items()}
+    print("   UDF closure bytes:", sizes)
+    assert max(sizes.values()) < gold.UDF_PAYLOAD_LIMIT, sizes
+    elig = b.mapInPandas(fns["eligibility"], gold.ELIG_SCHEMA)
+    pop = b.mapInPandas(fns["population"], gold.POP_SCHEMA)
     rb = gold.randomized_bundles(b)
-    res = rb.mapInPandas(gold.make_result_fn(reg, tv, run_id), gold.RESULT_SCHEMA)
-    cand = rb.mapInPandas(gold.make_candidate_fn(reg, tv, run_id), gold.CAND_SCHEMA)
+    res = rb.mapInPandas(fns["result"], gold.RESULT_SCHEMA)
+    cand = rb.mapInPandas(fns["candidate"], gold.CAND_SCHEMA)
     out = {
         "dm": dm,
         "vs": vs,

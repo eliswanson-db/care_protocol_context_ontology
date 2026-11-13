@@ -29,6 +29,7 @@ _concepts = [r.asDict() for r in spark.table(f"{STD}.kb_concept").collect()]  # 
 _edges = [r.asDict() for r in spark.table(f"{STD}.kb_edge").collect()]  # noqa: F821  (~6k rows)
 REGISTRY = yaml.safe_load(spark.table(f"{STD}.rule_registry").collect()[0]["yaml_text"])  # noqa: F821
 ONTO = Ontology(_concepts, _edges)
+KB_BLOB = gold.pack_kb(_concepts, _edges)  # what the UDFs receive (serverless: no broadcasts)
 TERM_VERSION = sdtm.terminology_version(_concepts)
 VSTEST = sdtm.vstest_labels(_concepts, _edges)
 try:
@@ -141,7 +142,7 @@ def subject_bundle():
 )
 def gold_eligibility_criterion():
     return spark.read.table("subject_bundle").mapInPandas(  # noqa: F821
-        gold.make_eligibility_fn(REGISTRY, ONTO, RUN_ID), gold.ELIG_SCHEMA
+        gold.make_eligibility_fn(REGISTRY, KB_BLOB, RUN_ID), gold.ELIG_SCHEMA
     )
 
 
@@ -152,7 +153,7 @@ def gold_eligibility_criterion():
 )
 def gold_participant_population():
     return spark.read.table("subject_bundle").mapInPandas(  # noqa: F821
-        gold.make_population_fn(REGISTRY, ONTO, RUN_ID), gold.POP_SCHEMA
+        gold.make_population_fn(REGISTRY, KB_BLOB, RUN_ID), gold.POP_SCHEMA
     )
 
 

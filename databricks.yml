@@ -186,34 +186,11 @@ targets:
                 python_file: scripts/ls_load_standards.py
                 parameters: ["--catalog", "${var.catalog}", "--src_dir", "${workspace.file_path}/src"]
               environment_key: ls
-            - task_key: closure_mondo
+            - task_key: build_closures
               depends_on: [{task_key: load_standards}]
               spark_python_task:
-                python_file: src/semantic/build_closure.py
-                parameters: ["--catalog", "${var.catalog}", "--schema", "clinical_study_standards",
-                             "--hier_table", "mondo_hier", "--closure_table", "mondo_closure", "--label", "mondo_hier"]
-              environment_key: ls
-            - task_key: closure_medrt
-              depends_on: [{task_key: load_standards}]
-              spark_python_task:
-                python_file: src/semantic/build_closure.py
-                parameters: ["--catalog", "${var.catalog}", "--schema", "clinical_study_standards",
-                             "--hier_table", "medrt_class_hier", "--closure_table", "medrt_class_closure",
-                             "--label", "medrt_class_hier"]
-              environment_key: ls
-            - task_key: closure_mesh
-              depends_on: [{task_key: load_standards}]
-              spark_python_task:
-                python_file: src/semantic/build_closure.py
-                parameters: ["--catalog", "${var.catalog}", "--schema", "clinical_study_standards",
-                             "--hier_table", "mesh_hier", "--closure_table", "mesh_closure", "--label", "mesh_hier"]
-              environment_key: ls
-            - task_key: closure_bc
-              depends_on: [{task_key: load_standards}]
-              spark_python_task:
-                python_file: src/semantic/build_closure.py
-                parameters: ["--catalog", "${var.catalog}", "--schema", "clinical_study_standards",
-                             "--hier_table", "bc_hier", "--closure_table", "bc_closure", "--label", "bc_hier"]
+                python_file: scripts/ls_build_closures.py
+                parameters: ["--catalog", "${var.catalog}", "--src_dir", "${workspace.file_path}/src"]
               environment_key: ls
             - task_key: generate_edc
               spark_python_task:
@@ -227,7 +204,7 @@ targets:
               pipeline_task:
                 pipeline_id: ${resources.pipelines.clinical_study.id}
             - task_key: verify_gold
-              depends_on: [{task_key: pipeline}, {task_key: closure_mondo}]
+              depends_on: [{task_key: pipeline}, {task_key: build_closures}]
               spark_python_task:
                 python_file: scripts/ls_verify_gold.py
                 parameters: ["--catalog", "${var.catalog}", "--src_dir", "${workspace.file_path}/src"]
