@@ -45,6 +45,10 @@ include:
 sync:
   include:
     - src/app/frontend/dist/**
+  # The vendored Genie GenAI Evals archive (ADR-0004) is a local reference, not a job input. An earlier deploy
+  # imported it as a notebook; uploading the .dbc again collides with that object, so it is not synced.
+  exclude:
+    - "src/benchmark/*.dbc"
 
 targets:
   # Local/iterative development (isolated, prefixed deployments). Dev mode prefixes the schema/volume names,

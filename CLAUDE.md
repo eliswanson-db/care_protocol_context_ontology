@@ -57,7 +57,7 @@ pytest tests/test_rag_corpus_build.py::test_patient_letter_is_care_team_restrict
 python3 -I tests/test_rag_rls.py               # needs live Lakebase; skips if LAKEBASE_HOST unset
 
 # Gold regression gate: every gold_queries.sql query must match its inline `-- expect:` value
-python src/benchmark/verify_gold.py --warehouse_id <WH> --profile ECT
+DATABRICKS_CONFIG_PROFILE=ECT python src/benchmark/verify_gold.py --warehouse_id <WH>
 
 # Benchmark arms
 python src/benchmark/run_capability_map.py --arm A1     # or --arm M0 (see src/benchmark/README.md)
