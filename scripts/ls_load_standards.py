@@ -158,6 +158,56 @@ def main() -> None:
         "Endpoint rule versions (flattened). Study day: no day 0; windows inclusive; dates drive selection.",
     )
 
+    studies, versions = [], []
+    for sid, st in reg["studies"].items():
+        studies.append(
+            {
+                "study_id": sid,
+                "title": " ".join(st["title"].split()),
+                "phase": st["phase"],
+                "duration_weeks": st["duration_weeks"],
+                "registry_version": rv,
+            }
+        )
+        for v in st["study_versions"]:
+            versions.append(
+                {
+                    "study_version_id": f"{sid}.P{v['protocol_version']}",
+                    "study_id": sid,
+                    "protocol_version": v["protocol_version"],
+                    "sap_version": v["sap_version"],
+                    "effective_date": v["effective_date"],
+                    "amendment": v.get("amendment"),
+                    "change_summary": v.get("change_summary"),
+                    "documents": ",".join(v["documents"]),
+                    "registry_version": rv,
+                }
+            )
+    write(
+        "study",
+        studies,
+        "study_id string, title string, phase string, duration_weeks int, registry_version string",
+        "Synthetic studies (USDM Study). SYNTHETIC, illustrative; not any real trial.",
+    )
+    write(
+        "study_version",
+        versions,
+        "study_version_id string, study_id string, protocol_version string, sap_version string, "
+        "effective_date string, amendment int, change_summary string, documents string, "
+        "registry_version string",
+        "Protocol versions per study (USDM StudyVersion), effective by date, with amendment summaries.",
+    )
+    write(
+        "analysis_population",
+        [
+            {"population_id": k, "label": p["label"], "definition": p["definition"], "registry_version": rv}
+            for k, p in reg["populations"].items()
+        ],
+        "population_id string, label string, definition string, registry_version string",
+        "Analysis populations (FAS, PPS) as defined in the registry.",
+    )
+
+    pe_by_label = {c["label"]: c["concept_id"] for c in concepts if c["scheme"] == "MEDRT"}
     cls, roots = [], []
     for cid, c in reg["concept_classes"].items():
         cls.append(
@@ -200,6 +250,18 @@ def main() -> None:
                     "class_id": cid,
                     "concept_id": x,
                     "kind": "member_of_class",
+                    "reason": None,
+                    "registry_version": rv,
+                }
+            )
+        for x in c.get("has_physiologic_effect", []):
+            if x not in pe_by_label:
+                raise SystemExit(f"{cid}: physiologic effect '{x}' not in the KB")
+            roots.append(
+                {
+                    "class_id": cid,
+                    "concept_id": pe_by_label[x],
+                    "kind": "physiologic_effect",
                     "reason": None,
                     "registry_version": rv,
                 }

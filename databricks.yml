@@ -93,6 +93,13 @@ targets:
           comment: >-
             Governed UC metric views for the Clinical Study lab (consumption layer only, ADR-0013 pattern). Every
             metric keeps study + rule-version context; nothing is pooled across studies. SYNTHETIC.
+        clinical_study_graph:
+          catalog_name: ${var.catalog}
+          name: clinical_study_graph
+          comment: >-
+            Ontobricks source scope for the Clinical Study lab: one view per graph class (e_*) and per relationship
+            (r_*), generated from src/clinical_study/graph_spec.py. Inputs and derived results only; eligibility and
+            population answers are deliberately absent so the graph has to derive them (ADR-0025). SYNTHETIC.
         clinical_study_standards:
           catalog_name: ${var.catalog}
           name: clinical_study_standards
@@ -209,6 +216,20 @@ targets:
                 python_file: scripts/ls_verify_gold.py
                 parameters: ["--catalog", "${var.catalog}", "--src_dir", "${workspace.file_path}/src"]
               environment_key: ls
+            - task_key: load_documents
+              depends_on: [{task_key: load_standards}]
+              spark_python_task:
+                python_file: scripts/ls_load_documents.py
+                parameters: ["--catalog", "${var.catalog}", "--repo_dir", "${workspace.file_path}"]
+              environment_key: ls
+            - task_key: graph_and_validation
+              depends_on: [{task_key: verify_gold}, {task_key: load_documents}]
+              spark_python_task:
+                python_file: scripts/ls_apply_sql.py
+                parameters: ["--catalog", "${var.catalog}",
+                             "--file", "${workspace.file_path}/src/ontology/life_sciences/graph_views.sql",
+                             "--file", "${workspace.file_path}/src/clinical_study/sql/semantic_validation.sql"]
+              environment_key: ls
           environments:
             - environment_key: ls
               spec:
@@ -216,6 +237,56 @@ targets:
                 dependencies:
                   - dbldatagen==0.4.0post1
                   - pyyaml
+                  - xhtml2pdf
+
+        ls_context:
+          name: ls_context_${bundle.target}
+          description: >-
+            Clinical Study lab context refresh without regenerating data: standards + rule registry -> closures ->
+            pipeline -> gold oracle check -> documents/RAG corpus/Pages staging -> graph views + semantic validation.
+          tasks:
+            - task_key: load_standards
+              spark_python_task:
+                python_file: scripts/ls_load_standards.py
+                parameters: ["--catalog", "${var.catalog}", "--src_dir", "${workspace.file_path}/src"]
+              environment_key: ls
+            - task_key: build_closures
+              depends_on: [{task_key: load_standards}]
+              spark_python_task:
+                python_file: scripts/ls_build_closures.py
+                parameters: ["--catalog", "${var.catalog}", "--src_dir", "${workspace.file_path}/src"]
+              environment_key: ls
+            - task_key: pipeline
+              depends_on: [{task_key: load_standards}]
+              pipeline_task:
+                pipeline_id: ${resources.pipelines.clinical_study.id}
+            - task_key: verify_gold
+              depends_on: [{task_key: pipeline}, {task_key: build_closures}]
+              spark_python_task:
+                python_file: scripts/ls_verify_gold.py
+                parameters: ["--catalog", "${var.catalog}", "--src_dir", "${workspace.file_path}/src"]
+              environment_key: ls
+            - task_key: load_documents
+              depends_on: [{task_key: load_standards}]
+              spark_python_task:
+                python_file: scripts/ls_load_documents.py
+                parameters: ["--catalog", "${var.catalog}", "--repo_dir", "${workspace.file_path}"]
+              environment_key: ls
+            - task_key: graph_and_validation
+              depends_on: [{task_key: verify_gold}, {task_key: load_documents}]
+              spark_python_task:
+                python_file: scripts/ls_apply_sql.py
+                parameters: ["--catalog", "${var.catalog}",
+                             "--file", "${workspace.file_path}/src/ontology/life_sciences/graph_views.sql",
+                             "--file", "${workspace.file_path}/src/clinical_study/sql/semantic_validation.sql"]
+              environment_key: ls
+          environments:
+            - environment_key: ls
+              spec:
+                client: "3"
+                dependencies:
+                  - pyyaml
+                  - xhtml2pdf
 
         ls_refresh:
           name: ls_refresh_${bundle.target}

@@ -1,0 +1,66 @@
+# Review decisions for rule assertions extracted from the synthetic documents (src/clinical_study/documents.py).
+# SEEDED DEMO FIXTURES: reviewer "demo-fixture" is not a real person and these are not real reviews.
+#
+# States: approved (states an approved registry rule; its value must equal the registry parameter, which the
+# tests enforce), superseded (an older statement replaced by a later approved rule), rejected (not a rule:
+# operational or informative text), candidate (default for anything unreviewed, never executed).
+# A review that matches no extracted assertion fails the load, so stale reviews can't approve anything.
+
+reviews:
+  # ---- CSL-A SAP v1.0 -> EP-A-WT24.R1
+  - {match: {document: CSL-A-SAP-v1.0, section: "9.4.1", type: FOLLOWUP_WINDOW_HALF_WIDTH, value: "7"},
+     state: approved, rule_ref: EP-A-WT24.R1, reviewer: demo-fixture, reviewed_on: "2025-01-10"}
+  - {match: {document: CSL-A-SAP-v1.0, section: "9.4.1", type: TARGET_OFFSET_DAYS, value: "168"},
+     state: approved, rule_ref: EP-A-WT24.R1, reviewer: demo-fixture, reviewed_on: "2025-01-10"}
+  - {match: {document: CSL-A-SAP-v1.0, section: "9.4.1", type: BASELINE_WINDOW, value: "-28,-1"},
+     state: approved, rule_ref: EP-A-WT24.R1, reviewer: demo-fixture, reviewed_on: "2025-01-10"}
+  - {match: {document: CSL-A-SAP-v1.0, section: "9.4.1", type: BASELINE_METHOD, value: "last"},
+     state: approved, rule_ref: EP-A-WT24.R1, reviewer: demo-fixture, reviewed_on: "2025-01-10"}
+  - {match: {document: CSL-A-SAP-v1.0, section: "9.4.1", type: TIE_BREAKER, value: "later"},
+     state: approved, rule_ref: EP-A-WT24.R1, reviewer: demo-fixture, reviewed_on: "2025-01-10"}
+  # ---- CSL-A SAP v2.0 -> EP-A-WT24.R2
+  - {match: {document: CSL-A-SAP-v2.0, section: "9.4.1", type: FOLLOWUP_WINDOW_HALF_WIDTH, value: "14"},
+     state: approved, rule_ref: EP-A-WT24.R2, reviewer: demo-fixture, reviewed_on: "2025-08-25"}
+  - {match: {document: CSL-A-SAP-v2.0, section: "9.4.1", type: TARGET_OFFSET_DAYS, value: "168"},
+     state: approved, rule_ref: EP-A-WT24.R2, reviewer: demo-fixture, reviewed_on: "2025-08-25"}
+  - {match: {document: CSL-A-SAP-v2.0, section: "9.4.1", type: BASELINE_WINDOW, value: "-28,-1"},
+     state: approved, rule_ref: EP-A-WT24.R2, reviewer: demo-fixture, reviewed_on: "2025-08-25"}
+  - {match: {document: CSL-A-SAP-v2.0, section: "9.4.1", type: BASELINE_METHOD, value: "last"},
+     state: approved, rule_ref: EP-A-WT24.R2, reviewer: demo-fixture, reviewed_on: "2025-08-25"}
+  - {match: {document: CSL-A-SAP-v2.0, section: "9.4.1", type: TIE_BREAKER, value: "later"},
+     state: approved, rule_ref: EP-A-WT24.R2, reviewer: demo-fixture, reviewed_on: "2025-08-25"}
+  - {match: {document: CSL-A-SAP-v2.0, section: "1", type: FOLLOWUP_WINDOW_HALF_WIDTH, value: "14"},
+     state: approved, rule_ref: EP-A-WT24.R2, reviewer: demo-fixture, reviewed_on: "2025-08-25",
+     note: "summary-of-changes restatement of 9.4.1"}
+  # ---- CSL-A Amendment 1 (protocol 2.0)
+  - {match: {document: CSL-A-PROT-AMD1, section: "1", type: FOLLOWUP_WINDOW_HALF_WIDTH, value: "14"},
+     state: approved, rule_ref: EP-A-WT24.R2, reviewer: demo-fixture, reviewed_on: "2025-08-25"}
+  - {match: {document: CSL-A-PROT-AMD1, section: "1", type: FOLLOWUP_WINDOW_HALF_WIDTH, value: "7"},
+     state: superseded, superseded_by: EP-A-WT24.R2, reviewer: demo-fixture, reviewed_on: "2025-08-25",
+     note: "describes the version 1.0 window that the amendment replaces"}
+  # ---- CSL-A protocol v1.0
+  - {match: {document: CSL-A-PROT-v1.0, section: "9.1", type: FOLLOWUP_WINDOW_HALF_WIDTH, value: "7"},
+     state: superseded, rule_ref: EP-A-WT24.R1, superseded_by: EP-A-WT24.R2, reviewer: demo-fixture,
+     reviewed_on: "2025-08-25", note: "true under protocol 1.0 (R1); superseded by Amendment 1 for protocol 2.0+"}
+  - {match: {document: CSL-A-PROT-v1.0, section: "8", type: VISIT_SCHEDULING_WINDOW, value: "169,162,176"},
+     state: rejected, reviewer: demo-fixture, reviewed_on: "2025-01-10",
+     note: "operational scheduling window for booking visits, not the endpoint analysis window"}
+  # ---- CSL-B
+  - {match: {document: CSL-B-SAP-v1.0, section: "8.3", type: FOLLOWUP_WINDOW_HALF_WIDTH, value: "10"},
+     state: approved, rule_ref: EP-B-WT24.R1, reviewer: demo-fixture, reviewed_on: "2025-01-25"}
+  - {match: {document: CSL-B-SAP-v1.0, section: "8.3", type: TARGET_OFFSET_DAYS, value: "167"},
+     state: approved, rule_ref: EP-B-WT24.R1, reviewer: demo-fixture, reviewed_on: "2025-01-25"}
+  - {match: {document: CSL-B-SAP-v1.0, section: "8.3", type: BASELINE_WINDOW, value: "-14,-1"},
+     state: approved, rule_ref: EP-B-WT24.R1, reviewer: demo-fixture, reviewed_on: "2025-01-25"}
+  - {match: {document: CSL-B-SAP-v1.0, section: "8.3", type: BASELINE_METHOD, value: "mean"},
+     state: approved, rule_ref: EP-B-WT24.R1, reviewer: demo-fixture, reviewed_on: "2025-01-25"}
+  - {match: {document: CSL-B-SAP-v1.0, section: "8.3", type: TIE_BREAKER, value: "earlier"},
+     state: approved, rule_ref: EP-B-WT24.R1, reviewer: demo-fixture, reviewed_on: "2025-01-25"}
+  - {match: {document: CSL-B-PROT-v1.0, section: "8", type: VISIT_SCHEDULING_WINDOW, value: "168,161,175"},
+     state: rejected, reviewer: demo-fixture, reviewed_on: "2025-01-25",
+     note: "operational scheduling window, not the endpoint analysis window"}
+  # ---- informative text
+  - {match: {document: CSL-EIN-v1.0, section: "2", type: WINDOW_MENTION, value: "28"},
+     state: rejected, reviewer: demo-fixture, reviewed_on: "2025-03-01",
+     note: "background statement about other programs; not a rule for either study"}
+  # CSL-A-AMD3-DRAFT §1 (±21 days) is intentionally NOT reviewed: it stays a candidate and never executes.

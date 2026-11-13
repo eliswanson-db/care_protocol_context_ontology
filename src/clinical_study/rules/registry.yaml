@@ -7,7 +7,7 @@
 # EligibilityCriterion). Keys prefixed cpl_ are demo-extension semantics, not official CDISC (ADR-0022).
 # Every rule here is also emitted as kb_edge rows with cpl: predicates (ADR-0025 parity).
 
-registry_version: "2026-11-13.1"
+registry_version: "2026-11-13.2"
 demo_fixture_approval_note: >-
   All approvals below are SEEDED DEMO FIXTURES (approved_by: demo-fixture). They represent no real human review.
 
@@ -131,7 +131,7 @@ eligibility:
     review_state: approved
     approved_by: demo-fixture
     approved_on: "2025-01-10"
-    source_section: {document: CSL-A-PROT-v1.0, section: "5.1-5.2"}
+    source_section: {document: CSL-A-PROT-v1.0, section: "5"}
   ELIG-A-V2:
     study: CSL-A
     applies_to_protocol_versions: ["3.0"]
@@ -162,7 +162,7 @@ eligibility:
     review_state: approved
     approved_by: demo-fixture
     approved_on: "2025-01-25"
-    source_section: {document: CSL-B-PROT-v1.0, section: "5.1-5.2"}
+    source_section: {document: CSL-B-PROT-v1.0, section: "5"}
 
 # ---------------------------------------------------------------------------------------------------------------
 populations:

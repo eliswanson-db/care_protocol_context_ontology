@@ -27,6 +27,39 @@ import sys
 ROOT_KEY = "Care Protocol"
 
 
+LS_ROOT_KEY = "Clinical Study Lab"
+# 2026-11-13: the 4 governed tags for this tree exist on ECT's account, but domain creation fails with
+# "Account ... has reached the maximum allowed number of domains (1000)", a domain cap separate from the
+# tag-policy cap. Until a slot frees up, Clinical Study Lab Pages attach to the existing "Clinical Domain".
+_LS_ROOT_DESC = (
+    "Synthetic educational demo: two metabolic studies (CSL-A, CSL-B) with SDTM-shaped data, a versioned "
+    "Week 24 body-weight endpoint, protocol amendments, and open standards (CDISC CT, COSMoS, MONDO, MED-RT, "
+    "MeSH, "
+    "RxNorm). Not submission-ready; not for clinical use."
+)
+_LS_SUBS = [
+    ("Clinical Studies", "Participants, endpoint results, populations, amendment impact (gold).",
+     "ADaM-shaped endpoint results with every candidate observation and its decision, FAS/PPS populations, "
+     "eligibility with evidence paths, and Amendment 1 impact. Never pooled across studies or rule "
+     "versions."),
+    ("Study Semantics", "Standards, concept classes and the knowledge graph.",
+     "Vendored open standards (direct facts only), closures, concept classes with carve-outs, and the "
+     "Ontobricks graph views. Official vs demo-extension (cpl:) content is labeled."),
+    ("Protocol Evidence", "Protocols, SAPs, amendments and governed rule assertions.",
+     "Synthetic protocol/SAP/amendment documents, their sections, and extracted rule assertions with review "
+     "state (approved / superseded / rejected / candidate). Approvals are demo fixtures; candidates "
+     "never run."),
+]
+
+
+def build_ls_domains(root_key):
+    """Clinical Study Context & Evidence Lab tree (ADR-0023). Separate root, so HEDIS assets are not moved."""
+    root = {"tag_key": root_key, "parent": None, "description": _LS_ROOT_DESC,
+            "subtitle": "Clinical Study Context & Evidence Lab: CDISC-grounded study semantics (synthetic)."}
+    return [root] + [{"tag_key": f"{root_key}/{n}", "parent": root_key, "subtitle": t, "description": d}
+                     for n, t, d in _LS_SUBS]
+
+
 def build_domains(root_key):
   return [
     {
@@ -109,9 +142,15 @@ def main():
     ap.add_argument("--root-tag", default=ROOT_KEY,
                     help=f"Governed tag key backing the root domain (default {ROOT_KEY!r}). On a capped account, "
                          "pass an EXISTING free governed tag to reuse (e.g. 'Clinical Domain').")
+    ap.add_argument("--tree", choices=["hedis", "life_sciences"], default="hedis")
     args = ap.parse_args()
     profile = args.profile
-    domains = build_domains(args.root_tag)
+    if args.tree == "life_sciences":
+        root = args.root_tag if args.root_tag != ROOT_KEY else LS_ROOT_KEY
+        domains = build_ls_domains(root)
+        args.root_tag = root
+    else:
+        domains = build_domains(args.root_tag)
 
     # --- governed tag policies (prereq for domains); track which tag_keys are usable ---
     print("Tag policies:")

@@ -53,22 +53,10 @@ FILES = {  # artifact_id -> cache file name
 }
 
 # MED-RT relations kept (public release; Synonym Of dropped -- UMLS/SNOMED-sourced synonyms)
-MEDRT_KEEP = {
-    "has_MoA",
-    "has_PE",
-    "has_TC",
-    "has_PK",
-    "has_SC",
-    "CI_with",
-    "CI_MoA",
-    "CI_PE",
-    "CI_ChemClass",
-    "may_treat",
-    "may_prevent",
-    "may_diagnose",
-    "induces",
-    "site_of_metabolism",
-}
+# Scope = what the demo's questions use (ADR-0025: the trim applies to every retrieval approach equally).
+# Dropped (no rule or question uses them): has_PK, has_SC, CI_ChemClass, may_diagnose, induces,
+# site_of_metabolism.
+MEDRT_KEEP = {"has_MoA", "has_PE", "has_TC", "CI_with", "CI_MoA", "CI_PE", "may_treat", "may_prevent"}
 
 
 class KB:
@@ -233,7 +221,7 @@ def build_mondo(kb: KB, T: dict, seeds: dict, report: dict) -> set[str]:
                 kb.edge(c, "rdfs:subClassOf", p, artifact="mondo")
         for code, src in t["xref"]:
             pre = code.split(":")[0]
-            if pre not in ("MESH", "NCIT", "ICD10CM", "DOID"):
+            if pre not in ("MESH", "NCIT", "ICD10CM"):  # DOID dropped: ~500 nodes, no question uses them
                 continue
             pred = "skos:exactMatch" if src == "MONDO:equivalentTo" else "oboInOwl:hasDbXref"
             kb.edge(c, pred, code, artifact="mondo", authority=src)
@@ -536,27 +524,7 @@ def build_cdisc(kb: KB, cache: Path, seeds: dict, report: dict) -> None:
         if r0["parent_bc_id"]:
             kb.edge(bid, "cosmos:parentBC", f"COSMOS_BC:{r0['parent_bc_id']}", artifact="cdisc_cosmos_bc")
             want.append(r0["parent_bc_id"])
-        for r in rs:
-            if r["dec_id"]:
-                dec = kb.concept(
-                    f"COSMOS_DEC:{b}.{r['dec_id']}",
-                    "COSMOS_BC",
-                    r["dec_id"],
-                    r["dec_label"],
-                    notation=r["data_type"],
-                    concept_type="DataElementConcept",
-                    artifact="cdisc_cosmos_bc",
-                )
-                kb.edge(bid, "cosmos:hasDataElementConcept", dec, artifact="cdisc_cosmos_bc")
-        for r in rs:
-            if r["system"] and r["code"]:
-                kb.edge(
-                    bid,
-                    "cosmos:coding",
-                    f"{r['system_name'] or r['system']}:{r['code']}",
-                    artifact="cdisc_cosmos_bc",
-                )
-                break
+        # Data-element concepts and LOINC codings are out of scope (no rule or question uses them).
 
     dss = list(csv.DictReader(open(cache / FILES["cdisc_cosmos_sdtm_dss"], encoding="utf-8")))
     ct_term_ids = {
