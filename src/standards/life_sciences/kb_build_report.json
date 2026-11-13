@@ -1,17 +1,17 @@
 {
-  "concepts": 3875,
+  "concepts": 3879,
   "concepts_by_scheme": {
     "CDISC_CT": 145,
     "COSMOS_BC": 45,
     "COSMOS_DSS": 73,
-    "DOID": 506,
-    "ICD10CM": 128,
+    "DOID": 507,
+    "ICD10CM": 129,
     "LOINC": 6,
     "MEDRT": 391,
     "MESH": 1044,
     "MESH_SCR": 64,
-    "MONDO": 817,
-    "NCIT": 581,
+    "MONDO": 818,
+    "NCIT": 582,
     "RXNORM": 63,
     "SDTM_VAR": 12
   },
@@ -19,7 +19,7 @@
   "dangling_by_scheme": {},
   "drugs": 63,
   "dss_bindings": 66,
-  "edges": 6244,
+  "edges": 6248,
   "edges_by_predicate": {
     "cdisc:inCodelist": 135,
     "cdisc:nciConcept": 135,
@@ -52,9 +52,9 @@
     "mesh:broaderDescriptor": 1103,
     "mesh:conceptOf": 205,
     "mesh:headingMappedTo": 94,
-    "oboInOwl:hasDbXref": 455,
-    "rdfs:subClassOf": 1762,
-    "skos:exactMatch": 957
+    "oboInOwl:hasDbXref": 456,
+    "rdfs:subClassOf": 1763,
+    "skos:exactMatch": 959
   },
   "mesh_unmapped_concepts": [
     "M0030233 analogs & derivatives",
@@ -74,6 +74,11 @@
       "descendants": 0,
       "note": "drug allergy (MED-RT CI_with Drug Hypersensitivity is product-specific; NOT a condition-level exclusion)",
       "role": "background"
+    },
+    "MONDO:0001302": {
+      "descendants": 0,
+      "note": "hypertensive heart disease (NOT under hypertensive disorder in MONDO: documented gap)",
+      "role": "non_member_lookalike"
     },
     "MONDO:0002050": {
       "descendants": 8,

@@ -2609,6 +2609,10 @@ a0e50e10600a4356,MONDO:0001236,skos:exactMatch,NCIT:C4434,mondo,MONDO:equivalent
 ae4c2e0ef16e3bed,MONDO:0001292,rdfs:subClassOf,MONDO:0003620,mondo,,2026-11-03
 af211e63cfea97f4,MONDO:0001292,skos:exactMatch,DOID:11465,mondo,MONDO:equivalentTo,2026-11-03
 da454153103dc433,MONDO:0001292,skos:exactMatch,MESH:D001342,mondo,MONDO:equivalentTo,2026-11-03
+ec3ce5a5d2186ce2,MONDO:0001302,oboInOwl:hasDbXref,ICD10CM:I11,mondo,https://orcid.org/0009-0001-6494-4831,2026-11-03
+4b9d886235367622,MONDO:0001302,rdfs:subClassOf,MONDO:0005267,mondo,,2026-11-03
+65ebec1ae42ba495,MONDO:0001302,skos:exactMatch,DOID:11516,mondo,MONDO:equivalentTo,2026-11-03
+089377ff7de8af4f,MONDO:0001302,skos:exactMatch,NCIT:C4907,mondo,MONDO:equivalentTo,2026-11-03
 c4dc32ff5a9f942d,MONDO:0001336,rdfs:subClassOf,MONDO:0002525,mondo,,2026-11-03
 ba12c77807ef9ef3,MONDO:0001336,rdfs:subClassOf,MONDO:0021187,mondo,,2026-11-03
 b52ba7d4800a55d9,MONDO:0001336,skos:exactMatch,DOID:1168,mondo,MONDO:equivalentTo,2026-11-03

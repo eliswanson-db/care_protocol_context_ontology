@@ -433,6 +433,7 @@ DOID:11400,DOID,11400,,,,ExternalCode,2026-11-03
 DOID:11401,DOID,11401,,,,ExternalCode,2026-11-03
 DOID:11459,DOID,11459,,,,ExternalCode,2026-11-03
 DOID:11465,DOID,11465,,,,ExternalCode,2026-11-03
+DOID:11516,DOID,11516,,,,ExternalCode,2026-11-03
 DOID:11612,DOID,11612,,,,ExternalCode,2026-11-03
 DOID:11634,DOID,11634,,,,ExternalCode,2026-11-03
 DOID:1168,DOID,1168,,,,ExternalCode,2026-11-03
@@ -845,6 +846,7 @@ ICD10CM:H52.1,ICD10CM,H52.1,,,,ExternalCode,2026-11-03
 ICD10CM:I00-I99,ICD10CM,I00-I99,,,,ExternalCode,2026-11-03
 ICD10CM:I09.81,ICD10CM,I09.81,,,,ExternalCode,2026-11-03
 ICD10CM:I10-I16,ICD10CM,I10-I16,,,,ExternalCode,2026-11-03
+ICD10CM:I11,ICD10CM,I11,,,,ExternalCode,2026-11-03
 ICD10CM:I15,ICD10CM,I15,,,,ExternalCode,2026-11-03
 ICD10CM:I15.0,ICD10CM,I15.0,,,,ExternalCode,2026-11-03
 ICD10CM:I20.0,ICD10CM,I20.0,,,,ExternalCode,2026-11-03
@@ -2450,6 +2452,7 @@ MONDO:0001200,MONDO,0001200,,secondary hypertension,High blood pressure caused b
 MONDO:0001235,MONDO,0001235,,appendix cancer,A malignant neoplasm involving the vermiform appendix,Disease,2026-11-03
 MONDO:0001236,MONDO,0001236,,appendiceal neoplasm,A benign or malignant neoplasm involving the appendix.,Disease,2026-11-03
 MONDO:0001292,MONDO,0001292,,autonomic nervous system disorder,A disease involving the autonomic nervous system.,Disease,2026-11-03
+MONDO:0001302,MONDO,0001302,,hypertensive heart disease,Abnormal enlargement of the heart resulting from long-standing hypertension.,Disease,2026-11-03
 MONDO:0001336,MONDO,0001336,,familial hyperlipidemia,An instance of hyperlipidemia (disease) that is caused by an inherited modification of the individual's genome.,Disease,2026-11-03
 MONDO:0001358,MONDO,0001358,,bronchial disorder,A disease involving the bronchus.,Disease,2026-11-03
 MONDO:0001384,MONDO,0001384,,myopia,The condition in which the individual does not see far distances clearly.,Disease,2026-11-03
@@ -3602,6 +3605,7 @@ NCIT:C4872,NCIT,C4872,,Breast Carcinoma,"A carcinoma arising from the breast, mo
 NCIT:C4875,NCIT,C4875,,Reproductive System Disorder,"A non-neoplastic or neoplastic disorder that affects the male or female genital system. Representative examples of non-neoplastic disorders include infection, testicular torsion, endometriosis, and adenomyosis. Representative examples of neoplastic disorders include germ cell tumors, carcinoma, lymphoma, and sarcoma.",NcitConcept,26.10d
 NCIT:C4878,NCIT,C4878,,Lung Carcinoma,"A carcinoma originating in the lung. Lung carcinomas usually arise from the epithelium that lines the bronchial tree (bronchogenic carcinomas), and are classified as small cell or non-small cell carcinomas. Non-small cell lung carcinomas are usually adenocarcinomas, squamous cell carcinomas, or large cell carcinomas. Metastatic carcinomas to the lung are also common, and can be difficult to distinguish from primary tumors.",NcitConcept,26.10d
 NCIT:C4890,NCIT,C4890,,Malignant Digestive System Neoplasm|Malignant Gastrointestinal Neoplasm,A primary or metastatic malignant neoplasm involving any part of the digestive system.,NcitConcept,26.10d
+NCIT:C4907,NCIT,C4907,,Hypertensive Cardiomegaly,Abnormal enlargement of the heart resulting from long-standing hypertension.,NcitConcept,26.10d
 NCIT:C4908,NCIT,C4908,,Ovarian Epithelial Cancer,"An invasive carcinoma that arises from the surface ovarian epithelium. The vast majority of cases are adenocarcinomas. The most common sites of involvement are the contralateral ovary, peritoneal cavity, para-aortic and pelvic lymph nodes, and liver.  Lung and pleura are the most common sites of extra-abdominal spread. The primary form of therapy is surgical.  The overall prognosis of ovarian carcinoma remains poor, a direct result of its rapid growth rate and the lack of early symptoms.",NcitConcept,26.10d
 NCIT:C4910,NCIT,C4910,,Colon Carcinoma,A carcinoma that arises from the colon. The vast majority are adenocarcinomas.,NcitConcept,26.10d
 NCIT:C4911,NCIT,C4911,,Gastric Carcinoma,A carcinoma that arises from the stomach mucosa. The vast majority are adenocarcinomas.,NcitConcept,26.10d

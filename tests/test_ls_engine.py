@@ -186,6 +186,21 @@ def test_oracle_detects_single_rule_mutations():
         REG = original
 
 
+def test_placebo_dose_zero_counts_as_dosed():
+    n = NAMED["CSL-A-FX-01"]
+    placebo = [{"exstdtc": "2025-03-03T09:00", "exdose": 0, "exdosu": "mg", "extrt": "PLACEBO"}]
+    res = engine.derive(
+        n["participant"],
+        n["observations"],
+        placebo,
+        endpoint_id="EP-A-WT24",
+        endpoint=REG["endpoints"]["EP-A-WT24"],
+        rule_version="R1",
+        terminology_version="t",
+    )
+    assert res.analysis_population_status == "IN_FAS" and res.result_status == engine.DERIVED
+
+
 def test_display_rounding_is_half_away_from_zero_and_separate():
     assert engine.display_round(-6.25) == -6.3 and engine.display_round(6.25) == 6.3
     assert engine.display_round(-9.038461538461544) == -9.0

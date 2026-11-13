@@ -5,8 +5,8 @@ applyInPandas. It never calls retrieval or an LLM. It reads only APPROVED rule v
 (src/clinical_study/rules/registry.yaml), and candidate document assertions never reach it.
 
 Time handling (stated, and simplified vs. the full CDISC study-day conventions):
-  * reference date = date part of the earliest dose record with dose > 0 (EX.EXSTDTC). A partial or missing
-    date means the endpoint cannot be derived (NO_REFERENCE_DATE).
+  * reference date = date part of the earliest administered dose (EX.EXSTDTC; placebo counts). A partial
+    or missing date means the endpoint cannot be derived (NO_REFERENCE_DATE).
   * study day = (date - ref) + 1 if date >= ref else (date - ref). No day 0.
   * windows are inclusive. Dates drive the window logic; the time of day is used only to decide whether a
     day-1 record was taken before the first dose.
@@ -144,9 +144,14 @@ class Result:
         return d
 
 
+def is_dose(e: dict) -> bool:
+    """A dose record that occurred. Placebo is recorded with EXDOSE 0, so 'dosed' must not mean dose > 0."""
+    return (e.get("exoccur") or "Y") != "N" and e.get("exdose") is not None and float(e["exdose"]) >= 0
+
+
 def _first_dose(exposures: list[dict]) -> tuple[Stamp | None, str | None]:
-    """Earliest dose > 0. Returns (stamp, None) or (None, reason)."""
-    doses = [e for e in exposures if (e.get("exdose") or 0) > 0]
+    """Earliest administered dose (study drug or placebo). Returns (stamp, None) or (None, reason)."""
+    doses = [e for e in exposures if is_dose(e)]
     if not doses:
         return None, "NOT_DOSED"
     stamps = [parse_dtc(e.get("exstdtc")) for e in doses]

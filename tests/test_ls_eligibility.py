@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from clinical_study import eligibility as el  # noqa: E402
-from clinical_study.engine import _first_dose  # noqa: E402
+from clinical_study.engine import _first_dose, is_dose  # noqa: E402
 from clinical_study.standardize import load_named, load_registry  # noqa: E402
 
 ORACLE = yaml.safe_load(
@@ -31,7 +31,7 @@ def evaluate(n: dict) -> tuple[el.Assessment, dict]:
     sv = el.screening_vitals(n["observations"], n["height"])
     a = el.assess(n["subject"], sv, n["mh"], n["cm"], REG, ONTO)
     first, _ = _first_dose(n["exposures"])
-    dosed = any((e.get("exdose") or 0) > 0 for e in n["exposures"])
+    dosed = any(is_dose(e) for e in n["exposures"])
     on_tx = el.on_treatment_deviations(first.day if first else None, None, n["cm"], REG, ONTO)
     return a, el.participant_status(n["participant"]["randomized"], dosed, a, on_tx)
 

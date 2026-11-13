@@ -1,0 +1,74 @@
+# Sampling vocabulary for the synthetic EDC generator (SYNTHETIC). Weights are relative, deliberately skewed
+# (common conditions dominate, deep leaves are rarer). Conditions use verified MONDO ids; drugs use RxNorm
+# ingredient labels resolved against kb_concept.csv at load time (unknown label = load error).
+# tests/test_ls_generator.py checks every condition is in (or out of) the class its category implies.
+
+conditions:
+  wrc:             # members of WRC-V1 (qualify BMI 27-30 participants)
+    - {mondo: "MONDO:0001134", verbatim: ["essential hypertension", "HTN", "high blood pressure"], weight: 40}
+    - {mondo: "MONDO:0001151", verbatim: ["benign essential hypertension"], weight: 4}
+    - {mondo: "MONDO:0021187", verbatim: ["hyperlipidaemia", "hyperlipidemia", "high cholesterol"], weight: 25}
+    - {mondo: "MONDO:0005439", verbatim: ["familial hypercholesterolemia", "FH (heterozygous)"], weight: 3}
+    - {mondo: "MONDO:0005347", verbatim: ["hypertriglyceridemia", "raised triglycerides"], weight: 7}
+    - {mondo: "MONDO:0005148", verbatim: ["type 2 diabetes", "T2DM", "NIDDM"], weight: 14}
+    - {mondo: "MONDO:0006920", verbatim: ["prediabetes", "impaired fasting glucose"], weight: 16}
+    - {mondo: "MONDO:0013209", verbatim: ["fatty liver disease", "MASLD"], weight: 8}
+    - {mondo: "MONDO:0005010", verbatim: ["coronary artery disease", "CAD"], weight: 5}
+    - {mondo: "MONDO:0006727", verbatim: ["diastolic heart failure", "HFpEF"], weight: 2}
+    - {mondo: "MONDO:0005252", verbatim: ["heart failure"], weight: 1}
+    - {mondo: "MONDO:0005098", verbatim: ["stroke", "CVA"], weight: 1}
+    - {mondo: "MONDO:0005386", verbatim: ["peripheral arterial disease", "PAD"], weight: 1}
+  osa:             # NOT in WRC-V1; added by WRC-V2 (Amendment 2)
+    - {mondo: "MONDO:0007147", verbatim: ["obstructive sleep apnoea", "OSA", "OSA on CPAP"], weight: 1}
+  non_member_lookalike:   # look weight-related but are NOT class members (carve-outs / MONDO gap)
+    - {mondo: "MONDO:0001302", verbatim: ["hypertensive heart disease"], weight: 3}
+    - {mondo: "MONDO:0024356", verbatim: ["central sleep apnoea"], weight: 1}
+  exclusion:       # under an EXCL-MH-V1 root
+    - {mondo: "MONDO:0015277", verbatim: ["medullary thyroid cancer"], weight: 1}
+    - {mondo: "MONDO:0007958", verbatim: ["familial MTC"], weight: 1}
+    - {mondo: "MONDO:0008234", verbatim: ["MEN 2A", "MEN2A (RET carrier)"], weight: 1}
+    - {mondo: "MONDO:0005003", verbatim: ["chronic pancreatitis"], weight: 3}
+    - {mondo: "MONDO:0006515", verbatim: ["acute pancreatitis 2019", "gallstone pancreatitis"], weight: 4}
+    - {mondo: "MONDO:0005147", verbatim: ["type 1 diabetes", "T1DM"], weight: 4}
+    - {mondo: "MONDO:0005266", verbatim: ["diabetic retinopathy"], weight: 2}
+    - {mondo: "MONDO:0004985", verbatim: ["bipolar disorder"], weight: 3}
+    - {mondo: "MONDO:0005090", verbatim: ["schizophrenia"], weight: 1}
+  ci_only:         # excluded only via MED-RT CI_with on a class member (graph-only)
+    - {mondo: "MONDO:0012819", verbatim: ["DKA admission", "diabetic ketoacidosis"], weight: 1}
+  background:      # realistic medical history in neither class
+    - {mondo: "MONDO:0005178", verbatim: ["osteoarthritis knee", "OA"], weight: 18}
+    - {mondo: "MONDO:0007186", verbatim: ["GERD", "acid reflux"], weight: 16}
+    - {mondo: "MONDO:0002050", verbatim: ["depression"], weight: 12}
+    - {mondo: "MONDO:0004979", verbatim: ["asthma"], weight: 9}
+    - {mondo: "MONDO:0005420", verbatim: ["hypothyroidism"], weight: 8}
+    - {mondo: "MONDO:0008487", verbatim: ["PCOS"], weight: 5}
+    - {mondo: "MONDO:0005393", verbatim: ["gout"], weight: 4}
+    - {mondo: "MONDO:0012672", verbatim: ["gallstones"], weight: 3}
+    - {mondo: "MONDO:0005300", verbatim: ["CKD stage 3a"], weight: 3}
+    - {mondo: "MONDO:0004981", verbatim: ["atrial fibrillation"], weight: 2}
+    - {mondo: "MONDO:0000775", verbatim: ["penicillin allergy", "sulfa allergy"], weight: 6}
+
+drugs:
+  background:      # label: indication-ish condition key it tends to accompany
+    - {ingredient: lisinopril, with: "MONDO:0001134", verbatim: ["lisinopril 10 mg", "Zestril"], weight: 10}
+    - {ingredient: amlodipine, with: "MONDO:0001134", verbatim: ["amlodipine 5 mg"], weight: 8}
+    - {ingredient: losartan, with: "MONDO:0001134", verbatim: ["losartan 50mg"], weight: 6}
+    - {ingredient: hydrochlorothiazide, with: "MONDO:0001134", verbatim: ["HCTZ 25 mg"], weight: 4}
+    - {ingredient: atorvastatin, with: "MONDO:0021187", verbatim: ["atorvastatin 20 mg", "Lipitor"], weight: 10}
+    - {ingredient: rosuvastatin, with: "MONDO:0021187", verbatim: ["rosuvastatin 10 mg"], weight: 5}
+    - {ingredient: metformin, with: "MONDO:0005148", verbatim: ["metformin 1000 mg BID", "Glucophage"], weight: 10}
+    - {ingredient: empagliflozin, with: "MONDO:0005148", verbatim: ["empagliflozin 10 mg", "Jardiance"], weight: 3}
+    - {ingredient: sitagliptin, with: "MONDO:0005148", verbatim: ["sitagliptin 100 mg"], weight: 2}
+    - {ingredient: levothyroxine, with: "MONDO:0005420", verbatim: ["levothyroxine 75 mcg"], weight: 5}
+    - {ingredient: sertraline, with: "MONDO:0002050", verbatim: ["sertraline 50 mg"], weight: 4}
+    - {ingredient: omeprazole, with: "MONDO:0007186", verbatim: ["omeprazole 20 mg"], weight: 6}
+    - {ingredient: albuterol, with: "MONDO:0004979", verbatim: ["albuterol inhaler PRN"], weight: 3}
+    - {ingredient: allopurinol, with: "MONDO:0005393", verbatim: ["allopurinol 100 mg"], weight: 2}
+  prohibited_pre_screening:   # within the 90-day lookback -> screen failure
+    - {ingredient: phentermine, verbatim: ["phentermine 37.5 mg", "Adipex"], weight: 5}
+    - {ingredient: semaglutide, verbatim: ["Wegovy", "compounded semaglutide"], weight: 4}
+    - {ingredient: liraglutide, verbatim: ["Saxenda"], weight: 2}
+  on_treatment_glp1:          # started during treatment -> major deviation (PPS exclusion)
+    - {ingredient: semaglutide, verbatim: ["Ozempic", "compounded semaglutide"], weight: 5}
+    - {ingredient: tirzepatide, verbatim: ["Zepbound", "Mounjaro"], weight: 4}
+    - {ingredient: liraglutide, verbatim: ["Victoza"], weight: 1}

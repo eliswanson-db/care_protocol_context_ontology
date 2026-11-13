@@ -359,9 +359,9 @@ def screening_vitals(weights: list[dict], height: dict | None) -> dict:
 
     pick = (valid("SCREENING") or valid("BASELINE") or [None])[0]
     h_cm = None
-    if height and height.get("vsorresu") == "cm":
+    if height and height.get("vsorresu") in ("cm", "in"):
         try:
-            h_cm = float(height["vsorres"])
+            h_cm = float(height["vsorres"]) * (2.54 if height["vsorresu"] == "in" else 1.0)
         except (TypeError, ValueError):
             h_cm = None
     return {
