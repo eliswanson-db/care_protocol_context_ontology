@@ -1,0 +1,2 @@
+subject,predicate,object,authority,reason
+MONDO:0015277,cpl:curatedEquivalent,MESH:C536914,demo_curation,"MONDO 2026-11-03 has no MeSH xref for medullary thyroid gland carcinoma; MeSH SCR C536914 'Thyroid cancer, medullary' is the same disease (exact-synonym match to NCIT:C3879 'medullary carcinoma of the thyroid'). Needed so MED-RT CI_with M0531375 (semaglutide, dulaglutide) reaches MONDO soundly instead of via the broader neuroendocrine-carcinoma descriptor."

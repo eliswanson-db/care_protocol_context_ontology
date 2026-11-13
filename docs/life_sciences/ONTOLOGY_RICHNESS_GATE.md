@@ -19,14 +19,28 @@ The probes ran locally on pinned releases (see `src/standards/life_sciences/stan
 
 ## Cross-ontology paths verified (the reason to build the graph)
 
-**Path:** participant MH (MONDO leaf) `is_a*` → MONDO ancestor `xref` → MeSH D `concept` → M ← `CI_with` / `may_treat` ← drug → `has_MoA` → class.
+Enforced by `tests/test_ls_kb_paths.py` on the vendored KB (`kb_concept.csv`/`kb_edge.csv`, ~3.9k concepts,
+~6.2k direct edges).
 
-- **MEN2A (MONDO:0008234)** → MeSH D018813 → `CI_with` ← albiglutide, dulaglutide, liraglutide, orforglipron, all with has_MoA GLP-1 receptor agonist. This is a direct cross-ontology contraindication.
-- **Medullary thyroid carcinoma (MONDO:0015277)** has 29 ancestors. The relevant ones are "thyroid gland disorder" (D013959) and "carcinoma" (D002277), both with `CI_with` edges. A leaf-coded MH record is only caught through **variable-depth subsumption**.
-- **Semaglutide.** NLM RxClass gives `CI_with` Thyroid Neoplasms (D013964) and MEN2A/2B. **MED-RT is not uniform across GLP-1 RA class members**: some are contraindicated at MEN2, others at Thyroid Neoplasms. Class-level propagation ("contraindicated for one member → review for the class") is a real graph inference. It also gives a curation-gap finding to show.
-- **T2DM (MONDO:0005148)** → D003924 → `may_treat` ← 82 drugs, including 5 GLP-1 RAs. This is the indication path.
-- **Obstructive sleep apnea** → D020181 (`may_treat`, 3 drugs). Its ancestor "sleep apnea syndrome" (D012891) has `CI_with` 4 drugs, so contraindications differ by level of the hierarchy.
-- **Polyhierarchy:** OSA has 2 parents. Diabetic complications sit under both diabetes and the target-organ disorder. Counting distinct participants in "weight-related comorbidity" therefore needs closure semantics, not a union of flat lists.
+**Sound contraindication walk (broadening only):** participant MH (MONDO) `is_a*` → ancestor → equivalent MeSH record
+→ broader MeSH records (SCR `headingMappedTo` descriptor, `broaderDescriptor`) → MeSH concept ← `CI_with` ← drug →
+`has_MoA` / `memberOf` class. The walk never steps *down* to a narrower record; if it did, a sibling disease would
+inherit contraindications it doesn't have. A test enforces that: small-cell lung carcinoma, another neuroendocrine
+carcinoma, must not reach the MTC contraindication.
+
+- **MEN2A (MONDO:0008234)** → MeSH D018813 → `CI_with` ← dulaglutide, liraglutide, semaglutide, … (GLP-1 RA MoA).
+- **Medullary thyroid carcinoma (MONDO:0015277)**: MONDO has **no MeSH xref** for it, yet the MED-RT
+  contraindication sits on MeSH SCR C536914 "Thyroid cancer, medullary". A single **curated, namespaced**
+  equivalence (`cpl:curatedEquivalent`, `kb_curated_edges.csv`, with its reason) closes the gap. The route then
+  reaches **semaglutide and dulaglutide only**.
+- **MED-RT is not uniform across the GLP-1 RA class.** Tirzepatide and orforglipron carry the MTC contraindication
+  on the *familial* MTC record (C536911) rather than C536914. From the familial-MTC leaf (MONDO:0007958, which has
+  its own xref) the walk reaches five class members; from MTC itself it reaches two. Class-level propagation
+  ("contraindicated for one member → review the class") is a genuine graph inference, and the inconsistency is a
+  curation finding to show.
+- **T2DM (MONDO:0005148)** → D003924 → `may_treat` ← GLP-1 RAs and others. This is the indication path.
+- **Polyhierarchy:** the weight-related comorbidity roots cover 60+ members, 15+ of them with more than one parent.
+  Counting distinct participants therefore needs closure semantics, not a union of flat lists.
 
 ## Graph problems the demo will pose (a test of retrieval *mechanism*, not of missing content)
 
@@ -52,7 +66,7 @@ reported separately and never mixed into the mechanism comparison (prompt §15, 
 ## Known gaps (documented, not hidden)
 
 - **MedDRA is licensed and not used.** Real SDTM MH/AE use MedDRA. This demo codes MH with MONDO plus ICD-10-CM xrefs. That's a labeled deviation.
-- **The MeSH bridge is lossy.** Some MONDO leaves (e.g. MTC) have no MeSH xref and resolve only through an ancestor. The graph shows the hop it used.
+- **The MeSH bridge is lossy.** Some MONDO terms (e.g. MTC) have no MeSH xref. Gaps are closed only with curated `cpl:` edges that carry a reason (`kb_curated_edges.csv`), never by inferring through a broader descriptor. MeSH Supplementary Concept Records (`supp2026`) are part of the bridge.
 - **MED-RT is inconsistent across class members** (see semaglutide above). The demo surfaces this rather than patching it.
 - **MED-RT licensing (resolved 2026-11-13).** MED-RT is a VA work posted publicly by NCI EVS. Its documentation says "some proprietary data requires licensing"; that refers to content distributed through the UMLS, which this demo does not use. **Only the public NCI EVS release is used.** Vendored associations are filtered to RxNorm/MeSH/MED-RT endpoints (no SNOMED CT targets), and the `Authority` qualifier is kept on each edge.
 - **No weight-gain physiologic effect exists in MED-RT** (searched has_PE names). "Drugs associated with weight gain" would be a namespaced demo extension, not MED-RT.

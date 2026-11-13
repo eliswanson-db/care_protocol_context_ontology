@@ -1,0 +1,77 @@
+# Seeds for the vendored knowledge base (KB). ADR-0022 / ADR-0025.
+# scripts/ls_build_kb.py expands these against the pinned releases in standards_manifest.yaml:
+#   - mondo_subtrees: the seed, all of its descendants, and every ancestor up to the root. Pruned: the
+#     "non-human animal" branch and anything below max_descendants (bounded, logged).
+#   - medrt_drugs: RxNorm ingredients named here, plus every member of the medrt_classes below.
+#     Each drug gets all of its public MED-RT edges except Synonym Of and SNOMED CT targets. MED-RT class
+#     ancestors and the MeSH concept -> descriptor (+ tree ancestors) bridge are added automatically.
+# Change this file → rerun the builder → the parity test and the setup job pick it up.
+
+mondo_subtrees:
+  # Weight-related comorbidity class (G1) and its Amendment-2 expansion (G4)
+  - {id: "MONDO:0005044", role: comorbidity, note: hypertensive disorder}
+  - {id: "MONDO:0021187", role: comorbidity, note: hyperlipidemia}
+  - {id: "MONDO:0005347", role: comorbidity, note: hypertriglyceridemia}
+  - {id: "MONDO:0005148", role: comorbidity, note: type 2 diabetes mellitus}
+  - {id: "MONDO:0006920", role: comorbidity, note: prediabetes syndrome}
+  - {id: "MONDO:0005010", role: comorbidity, note: coronary artery disorder}
+  - {id: "MONDO:0005252", role: comorbidity, note: heart failure}
+  - {id: "MONDO:0005098", role: comorbidity, note: stroke disorder}
+  - {id: "MONDO:0005386", role: comorbidity, note: peripheral arterial disease}
+  - {id: "MONDO:0013209", role: comorbidity, note: MASLD}
+  - {id: "MONDO:0005296", role: comorbidity_amendment_2, note: sleep apnea syndrome (added by Amendment 2)}
+  # Exclusion / contraindication (G2)
+  - {id: "MONDO:0015277", role: exclusion, note: medullary thyroid gland carcinoma}
+  - {id: "MONDO:0019003", role: exclusion, note: multiple endocrine neoplasia type 2}
+  - {id: "MONDO:0002120", role: exclusion_context, note: neuroendocrine carcinoma (MeSH bridge for MTC)}
+  - {id: "MONDO:0004982", role: exclusion, note: pancreatitis}
+  - {id: "MONDO:0005147", role: exclusion, note: type 1 diabetes mellitus}
+  - {id: "MONDO:0005266", role: exclusion, note: diabetic retinopathy}
+  - {id: "MONDO:0004985", role: exclusion, note: bipolar disorder}
+  - {id: "MONDO:0005090", role: exclusion, note: schizophrenia}
+  # Indication and background medical history (realistic MH noise; not in any rule class)
+  - {id: "MONDO:0011122", role: indication, note: obesity disorder}
+  - {id: "MONDO:0005300", role: background, note: chronic kidney disease}
+  - {id: "MONDO:0005178", role: background, note: osteoarthritis}
+  - {id: "MONDO:0008487", role: background, note: polycystic ovary syndrome}
+  - {id: "MONDO:0002050", role: background, note: depressive disorder}
+  - {id: "MONDO:0004981", role: background, note: atrial fibrillation}
+  - {id: "MONDO:0005393", role: background, note: gout}
+  - {id: "MONDO:0007186", role: background, note: gastroesophageal reflux disease}
+  - {id: "MONDO:0004979", role: background, note: asthma}
+  - {id: "MONDO:0005420", role: background, note: hypothyroidism}
+  - {id: "MONDO:0012672", role: background, note: cholelithiasis}
+
+mondo_prune_branch_label: "non-human animal disease"
+max_descendants_per_seed: 400
+
+medrt_classes:
+  # Every RxNorm member of these classes is included (prohibited-medication logic, G3)
+  - {name: "GLP-1 Receptor Agonist [EPC]", role: prohibited_class}
+medrt_pe_members:
+  - {name: "Appetite Suppression [PE]", role: prohibited_effect}
+
+medrt_drugs:
+  # Background concomitant medications for this population (realistic CM). RxNorm ingredient names.
+  [metformin, atorvastatin, rosuvastatin, simvastatin, lisinopril, losartan, amlodipine, hydrochlorothiazide,
+   metoprolol, empagliflozin, dapagliflozin, sitagliptin, insulin glargine, glipizide, levothyroxine, sertraline,
+   escitalopram, bupropion, omeprazole, aspirin, allopurinol, albuterol, montelukast, ibuprofen, olanzapine,
+   quetiapine, prednisone, phentermine, topiramate, orlistat, naltrexone]
+
+cdisc_ct_codelists:
+  # codelist code: optional submission-value filter (omit = whole codelist)
+  C66731: null                                   # SEX
+  C66741: [WEIGHT, HEIGHT, BMI, WSTCIR, SYSBP, DIABP, PULSE]   # VSTESTCD
+  C67153: [Weight, Height, Body Mass Index, Waist Circumference, Systolic Blood Pressure, Diastolic Blood Pressure, Pulse Rate]  # VSTEST
+  C66770: null                                   # VSRESU (whole list: DSS value lists reference m, mm, cmHg)
+  C66729: [ORAL, SUBCUTANEOUS]                   # ROUTE
+  C71113: ["1 TIME PER WEEK", QD, BID, PRN]      # FREQ (weekly is "1 TIME PER WEEK" in CT)
+  C99079: null                                   # EPOCH
+  C66742: null                                   # NY
+  C66727: null                                   # NCOMPLT (disposition)
+  C71148: null                                   # POSITION (whole list: DSS VSPOS value lists)
+
+cosmos_dss_skip_suffixes: [_EXT]   # sponsor-extension variants of the standard specializations
+cosmos_bc_ids:
+  # Body Weight and the vital signs the study collects. Parent BCs are added automatically.
+  [C81328, C16358, C164634, C100948, C25298, C25299, C49676]

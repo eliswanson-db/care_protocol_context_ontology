@@ -106,7 +106,7 @@ artifacts:
 
   - artifact_id: mesh
     publisher: U.S. National Library of Medicine
-    artifact_type: vocabulary (bridge: MED-RT concept UI -> descriptor UI -> MONDO xref)
+    artifact_type: "vocabulary (bridge: MED-RT concept UI -> descriptor UI -> MONDO xref)"
     source_location: https://nlmpubs.nlm.nih.gov/projects/mesh/MESH_FILES/xmlmesh/desc2026.gz
     release_version: "2026"
     retrieved_at: "2026-11-12"
@@ -114,6 +114,18 @@ artifacts:
     license_or_terms_reference: https://www.nlm.nih.gov/databases/download/terms_and_conditions_mesh.html
     access_method: anonymous HTTPS
     local_storage_location: src/standards/life_sciences/mesh_bridge_subset.csv
+    transformation_version: "1"
+
+  - artifact_id: mesh_supp
+    publisher: U.S. National Library of Medicine
+    artifact_type: "vocabulary (MeSH Supplementary Concept Records: SCR concept -> heading-mapped descriptor)"
+    source_location: https://nlmpubs.nlm.nih.gov/projects/mesh/MESH_FILES/xmlmesh/supp2026.gz
+    release_version: "2026"
+    retrieved_at: "2026-11-13"
+    checksum: sha256:5d487dbb55807724465065f5c0945c630290a0a6decee14618f5380c574d87ab
+    license_or_terms_reference: https://www.nlm.nih.gov/databases/download/terms_and_conditions_mesh.html
+    access_method: anonymous HTTPS
+    local_storage_location: src/standards/life_sciences/kb_concept.csv (scheme MESH_SCR)
     transformation_version: "1"
 
   - artifact_id: rxnorm
@@ -129,7 +141,8 @@ artifacts:
     transformation_version: "1"
 
 not_used:
-  - {artifact: CDISC Library API (SDTM/SDTMIG metadata, RDF), reason: requires CDISC membership + API key — not available}
-  - {artifact: MedDRA, reason: licensed; MH coded with MONDO + ICD-10-CM xrefs instead (labeled deviation)}
-  - {artifact: SNOMED CT, reason: licensed; MED-RT edges to SNOMED targets are filtered out}
-  - {artifact: WHO ATC, reason: licensing restrictions; MED-RT MoA/EPC classes used instead}
+  - {artifact: "CDISC Library API (SDTM/SDTMIG metadata, RDF)", reason: "requires CDISC membership + API key — not available"}
+  - {artifact: MedDRA, reason: "licensed; MH coded with MONDO + ICD-10-CM xrefs instead (labeled deviation)"}
+  - {artifact: SNOMED CT, reason: "licensed; MED-RT edges to SNOMED targets are filtered out"}
+  - {artifact: WHO ATC, reason: "licensing restrictions; MED-RT MoA/EPC classes used instead"}
+  - {artifact: "CDISC CT RACE / ETHNIC codelists", reason: "not in this SDTM CT file (only the As Collected codelists); DM carries SEX and AGE only"}

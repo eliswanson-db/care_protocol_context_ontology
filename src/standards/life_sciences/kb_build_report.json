@@ -1,0 +1,226 @@
+{
+  "concepts": 3871,
+  "concepts_by_scheme": {
+    "CDISC_CT": 145,
+    "COSMOS_BC": 45,
+    "COSMOS_DSS": 73,
+    "DOID": 504,
+    "ICD10CM": 128,
+    "LOINC": 6,
+    "MEDRT": 391,
+    "MESH": 1044,
+    "MESH_SCR": 64,
+    "MONDO": 815,
+    "NCIT": 581,
+    "RXNORM": 63,
+    "SDTM_VAR": 12
+  },
+  "curated_edges": 1,
+  "dangling_by_scheme": {},
+  "drugs": 63,
+  "dss_bindings": 66,
+  "edges": 6238,
+  "edges_by_predicate": {
+    "cdisc:inCodelist": 135,
+    "cdisc:nciConcept": 135,
+    "cosmos:allowedValue": 30,
+    "cosmos:assignedValue": 22,
+    "cosmos:coding": 6,
+    "cosmos:constrains": 66,
+    "cosmos:hasDataElementConcept": 34,
+    "cosmos:hasVariableBinding": 66,
+    "cosmos:inDomain": 11,
+    "cosmos:ncitCode": 11,
+    "cosmos:parentBC": 6,
+    "cosmos:specializes": 7,
+    "cosmos:usesCodelist": 30,
+    "cpl:curatedEquivalent": 1,
+    "medrt:CI_ChemClass": 20,
+    "medrt:CI_MoA": 23,
+    "medrt:CI_PE": 5,
+    "medrt:CI_with": 273,
+    "medrt:has_MoA": 145,
+    "medrt:has_PE": 202,
+    "medrt:has_PK": 9,
+    "medrt:has_SC": 32,
+    "medrt:has_TC": 71,
+    "medrt:may_diagnose": 1,
+    "medrt:may_prevent": 26,
+    "medrt:may_treat": 190,
+    "medrt:memberOf": 108,
+    "medrt:site_of_metabolism": 3,
+    "mesh:broaderDescriptor": 1103,
+    "mesh:conceptOf": 205,
+    "mesh:headingMappedTo": 94,
+    "oboInOwl:hasDbXref": 455,
+    "rdfs:subClassOf": 1760,
+    "skos:exactMatch": 953
+  },
+  "mesh_unmapped_concepts": [
+    "M0030233 analogs & derivatives",
+    "M0030233 analogs & derivatives",
+    "M0030233 analogs & derivatives",
+    "M0030233 analogs & derivatives",
+    "M0030233 analogs & derivatives",
+    "M0030233 analogs & derivatives",
+    "M0030233 analogs & derivatives"
+  ],
+  "mondo_pruned_branch": {
+    "root": "MONDO:0005583",
+    "terms": 8319
+  },
+  "mondo_seed_sizes": {
+    "MONDO:0002050": {
+      "descendants": 8,
+      "note": "depressive disorder",
+      "role": "background"
+    },
+    "MONDO:0002120": {
+      "descendants": 47,
+      "note": "neuroendocrine carcinoma (MeSH bridge for MTC)",
+      "role": "exclusion_context"
+    },
+    "MONDO:0004979": {
+      "descendants": 18,
+      "note": "asthma",
+      "role": "background"
+    },
+    "MONDO:0004981": {
+      "descendants": 23,
+      "note": "atrial fibrillation",
+      "role": "background"
+    },
+    "MONDO:0004982": {
+      "descendants": 15,
+      "note": "pancreatitis",
+      "role": "exclusion"
+    },
+    "MONDO:0004985": {
+      "descendants": 13,
+      "note": "bipolar disorder",
+      "role": "exclusion"
+    },
+    "MONDO:0005010": {
+      "descendants": 25,
+      "note": "coronary artery disorder",
+      "role": "comorbidity"
+    },
+    "MONDO:0005044": {
+      "descendants": 54,
+      "note": "hypertensive disorder",
+      "role": "comorbidity"
+    },
+    "MONDO:0005090": {
+      "descendants": 18,
+      "note": "schizophrenia",
+      "role": "exclusion"
+    },
+    "MONDO:0005098": {
+      "descendants": 19,
+      "note": "stroke disorder",
+      "role": "comorbidity"
+    },
+    "MONDO:0005147": {
+      "descendants": 1,
+      "note": "type 1 diabetes mellitus",
+      "role": "exclusion"
+    },
+    "MONDO:0005148": {
+      "descendants": 6,
+      "note": "type 2 diabetes mellitus",
+      "role": "comorbidity"
+    },
+    "MONDO:0005178": {
+      "descendants": 5,
+      "note": "osteoarthritis",
+      "role": "background"
+    },
+    "MONDO:0005252": {
+      "descendants": 16,
+      "note": "heart failure",
+      "role": "comorbidity"
+    },
+    "MONDO:0005266": {
+      "descendants": 4,
+      "note": "diabetic retinopathy",
+      "role": "exclusion"
+    },
+    "MONDO:0005296": {
+      "descendants": 7,
+      "note": "sleep apnea syndrome (added by Amendment 2)",
+      "role": "comorbidity_amendment_2"
+    },
+    "MONDO:0005300": {
+      "descendants": 7,
+      "note": "chronic kidney disease",
+      "role": "background"
+    },
+    "MONDO:0005347": {
+      "descendants": 2,
+      "note": "hypertriglyceridemia",
+      "role": "comorbidity"
+    },
+    "MONDO:0005386": {
+      "descendants": 1,
+      "note": "peripheral arterial disease",
+      "role": "comorbidity"
+    },
+    "MONDO:0005393": {
+      "descendants": 0,
+      "note": "gout",
+      "role": "background"
+    },
+    "MONDO:0005420": {
+      "descendants": 41,
+      "note": "hypothyroidism",
+      "role": "background"
+    },
+    "MONDO:0006920": {
+      "descendants": 0,
+      "note": "prediabetes syndrome",
+      "role": "comorbidity"
+    },
+    "MONDO:0007186": {
+      "descendants": 1,
+      "note": "gastroesophageal reflux disease",
+      "role": "background"
+    },
+    "MONDO:0008487": {
+      "descendants": 0,
+      "note": "polycystic ovary syndrome",
+      "role": "background"
+    },
+    "MONDO:0011122": {
+      "descendants": 9,
+      "note": "obesity disorder",
+      "role": "indication"
+    },
+    "MONDO:0012672": {
+      "descendants": 4,
+      "note": "cholelithiasis",
+      "role": "background"
+    },
+    "MONDO:0013209": {
+      "descendants": 2,
+      "note": "MASLD",
+      "role": "comorbidity"
+    },
+    "MONDO:0015277": {
+      "descendants": 1,
+      "note": "medullary thyroid gland carcinoma",
+      "role": "exclusion"
+    },
+    "MONDO:0019003": {
+      "descendants": 3,
+      "note": "multiple endocrine neoplasia type 2",
+      "role": "exclusion"
+    },
+    "MONDO:0021187": {
+      "descendants": 19,
+      "note": "hyperlipidemia",
+      "role": "comorbidity"
+    }
+  },
+  "truncated": [],
+  "unresolved": []
+}
