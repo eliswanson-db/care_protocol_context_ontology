@@ -15,7 +15,7 @@ from datetime import date, timedelta
 from functools import lru_cache
 from pathlib import Path
 
-from clinical_study.engine import parse_dtc
+from clinical_study.engine import parse_dtc, to_kg
 
 STD = Path(__file__).resolve().parents[1] / "standards" / "life_sciences"
 EQUIV = ("skos:exactMatch", "oboInOwl:hasDbXref", "cpl:curatedEquivalent")
@@ -344,7 +344,6 @@ def on_treatment_deviations(
 def screening_vitals(weights: list[dict], height: dict | None) -> dict:
     """Weight for the BMI criterion: the valid SCREENING-visit weight, else the earliest valid BASELINE weight
     (registry INC-BMI.bmi_source). Height: the screening height record (cm)."""
-    from clinical_study.engine import to_kg
 
     def valid(visit: str):
         rows = []
