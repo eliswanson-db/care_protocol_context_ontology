@@ -152,6 +152,46 @@ def _routing(demo_id: str) -> dict:
     return _r("ready", f"A6 supervisor: {len(cases)}/{len(cases)} routing, abstention and scope cases pass")
 
 
+_PAGE_FOOTER = re.compile(r"content `([0-9a-f]{12})`\*\s*$")
+
+
+def _pages(demo_id: str, c: dict) -> dict:
+    """Managed Pages: read the sync state table, GET every Page live, compare its footer hash and state."""
+    try:
+        rows = run_sql(
+            f"SELECT source, page_name, display_name, content_hash, state FROM {CATALOG}.{c['state_table']} "
+            f"WHERE demo_id = '{demo_id}' ORDER BY source"
+        )
+    except Exception as e:  # noqa: BLE001
+        return _r("not_configured", f"no sync state ({str(e)[:100]}); run scripts/sync_pages.py")
+    w = get_workspace_client()
+
+    def live(r: dict) -> str:
+        if r["state"] != "PUBLISHED" or not r["page_name"]:
+            return f"{r['display_name']}: {r['state']}"
+        try:
+            p = w.api_client.do("GET", f"/api/2.0/knowledge/{r['page_name']}")
+        except Exception as e:  # noqa: BLE001
+            return f"{r['display_name']}: GET failed ({str(e)[:60]})"
+        m = _PAGE_FOOTER.search(p.get("body") or "")
+        if p.get("state") != "PUBLISHED":
+            return f"{r['display_name']}: {p.get('state')}"
+        if not m or m.group(1) != r["content_hash"]:
+            return f"{r['display_name']}: content drifted from the repo"
+        return ""
+
+    with ThreadPoolExecutor(max_workers=8) as ex:
+        problems = [x for x in ex.map(live, rows) if x]
+    ok = len(rows) - len(problems)
+    if len(rows) < c["count"]:
+        problems.append(f"{c['count'] - len(rows)} source(s) never synced")
+    if problems:
+        return _r(
+            "failed", f"{ok}/{c['count']} managed Pages published and current; " + "; ".join(problems)[:400]
+        )
+    return _r("ready", f"{ok}/{c['count']} managed Pages published and match the repo (verified live)")
+
+
 def _sql_zero(c: dict) -> dict:
     n = int(run_sql(c["sql"].replace("{catalog}", CATALOG))[0]["n"])
     return _r("ready" if n == 0 else "failed", f"{n} error-severity violation(s)")
@@ -188,6 +228,8 @@ def _check(demo_id: str, c: dict) -> dict:
     if kind == "lakebase_ls":
         n = int(run_sql(f"SELECT count(*) AS n FROM {CATALOG}.{c['corpus_table']}")[0]["n"])
         return _r("planned", f"{c['planned']} ({n:,} corpus entries ready)")
+    if kind == "pages_api":
+        return _pages(demo_id, c)
     if kind == "manual":
         if c.get("confirmed_on"):
             return _r("ready", f"confirmed manually on {c['confirmed_on']} (not machine-verifiable)")

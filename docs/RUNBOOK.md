@@ -310,8 +310,9 @@ graph views (`clinical_study_graph`) + semantic validation (`clinical_study.dq_s
    - set source scope to `eli_test_classic_catalog.clinical_study_graph` only;
    - publish, then send Claude the triplestore table name for verification.
    ⏳ Publishing builds the triplestore; check that it completed before verifying.
-2. ⚙ **Pages.** Genie Code bulk import with `docs/life_sciences/PAGES_IMPORT_PROMPT.md` (15 Pages → `Clinical
-   Domain`). ⏳ Genie extracts new snippets on a roughly **daily** cadence; Genie One evaluation waits for it.
+2. 🤖 **Pages (ADR-0026).** Published by the Pages API: `databricks bundle run sync_pages -t ect --profile ECT`
+   (also a task in `ls_context`). ⏳ Genie extracts new snippets on a roughly **daily** cadence; Genie One evaluation
+   waits for it. ⚙ Decide what to do with the unmanaged Pages flagged in `docs/ontology/PAGES_FLAGGED.md`.
 3. ⚙ **Domain (blocked, no action now).** The account is at its 1,000-domain cap, so `Clinical Study Lab` can't be
    created. Its governed tags exist. If a slot frees up: `python scripts/create_domains.py --profile ECT --tree
    life_sciences`.
@@ -331,3 +332,14 @@ Plus `CAN_RUN` on the 4 HEDIS and 3 Clinical Study Genie spaces, and `CAN_VIEW` 
 `ls_bootstrap_ect`, `ls_context_ect` (the readiness drawer reads their last run). Not yet granted: the SP's
 Lakebase Postgres role (pending the Lakebase decision), so the HEDIS RAG card can't read Lakebase on the ECT app.
 Verify with the app's Readiness drawer: it evaluates every component as the SP.
+
+## Pages via the Pages API (ADR-0026) — supersedes the Genie Code steps above
+- 🤖 `databricks bundle run sync_pages -t ect --profile ECT` publishes both demos' Page sources (idempotent).
+  Locally: `.venv/bin/python -I scripts/sync_pages.py --profile ECT --demo <healthcare_hedis|life_sciences_clinical> [--dry-run]`.
+- The sync only touches Pages it created. ⚙ Every other Page in the domain is listed in `docs/ontology/PAGES_FLAGGED.md`
+  with a recommendation, and snapshotted in `docs/ontology/pages_unmanaged_snapshot/`. Deleting or unpublishing them
+  is a human decision.
+- ⚙ Two HEDIS managed Pages ("Diabetes Cohort", "Measurement Year") stay unpublished until the older published Pages
+  with the same titles are removed or unpublished (titles are unique among published Pages in a domain). Then re-run
+  the sync.
+- Genie Code bulk import (`PAGES_IMPORT_PROMPT.md`) is a fallback only.

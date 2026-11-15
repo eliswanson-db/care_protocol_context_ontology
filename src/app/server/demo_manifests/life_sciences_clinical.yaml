@@ -24,8 +24,7 @@ components:
   - {id: metric_views, label: Metric views, check: tables, certified_expected: false,
      tables: [clinical_study_semantic.endpoint_result_metrics, clinical_study_semantic.endpoint_candidate_metrics,
               clinical_study_semantic.amendment_impact_metrics, clinical_study_semantic.participant_population_metrics]}
-  - {id: pages, label: Pages, check: manual, count: 15,
-     note: "No API exposes Pages. Eli: Genie Code bulk import with docs/life_sciences/PAGES_IMPORT_PROMPT.md, then record confirmed_on here."}
+  - {id: pages, label: Pages (managed via Pages API), check: pages_api, count: 15, state_table: clinical_study.pages_sync_state}
   - {id: agents, label: Genie agents, check: genie_spaces,
      titles: ["Clinical Study Lab — Study Analytics", "Clinical Study Lab — Protocol Evidence",
               "Clinical Study Lab — Standards & Semantics"]}

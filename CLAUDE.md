@@ -138,8 +138,10 @@ and `vite build` does not type-check.
 
 ## Content-as-code for the context layer
 
-- Ontology Pages: `docs/ontology/pages/*.md`. `stage_pages` copies them to a UC volume, and then they are
-  bulk-imported **manually** per workspace with `docs/ontology/PAGES_IMPORT_PROMPT.md`, because no API exists.
+- Pages: `docs/ontology/pages/*.md` (HEDIS) and `docs/life_sciences/pages/*.md` are published through the Pages
+  API by `scripts/sync_pages.py` (job `sync_pages`; ADR-0026). It only ever updates Pages it created (footer +
+  content hash). Never edit or delete other Pages automatically: they are flagged in `docs/ontology/PAGES_FLAGGED.md`.
+  Page titles must be unique among published Pages in a domain, and both demos share `Clinical Domain`.
 - Metric views: `src/semantic/metric_views/*.metric_view.sql`. Comments: `src/semantic/comments/*.sql`.
   Domains: `scripts/create_domains.py`, which is scripted and outside the DAB. ECT hit the tag-policy cap and
   reuses the `Clinical Domain` tag.

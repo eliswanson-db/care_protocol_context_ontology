@@ -266,6 +266,12 @@ targets:
                              "--domain_tag", "Clinical Domain",
                              "--src_dir", "${workspace.file_path}/src/semantic/ls/metric_views"]
               environment_key: ls
+            - task_key: sync_pages
+              depends_on: [{task_key: ls_metric_views}]
+              spark_python_task:
+                python_file: scripts/sync_pages.py
+                parameters: ["--demo", "life_sciences_clinical", "--catalog", "${var.catalog}", "--repo_dir", "${workspace.file_path}"]
+              environment_key: ls
             - task_key: graph_and_validation
               depends_on: [{task_key: verify_gold}, {task_key: load_documents}]
               spark_python_task:
@@ -332,6 +338,12 @@ targets:
                              "--domain_tag", "Clinical Domain",
                              "--src_dir", "${workspace.file_path}/src/semantic/ls/metric_views"]
               environment_key: ls
+            - task_key: sync_pages
+              depends_on: [{task_key: ls_metric_views}]
+              spark_python_task:
+                python_file: scripts/sync_pages.py
+                parameters: ["--demo", "life_sciences_clinical", "--catalog", "${var.catalog}", "--repo_dir", "${workspace.file_path}"]
+              environment_key: ls
             - task_key: graph_and_validation
               depends_on: [{task_key: verify_gold}, {task_key: load_documents}]
               spark_python_task:
@@ -347,6 +359,30 @@ targets:
                 dependencies:
                   - pyyaml
                   - xhtml2pdf
+
+        sync_pages:
+          name: sync_pages_${bundle.target}
+          description: >-
+            Content-as-code Pages: publish docs/ontology/pages (HEDIS) and docs/life_sciences/pages (Clinical Study)
+            through the Pages API. Only Pages the sync created (footer + hash) are ever updated; every other Page in
+            the domain is reported, never edited or deleted (docs/ontology/PAGES_FLAGGED.md).
+          tasks:
+            - task_key: hedis
+              spark_python_task:
+                python_file: scripts/sync_pages.py
+                parameters: ["--demo", "healthcare_hedis", "--catalog", "${var.catalog}", "--repo_dir", "${workspace.file_path}"]
+              environment_key: ls
+            - task_key: life_sciences
+              spark_python_task:
+                python_file: scripts/sync_pages.py
+                parameters: ["--demo", "life_sciences_clinical", "--catalog", "${var.catalog}", "--repo_dir", "${workspace.file_path}"]
+              environment_key: ls
+          environments:
+            - environment_key: ls
+              spec:
+                client: "3"
+                dependencies:
+                  - pyyaml
 
         ls_refresh:
           name: ls_refresh_${bundle.target}

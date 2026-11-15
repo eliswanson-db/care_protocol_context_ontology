@@ -5,6 +5,29 @@ statement in the source plans under `docs/sources/`.
 
 ---
 
+## ADR-0026 — Pages are deployed through the Pages API (content-as-code), not Genie Code bulk import
+**Date:** 2026-11-15 · **Status:** accepted · **Supersedes:** ADR-0008's "Pages have no API: manual bulk import"
+The Pages REST API is available (`/api/2.0/knowledge/pages`, create/get/list/patch/delete, state DRAFT|PUBLISHED;
+no `related_assets`/`sources` fields; `domain` immutable). **Decision:** `scripts/sync_pages.py` publishes the repo
+markdown (`docs/ontology/pages`, `docs/life_sciences/pages`) as part of deployment (job `sync_pages`, and a task in
+`ls_context`/`ls_bootstrap`).
+- **Ownership:** a Page is managed only if its body ends with the footer the sync writes (source file + content
+  hash). The sync never edits or deletes any other Page. Unmanaged Pages in the domain are reported in
+  `docs/ontology/PAGES_FLAGGED.md`, with a read-only snapshot in `docs/ontology/pages_unmanaged_snapshot/`.
+- **Idempotent:** a Page is created, updated or published only when its hash or state differs.
+- **Readiness** GETs each managed Page live (`pages_sync_state` tables) and compares hash and state.
+- **Finding:** titles must be unique among PUBLISHED Pages in a domain (drafts don't block), so an older published
+  Page with the same title blocks the managed one. That is a human decision, never automated.
+- Related assets go into the Page body as text, because the API has no field for them. Linking them as assets is
+  still a UI step.
+- Genie Code bulk import remains a documented fallback only.
+
+**State 2026-11-15 (ECT, Clinical Domain):** 15 life-sciences and 14 HEDIS Pages managed and published. "Diabetes
+Cohort" and "Measurement Year" are blocked by older published Pages. 29 unmanaged Pages from the 10-30 and 11-01
+Genie Code imports are flagged and untouched, pending Eli's decision.
+
+---
+
 ## ADR-0025 — Knowledge parity: every retrieval approach gets the same facts, so the benchmark measures mechanism
 **Date:** 2026-11-13 · **Status:** accepted · **Applies to:** life sciences now; HEDIS gaps to be audited
 The benchmark tests *how* each approach retrieves, not whether we fed it different content. **Decision:** one

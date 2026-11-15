@@ -1,4 +1,7 @@
-# Genie Code: Clinical Study Lab Pages bulk-import prompt
+# Genie Code: Clinical Study Lab Pages bulk-import prompt (FALLBACK ONLY)
+
+> **Superseded by ADR-0026.** Pages are published by `scripts/sync_pages.py` through the Pages API. Use this
+> prompt only if the API is unavailable, and never alongside the sync (it would create unmanaged duplicates).
 
 Pages have no API, CLI or bundle resource, so this import is manual (same as HEDIS, ADR-0008). The sources are
 `docs/life_sciences/pages/*.md`. The `ls_context` job stages them to the volume below.
