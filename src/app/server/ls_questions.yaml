@@ -1,0 +1,18 @@
+# Clinical Study lab: Retrieval Arena question set (prompt §15). One question per category. Each lens says which
+# fixed query it runs (or why it has none); the Phase 7 benchmark adds the hand-verified gold and scoring.
+questions:
+  - {qid: ls_q1, category: structured_numerical, question: "What is the Week 24 endpoint summary for Study A under rule version 1?",
+     metric_view: "SELECT `Arm`, MEASURE(`Participants In FAS`) AS fas, MEASURE(`Participants With Derived Endpoint`) AS derived, ROUND(MEASURE(`Mean Percent Change`), 2) AS mean_pct_change FROM {catalog}.clinical_study_semantic.endpoint_result_metrics WHERE `Rule Version` = 'EP-A-WT24.R1' GROUP BY ALL ORDER BY `Arm`"}
+  - {qid: ls_q2, category: participant_level, question: "Which participants have no valid baseline in Study B?",
+     metric_view: "SELECT `Exclusion Reason`, MEASURE(`Participants Evaluated`) AS n FROM {catalog}.clinical_study_semantic.endpoint_result_metrics WHERE `Rule Version` = 'EP-B-WT24.R1' AND `Result Status` = 'NO_VALID_BASELINE' GROUP BY ALL ORDER BY n DESC"}
+  - {qid: ls_q3, category: participant_level, question: "Why was CSL-A-FX-05's Week 24 observation excluded under R1?"}
+  - {qid: ls_q4, category: amendment_impact, question: "What changed after amendment 1?",
+     metric_view: "SELECT MEASURE(`Participants Compared`) AS compared, MEASURE(`Participants Became Derivable`) AS became_derivable, MEASURE(`Participants With Changed Selected Observation`) AS changed_selection FROM {catalog}.clinical_study_semantic.amendment_impact_metrics"}
+  - {qid: ls_q5, category: standards_mapping, question: "Where is this measurement represented in the standardized dataset?"}
+  - {qid: ls_q6, category: cross_study_comparison, question: "Do Studies A and B use equivalent baseline definitions?"}
+  - {qid: ls_q7, category: unapproved_rule_conflict, question: "The latest document mentions a wider window. Has that rule been approved?"}
+  - {qid: ls_q8, category: ontology_multi_hop, question: "Is MONDO:0012819 (diabetic ketoacidosis) contraindicated for the GLP-1 class?",
+     closure: "SELECT DISTINCT dk.label AS drug FROM {catalog}.clinical_study_standards.mondo_closure a JOIN {catalog}.clinical_study_standards.kb_edge e ON e.subject = a.ancestor_code AND e.predicate IN ('skos:exactMatch','oboInOwl:hasDbXref','cpl:curatedEquivalent') JOIN {catalog}.clinical_study_standards.kb_edge mc ON mc.object = e.object AND mc.predicate = 'mesh:conceptOf' JOIN {catalog}.clinical_study_standards.kb_edge ci ON ci.object = mc.subject AND ci.predicate = 'medrt:CI_with' JOIN {catalog}.clinical_study_standards.kb_edge m ON m.subject = ci.subject AND m.predicate = 'medrt:memberOf' AND m.object = 'MEDRT:N0000178480' JOIN {catalog}.clinical_study_standards.kb_concept dk ON dk.concept_id = ci.subject WHERE a.descendant_code = 'MONDO:0012819'"}
+  - {qid: ls_q9, category: ambiguous_version, question: "What is the mean percent change at Week 24?"}
+  - {qid: ls_q10, category: missing_information_superiority, question: "Can this synthetic result establish treatment superiority?"}
+  - {qid: ls_q11, category: cross_demo_contamination, question: "What is the HEDIS GSD compliance rate?"}

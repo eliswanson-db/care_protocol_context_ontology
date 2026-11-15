@@ -1,0 +1,26 @@
+# Declarative resource manifest: Healthcare HEDIS lab (prompt §10). The readiness checker (server/readiness.py)
+# evaluates every component LIVE; this file only says what should exist. States: not_configured, planned,
+# provisioning, pending_sync, ready, failed, manual_action_required, unsupported.
+demo_id: healthcare_hedis
+display_name: Healthcare — HEDIS Diabetes
+short_name: HEDIS
+disclaimer: "Synthetic Synthea data. HEDIS-aligned demo, not NCQA-certified. Not for clinical use."
+components:
+  - {id: data, label: Data (bronze/silver/gold), check: tables, min_rows: 1,
+     tables: [care_protocol.gold_adherence_gsd, care_protocol.gold_adherence_ked, care_protocol.gold_protocol_adherence,
+              care_protocol_terminology.icd10_closure]}
+  - {id: jobs, label: Jobs, check: jobs, jobs: [setup_ect, semantic_ect]}
+  - {id: standards, label: Terminology, check: tables, tables: [care_protocol_terminology.value_set_segment, care_protocol_terminology.rxnorm_hier]}
+  - {id: ontology, label: Ontology (Ontobricks), check: ontobricks, table_prefix: triplestore_clinicaldomain_v}
+  - {id: documents, label: Documents, check: volume_files, path: care_protocol/documents, min_files: 1}
+  - {id: search, label: Search index (Lakebase RAG), check: lakebase}
+  - {id: metric_views, label: Metric views, check: tables, certified_expected: true,
+     tables: [care_protocol_semantic.gsd_compliance_metrics, care_protocol_semantic.ked_compliance_metrics,
+              care_protocol_semantic.protocol_adherence_metrics]}
+  - {id: pages, label: Pages, check: manual, count: 16,
+     note: "No API exposes Pages; confirm in the UI after a Genie Code bulk import and record the date here (confirmed_on)."}
+  - {id: agents, label: Genie agents, check: genie_spaces,
+     titles: ["Care Protocol — HEDIS Diabetes Quality", "Care Protocol — Protocol Process & Medication Adherence",
+              "Care Protocol — Cohort & Terminology", "Care Protocol — LOINC Lab Measures"]}
+  - {id: front_door, label: Front-door routing (A6), check: routing}
+  - {id: evaluation, label: Evaluation fixtures, check: file, path: benchmark_data/capability_matrix.csv}

@@ -7,25 +7,39 @@ reuse the repo's Python retrieval/benchmark modules.
 """
 import os
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from server.routes import arena, benchmark, drift, genie, health, ontobricks, ontology, rag, retrieval, stage_detail, tracer
+from server.demos import require_demo
+from server.routes import (
+    arena,
+    benchmark,
+    demos,
+    drift,
+    genie,
+    health,
+    ls,
+    ontobricks,
+    ontology,
+    rag,
+    retrieval,
+    stage_detail,
+    tracer,
+)
 
 app = FastAPI(title="Care Protocol Context")
 
+# Demo-agnostic: health, the demo list, per-demo meta, readiness.
 app.include_router(health.router, prefix="/api")
-app.include_router(tracer.router, prefix="/api")
-app.include_router(stage_detail.router, prefix="/api")
-app.include_router(genie.router, prefix="/api")
-app.include_router(rag.router, prefix="/api")
-app.include_router(retrieval.router, prefix="/api")
-app.include_router(ontobricks.router, prefix="/api")
-app.include_router(benchmark.router, prefix="/api")
-app.include_router(arena.router, prefix="/api")
-app.include_router(drift.router, prefix="/api")
-app.include_router(ontology.router, prefix="/api")
+app.include_router(demos.router, prefix="/api")
+
+# Backend isolation (ADR-0023): every router belongs to exactly one demo; a request whose active demo
+# (X-Demo-Id header / ?demo=) doesn't match gets 409, so a tab can't read the other demo's data by accident.
+HEDIS = [Depends(require_demo("healthcare_hedis"))]
+for r in (tracer, stage_detail, genie, rag, retrieval, ontobricks, benchmark, arena, drift, ontology):
+    app.include_router(r.router, prefix="/api", dependencies=HEDIS)
+app.include_router(ls.router, prefix="/api", dependencies=[Depends(require_demo("life_sciences_clinical"))])
 
 _frontend = os.path.join(os.path.dirname(__file__), "frontend", "dist")
 if os.path.isdir(_frontend):

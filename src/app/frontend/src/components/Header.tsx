@@ -1,7 +1,9 @@
-import { Activity, FlaskConical, Moon, Settings, Sun } from "lucide-react";
+import { Activity, FlaskConical, Gauge, Moon, Settings, Sun } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { Meta } from "../api";
+import { DEMOS, useDemo } from "../demo";
 import { useSettings } from "../settings";
+import { ReadinessDrawer } from "./ReadinessDrawer";
 
 function SettingsMenu() {
   const { simple, setSimple } = useSettings();
@@ -42,7 +44,24 @@ function SettingsMenu() {
   );
 }
 
+function DemoSwitcher() {
+  const { demo, setDemo } = useDemo();
+  return (
+    <div role="radiogroup" aria-label="Demo" className="flex rounded-lg border border-border bg-surface-2 p-0.5">
+      {DEMOS.map((d) => (
+        <button key={d.id} role="radio" aria-checked={d.id === demo} onClick={() => d.id !== demo && setDemo(d.id)} title={d.label}
+          className={`rounded-md px-3 py-1.5 text-[13px] font-semibold transition ${d.id === demo ? "bg-primary text-white shadow-sm" : "text-muted hover:text-fg"}`}>
+          {d.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function Header({ meta }: { meta: Meta | null }) {
+  const { demo } = useDemo();
+  const [readiness, setReadiness] = useState(false);
+  const ls = demo === "life_sciences_clinical";
   const { simple } = useSettings();
   const [dark, setDark] = useState(
     () => window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false
@@ -52,30 +71,38 @@ export function Header({ meta }: { meta: Meta | null }) {
   }, [dark]);
 
   return (
-    <header className="flex items-center justify-between border-b border-border bg-surface px-5 py-3">
+    <header className="flex items-center justify-between gap-4 border-b border-border bg-surface px-5 py-3">
       <div className="flex items-center gap-2.5">
         <Activity className="h-6 w-6 text-primary" />
         <div>
-          <div className="text-base font-bold leading-tight">Care Protocol Context</div>
-          <div className="text-[12px] text-muted">The semantic throughline — one record through every layer</div>
+          <div className="text-base font-bold leading-tight">Context &amp; Evidence Lab</div>
+          <div className="text-[12px] text-muted">
+            {ls ? "From a raw study observation to a reproducible endpoint result" : "The semantic throughline — one record through every layer"}
+          </div>
         </div>
       </div>
+      <DemoSwitcher />
       <div className="flex items-center gap-2 text-xs">
         {meta && (
           <>
-            <span className="rounded-md border border-border bg-surface-2 px-2 py-1 font-medium uppercase tracking-wide">
-              arm: {meta.arm}
-            </span>
-            <span className="rounded-md border border-border bg-surface-2 px-2 py-1">MY {meta.measurement_year}</span>
+            {!ls && (
+              <>
+                <span className="rounded-md border border-border bg-surface-2 px-2 py-1 font-medium uppercase tracking-wide">arm: {meta.arm}</span>
+                <span className="rounded-md border border-border bg-surface-2 px-2 py-1">MY {meta.measurement_year}</span>
+              </>
+            )}
             <span className="flex items-center gap-1 rounded-md border border-warning/40 px-2 py-1 text-warning">
               <FlaskConical className="h-3.5 w-3.5" /> synthetic
             </span>
           </>
         )}
-        {simple && (
+        {simple && !ls && (
           <span className="rounded-md bg-primary/15 px-2 py-1 font-semibold text-primary">simple mode</span>
         )}
-        <SettingsMenu />
+        <button onClick={() => setReadiness(true)} className="rounded-md border border-border p-1.5 text-muted hover:text-fg" aria-label="Deployment readiness" title="Deployment readiness">
+          <Gauge className="h-4 w-4" />
+        </button>
+        {!ls && <SettingsMenu />}
         <button
           onClick={() => setDark((d) => !d)}
           className="rounded-md border border-border p-1.5 text-muted hover:text-fg"
@@ -84,6 +111,7 @@ export function Header({ meta }: { meta: Meta | null }) {
           {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </button>
       </div>
+      {readiness && <ReadinessDrawer onClose={() => setReadiness(false)} />}
     </header>
   );
 }

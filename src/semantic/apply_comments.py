@@ -15,6 +15,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--catalog", required=True)
     ap.add_argument("--src_dir", required=True, help="Dir holding *.comments.sql (workspace file path).")
+    ap.add_argument("--strict", action="store_true",
+                    help="Fail on the first failing statement instead of skipping it (life-sciences lab).")
     args = ap.parse_args()
 
     files = sorted(glob.glob(os.path.join(args.src_dir, "*.comments.sql")))
@@ -41,6 +43,8 @@ def main():
                 spark.sql(stmt)  # noqa: F821 (spark provided by the serverless runtime)
                 total += 1
             except Exception as e:  # noqa: BLE001
+                if args.strict:
+                    raise SystemExit(f"comment failed: {stmt[:200]}\n{e}") from e
                 print(f"  SKIP ({type(e).__name__}): {stmt[:100]}")
 
     print(f"Applied {total} comment statement(s) across {len(files)} file(s).")

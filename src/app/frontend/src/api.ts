@@ -1,7 +1,11 @@
+import { getActiveDemo } from "./demo";
+
 export interface Meta {
+  demo_id: string;
+  display_name: string;
   arm: string;
   catalog: string;
-  measurement_year: number;
+  measurement_year?: number;
   context_release: string;
   synthetic: boolean;
   disclaimer: string;
@@ -131,10 +135,24 @@ export interface GenieResult {
   latency_s: number;
 }
 
-async function get<T>(url: string): Promise<T> {
-  const r = await fetch(url);
-  if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
-  return r.json() as Promise<T>;
+// Every request carries the active demo; the backend refuses a cross-demo call (409), and a payload stamped with
+// a different demo_id is refused here too, so a slow response can't paint the other demo's data.
+export async function get<T>(url: string): Promise<T> {
+  const demo = getActiveDemo();
+  const r = await fetch(url, { headers: { "X-Demo-Id": demo } });
+  if (!r.ok) {
+    let detail = "";
+    try {
+      detail = (await r.json()).detail ?? "";
+    } catch {
+      /* not JSON */
+    }
+    throw new Error(`${r.status} ${r.statusText}${detail ? ": " + detail : ""}`);
+  }
+  const body = await r.json();
+  if (body && typeof body === "object" && "demo_id" in body && body.demo_id !== demo)
+    throw new Error(`refused a ${body.demo_id} payload while ${demo} is active`);
+  return body as T;
 }
 
 export interface RagPassage {

@@ -1,0 +1,131 @@
+{
+ "version": 2,
+ "config": {
+  "sample_questions": [
+   {
+    "id": "00000000000000000000000000000001",
+    "question": [
+     "Has the wider \u00b121-day window been approved?"
+    ]
+   },
+   {
+    "id": "00000000000000000000000000000002",
+    "question": [
+     "What does the CSL-A SAP say about the Week 24 analysis window, by version?"
+    ]
+   },
+   {
+    "id": "00000000000000000000000000000003",
+    "question": [
+     "What changed in each CSL-A protocol version?"
+    ]
+   },
+   {
+    "id": "00000000000000000000000000000004",
+    "question": [
+     "Which document section supports each executable endpoint rule?"
+    ]
+   },
+   {
+    "id": "00000000000000000000000000000005",
+    "question": [
+     "What are the CSL-A eligibility criteria under protocol 3.0?"
+    ]
+   }
+  ]
+ },
+ "data_sources": {
+  "tables": [
+   {
+    "identifier": "eli_test_classic_catalog.clinical_study.doc_document"
+   },
+   {
+    "identifier": "eli_test_classic_catalog.clinical_study.doc_section"
+   },
+   {
+    "identifier": "eli_test_classic_catalog.clinical_study.rule_assertion"
+   },
+   {
+    "identifier": "eli_test_classic_catalog.clinical_study_standards.analysis_population"
+   },
+   {
+    "identifier": "eli_test_classic_catalog.clinical_study_standards.eligibility_criterion"
+   },
+   {
+    "identifier": "eli_test_classic_catalog.clinical_study_standards.rule_document_support"
+   },
+   {
+    "identifier": "eli_test_classic_catalog.clinical_study_standards.rule_version"
+   },
+   {
+    "identifier": "eli_test_classic_catalog.clinical_study_standards.study"
+   },
+   {
+    "identifier": "eli_test_classic_catalog.clinical_study_standards.study_version"
+   }
+  ]
+ },
+ "instructions": {
+  "text_instructions": [
+   {
+    "id": "c0000000000000000000000000000001",
+    "content": [
+     "SYNTHETIC educational demo (Clinical Study Context & Evidence Lab). CSL-101 is a fictional GLP-1 receptor agonist; studies CSL-A and CSL-B are not real. Data are SDTM-/ADaM-shaped, not submission-ready. Results are descriptive: never state or imply efficacy, superiority or a causal effect.",
+     "This space covers ONLY the Clinical Study lab. It has no HEDIS, health-plan, NCQA or care-gap data; if asked about those, say they are out of scope for this space.",
+     "Answer from the protocols, amendments and SAPs (doc_document, doc_section) and cite the document id, version and section number for every rule you state (e.g. CSL-A-SAP-v2.0 \u00a79.4.1).",
+     "Executable rules live in rule_version (endpoint rules) and eligibility_criterion; only review_state = 'approved' rules are executed. rule_assertion lists rule statements extracted from documents with review_state approved / superseded / rejected / candidate. A candidate (e.g. the DRAFT Amendment 3 memo proposing \u00b121 days) is NOT approved and changes no result. Say so explicitly when asked about it.",
+     "Protocol scheduling windows (visit booking) are not endpoint analysis windows; those assertions are rejected as rules.",
+     "Amendments: protocol 2.0 (Amendment 1, effective 2025-09-01) widened the Week 24 analysis window to \u00b114 days; protocol 3.0 (Amendment 2, 2025-11-01) added obstructive sleep apnea to the weight-related comorbidity class for screening on/after that date.",
+     "All approvals are seeded demo fixtures (approved_by = demo-fixture), not real human review."
+    ]
+   }
+  ],
+  "example_question_sqls": [
+   {
+    "id": "00000000000000000000000000000001",
+    "question": [
+     "Has the wider \u00b121-day window been approved?"
+    ],
+    "sql": [
+     "SELECT a.document_id, d.status, a.section_number, a.value AS window_days, a.review_state, a.evidence_text FROM eli_test_classic_catalog.clinical_study.rule_assertion a JOIN eli_test_classic_catalog.clinical_study.doc_document d USING (document_id) WHERE a.assertion_type = 'FOLLOWUP_WINDOW_HALF_WIDTH' ORDER BY a.value, a.document_id"
+    ]
+   },
+   {
+    "id": "00000000000000000000000000000002",
+    "question": [
+     "What does the CSL-A SAP say about the Week 24 analysis window, by version?"
+    ],
+    "sql": [
+     "SELECT document_id, section_number, heading, text FROM eli_test_classic_catalog.clinical_study.doc_section WHERE document_id IN ('CSL-A-SAP-v1.0', 'CSL-A-SAP-v2.0') AND section_number = '9.4.1'"
+    ]
+   },
+   {
+    "id": "00000000000000000000000000000003",
+    "question": [
+     "What changed in each CSL-A protocol version?"
+    ],
+    "sql": [
+     "SELECT protocol_version, sap_version, effective_date, amendment, change_summary, documents FROM eli_test_classic_catalog.clinical_study_standards.study_version WHERE study_id = 'CSL-A' ORDER BY effective_date"
+    ]
+   },
+   {
+    "id": "00000000000000000000000000000004",
+    "question": [
+     "Which document section supports each executable endpoint rule?"
+    ],
+    "sql": [
+     "SELECT v.endpoint_version, v.review_state, s.document_id, s.section, d.heading FROM eli_test_classic_catalog.clinical_study_standards.rule_version v JOIN eli_test_classic_catalog.clinical_study_standards.rule_document_support s ON s.rule_id = v.endpoint_version JOIN eli_test_classic_catalog.clinical_study.doc_section d ON d.document_id = s.document_id AND d.section_number = s.section ORDER BY v.endpoint_version"
+    ]
+   },
+   {
+    "id": "00000000000000000000000000000005",
+    "question": [
+     "What are the CSL-A eligibility criteria under protocol 3.0?"
+    ],
+    "sql": [
+     "SELECT criterion_id, criterion_type, text, class_id FROM eli_test_classic_catalog.clinical_study_standards.eligibility_criterion WHERE eligibility_rule_id = 'ELIG-A-V2' ORDER BY criterion_type DESC, criterion_id"
+    ]
+   }
+  ]
+ }
+}

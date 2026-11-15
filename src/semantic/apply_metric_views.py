@@ -26,6 +26,11 @@ def main():
                     help="Schema the metric views are created in (kept separate from --schema so an ontology "
                          "scan of the base schema never sees the views). See ADR-0013.")
     ap.add_argument("--src_dir", required=True, help="Dir holding *.metric_view.sql (workspace file path).")
+    ap.add_argument("--certify", default="true", choices=["true", "false"],
+                    help="Set system.certification_status=certified (HEDIS default). The life-sciences lab "
+                         "passes false: deploying a view is not certifying it; certification is a manual "
+                         "UI step.")
+    ap.add_argument("--domain_tag", default="Clinical Domain", help="Governed key-only domain tag to set.")
     args = ap.parse_args()
 
     files = sorted(glob.glob(os.path.join(args.src_dir, "*.metric_view.sql")))
@@ -47,9 +52,11 @@ def main():
         m = re.search(r"CREATE OR REPLACE VIEW\s+([\w.]+)", ddl)
         if m:
             view = m.group(1)
-            spark.sql(f"SET TAG ON TABLE {view} `system.certification_status` = `certified`")  # noqa: F821
-            spark.sql(f"SET TAG ON TABLE {view} `Clinical Domain`")  # noqa: F821
-        print(f"  OK: {os.path.basename(path)} (certified, Clinical Domain)")
+            if args.certify == "true":
+                spark.sql(f"SET TAG ON TABLE {view} `system.certification_status` = `certified`")  # noqa: F821
+            spark.sql(f"SET TAG ON TABLE {view} `{args.domain_tag}`")  # noqa: F821
+        state = "certified" if args.certify == "true" else "not certified"
+        print(f"  OK: {os.path.basename(path)} ({state}, {args.domain_tag})")
 
     print(f"Applied {len(files)} metric view(s) into {args.catalog}.{args.semantic_schema} "
           f"(sources in {args.catalog}.{args.schema}).")

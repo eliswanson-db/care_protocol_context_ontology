@@ -1,60 +1,90 @@
-import { BarChart3, GitCompare, Route } from "lucide-react";
-import { useEffect, useState } from "react";
+import { BarChart3, FlaskConical, GitCompare, Network, Route, TrendingDown, User } from "lucide-react";
+import { useEffect, useState, type ReactElement } from "react";
 import { api, type Meta } from "./api";
 import { Header } from "./components/Header";
+import { useDemo, type DemoId } from "./demo";
 import { BenchmarkScorecard } from "./tabs/BenchmarkScorecard";
+import { DriftLab } from "./tabs/DriftLab";
+import { OntologyExplorer } from "./tabs/OntologyExplorer";
 import { RetrievalArena } from "./tabs/RetrievalArena";
 import { TracerJourney } from "./tabs/TracerJourney";
+import { AmendmentLab } from "./tabs/ls/AmendmentLab";
+import { LsArena } from "./tabs/ls/LsArena";
+import { LsBenchmark } from "./tabs/ls/LsBenchmark";
+import { LsProvider } from "./tabs/ls/LsContext";
+import { ParticipantEvidence } from "./tabs/ls/ParticipantEvidence";
+import { StandardsExplorer } from "./tabs/ls/StandardsExplorer";
+import { StudyStrip } from "./tabs/ls/StudyStrip";
 
-const TABS = [
-  { key: "tracer", label: "Tracer Journey", icon: Route, enabled: true },
-  { key: "arena", label: "Retrieval Arena", icon: GitCompare, enabled: true },
-  { key: "scorecard", label: "Benchmark Scorecard", icon: BarChart3, enabled: true },
-];
+type Tab = { key: string; label: string; icon: typeof Route; render: () => ReactElement };
 
-export default function App() {
-  const [meta, setMeta] = useState<Meta | null>(null);
-  const [tab, setTab] = useState("tracer");
+// Same navigation pattern for both demos, terminology adapted (prompt §14).
+const TABS: Record<DemoId, Tab[]> = {
+  healthcare_hedis: [
+    { key: "tracer", label: "Tracer Journey", icon: Route, render: () => <TracerJourney /> },
+    { key: "arena", label: "Retrieval Arena", icon: GitCompare, render: () => <RetrievalArena /> },
+    { key: "scorecard", label: "Benchmark Scorecard", icon: BarChart3, render: () => <BenchmarkScorecard /> },
+    { key: "drift", label: "Drift Lab", icon: TrendingDown, render: () => <DriftLab /> },
+    { key: "ontology", label: "Ontology Explorer", icon: Network, render: () => <OntologyExplorer /> },
+  ],
+  life_sciences_clinical: [
+    { key: "ls_participant", label: "Participant Evidence", icon: User, render: () => <ParticipantEvidence /> },
+    { key: "ls_arena", label: "Retrieval Arena", icon: GitCompare, render: () => <LsArena /> },
+    { key: "ls_benchmark", label: "Benchmark", icon: BarChart3, render: () => <LsBenchmark /> },
+    { key: "ls_amendment", label: "Amendment Lab", icon: FlaskConical, render: () => <AmendmentLab /> },
+    { key: "ls_standards", label: "Standards & Ontology Explorer", icon: Network, render: () => <StandardsExplorer /> },
+  ],
+};
 
-  useEffect(() => {
-    api.meta().then(setMeta).catch(() => void 0);
-  }, []);
-
+function Nav({ tabs, tab, setTab }: { tabs: Tab[]; tab: string; setTab: (k: string) => void }) {
   return (
-    <div className="flex h-screen flex-col">
-      <Header meta={meta} />
-      <nav className="flex items-center gap-1 border-b border-border bg-surface px-4">
-        {TABS.map((t) => {
-          const Icon = t.icon;
-          const active = t.key === tab;
-          return (
-            <button
-              key={t.key}
-              disabled={!t.enabled}
-              onClick={() => t.enabled && setTab(t.key)}
-              className={`flex items-center gap-1.5 border-b-2 px-3 py-2.5 text-sm transition ${
-                active
-                  ? "border-primary text-fg"
-                  : t.enabled
-                  ? "border-transparent text-muted hover:text-fg"
-                  : "cursor-not-allowed border-transparent text-muted/40"
-              }`}
-            >
-              <Icon className="h-4 w-4" />
-              {t.label}
-              {!t.enabled && <span className="ml-1 text-[10px] uppercase">soon</span>}
-            </button>
-          );
-        })}
-      </nav>
-      {tab === "tracer" && <TracerJourney />}
-      {tab === "arena" && <RetrievalArena />}
-      {tab === "scorecard" && <BenchmarkScorecard />}
+    <nav className="flex items-center gap-1 border-b border-border bg-surface px-4">
+      {tabs.map((t) => {
+        const Icon = t.icon;
+        const active = t.key === tab;
+        return (
+          <button key={t.key} onClick={() => setTab(t.key)}
+            className={`flex items-center gap-1.5 border-b-2 px-3 py-2.5 text-sm transition ${active ? "border-primary text-fg" : "border-transparent text-muted hover:text-fg"}`}>
+            <Icon className="h-4 w-4" />
+            {t.label}
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
+// Everything below is remounted on a demo switch (key={demo}): tab, selection, traces, caches all reset.
+function DemoContent({ demo, meta }: { demo: DemoId; meta: Meta | null }) {
+  const tabs = TABS[demo];
+  const [tab, setTab] = useState(tabs[0].key);
+  const current = tabs.find((t) => t.key === tab) ?? tabs[0];
+  const body = (
+    <>
+      <Nav tabs={tabs} tab={current.key} setTab={setTab} />
+      {demo === "life_sciences_clinical" && <StudyStrip />}
+      <div className="flex min-h-0 flex-1 flex-col">{current.render()}</div>
       {meta && (
         <footer className="border-t border-border bg-surface px-5 py-1.5 text-[11px] text-muted">
           {meta.disclaimer} · catalog {meta.catalog} · context {meta.context_release}
         </footer>
       )}
+    </>
+  );
+  return demo === "life_sciences_clinical" ? <LsProvider tab={current.key} setTab={setTab}>{body}</LsProvider> : body;
+}
+
+export default function App() {
+  const { demo } = useDemo();
+  const [meta, setMeta] = useState<Meta | null>(null);
+  useEffect(() => {
+    setMeta(null);
+    api.meta().then((m) => m.demo_id === demo && setMeta(m)).catch(() => void 0);
+  }, [demo]);
+  return (
+    <div className="flex h-screen flex-col">
+      <Header meta={meta} />
+      <DemoContent key={demo} demo={demo} meta={meta} />
     </div>
   );
 }

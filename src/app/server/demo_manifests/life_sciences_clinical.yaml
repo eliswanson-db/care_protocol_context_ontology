@@ -1,0 +1,36 @@
+# Declarative resource manifest: Clinical Study Context & Evidence Lab (prompt §10). Evaluated LIVE by
+# server/readiness.py; nothing here is treated as deployed just because it is listed.
+demo_id: life_sciences_clinical
+display_name: Life Sciences — Clinical Study Evidence
+short_name: Clinical Study
+disclaimer: "Synthetic studies of a fictional compound. SDTM-/ADaM-shaped, not submission-ready. Descriptive only; not for clinical use."
+components:
+  - {id: data, label: Data (bronze/silver/gold), check: tables, min_rows: 1,
+     tables: [clinical_study.bronze_edc_vs, clinical_study.silver_vs, clinical_study.gold_endpoint_result,
+              clinical_study.gold_endpoint_candidate, clinical_study.gold_participant_population,
+              clinical_study.gold_amendment_impact]}
+  - {id: jobs, label: Jobs, check: jobs, jobs: [ls_bootstrap_ect, ls_context_ect]}
+  - {id: standards, label: "Standards (open, pinned)", check: tables, min_rows: 1,
+     tables: [clinical_study_standards.standards_manifest, clinical_study_standards.kb_concept,
+              clinical_study_standards.kb_edge, clinical_study_standards.mondo_closure]}
+  - {id: ontology, label: Ontology (Ontobricks), check: ontobricks, table_prefix: triplestore_clinical_study_lab_v,
+     manual: "Eli: create the Ontobricks project, import clinical_study.owl.ttl + .r2rml.ttl, scope clinical_study_graph, publish (docs/life_sciences/ONTOBRICKS_IMPORT.md)."}
+  - {id: graph_source, label: Graph source views, check: tables, min_rows: 1,
+     tables: [clinical_study_graph.e_disease, clinical_study_graph.r_contraindicated_with__drug__mesh_concept,
+              clinical_study_graph.e_endpoint_result]}
+  - {id: documents, label: Documents, check: tables, min_rows: 10, tables: [clinical_study.doc_document]}
+  - {id: search, label: Search index (Lakebase RAG), check: lakebase_ls, corpus_table: clinical_study.rag_corpus,
+     planned: "Corpus built in UC (clinical_study.rag_corpus); loading into the shared Lakebase project is pending approval."}
+  - {id: metric_views, label: Metric views, check: tables, certified_expected: false,
+     tables: [clinical_study_semantic.endpoint_result_metrics, clinical_study_semantic.endpoint_candidate_metrics,
+              clinical_study_semantic.amendment_impact_metrics, clinical_study_semantic.participant_population_metrics]}
+  - {id: pages, label: Pages, check: manual, count: 15,
+     note: "No API exposes Pages. Eli: Genie Code bulk import with docs/life_sciences/PAGES_IMPORT_PROMPT.md, then record confirmed_on here."}
+  - {id: agents, label: Genie agents, check: genie_spaces,
+     titles: ["Clinical Study Lab — Study Analytics", "Clinical Study Lab — Protocol Evidence",
+              "Clinical Study Lab — Standards & Semantics"]}
+  - {id: front_door, label: Front-door routing (A6), check: routing}
+  - {id: validation, label: Semantic validation, check: sql_zero,
+     sql: "SELECT coalesce(sum(n_violations), 0) AS n FROM {catalog}.clinical_study.dq_semantic_validation_summary WHERE severity = 'ERROR'"}
+  - {id: evaluation, label: Evaluation fixtures (gold oracle), check: verification,
+     table: clinical_study.gold_verification_run}

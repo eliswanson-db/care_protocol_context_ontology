@@ -17,7 +17,9 @@ def closure_rows(hier: list[dict]) -> list[dict]:
     """hier rows: code, parent_code (None for roots), name, relationship."""
     names, children = {}, defaultdict(list)
     for r in hier:
-        names.setdefault(r["code"], r.get("name"))
+        # a node can appear as someone's parent before its own row: never let that placeholder hide its name
+        if r.get("name") or r["code"] not in names:
+            names[r["code"]] = r.get("name") or names.get(r["code"])
         if r.get("parent_code"):
             names.setdefault(r["parent_code"], None)
             children[r["parent_code"]].append((r["code"], r.get("relationship") or ""))

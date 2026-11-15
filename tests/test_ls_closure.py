@@ -49,6 +49,17 @@ def test_contract_and_agreement_with_ontology_walk():
             assert depth[(a, t)] == len(onto.path_up(t, {a})) - 1
 
 
+def test_every_named_node_keeps_its_name():
+    hier = mondo_hier()
+    named = {r["code"] for r in hier if r["name"]}
+    rows = closure_rows(hier)
+    missing = {r["ancestor_code"] for r in rows if r["ancestor_code"] in named and not r["ancestor_name"]}
+    assert not missing, sorted(missing)[:5]
+    order_flipped = list(reversed(hier))  # parent rows first, then the node's own row
+    rows2 = closure_rows(order_flipped)
+    assert {r["ancestor_code"] for r in rows2 if r["ancestor_code"] in named and not r["ancestor_name"]} == set()
+
+
 def test_validate_catches_a_broken_closure():
     hier = [
         {"code": "B", "parent_code": "A", "name": "b", "relationship": "is_a"},
@@ -60,5 +71,6 @@ def test_validate_catches_a_broken_closure():
 
 if __name__ == "__main__":
     test_contract_and_agreement_with_ontology_walk()
+    test_every_named_node_keeps_its_name()
     test_validate_catches_a_broken_closure()
     print("PASS")

@@ -1,0 +1,167 @@
+{
+ "version": 2,
+ "config": {
+  "sample_questions": [
+   {
+    "id": "00000000000000000000000000000001",
+    "question": [
+     "What is the Week 24 endpoint summary for CSL-A under rule version 1?"
+    ]
+   },
+   {
+    "id": "00000000000000000000000000000002",
+    "question": [
+     "How did Amendment 1 change the CSL-A Week 24 results?"
+    ]
+   },
+   {
+    "id": "00000000000000000000000000000003",
+    "question": [
+     "Which sites had the most participants recovered by Amendment 1?"
+    ]
+   },
+   {
+    "id": "00000000000000000000000000000004",
+    "question": [
+     "Why were Week 24 observations excluded in CSL-A under R1?"
+    ]
+   },
+   {
+    "id": "00000000000000000000000000000005",
+    "question": [
+     "Which participants have no valid baseline in CSL-B?"
+    ]
+   },
+   {
+    "id": "00000000000000000000000000000006",
+    "question": [
+     "How many participants were enrolled in error in each study?"
+    ]
+   },
+   {
+    "id": "00000000000000000000000000000007",
+    "question": [
+     "Why was CSL-A-FX-05's Week 24 result different under R1 and R2?"
+    ]
+   }
+  ]
+ },
+ "data_sources": {
+  "tables": [
+   {
+    "identifier": "eli_test_classic_catalog.clinical_study.gold_amendment_impact"
+   },
+   {
+    "identifier": "eli_test_classic_catalog.clinical_study.gold_endpoint_candidate"
+   },
+   {
+    "identifier": "eli_test_classic_catalog.clinical_study.gold_endpoint_result"
+   },
+   {
+    "identifier": "eli_test_classic_catalog.clinical_study.gold_participant_population"
+   },
+   {
+    "identifier": "eli_test_classic_catalog.clinical_study.gold_study_summary"
+   },
+   {
+    "identifier": "eli_test_classic_catalog.clinical_study_standards.rule_version"
+   }
+  ],
+  "metric_views": [
+   {
+    "identifier": "eli_test_classic_catalog.clinical_study_semantic.amendment_impact_metrics"
+   },
+   {
+    "identifier": "eli_test_classic_catalog.clinical_study_semantic.endpoint_candidate_metrics"
+   },
+   {
+    "identifier": "eli_test_classic_catalog.clinical_study_semantic.endpoint_result_metrics"
+   },
+   {
+    "identifier": "eli_test_classic_catalog.clinical_study_semantic.participant_population_metrics"
+   }
+  ]
+ },
+ "instructions": {
+  "text_instructions": [
+   {
+    "id": "c0000000000000000000000000000001",
+    "content": [
+     "SYNTHETIC educational demo (Clinical Study Context & Evidence Lab). CSL-101 is a fictional GLP-1 receptor agonist; studies CSL-A and CSL-B are not real. Data are SDTM-/ADaM-shaped, not submission-ready. Results are descriptive: never state or imply efficacy, superiority or a causal effect.",
+     "This space covers ONLY the Clinical Study lab. It has no HEDIS, health-plan, NCQA or care-gap data; if asked about those, say they are out of scope for this space.",
+     "Approved endpoint results only. Every number must state its study AND endpoint rule version: EP-A-WT24.R1 (CSL-A, \u00b17-day Week 24 window, protocol/SAP 1.0), EP-A-WT24.R2 (CSL-A, \u00b114 days, Amendment 1, protocol/SAP 2.0), EP-B-WT24.R1 (CSL-B, mean baseline, \u00b110 days). If the user does not say which version, ask, or show each version separately. Never pool studies or rule versions.",
+     "Use the metric views with MEASURE(`<name>`). Every endpoint measure returns NULL unless exactly one `Rule Version` is in scope: filter WHERE `Rule Version` = '...' or GROUP BY `Rule Version`. A NULL means the question pooled versions, not that the value is zero.",
+     "The endpoint population is the FAS (`In FAS` = 'Y'). Percent change: negative = weight loss. PCHG is unrounded; round only for display.",
+     "Amendment impact: amendment_impact_metrics compares CSL-A R1 with R2 per participant. With closest-to-target selection a wider window can only add a record, never replace one that already qualified.",
+     "To explain one participant, read gold_endpoint_candidate for that USUBJID and rule_version: every observation has a decision and reason.",
+     "Do not recompute endpoint values from silver data; they come from the deterministic engine (gold)."
+    ]
+   }
+  ],
+  "example_question_sqls": [
+   {
+    "id": "00000000000000000000000000000001",
+    "question": [
+     "What is the Week 24 endpoint summary for CSL-A under rule version 1?"
+    ],
+    "sql": [
+     "SELECT `Arm`, MEASURE(`Participants In FAS`) AS fas, MEASURE(`Participants With Derived Endpoint`) AS derived, ROUND(MEASURE(`Endpoint Missingness Rate`), 3) AS missingness, ROUND(MEASURE(`Mean Percent Change`), 2) AS mean_pct_change FROM eli_test_classic_catalog.clinical_study_semantic.endpoint_result_metrics WHERE `Rule Version` = 'EP-A-WT24.R1' GROUP BY ALL ORDER BY `Arm`"
+    ]
+   },
+   {
+    "id": "00000000000000000000000000000002",
+    "question": [
+     "How did Amendment 1 change the CSL-A Week 24 results?"
+    ],
+    "sql": [
+     "SELECT MEASURE(`Participants Compared`) AS compared, MEASURE(`Participants Became Derivable`) AS became_derivable, MEASURE(`Participants With Changed Selected Observation`) AS changed_selection, MEASURE(`Participants With Changed Endpoint Value`) AS changed_value, MEASURE(`Participants With Changed Eligible Candidates`) AS more_candidates FROM eli_test_classic_catalog.clinical_study_semantic.amendment_impact_metrics"
+    ]
+   },
+   {
+    "id": "00000000000000000000000000000003",
+    "question": [
+     "Which sites had the most participants recovered by Amendment 1?"
+    ],
+    "sql": [
+     "SELECT `Site`, MEASURE(`Participants Became Derivable`) AS recovered FROM eli_test_classic_catalog.clinical_study_semantic.amendment_impact_metrics GROUP BY ALL ORDER BY recovered DESC LIMIT 5"
+    ]
+   },
+   {
+    "id": "00000000000000000000000000000004",
+    "question": [
+     "Why were Week 24 observations excluded in CSL-A under R1?"
+    ],
+    "sql": [
+     "SELECT `Reason`, MEASURE(`Excluded Observations`) AS excluded FROM eli_test_classic_catalog.clinical_study_semantic.endpoint_candidate_metrics WHERE `Rule Version` = 'EP-A-WT24.R1' AND `Role` = 'FOLLOWUP' GROUP BY ALL ORDER BY excluded DESC"
+    ]
+   },
+   {
+    "id": "00000000000000000000000000000005",
+    "question": [
+     "Which participants have no valid baseline in CSL-B?"
+    ],
+    "sql": [
+     "SELECT USUBJID, exclusion_reason FROM eli_test_classic_catalog.clinical_study.gold_endpoint_result WHERE endpoint_version = 'EP-B-WT24.R1' AND result_status = 'NO_VALID_BASELINE' ORDER BY USUBJID"
+    ]
+   },
+   {
+    "id": "00000000000000000000000000000006",
+    "question": [
+     "How many participants were enrolled in error in each study?"
+    ],
+    "sql": [
+     "SELECT `Study`, MEASURE(`Enrolled In Error`) AS enrolled_in_error, MEASURE(`Randomized Participants`) AS randomized FROM eli_test_classic_catalog.clinical_study_semantic.participant_population_metrics GROUP BY ALL ORDER BY `Study`"
+    ]
+   },
+   {
+    "id": "00000000000000000000000000000007",
+    "question": [
+     "Why was CSL-A-FX-05's Week 24 result different under R1 and R2?"
+    ],
+    "sql": [
+     "SELECT rule_version, obs_id, visit, vsdtc, days_from_target, decision, reason FROM eli_test_classic_catalog.clinical_study.gold_endpoint_candidate WHERE USUBJID = 'CSL-A-FX-05' AND role = 'FOLLOWUP' ORDER BY rule_version, vsseq"
+    ]
+   }
+  ]
+ }
+}

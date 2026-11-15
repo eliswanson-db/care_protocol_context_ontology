@@ -1,0 +1,137 @@
+{
+ "version": 2,
+ "config": {
+  "sample_questions": [
+   {
+    "id": "00000000000000000000000000000001",
+    "question": [
+     "Is familial hypercholesterolemia a weight-related comorbidity (WRC-V1)?"
+    ]
+   },
+   {
+    "id": "00000000000000000000000000000002",
+    "question": [
+     "Which drugs are members of the GLP-1 receptor agonist class in MED-RT?"
+    ]
+   },
+   {
+    "id": "00000000000000000000000000000003",
+    "question": [
+     "Where is body weight represented in the standardized dataset, and which units are allowed?"
+    ]
+   },
+   {
+    "id": "00000000000000000000000000000004",
+    "question": [
+     "Which standards releases does the lab use?"
+    ]
+   },
+   {
+    "id": "00000000000000000000000000000005",
+    "question": [
+     "Why was CSL-A-FX-25 excluded?"
+    ]
+   }
+  ]
+ },
+ "data_sources": {
+  "tables": [
+   {
+    "identifier": "eli_test_classic_catalog.clinical_study.gold_eligibility_criterion"
+   },
+   {
+    "identifier": "eli_test_classic_catalog.clinical_study.silver_vs"
+   },
+   {
+    "identifier": "eli_test_classic_catalog.clinical_study_standards.bc_closure"
+   },
+   {
+    "identifier": "eli_test_classic_catalog.clinical_study_standards.class_root"
+   },
+   {
+    "identifier": "eli_test_classic_catalog.clinical_study_standards.concept_class"
+   },
+   {
+    "identifier": "eli_test_classic_catalog.clinical_study_standards.kb_concept"
+   },
+   {
+    "identifier": "eli_test_classic_catalog.clinical_study_standards.kb_edge"
+   },
+   {
+    "identifier": "eli_test_classic_catalog.clinical_study_standards.medrt_class_closure"
+   },
+   {
+    "identifier": "eli_test_classic_catalog.clinical_study_standards.mesh_closure"
+   },
+   {
+    "identifier": "eli_test_classic_catalog.clinical_study_standards.mondo_closure"
+   },
+   {
+    "identifier": "eli_test_classic_catalog.clinical_study_standards.standards_manifest"
+   }
+  ]
+ },
+ "instructions": {
+  "text_instructions": [
+   {
+    "id": "c0000000000000000000000000000001",
+    "content": [
+     "SYNTHETIC educational demo (Clinical Study Context & Evidence Lab). CSL-101 is a fictional GLP-1 receptor agonist; studies CSL-A and CSL-B are not real. Data are SDTM-/ADaM-shaped, not submission-ready. Results are descriptive: never state or imply efficacy, superiority or a causal effect.",
+     "This space covers ONLY the Clinical Study lab. It has no HEDIS, health-plan, NCQA or care-gap data; if asked about those, say they are out of scope for this space.",
+     "Standards and semantics: MONDO diseases, MED-RT drug classes / mechanisms / physiologic effects / contraindications, MeSH (the bridge between MED-RT conditions and MONDO), RxNorm ingredients, CDISC Controlled Terminology, COSMoS biomedical concepts and SDTM dataset specializations. kb_edge holds DIRECT facts only; use the *_closure tables for is-a at any depth (WHERE ancestor_code = X).",
+     "Concept class membership (e.g. WRC-V1 weight-related comorbidity) = descendant of a class_root kind='root' and NOT a descendant of any kind='exclude_root' (exclusion wins). WRC-V2 extends WRC-V1 (inherits roots).",
+     "Predicates prefixed cpl: are demo extensions, never official CDISC content; standards_manifest lists the pinned releases. MedDRA, SNOMED CT, ATC and the CDISC Library are not used.",
+     "Body Weight is COSMoS BC C81328 -> dataset specialization WEIGHT -> SDTM VS variables; allowed units (VSORRESU) are LB, g and kg. Physical data: silver_vs WHERE VSTESTCD = 'WEIGHT'.",
+     "gold_eligibility_criterion shows the ontology path that decided each participant's criterion."
+    ]
+   }
+  ],
+  "example_question_sqls": [
+   {
+    "id": "00000000000000000000000000000001",
+    "question": [
+     "Is familial hypercholesterolemia a weight-related comorbidity (WRC-V1)?"
+    ],
+    "sql": [
+     "SELECT c.ancestor_code AS class_root, c.ancestor_name, c.depth FROM eli_test_classic_catalog.clinical_study_standards.mondo_closure c JOIN eli_test_classic_catalog.clinical_study_standards.class_root r ON r.concept_id = c.ancestor_code AND r.kind = 'root' AND r.class_id = 'WRC-V1' WHERE c.descendant_code = 'MONDO:0005439' AND NOT EXISTS (SELECT 1 FROM eli_test_classic_catalog.clinical_study_standards.mondo_closure x JOIN eli_test_classic_catalog.clinical_study_standards.class_root e ON e.concept_id = x.ancestor_code AND e.kind = 'exclude_root' AND e.class_id = 'WRC-V1' WHERE x.descendant_code = c.descendant_code)"
+    ]
+   },
+   {
+    "id": "00000000000000000000000000000002",
+    "question": [
+     "Which drugs are members of the GLP-1 receptor agonist class in MED-RT?"
+    ],
+    "sql": [
+     "SELECT k.concept_id, k.label FROM eli_test_classic_catalog.clinical_study_standards.kb_edge e JOIN eli_test_classic_catalog.clinical_study_standards.kb_concept k ON k.concept_id = e.subject WHERE e.predicate = 'medrt:memberOf' AND e.object = 'MEDRT:N0000178480' ORDER BY k.label"
+    ]
+   },
+   {
+    "id": "00000000000000000000000000000003",
+    "question": [
+     "Where is body weight represented in the standardized dataset, and which units are allowed?"
+    ],
+    "sql": [
+     "SELECT b.subject AS binding, v.object AS sdtm_variable, u.notation AS allowed_unit FROM eli_test_classic_catalog.clinical_study_standards.kb_edge h JOIN eli_test_classic_catalog.clinical_study_standards.kb_edge b ON b.subject = h.object AND b.predicate = 'cosmos:constrains' LEFT JOIN eli_test_classic_catalog.clinical_study_standards.kb_edge a ON a.subject = b.subject AND a.predicate = 'cosmos:allowedValue' LEFT JOIN eli_test_classic_catalog.clinical_study_standards.kb_concept u ON u.concept_id = a.object JOIN eli_test_classic_catalog.clinical_study_standards.kb_edge v ON v.subject = b.subject AND v.predicate = 'cosmos:constrains' WHERE h.subject = 'COSMOS_DSS:WEIGHT' AND h.predicate = 'cosmos:hasVariableBinding' ORDER BY sdtm_variable, allowed_unit"
+    ]
+   },
+   {
+    "id": "00000000000000000000000000000004",
+    "question": [
+     "Which standards releases does the lab use?"
+    ],
+    "sql": [
+     "SELECT artifact_id, publisher, release_version, license_or_terms_reference FROM eli_test_classic_catalog.clinical_study_standards.standards_manifest ORDER BY artifact_id"
+    ]
+   },
+   {
+    "id": "00000000000000000000000000000005",
+    "question": [
+     "Why was CSL-A-FX-25 excluded?"
+    ],
+    "sql": [
+     "SELECT criterion_id, outcome, detail, path_labels FROM eli_test_classic_catalog.clinical_study.gold_eligibility_criterion WHERE USUBJID = 'CSL-A-FX-25' AND outcome IN ('TRIGGERED', 'NOT_MET')"
+    ]
+   }
+  ]
+ }
+}
