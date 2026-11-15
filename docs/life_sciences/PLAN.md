@@ -57,8 +57,8 @@ Status vocabulary (kept strictly separate): **implemented** · **tested** · **d
 | 2 Deterministic data path | dbldatagen generator + 20 endpoint and 9 eligibility fixtures, pipeline, endpoint engine R1/R2 + Study B, eligibility over the KB, provenance, oracle | implemented · tested · **deployed on ECT** (ls_bootstrap SUCCESS 2026-11-13, gold oracle PASS RUN-cc1b4b5b76a92061; HEDIS gold 20/20 unchanged) |
 | 3 Semantic path | KB + closures, graph spec → TBox/R2RML/104 views, semantic validation | implemented · tested · **deployed** (104 views, 567k rows, 0 dangling endpoints, 0 validation errors) · **manual: Ontobricks import/publish (Eli)** |
 | 4 Documents & governed context | 10 documents (md/html/pdf), assertions with review state, RAG corpus (3,251 entries), 15 Pages | implemented · tested · **deployed** · **manual: Pages bulk import (Eli)** |
-| 5 Deployment & agents | Bundle resources, Genie spaces, MCP tools, RAG corpus, readiness tracking | — |
-| 6 App | Demo switcher, `DemoContext` refactor, LS tabs, Drift/Amendment + Ontology Explorer for both | — |
+| 5 Deployment & agents | Metric views (pooling refused in the semantic layer), comments, 3 Genie spaces, A6 tools + supervisor + demo registry, live readiness | implemented · tested (A6 self-test 43/43 live) · **deployed** · Lakebase RAG **planned (pending approval)** |
+| 6 App | Demo switcher + backend 409 scoping, LS screens, HEDIS Drift/Ontology tabs, readiness drawer | implemented · tested (isolation tests, browser) · **deployed** on the ECT app |
 | 7 Evaluation & hardening | LS benchmark (10 categories), HEDIS regression, isolation tests | — |
 | 8 Demo package | Presenter script, architecture diagram, runbook, known limitations | — |
 
