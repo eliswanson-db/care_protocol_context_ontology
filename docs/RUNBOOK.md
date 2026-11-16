@@ -341,5 +341,5 @@ Verify with the app's Readiness drawer: it evaluates every component as the SP.
   is a human decision.
 - ⚙ Two HEDIS managed Pages ("Diabetes Cohort", "Measurement Year") stay unpublished until the older published Pages
   with the same titles are removed or unpublished (titles are unique among published Pages in a domain). Then re-run
-  the sync.
+  the sync. The sync logs a WARNING for each and still succeeds; readiness shows them as `manual_action_required`.
 - Genie Code bulk import (`PAGES_IMPORT_PROMPT.md`) is a fallback only.

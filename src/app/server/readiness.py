@@ -167,6 +167,8 @@ def _pages(demo_id: str, c: dict) -> dict:
     w = get_workspace_client()
 
     def live(r: dict) -> str:
+        if r["state"].startswith("BLOCKED"):
+            return f"BLOCKED {r['display_name']} (title held by an unmanaged Page)"
         if r["state"] != "PUBLISHED" or not r["page_name"]:
             return f"{r['display_name']}: {r['state']}"
         try:
@@ -185,6 +187,15 @@ def _pages(demo_id: str, c: dict) -> dict:
     ok = len(rows) - len(problems)
     if len(rows) < c["count"]:
         problems.append(f"{c['count'] - len(rows)} source(s) never synced")
+    blocked = [x for x in problems if x.startswith("BLOCKED ")]
+    if problems and len(blocked) == len(problems):
+        # only duplicate-title skips: a human decision, not a broken deploy (docs/ontology/PAGES_FLAGGED.md)
+        return _r(
+            "manual_action_required",
+            f"{ok}/{c['count']} managed Pages published and current; "
+            + "; ".join(x[len("BLOCKED ") :] for x in blocked)[:300]
+            + "; decide in docs/ontology/PAGES_FLAGGED.md",
+        )
     if problems:
         return _r(
             "failed", f"{ok}/{c['count']} managed Pages published and current; " + "; ".join(problems)[:400]

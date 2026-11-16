@@ -17,7 +17,9 @@ markdown (`docs/ontology/pages`, `docs/life_sciences/pages`) as part of deployme
 - **Idempotent:** a Page is created, updated or published only when its hash or state differs.
 - **Readiness** GETs each managed Page live (`pages_sync_state` tables) and compares hash and state.
 - **Finding:** titles must be unique among PUBLISHED Pages in a domain (drafts don't block), so an older published
-  Page with the same title blocks the managed one. That is a human decision, never automated.
+  Page with the same title blocks the managed one. That is a human decision, never automated: the sync logs
+  a WARNING naming the holding Page, records `BLOCKED_DUPLICATE_TITLE`, and moves on (the job still succeeds;
+  readiness shows `manual_action_required`). Other API errors still fail the job.
 - Related assets go into the Page body as text, because the API has no field for them. Linking them as assets is
   still a UI step.
 - Genie Code bulk import remains a documented fallback only.

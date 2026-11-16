@@ -215,15 +215,33 @@ def main() -> int:
             elif action == "update":
                 api.update(name, s["page"])
         except Exception as e:  # noqa: BLE001
-            print(f"    FAILED: {str(e)[:300]}")
+            title = s["page"]["display_name"]
+            if "already exists" in str(e):
+                # A Page this sync doesn't own already holds the title (titles are unique among PUBLISHED
+                # Pages in a domain). That's a human decision (flag, don't delete): warn, record, move on.
+                holders = [
+                    n
+                    for n, p in full.items()
+                    if p.get("display_name") == title
+                    and n not in {v[0] for v in managed.values()}
+                    and p.get("state") == "PUBLISHED"
+                ]
+                print(
+                    f"    WARNING: skipped, title already held by unmanaged Page(s) {holders or '?'}; "
+                    f"see the flag report (unpublish/delete it, then rerun)"
+                )
+                state = f"BLOCKED_DUPLICATE_TITLE: {','.join(holders) or 'unknown holder'}"
+            else:
+                print(f"    FAILED: {str(e)[:300]}")
+                state = f"FAILED: {str(e)[:200]}"
             rows.append(
                 {
                     "demo_id": a.demo,
                     "source": s["source"],
                     "page_name": name,
-                    "display_name": s["page"]["display_name"],
+                    "display_name": title,
                     "content_hash": s["hash"],
-                    "state": f"FAILED: {str(e)[:200]}",
+                    "state": state,
                     "synced_at": now,
                 }
             )
@@ -299,7 +317,12 @@ def main() -> int:
         Path(a.report).write_text("\n".join(lines) + "\n")
         print(f"report: {a.report}")
     failed = [r for r in rows if r["state"].startswith("FAILED")]
-    return 1 if failed else 0
+    blocked = [r for r in rows if r["state"].startswith("BLOCKED")]
+    print(
+        f"\nsummary: {sum(r['state'] == 'PUBLISHED' for r in rows)} published, {len(blocked)} skipped "
+        f"(duplicate title, warning), {len(failed)} failed"
+    )
+    return 1 if failed else 0  # duplicates are warnings, not failures
 
 
 if __name__ == "__main__":
