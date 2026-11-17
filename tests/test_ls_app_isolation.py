@@ -78,6 +78,18 @@ def test_app_a6_copies_are_identical():
         assert a == b, f"{f} drifted: run scripts/sync_app_modules.py"
 
 
+
+def test_genie_trace_labels_retrieval_by_demo():
+    from server.genie_trace import demo_of
+
+    ls = "life_sciences_clinical"
+    assert demo_of("Protocol amendments (CSL-A) Week 24 analysis window", "Clinical Domain") == ls
+    assert demo_of("eli_test_classic_catalog.clinical_study_semantic.endpoint_result_metrics") == ls
+    assert demo_of("Measurement Year", "Clinical Domain") == "healthcare_hedis"  # shared domain, no LS marker
+    assert demo_of("care_protocol_semantic.protocol_adherence_metrics: A1c >= 9%") == "healthcare_hedis"
+    assert demo_of("Settlement Window", "Fincorp Payments") == "other"
+
+
 if __name__ == "__main__":
     fails = 0
     for name, fn in sorted(globals().items()):

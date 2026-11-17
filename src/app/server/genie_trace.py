@@ -50,9 +50,25 @@ def _events(question: str) -> list[dict]:
     return out
 
 
-def _on_topic(text: str | None) -> bool:
-    t = (text or "").lower()
-    return "care_protocol" in t or "care protocol" in t
+_LS = re.compile(r"clinical_study|clinical study|\bcsl-[ab]\b|csl-101|\bsdtm\b|\bcdisc\b|\bmondo\b|med-rt|"
+                 r"week 24|weight-related comorbidity|\bep-[ab]-wt24", re.I)
+_HEDIS = re.compile(r"care_protocol|care protocol|\bhedis\b|\b(gsd|ked|bpd|spd|eed|mad|ssd)\b|\ba1c\b|"
+                    r"step.?3|value set|measurement year|care gap", re.I)
+
+
+def demo_of(text: str | None, page_domain: str | None = None) -> str:
+    """Which demo a retrieved item is about: life_sciences_clinical | healthcare_hedis | other.
+    Both demos share the Clinical Domain, so the domain alone can't tell them apart (LS markers win)."""
+    t = text or ""
+    if _LS.search(t):
+        return "life_sciences_clinical"
+    if _HEDIS.search(t) or page_domain == "Clinical Domain":
+        return "healthcare_hedis"
+    return "other"
+
+
+def _on_topic(text: str | None) -> bool:  # HEDIS-only legacy helper
+    return demo_of(text) == "healthcare_hedis"
 
 
 def _stale(identifier: str) -> bool:
@@ -61,7 +77,7 @@ def _stale(identifier: str) -> bool:
         f".{SCHEMA_SEMANTIC}." not in (identifier or "")
 
 
-def parse(events: list[dict]) -> dict:
+def parse(events: list[dict], demo: str = "healthcare_hedis") -> dict:
     calls: dict[str, dict] = {}
     outputs: dict[str, dict] = {}
     answer, citations = "", []
@@ -93,11 +109,12 @@ def parse(events: list[dict]) -> dict:
             pages = [{"id": p.get("id"), "name": p.get("name"), "domain": p.get("domain"),
                       "relevance": round(p.get("relevance_score") or 0, 2),
                       "certified": p.get("certified"), "description": p.get("description"),
-                      "on_topic": p.get("domain") == "Clinical Domain"} for p in meta.get("knowledge_pages") or []]
+                      "demo": demo_of(f"{p.get('name')} {p.get('description')}", p.get("domain"))}
+                     for p in meta.get("knowledge_pages") or []]
             snips = [{"headline": s.get("headline"), "type": (s.get("snippet_type") or "").replace("SNIPPET_TYPE_", "").lower(),
                       "source": s.get("asset_name"), "relevance": round(s.get("relevance_score") or 0, 2),
                       "authority": round(s.get("authority_score") or 0, 3), "content": s.get("content"),
-                      "on_topic": _on_topic(s.get("asset_name")) or _on_topic(s.get("content")),
+                      "demo": demo_of(f"{s.get('asset_name')} {s.get('content')}"),
                       "stale": _stale(s.get("asset_name") or "")}
                      for s in meta.get("knowledge_snippets") or []]
             snippet_searches.append({"query": args.get("query"), "pages": pages, "snippets": snips})
@@ -128,27 +145,31 @@ def parse(events: list[dict]) -> dict:
     agent_names = {a["asset"] for a in assets_read if a["type"] == "genie_space"}
     for a in agents:
         a["name"] = next(iter(agent_names), a["space_id"])
+    for ss in snippet_searches:  # on_topic = about the ACTIVE demo (not just this workspace)
+        for x in ss["pages"] + ss["snippets"]:
+            x["on_topic"] = x["demo"] == demo
     return {"tool_order": order, "snippet_searches": snippet_searches, "pages_read": pages_read,
             "asset_searches": asset_searches, "assets_read": assets_read, "skills": skills, "memory_fetches": memory,
             "agents": agents, "sql": sql, "mcp": mcp, "answer": answer, "citations": citations}
 
 
-def get_trace(question: str) -> dict:
-    """Return {status: running|done|error, ...}; starts a background run on first call."""
+def get_trace(question: str, demo: str = "healthcare_hedis") -> dict:
+    """Return {status: running|done|error, ...}; starts a background run on first call (key: demo+question)."""
+    key = (demo, question)
     with _LOCK:
-        hit = _CACHE.get(question)
+        hit = _CACHE.get(key)
         if hit and (hit["status"] == "running" or time.time() - hit["t"] < _TTL):
             return hit
-        _CACHE[question] = {"status": "running", "t": time.time()}
+        _CACHE[key] = {"status": "running", "t": time.time()}
 
     def run():
         t0 = time.time()
         try:
-            tr = parse(_events(question))
+            tr = parse(_events(question), demo)
             res = {"status": "done", "t": time.time(), "trace": tr, "latency_s": round(time.time() - t0, 1)}
         except Exception as e:  # noqa: BLE001 — surface the real failure (e.g. SP not allowed Genie One)
             res = {"status": "error", "t": time.time(), "error": f"{type(e).__name__}: {str(e)[:300]}"}
         with _LOCK:
-            _CACHE[question] = res
+            _CACHE[key] = res
     threading.Thread(target=run, daemon=True).start()
-    return _CACHE[question]
+    return _CACHE[key]

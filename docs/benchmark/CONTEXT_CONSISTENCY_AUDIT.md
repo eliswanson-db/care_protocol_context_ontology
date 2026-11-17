@@ -76,3 +76,16 @@ Canonical = approved rule registry + `kb_edge`.
 
 No inconsistencies found. Pages quote no data-derived numbers (only fixture values). **Not yet comparable:** the
 published Ontobricks graph (import pending) and Lakebase RAG (loading pending), so only their sources are verified.
+
+## Correction (2026-11-17): the life-sciences "Genie" lens was a Genie Agent, not Genie Ontology
+
+The life-sciences Retrieval Arena called one Genie space (A2, conversation API). The agreed design, and the HEDIS
+lens, use **Genie Ontology via Genie One** (A1). That was an undeclared change of approach, and the "Genie agents"
+column above was checked as text only. Fixed: the LS lens now runs Genie One through the same traced path as HEDIS
+(`server/genie_trace.py`). Retrieved Pages and snippets are labelled by demo (`demo_of`); both demos share Clinical
+Domain, so the domain alone can't tell them apart.
+
+**Live check (ls_q7, "has the wider window been approved?"):** Genie One retrieved 4 life-sciences Pages (read
+"Protocol amendments (CSL-A)"), delegated to the Protocol Evidence agent, and answered correctly (±21 is a draft
+candidate). **All 10 inferred snippets were HEDIS:** no life-sciences inferred snippets exist yet (extraction is
+roughly daily), and the shared workspace lets HEDIS ones in. Expected, and now visible in the card, not hidden.

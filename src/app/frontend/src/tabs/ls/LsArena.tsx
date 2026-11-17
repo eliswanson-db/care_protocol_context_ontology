@@ -1,6 +1,7 @@
 import { Bot, Database, GitCompare, Network, Search, Wrench } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
-import { ls, type ArenaQ, type ArenaRun } from "../../lsApi";
+import { GenieMarkdown } from "../../components/GenieMarkdown";
+import { ls, type ArenaQ, type ArenaRun, type GenieOneRun } from "../../lsApi";
 import { Card, Chip, Code, ErrorBox, Loading, Table, toneFor } from "./ui";
 
 function Lens({ title, icon, color, children, state }: { title: string; icon: ReactNode; color: string; children: ReactNode; state?: ReactNode }) {
@@ -77,23 +78,44 @@ function A6({ l }: { l: any }) {
   );
 }
 
+const DEMO_LABEL: Record<string, string> = { life_sciences_clinical: "this demo", healthcare_hedis: "HEDIS demo", other: "other projects" };
+const counts = (m?: Record<string, number>) =>
+  Object.entries(m ?? {}).sort((a, b) => (a[0] === "life_sciences_clinical" ? -1 : b[0] === "life_sciences_clinical" ? 1 : b[1] - a[1]))
+    .map(([k, n]) => `${n} ${DEMO_LABEL[k] ?? k}`).join(" · ") || "none";
+
+// Genie Ontology = Genie One (the workspace front door), the same surface as the HEDIS lens. Run live in the
+// background (~30-60 s); shows the answer and what it actually retrieved, labelled by demo.
 function Genie({ qid }: { qid: string }) {
-  const [g, setG] = useState<any>(null);
-  const [busy, setBusy] = useState(false);
+  const [g, setG] = useState<GenieOneRun | null>(null);
+  const [asked, setAsked] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  if (g) return (
-    <div>
-      <div className="whitespace-pre-wrap leading-snug">{g.answer || "(no text answer)"}</div>
-      {g.sql?.length > 0 && <details className="mt-1"><summary className="cursor-pointer text-[11px] text-muted">generated SQL</summary><Code>{g.sql.join("\n\n")}</Code></details>}
-      <div className="mt-1 text-[11px] text-muted">{g.surface} · {g.latency_s}s</div>
-    </div>
-  );
+  useEffect(() => {
+    if (!asked || g?.status === "done" || g?.status === "error") return;
+    let live = true;
+    const tick = () => ls.arenaGenie(qid).then((r) => { if (!live) return; setG(r); if (r.status === "running") setTimeout(tick, 4000); })
+      .catch((e) => live && setErr(String(e)));
+    tick();
+    return () => { live = false; };
+  }, [asked, qid]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!asked)
+    return (
+      <div>
+        <button onClick={() => setAsked(true)} className="rounded-md border border-border px-2 py-1 text-[12px] hover:border-primary">Ask Genie One ▸</button>
+        <div className="mt-1 text-[11px] text-muted">Workspace front door over Pages, inferred snippets and governed assets; AI-generated.</div>
+      </div>
+    );
+  if (err) return <div className="text-destructive">{err}</div>;
+  if (!g || g.status === "running") return <div className="text-[12px] text-muted">Asking Genie One and capturing what it retrieves (~30–60 s)…</div>;
+  if (g.status === "error") return <div className="text-destructive">Genie One could not be run: {g.error}</div>;
   return (
-    <div>
-      <button disabled={busy} onClick={() => { setBusy(true); ls.arenaGenie(qid).then(setG).catch((e) => setErr(String(e))).finally(() => setBusy(false)); }}
-        className="rounded-md border border-border px-2 py-1 text-[12px] hover:border-primary">{busy ? "Asking Genie… (~30 s)" : "Ask the Study Analytics Genie agent ▸"}</button>
-      {err && <div className="mt-1 text-destructive">{err}</div>}
-      <div className="mt-1 text-[11px] text-muted">LLM-generated SQL over the same governed tables; asked live, labelled AI-generated.</div>
+    <div className="space-y-1.5">
+      <div className="max-h-48 overflow-y-auto text-[12.5px] leading-snug"><GenieMarkdown md={g.answer || "(no text answer)"} /></div>
+      <div className="text-[11.5px] text-muted">
+        <div><b className="text-fg">Pages:</b> {counts(g.pages_by_demo)}{g.pages_read?.length ? ` · read: ${g.pages_read.join(", ")}` : ""}</div>
+        <div><b className="text-fg">Inferred snippets:</b> {counts(g.snippets_by_demo)}</div>
+        {g.agents?.length ? <div><b className="text-fg">Delegated to:</b> {g.agents.join(", ")}</div> : null}
+      </div>
+      <div className="text-[11px] text-muted">{g.surface} · {g.latency_s}s</div>
     </div>
   );
 }
@@ -143,7 +165,7 @@ export function LsArena() {
               <Lens title="Governed tools (A6)" icon={<Wrench className="h-4 w-4" />} color="var(--primary)"><A6 l={run.lenses.a6_tools} /></Lens>
               <Lens title="Metric view" icon={<Database className="h-4 w-4" />} color="var(--lens-metric_view)"><SqlRows l={run.lenses.metric_view} /></Lens>
               <Lens title="Closure tables" icon={<GitCompare className="h-4 w-4" />} color="var(--lens-closure)"><SqlRows l={run.lenses.closure} /></Lens>
-              <Lens title="Genie agent (A2)" icon={<Bot className="h-4 w-4" />} color="var(--lens-genie_ontology)"><Genie qid={run.qid} /></Lens>
+              <Lens title="Genie Ontology (Genie One)" icon={<Bot className="h-4 w-4" />} color="var(--lens-genie_ontology)"><Genie qid={run.qid} /></Lens>
               <Lens title="Knowledge graph (Ontobricks)" icon={<Network className="h-4 w-4" />} color="var(--lens-graph)"
                 state={<Chip tone={toneFor(run.lenses.graph.state)}>{run.lenses.graph.state}</Chip>}>
                 <Gated l={run.lenses.graph} what="Traversal over the published triplestore (same facts as kb_edge)." />

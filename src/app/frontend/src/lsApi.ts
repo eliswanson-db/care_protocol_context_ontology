@@ -54,6 +54,22 @@ export interface ArenaRun extends Stamped {
 export interface ReadinessComp { id: string; label: string; state: string; detail: string; checked_in_s?: number }
 export interface Readiness { demo_id: string; display_name: string; checked_at: string; components: ReadinessComp[]; summary: Record<string, number> }
 
+export interface GenieOneRun {
+  qid: string;
+  status: "running" | "done" | "error";
+  error?: string;
+  surface?: string;
+  answer?: string;
+  latency_s?: number;
+  pages?: { name: string; relevance: number | null; demo: string }[];
+  pages_by_demo?: Record<string, number>;
+  snippets_by_demo?: Record<string, number>;
+  top_snippets?: { headline: string; type: string; demo: string }[];
+  pages_read?: string[];
+  agents?: string[];
+  tool_order?: string[];
+}
+
 export const ls = {
   overview: () => get<Overview>("/api/ls/overview"),
   tracers: () => get<Stamped & { tracers: Row[] }>("/api/ls/tracers"),
@@ -66,7 +82,7 @@ export const ls = {
   rules: () => get<Stamped & { rule_versions: Row[]; assertions: Row[]; documents: Row[] }>("/api/ls/rules"),
   arenaQuestions: () => get<Stamped & { questions: ArenaQ[] }>("/api/ls/arena/questions"),
   arenaRun: (qid: string) => get<ArenaRun>(`/api/ls/arena/run?qid=${qid}`),
-  arenaGenie: (qid: string) => get<Stamped & { answer: string; sql: string[]; latency_s: number; surface: string }>(`/api/ls/arena/genie?qid=${qid}`),
+  arenaGenie: (qid: string) => get<Stamped & GenieOneRun>(`/api/ls/arena/genie?qid=${qid}`),
 };
 export const readinessApi = {
   all: (refresh = false) => get<{ demos: Readiness[] }>(`/api/readiness?all_demos=true${refresh ? "&refresh=true" : ""}`),

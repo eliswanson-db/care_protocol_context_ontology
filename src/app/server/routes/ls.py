@@ -16,7 +16,7 @@ from pathlib import Path
 import yaml
 from fastapi import APIRouter, HTTPException
 
-from ..config import CATALOG, get_workspace_client
+from ..config import CATALOG
 from ..ls_a6 import clinical_study_supervisor as sup
 from ..ls_a6.clinical_study_tools import RULE_VERSIONS, InputError, make_tools
 from ..readiness import component
@@ -404,34 +404,46 @@ def arena_run(qid: str):
 
 
 @router.get("/arena/genie")
-def arena_genie(qid: str, space: str = "Clinical Study Lab — Study Analytics"):
-    """Ask a Clinical Study Genie space (the A2 surface) the question, live. AI-generated; labeled as such."""
+def arena_genie(qid: str):
+    """Genie Ontology lens = Genie One, the workspace front door (same surface as the HEDIS lens), run live in the
+    background. We report what it actually retrieved: Pages and inferred snippets, labelled by demo (the workspace
+    is shared, so other-demo retrieval is shown, not hidden), the assets it read and the agent it delegated to."""
+    from ..genie_trace import get_trace
+
     q = next((x for x in _questions() if x["qid"] == qid), None)
     if q is None:
         raise HTTPException(404, f"unknown question {qid}")
-    if not space.startswith("Clinical Study Lab — "):
-        raise HTTPException(409, "only Clinical Study Lab spaces are reachable from this demo")
-    w = get_workspace_client()
-    sid = next(
-        (s.space_id for s in (w.genie.list_spaces().spaces or []) if (s.title or "").startswith(space)), None
-    )
-    if sid is None:
-        raise HTTPException(503, f"Genie space {space!r} not found")
-    t0 = time.time()
-    msg = w.genie.start_conversation_and_wait(sid, q["question"])
-    texts, sqls = [], []
-    for att in msg.attachments or []:
-        if att.text and att.text.content:
-            texts.append(att.text.content)
-        if att.query and att.query.query:
-            sqls.append(att.query.query)
-    return _stamp(
-        {
-            "qid": qid,
-            "space": space,
-            "answer": "\n\n".join(texts),
-            "sql": sqls,
-            "latency_s": round(time.time() - t0, 1),
-            "surface": "Genie Agent (A2), AI-generated",
-        }
-    )
+    question = f"In the Clinical Study Context & Evidence Lab: {q['question']}"
+    r = get_trace(question, demo=DEMO)
+    if r["status"] != "done":
+        return _stamp({"qid": qid, "status": r["status"], "error": r.get("error")})
+    t = r["trace"]
+
+    def items(kind: str) -> list[dict]:
+        seen, out = set(), []
+        for ss in t["snippet_searches"]:
+            for x in ss[kind]:
+                k = x.get("name") or x.get("headline")
+                if k not in seen:
+                    seen.add(k)
+                    out.append(x)
+        return out
+
+    pages, snips = items("pages"), items("snippets")
+
+    def by_demo(xs: list[dict]) -> dict:
+        out: dict[str, int] = {}
+        for x in xs:
+            out[x["demo"]] = out.get(x["demo"], 0) + 1
+        return out
+
+    return _stamp({
+        "qid": qid, "status": "done", "surface": "Genie One (Genie Ontology), AI-generated", "question": question,
+        "answer": t["answer"], "latency_s": r.get("latency_s"),
+        "pages": [{"name": x["name"], "relevance": x.get("relevance"), "demo": x["demo"]} for x in pages[:6]],
+        "pages_by_demo": by_demo(pages), "snippets_by_demo": by_demo(snips),
+        "top_snippets": [{"headline": x["headline"], "type": x.get("type"), "demo": x["demo"]} for x in snips[:4]],
+        "pages_read": [x.get("name") for x in t["pages_read"]],
+        "agents": [x.get("name") for x in t["agents"]],
+        "tool_order": t["tool_order"],
+    })
