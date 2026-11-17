@@ -15,13 +15,17 @@ which makes drift explicit, auditable, and reproducible instead of a silent code
 **Worked example — eGFR code modernization (KED):**
 - **MY2025** `KED_EGFR` accepts `98979-8` (CKD-EPI) **and** `33914-3` (MDRD).
 - **MY2026** `KED_EGFR` is "modernized" to `98979-8` (CKD-EPI) only.
-- The lab data is identical (Synthea records eGFR as `33914-3`, MDRD). Yet eGFR coverage for 2025 observations
-  under each value-set version is:
+- The lab data is identical (Synthea records eGFR as `33914-3`, MDRD). Yet eGFR coverage for MY2026
+  observations under each value-set version is:
 
 | Value-set version | Patients with eGFR | Codes matched |
 |---|---|---|
-| 2025 | **79** | 33914-3 |
+| 2025 | **every patient with an eGFR result** | 33914-3 |
 | 2026 | **0** | (none) |
+
+- **How the computed KED measure handles this:** `gold_adherence_ked` (and so `ked_compliance_metrics`) accepts the
+  eGFR codes of **every** value-set version (the union), so the reported MY2026 KED rate still counts `33914-3`.
+  Applying the MY2026 value set alone is the what-if this query shows.
 
 Switching the value set silently erases eGFR coverage — which would collapse the KED rate — with zero change
 in actual testing. The demo query is `src/semantic/measure_drift_demo.sql`.

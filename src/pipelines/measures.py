@@ -313,7 +313,8 @@ def gold_adherence_eed():
 
 # ---------------- Protocol-STEP adherence (the "A Monday with Genie" hero: did the due event happen in time?) ----
 # Protocol Step: after an A1c above target, intensify therapy and recheck A1c within 90 days.
-# Trigger = A1c >9% (poor control) -- the clinically correct threshold the storyboard is built on. The
+# Trigger = A1c >= 9.0% (A1C_TRIGGER, inclusive). NOTE: the care-protocol document says "> 9.0%" and GSD's poor
+# band is "> 9%"; 35 triggers sit at exactly 9.0 -- open decision, docs/benchmark/CONTEXT_CONSISTENCY_AUDIT.md. The
 # care-behavior model (ADR-0012) writes each poor-control patient's modeled A1c (>9%) into the event stream as a
 # real result, so the poorly-controlled cohort (~700) triggers here, not just the ~4 raw well-controlled highs.
 A1C_TRIGGER = 9.0
@@ -321,7 +322,7 @@ FOLLOWUP_DAYS = 90
 
 
 @dp.materialized_view(
-    comment="Protocol Step 3 adherence: for each A1c result >9% (poor control), was there "
+    comment="Protocol Step 3 adherence: for each A1c result >= 9.0% in the measurement year, was there "
             "a recheck A1c within 90 days? One row per trigger event. This is the "
             "PROCESS-adherence layer (which protocol step slipped), distinct from the outcome Star measures. "
             "HEDIS-aligned demo, not NCQA-certified.")

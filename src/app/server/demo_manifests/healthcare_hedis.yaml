@@ -17,7 +17,7 @@ components:
   - {id: metric_views, label: Metric views, check: tables, certified_expected: true,
      tables: [care_protocol_semantic.gsd_compliance_metrics, care_protocol_semantic.ked_compliance_metrics,
               care_protocol_semantic.protocol_adherence_metrics]}
-  - {id: pages, label: Pages (managed via Pages API), check: pages_api, count: 16, state_table: care_protocol.pages_sync_state}
+  - {id: pages, label: Pages (managed via Pages API), check: pages_api, count: 19, state_table: care_protocol.pages_sync_state}
   - {id: agents, label: Genie agents, check: genie_spaces,
      titles: ["Care Protocol — HEDIS Diabetes Quality", "Care Protocol — Protocol Process & Medication Adherence",
               "Care Protocol — Cohort & Terminology", "Care Protocol — LOINC Lab Measures"]}

@@ -20,7 +20,8 @@ health in diabetic patients. Its numerator is **compound** — it requires two d
 A patient is **MET** only when **both** components are present; missing either is a care gap. Because the two
 components are tracked separately, the **eGFR Test Rate** and **uACR Test Rate** are each exposed in
 `ked_compliance_metrics` alongside the combined **KED Compliance Rate**. In this demo uACR is the limiting
-component (eGFR ~92%, uACR ~51%, combined ~51%).
+component: far fewer patients have a uACR test than an eGFR test (query the component rates for current
+values; this Page deliberately quotes no numbers that the data can change).
 
 > The eGFR value set spans LOINC vintages (e.g. `33914-3` MDRD and `98979-8`) — a reminder that value sets
 > evolve and a measure must accept all valid codes for the concept. HEDIS-aligned demo, not NCQA-certified.

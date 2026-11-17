@@ -21,7 +21,7 @@ def _all():
 
 def test_every_source_parses_within_api_limits():
     srcs = _all()
-    assert len(srcs) == 31
+    assert len(srcs) == 34
     for s in srcs:
         pg = s["page"]
         assert 1 <= len(pg["display_name"]) <= 200

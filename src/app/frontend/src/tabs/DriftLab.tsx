@@ -70,7 +70,7 @@ export function DriftLab() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">A Monday with Genie — the drift nobody asked about</h1>
         <p className="mt-1.5 text-[15px] text-muted">
-          Protocol Step-3 = an A1c recheck within 90 days of an at/above-target result. The annual ranking and the
+          Protocol Step-3 = an A1c recheck within 90 days of an A1c result ≥ 9%. The annual ranking and the
           operational question point at <span className="font-semibold text-fg">different clinics</span>. MY {d.measurement_year}.
         </p>
       </div>
