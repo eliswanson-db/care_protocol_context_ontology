@@ -114,6 +114,72 @@ function ProvenanceChain({ p }: { p: Participant }) {
   );
 }
 
+// The SAP section is long; show only the sentences that state this rule's parameters, the rest on demand.
+const RULE_LABELS = ["Baseline.", "Week 24 target date.", "Analysis window.", "Selection."];
+function RuleSentences({ text }: { text?: string }) {
+  if (!text) return <div className="text-[12px] text-muted">Section text unavailable.</div>;
+  const paras = text.split(/\n\s*\n/).map((x) => x.replace(/\s+/g, " ").trim());
+  const key = paras.filter((x) => RULE_LABELS.some((l) => x.startsWith(l)));
+  return (
+    <div className="space-y-1.5 text-[12px] leading-snug">
+      {(key.length ? key : paras.slice(0, 2)).map((x, i) => {
+        const l = RULE_LABELS.find((r) => x.startsWith(r));
+        return <p key={i}>{l ? <><b>{l.slice(0, -1)}:</b>{x.slice(l.length)}</> : x}</p>;
+      })}
+      <details>
+        <summary className="cursor-pointer text-muted hover:text-fg">Full section</summary>
+        <Code>{text}</Code>
+      </details>
+    </div>
+  );
+}
+
+function pathLabels(c: Row): string[] {
+  try { return typeof c.path_labels === "string" ? JSON.parse(c.path_labels) : c.path_labels || []; } catch { return []; }
+}
+
+// One-line verdict; only the criteria that decided it are spelled out (with the ontology path when there is one).
+function EligibilityCard({ p }: { p: Participant }) {
+  const crit = p.eligibility.criteria;
+  const pop = p.eligibility.population;
+  const deciding = crit.filter((c) => !["MET", "NOT_TRIGGERED"].includes(c.outcome) || pathLabels(c).length);
+  const head = crit[0] ? `${crit[0].eligibility_rule_id} · protocol ${crit[0].protocol_version} at screening` : undefined;
+  return (
+    <Card title="Eligibility at screening" sub={head}
+      right={pop && (
+        <div className="flex gap-1">
+          <Chip tone={toneFor(String(pop.rule_eligible))}>{pop.rule_eligible ? "eligible" : "not eligible"}</Chip>
+          {String(pop.edc_eligible) !== (pop.rule_eligible ? "Y" : "N") && <Chip tone="warn">EDC says {pop.edc_eligible}</Chip>}
+          <Chip tone={toneFor(pop.FASFL)}>FAS {pop.FASFL}</Chip>
+          <Chip tone={toneFor(pop.PPSFL)}>PPS {pop.PPSFL}</Chip>
+        </div>
+      )}>
+      {deciding.length === 0 ? (
+        <div className="text-[12px] text-muted">All {crit.length} criteria met; no history or medication triggered an exclusion.</div>
+      ) : (
+        <ul className="space-y-1 text-[12px]">
+          {deciding.map((c) => (
+            <li key={c.criterion_id} className="flex flex-wrap items-baseline gap-1.5">
+              <span className="font-mono">{c.criterion_id}</span>
+              <Chip tone={toneFor(c.outcome)}>{c.outcome}</Chip>
+              <span>{c.detail}</span>
+              {pathLabels(c).length > 0 && <span className="text-muted">· {pathLabels(c).join(" → ")}</span>}
+            </li>
+          ))}
+        </ul>
+      )}
+      <details className="mt-1.5">
+        <summary className="cursor-pointer text-[12px] text-muted hover:text-fg">All {crit.length} criteria</summary>
+        <Table rows={crit} cols={[
+          { key: "criterion_id", label: "criterion", className: "font-mono" },
+          { key: "outcome", label: "outcome", render: (c) => <Chip tone={toneFor(c.outcome)}>{c.outcome}</Chip> },
+          { key: "detail", label: "detail" },
+        ]} />
+      </details>
+    </Card>
+  );
+}
+
 export function ParticipantEvidence() {
   const { ruleVersion, setRuleVersion, focus, study, setStudy } = useLs();
   const [usubjid, setUsubjid] = useState<string | null>(focus?.usubjid ?? "CSL-A-FX-05");
@@ -171,7 +237,7 @@ export function ParticipantEvidence() {
               </div>
             </div>
 
-            <Card title="Observations on the study timeline" sub={`Every weight record, placed by its actual date. Colour = decision under ${p.rule_version}; numbers = record sequence. Dates decide, visit labels don't.`}>
+            <Card title="Observations on the study timeline" sub={`Placed by actual date; colour = decision under ${p.rule_version}.`}>
               <Timeline p={p} />
               <div className="mt-1 flex gap-3 text-[11px] text-muted">
                 <span><span style={{ color: "var(--success)" }}>●</span> selected</span>
@@ -180,77 +246,47 @@ export function ParticipantEvidence() {
               </div>
             </Card>
 
-            <Card title="Candidates and decisions" sub="Raw value and unit as keyed at the site → CDISC CT unit → kg → decision. Nothing is dropped silently.">
+            <Card title="Candidates and decisions" sub="Every weight record, raw as keyed → kg → decision.">
               <Table rows={t.candidates} highlight={(c) => c.decision === "SELECTED"} cols={[
                 { key: "vsseq", label: "seq" },
                 { key: "visit", label: "visit" },
-                { key: "vsdtc", label: "date/time", className: "font-mono" },
+                { key: "vsdtc", label: "date", className: "font-mono" },
                 { key: "study_day", label: "day" },
                 { key: "days_from_target", label: "Δ target" },
                 { key: "orres", label: "raw", render: (c: Candidate) => <>{fmt(c.orres)} <span className="text-muted">{c.raw_unit || ""}</span></> },
-                { key: "ct_unit", label: "CT unit" },
                 { key: "weight_kg", label: "kg", render: (c) => num(c.weight_kg, 2) },
-                { key: "role", label: "role" },
-                { key: "decision", label: "decision", render: (c) => <Chip tone={toneFor(c.decision)}>{c.decision}</Chip> },
-                { key: "reason", label: "reason", className: "font-mono text-[11px]" },
+                { key: "decision", label: "decision", render: (c) => <Chip tone={toneFor(c.decision)}>{c.decision.replace(/_/g, " ").toLowerCase()}</Chip> },
+                { key: "reason", label: "why", className: "font-mono text-[11px]" },
               ]} />
             </Card>
 
             <div className="grid gap-3 lg:grid-cols-2">
-              <Card title="Calculation" sub={`${t.endpoint_version} · formula from the approved rule`}>
-                <div className="mb-2 flex flex-wrap gap-2 text-[12px]">
+              <Card title="Calculation" sub={t.endpoint_version}>
+                <div className="mb-1.5 flex flex-wrap items-center gap-2 text-[12px]">
                   <Chip tone={toneFor(t.result_status)}>{t.result_status}</Chip>
                   {t.exclusion_reason && <span className="font-mono text-[11.5px]">{t.exclusion_reason}</span>}
                 </div>
-                <div className="text-[12.5px]">reference date <b>{fmt(t.reference_date)}</b> · Week 24 target <b>{fmt(t.target_date)}</b></div>
-                {t.calculation ? <Code>{t.calculation}</Code> : <div className="mt-1 text-[12px] text-muted">No value derived; no imputation is done.</div>}
+                <div className="text-[12px] text-muted">reference {fmt(t.reference_date)} · Week 24 target {fmt(t.target_date)}</div>
+                {t.calculation ? <Code>{t.calculation}</Code> : <div className="mt-1 text-[12px] text-muted">No value derived (no imputation).</div>}
               </Card>
               <Card title={<span className="flex items-center gap-1"><FileText className="h-3.5 w-3.5" /> Document support</span>}
-                sub={`${p.rule.citation.document} §${p.rule.citation.section} · protocol ${p.rule.citation.protocol_version} / SAP ${p.rule.citation.sap_version} · ${p.rule.citation.review_state} (${p.rule.citation.approved_by})`}>
-                {p.rule.section_text ? <Code>{p.rule.section_text.text}</Code> : <div className="text-[12px] text-muted">Section text unavailable.</div>}
-                <div className="mt-1.5 flex flex-wrap gap-1">
-                  {Object.entries(p.rule.assertions.reduce<Record<string, { n: number; state: string }>>((acc, a) => {
-                    const k = `${a.assertion_type}=${a.value}`;
-                    acc[k] = { n: (acc[k]?.n ?? 0) + 1, state: a.review_state };
-                    return acc;
-                  }, {})).map(([k, v]) => (
-                    <Chip key={k} tone={toneFor(v.state)} title={`${v.state}; stated in ${v.n} document section(s)`}>{k}{v.n > 1 ? ` ×${v.n}` : ""}</Chip>
-                  ))}
-                </div>
+                sub={`${p.rule.citation.document} §${p.rule.citation.section} · ${p.rule.citation.review_state} (${p.rule.citation.approved_by})`}>
+                <RuleSentences text={p.rule.section_text?.text} />
               </Card>
             </div>
 
-            <Card title="Eligibility at screening" sub={p.eligibility.criteria[0] ? `${p.eligibility.criteria[0].eligibility_rule_id} · protocol ${p.eligibility.criteria[0].protocol_version} (in force on the screening date)` : undefined}
-              right={p.eligibility.population && (
-                <div className="flex gap-1">
-                  <Chip tone={toneFor(String(p.eligibility.population.rule_eligible))}>rule-eligible {String(p.eligibility.population.rule_eligible)}</Chip>
-                  <Chip>EDC {p.eligibility.population.edc_eligible}</Chip>
-                  <Chip tone={toneFor(p.eligibility.population.FASFL)}>FAS {p.eligibility.population.FASFL}</Chip>
-                  <Chip tone={toneFor(p.eligibility.population.PPSFL)}>PPS {p.eligibility.population.PPSFL}</Chip>
-                </div>
-              )}>
-              <Table rows={p.eligibility.criteria} cols={[
-                { key: "criterion_id", label: "criterion", className: "font-mono" },
-                { key: "outcome", label: "outcome", render: (c) => <Chip tone={toneFor(c.outcome)}>{c.outcome}</Chip> },
-                { key: "detail", label: "detail" },
-                { key: "path_labels", label: "ontology path", render: (c) => {
-                  let labels: string[] = [];
-                  try { labels = typeof c.path_labels === "string" ? JSON.parse(c.path_labels) : c.path_labels || []; } catch { labels = []; }
-                  return labels.length ? <span className="text-[11.5px]">{labels.join(" → ")}</span> : <span className="text-muted">—</span>;
-                } },
-              ]} />
-            </Card>
+            <EligibilityCard p={p} />
 
-            <Card title={<span className="flex items-center gap-1"><GitBranch className="h-3.5 w-3.5" /> Provenance chain</span>} sub="From the raw record to the run that produced the number.">
+            <Card title={<span className="flex items-center gap-1"><GitBranch className="h-3.5 w-3.5" /> Provenance chain</span>}>
               <ProvenanceChain p={p} />
-            </Card>
-
-            <Card title="Raw EDC source (bronze)" sub="Exactly as delivered: strings, site units, blanks.">
-              <Table rows={p.raw_source} cols={[
-                { key: "record_id", label: "record", className: "font-mono text-[11px]" },
-                { key: "visit", label: "visit" }, { key: "vsdtc", label: "vsdtc", className: "font-mono" },
-                { key: "vsorres", label: "vsorres" }, { key: "vsorresu", label: "vsorresu" }, { key: "vsstat", label: "vsstat" },
-              ]} />
+              <details className="mt-2">
+                <summary className="cursor-pointer text-[12px] text-muted hover:text-fg">Raw EDC source rows (bronze, exactly as delivered)</summary>
+                <Table rows={p.raw_source} cols={[
+                  { key: "record_id", label: "record", className: "font-mono text-[11px]" },
+                  { key: "visit", label: "visit" }, { key: "vsdtc", label: "vsdtc", className: "font-mono" },
+                  { key: "vsorres", label: "vsorres" }, { key: "vsorresu", label: "vsorresu" }, { key: "vsstat", label: "vsstat" },
+                ]} />
+              </details>
             </Card>
           </>
         )}

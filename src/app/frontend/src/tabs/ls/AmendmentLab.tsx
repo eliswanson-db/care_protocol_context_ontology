@@ -31,7 +31,7 @@ function SiteBars({ rows, onPick, picked }: { rows: Amendment["by_site"]; onPick
 }
 
 export function AmendmentLab() {
-  const { openParticipant, study } = useLs();
+  const { openParticipant, study, overview } = useLs();
   const [site, setSite] = useState<string | undefined>();
   const [a, setA] = useState<Amendment | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -54,6 +54,11 @@ export function AmendmentLab() {
         <GitCompare className="h-5 w-5 text-primary" />
         <h2 className="text-lg font-bold">Amendment Lab — CSL-A Protocol Amendment 1</h2>
         <span className="font-mono text-[12px] text-muted">EP-A-WT24.R1 <ArrowRight className="inline h-3 w-3" /> EP-A-WT24.R2</span>
+      </div>
+      <div className="flex flex-wrap gap-x-4 text-[12px] text-muted">
+        {overview?.study_versions.filter((v) => v.study_id === "CSL-A").map((v) => (
+          <span key={v.protocol_version}><b className="text-fg">Protocol {v.protocol_version}</b> {v.effective_date} — {v.change_summary ?? "original"}</span>
+        ))}
       </div>
 
       <Card title="What changed in the definition" sub={a.definition_diff.differences.length === 1 ? "Exactly one parameter changed, so the impact is interpretable." : undefined}>

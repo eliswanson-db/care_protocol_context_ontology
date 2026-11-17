@@ -31,6 +31,7 @@ line-length = 110
 "src/app/server/ls_a6/*.py" = ["E501"]
 "src/app/server/routes/ls.py" = ["E501"]
 "scripts/ls_genie_spaces.py" = ["E501"]
+"scripts/gen_protocol_pages.py" = ["E501"]
 "src/mcp/_selftest_ls.py" = ["E501"]
 
 [build-system]

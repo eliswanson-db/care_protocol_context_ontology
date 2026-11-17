@@ -1,4 +1,4 @@
-"""HEDIS context parity (ADR-0025 applied to the HEDIS lab; docs/benchmark/CONTEXT_CONSISTENCY_AUDIT.md). No workspace.
+"""HEDIS context parity (ADR-0025 applied to HEDIS; docs/benchmark/CONTEXT_CONSISTENCY_AUDIT.md).
 
 - the Page stating the care-protocol edges is generated from protocol_edges.csv and current (same facts as the
   graph and the closure/edge tables)
@@ -11,7 +11,6 @@ from __future__ import annotations
 import csv
 import importlib.util
 import re
-import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -37,7 +36,9 @@ def test_protocol_rules_page_is_current_and_complete():
 def test_step3_page_states_the_computed_rule():
     trig = float(re.search(r"^A1C_TRIGGER = ([\d.]+)", PIPE, re.M).group(1))
     days = int(re.search(r"^FOLLOWUP_DAYS = (\d+)", PIPE, re.M).group(1))
-    assert re.search(r'value_num"\) >= A1C_TRIGGER', PIPE), "trigger comparison changed: update the Step-3 Page"
+    assert re.search(r'value_num"\) >= A1C_TRIGGER', PIPE), (
+        "trigger comparison changed: update the Step-3 Page"
+    )
     page = (PAGES / "protocol-step-3.md").read_text()
     assert f"≥ {trig:.1f}%" in page and f"within {days} days" in page.replace("**", "")
     drift = (ROOT / "src/app/frontend/src/tabs/DriftLab.tsx").read_text()
@@ -46,7 +47,11 @@ def test_step3_page_states_the_computed_rule():
 
 def test_mad_page_states_the_computed_rule():
     mv = (ROOT / "src/semantic/metric_views/mad_compliance.metric_view.sql").read_text()
-    assert "pdc >= 0.8" in mv and re.search(r'F.col\("fills"\) >= 2', PIPE) and re.search(r'F.col\("age"\) >= 18\)', PIPE)
+    assert (
+        "pdc >= 0.8" in mv
+        and re.search(r'F.col\("fills"\) >= 2', PIPE)
+        and re.search(r'F.col\("age"\) >= 18\)', PIPE)
+    )
     page = (PAGES / "mad.md").read_text().replace("**", "")
     assert "PDC ≥ 80%" in page and "at least 2 fills" in page and "18+" in page
 

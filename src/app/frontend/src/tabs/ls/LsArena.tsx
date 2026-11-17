@@ -27,6 +27,35 @@ function SqlRows({ l }: { l: any }) {
   );
 }
 
+// The answer in one or two lines; the full tool output stays one click away.
+function summarize(tool: string, r: any): ReactNode {
+  const n = (v: any, d = 1) => (v === null || v === undefined ? "—" : Number(v).toFixed(d));
+  switch (tool) {
+    case "endpoint_summary":
+      return <>{r.by_arm.map((a: any) => `${a.arm}: mean ${n(a.mean_pct_change, 2)}% (n=${a.derived} of ${a.fas} FAS)`).join(" · ")}<span className="text-muted"> · {r.endpoint_version}</span></>;
+    case "participant_trace":
+      return <>{r.usubjid} under {r.endpoint_version}: <b>{r.result_status}</b>{r.pct_change != null ? ` ${n(r.pct_change, 2)}%` : ""}{r.exclusion_reason ? ` (${r.exclusion_reason})` : ""}</>;
+    case "amendment_impact":
+      return <>R1 → R2: {r.counts.became} became derivable, {r.counts.changed_selection} changed selected record, {r.counts.more_candidates} gained candidates (of {r.counts.compared})</>;
+    case "compare_endpoints":
+      return <><b>{r.equivalent ? "Equivalent" : "Not equivalent"}</b>{r.differences.length ? ": differ in " + r.differences.map((d: any) => d.parameter).join(", ") : ""}</>;
+    case "rule_status":
+      return <>Executable: {r.executable_rules.map((x: any) => `${x.endpoint_version} ±${x.window_half_width_days} d`).join(", ")}. Not executable: {r.statements.filter((x: any) => x.review_state !== "approved").map((x: any) => `±${x.value} (${x.review_state}, ${x.document_id})`).join(", ") || "none"}</>;
+    case "rule_definition":
+      return <>{r.citation.rule_version}: {r.citation.document} §{r.citation.section} ({r.citation.review_state})</>;
+    case "dataset_mapping":
+      return <>{r.mappings.map((m: any) => m.variable.replace("SDTM:", "")).join(", ")} <span className="text-muted">where {r.filter}</span></>;
+    case "class_membership":
+      return <>{r.concept_id} is <b>{r.member ? "a member" : "not a member"}</b> of {r.class_id}{r.via_roots?.length ? ` (is_a* ${r.via_roots.map((v: any) => v.root_label ?? v.root).join(", ")})` : ""}</>;
+    case "contraindication_check":
+      return <>{r.label}: <b>{r.contraindicated_for_class ? `contraindicated (MED-RT CI_with for ${r.drugs.join(", ")})` : "not contraindicated"}</b></>;
+    case "eligibility_explain":
+      return <>{r.usubjid}: {r.criteria.filter((c: any) => !["MET", "NOT_TRIGGERED"].includes(c.outcome)).map((c: any) => `${c.criterion_id} ${c.outcome}`).join(", ") || "all criteria met"}</>;
+    default:
+      return <span className="text-muted">see tool output</span>;
+  }
+}
+
 function A6({ l }: { l: any }) {
   const r = l.route;
   if (["abstain", "clarify", "genie_fallback"].includes(r.tool))
@@ -39,8 +68,11 @@ function A6({ l }: { l: any }) {
   return (
     <div>
       <div className="mb-1 flex flex-wrap gap-1"><Chip tone="info">{r.tool}</Chip><span className="font-mono text-[11px] text-muted">{JSON.stringify(r.kwargs)}</span></div>
-      <Code>{JSON.stringify(l.result, null, 1).slice(0, 3500)}</Code>
-      <div className="mt-1 text-[11px] text-muted">{l.latency_s}s · fixed reviewed SQL, inputs whitelisted</div>
+      <div className="text-[12.5px] leading-snug">{summarize(r.tool, l.result)}</div>
+      <details className="mt-1">
+        <summary className="cursor-pointer text-[11px] text-muted">tool output ({l.latency_s}s · fixed reviewed SQL, whitelisted inputs)</summary>
+        <Code>{JSON.stringify(l.result, null, 1).slice(0, 3500)}</Code>
+      </details>
     </div>
   );
 }
