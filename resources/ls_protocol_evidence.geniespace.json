@@ -5,7 +5,7 @@
    {
     "id": "00000000000000000000000000000001",
     "question": [
-     "Has the wider \u00b121-day window been approved?"
+     "Has the wider ±21-day window been approved?"
     ]
    },
    {
@@ -37,31 +37,162 @@
  "data_sources": {
   "tables": [
    {
-    "identifier": "eli_test_classic_catalog.clinical_study.doc_document"
+    "identifier": "eli_test_classic_catalog.clinical_study.doc_document",
+    "column_configs": [
+     {
+      "column_name": "doc_type",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "document type"
+      ]
+     },
+     {
+      "column_name": "document_id",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "document"
+      ]
+     },
+     {
+      "column_name": "status",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "document status"
+      ]
+     },
+     {
+      "column_name": "study_id",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "study"
+      ]
+     }
+    ]
    },
    {
     "identifier": "eli_test_classic_catalog.clinical_study.doc_section"
    },
    {
-    "identifier": "eli_test_classic_catalog.clinical_study.rule_assertion"
+    "identifier": "eli_test_classic_catalog.clinical_study.rule_assertion",
+    "column_configs": [
+     {
+      "column_name": "assertion_type",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "rule parameter"
+      ]
+     },
+     {
+      "column_name": "document_id",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "document"
+      ]
+     },
+     {
+      "column_name": "review_state",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "review state",
+       "approval status"
+      ]
+     }
+    ]
    },
    {
     "identifier": "eli_test_classic_catalog.clinical_study_standards.analysis_population"
    },
    {
-    "identifier": "eli_test_classic_catalog.clinical_study_standards.eligibility_criterion"
+    "identifier": "eli_test_classic_catalog.clinical_study_standards.eligibility_criterion",
+    "column_configs": [
+     {
+      "column_name": "criterion_id",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "criterion"
+      ]
+     },
+     {
+      "column_name": "criterion_type",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "inclusion or exclusion"
+      ]
+     },
+     {
+      "column_name": "eligibility_rule_id",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "eligibility rule"
+      ]
+     }
+    ]
    },
    {
     "identifier": "eli_test_classic_catalog.clinical_study_standards.rule_document_support"
    },
    {
-    "identifier": "eli_test_classic_catalog.clinical_study_standards.rule_version"
+    "identifier": "eli_test_classic_catalog.clinical_study_standards.rule_version",
+    "column_configs": [
+     {
+      "column_name": "endpoint_version",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "rule version"
+      ]
+     },
+     {
+      "column_name": "review_state",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "review state"
+      ]
+     },
+     {
+      "column_name": "study_id",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "study"
+      ]
+     }
+    ]
    },
    {
     "identifier": "eli_test_classic_catalog.clinical_study_standards.study"
    },
    {
-    "identifier": "eli_test_classic_catalog.clinical_study_standards.study_version"
+    "identifier": "eli_test_classic_catalog.clinical_study_standards.study_version",
+    "column_configs": [
+     {
+      "column_name": "protocol_version",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "protocol version"
+      ]
+     },
+     {
+      "column_name": "study_id",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "study"
+      ]
+     }
+    ]
    }
   ]
  },
@@ -72,10 +203,10 @@
     "content": [
      "SYNTHETIC educational demo (Clinical Study Context & Evidence Lab). CSL-101 is a fictional GLP-1 receptor agonist; studies CSL-A and CSL-B are not real. Data are SDTM-/ADaM-shaped, not submission-ready. Results are descriptive: never state or imply efficacy, superiority or a causal effect.",
      "This space covers ONLY the Clinical Study lab. It has no HEDIS, health-plan, NCQA or care-gap data; if asked about those, say they are out of scope for this space.",
-     "Answer from the protocols, amendments and SAPs (doc_document, doc_section) and cite the document id, version and section number for every rule you state (e.g. CSL-A-SAP-v2.0 \u00a79.4.1).",
-     "Executable rules live in rule_version (endpoint rules) and eligibility_criterion; only review_state = 'approved' rules are executed. rule_assertion lists rule statements extracted from documents with review_state approved / superseded / rejected / candidate. A candidate (e.g. the DRAFT Amendment 3 memo proposing \u00b121 days) is NOT approved and changes no result. Say so explicitly when asked about it.",
+     "Answer from the protocols, amendments and SAPs (doc_document, doc_section) and cite the document id, version and section number for every rule you state (e.g. CSL-A-SAP-v2.0 §9.4.1).",
+     "Executable rules live in rule_version (endpoint rules) and eligibility_criterion; only review_state = 'approved' rules are executed. rule_assertion lists rule statements extracted from documents with review_state approved / superseded / rejected / candidate. A candidate (e.g. the DRAFT Amendment 3 memo proposing ±21 days) is NOT approved and changes no result. Say so explicitly when asked about it.",
      "Protocol scheduling windows (visit booking) are not endpoint analysis windows; those assertions are rejected as rules.",
-     "Amendments: protocol 2.0 (Amendment 1, effective 2025-09-01) widened the Week 24 analysis window to \u00b114 days; protocol 3.0 (Amendment 2, 2025-11-01) added obstructive sleep apnea to the weight-related comorbidity class for screening on/after that date.",
+     "Amendments: protocol 2.0 (Amendment 1, effective 2025-09-01) widened the Week 24 analysis window to ±14 days; protocol 3.0 (Amendment 2, 2025-11-01) added obstructive sleep apnea to the weight-related comorbidity class for screening on/after that date.",
      "All approvals are seeded demo fixtures (approved_by = demo-fixture), not real human review."
     ]
    }
@@ -84,7 +215,7 @@
    {
     "id": "00000000000000000000000000000001",
     "question": [
-     "Has the wider \u00b121-day window been approved?"
+     "Has the wider ±21-day window been approved?"
     ],
     "sql": [
      "SELECT a.document_id, d.status, a.section_number, a.value AS window_days, a.review_state, a.evidence_text FROM eli_test_classic_catalog.clinical_study.rule_assertion a JOIN eli_test_classic_catalog.clinical_study.doc_document d USING (document_id) WHERE a.assertion_type = 'FOLLOWUP_WINDOW_HALF_WIDTH' ORDER BY a.value, a.document_id"
@@ -124,6 +255,263 @@
     ],
     "sql": [
      "SELECT criterion_id, criterion_type, text, class_id FROM eli_test_classic_catalog.clinical_study_standards.eligibility_criterion WHERE eligibility_rule_id = 'ELIG-A-V2' ORDER BY criterion_type DESC, criterion_id"
+    ]
+   }
+  ],
+  "sql_snippets": {
+   "measures": [
+    {
+     "id": "57388301ddc4cfc934189283472ed47a",
+     "display_name": "Rule assertions",
+     "sql": [
+      "COUNT(rule_assertion.assertion_id)"
+     ],
+     "alias": "n_assertions",
+     "synonyms": [
+      "assertions"
+     ]
+    }
+   ],
+   "filters": [
+    {
+     "id": "1feb0e705d01ac2109c7f79e43f1c294",
+     "display_name": "Study CSL-B documents",
+     "sql": [
+      "doc_document.study_id = 'CSL-B'"
+     ],
+     "synonyms": [
+      "CSL-B"
+     ]
+    },
+    {
+     "id": "375397510b54799c912eb52539647fbc",
+     "display_name": "Approved executable rule versions",
+     "sql": [
+      "rule_version.review_state = 'approved'"
+     ],
+     "synonyms": [
+      "approved rules",
+      "executable"
+     ]
+    },
+    {
+     "id": "4c3ac2592bce91a7f0d3ded5af05b023",
+     "display_name": "Study CSL-A documents",
+     "sql": [
+      "doc_document.study_id = 'CSL-A'"
+     ],
+     "synonyms": [
+      "CSL-A"
+     ]
+    },
+    {
+     "id": "5aaaa60ebe52be1f6c36c0a42b4c0aba",
+     "display_name": "Candidate assertions (never executed)",
+     "sql": [
+      "rule_assertion.review_state = 'candidate'"
+     ],
+     "synonyms": [
+      "candidate",
+      "draft rule",
+      "proposed"
+     ]
+    },
+    {
+     "id": "87173011637d30e122bafee5d174c6ad",
+     "display_name": "Assertions that are not approved",
+     "sql": [
+      "rule_assertion.review_state <> 'approved'"
+     ],
+     "synonyms": [
+      "unapproved"
+     ]
+    },
+    {
+     "id": "8ab2d27569ed1cd8cba8df69153d5611",
+     "display_name": "Superseded assertions",
+     "sql": [
+      "rule_assertion.review_state = 'superseded'"
+     ],
+     "synonyms": [
+      "superseded",
+      "replaced"
+     ]
+    },
+    {
+     "id": "a384f0a17576cb30ec5c80dad778bb2d",
+     "display_name": "Week 24 window statements",
+     "sql": [
+      "rule_assertion.assertion_type = 'FOLLOWUP_WINDOW_HALF_WIDTH'"
+     ],
+     "synonyms": [
+      "analysis window",
+      "visit window"
+     ]
+    },
+    {
+     "id": "e47b05cca44ec3125a672ca4ad018400",
+     "display_name": "Draft documents",
+     "sql": [
+      "doc_document.status = 'DRAFT'"
+     ],
+     "synonyms": [
+      "draft",
+      "not approved document"
+     ]
+    }
+   ],
+   "expressions": [
+    {
+     "id": "a4a2e78da2675c9284ef563f3e8baf4a",
+     "display_name": "Citation",
+     "sql": [
+      "CONCAT(doc_section.document_id, ' §', doc_section.section_number)"
+     ],
+     "alias": "citation"
+    }
+   ]
+  },
+  "join_specs": [
+   {
+    "id": "00b84f805bc432c8823e3637494f7c63",
+    "left": {
+     "identifier": "eli_test_classic_catalog.clinical_study.rule_assertion",
+     "alias": "rule_assertion"
+    },
+    "right": {
+     "identifier": "eli_test_classic_catalog.clinical_study.doc_section",
+     "alias": "doc_section"
+    },
+    "sql": [
+     "rule_assertion.section_id = doc_section.section_id",
+     "--rt=FROM_RELATIONSHIP_TYPE_MANY_TO_ONE--"
+    ]
+   },
+   {
+    "id": "4a0807dff01386d5a32e9bf2d7c88877",
+    "left": {
+     "identifier": "eli_test_classic_catalog.clinical_study.rule_assertion",
+     "alias": "rule_assertion"
+    },
+    "right": {
+     "identifier": "eli_test_classic_catalog.clinical_study.doc_document",
+     "alias": "doc_document"
+    },
+    "sql": [
+     "rule_assertion.document_id = doc_document.document_id",
+     "--rt=FROM_RELATIONSHIP_TYPE_MANY_TO_ONE--"
+    ]
+   },
+   {
+    "id": "60ae2999039907a0d8065c839cbf82b0",
+    "left": {
+     "identifier": "eli_test_classic_catalog.clinical_study.doc_section",
+     "alias": "doc_section"
+    },
+    "right": {
+     "identifier": "eli_test_classic_catalog.clinical_study.doc_document",
+     "alias": "doc_document"
+    },
+    "sql": [
+     "doc_section.document_id = doc_document.document_id",
+     "--rt=FROM_RELATIONSHIP_TYPE_MANY_TO_ONE--"
+    ]
+   },
+   {
+    "id": "6a770fdae3ba260a9a01a36093f5f5dd",
+    "left": {
+     "identifier": "eli_test_classic_catalog.clinical_study_standards.rule_document_support",
+     "alias": "rule_document_support"
+    },
+    "right": {
+     "identifier": "eli_test_classic_catalog.clinical_study_standards.rule_version",
+     "alias": "rule_version"
+    },
+    "sql": [
+     "rule_document_support.rule_id = rule_version.endpoint_version",
+     "--rt=FROM_RELATIONSHIP_TYPE_MANY_TO_ONE--"
+    ]
+   },
+   {
+    "id": "8dc0cb2526d0c64304c18526907e22c5",
+    "left": {
+     "identifier": "eli_test_classic_catalog.clinical_study_standards.study_version",
+     "alias": "study_version"
+    },
+    "right": {
+     "identifier": "eli_test_classic_catalog.clinical_study_standards.study",
+     "alias": "study"
+    },
+    "sql": [
+     "study_version.study_id = study.study_id",
+     "--rt=FROM_RELATIONSHIP_TYPE_MANY_TO_ONE--"
+    ]
+   },
+   {
+    "id": "c42d2622bcee2581c4248b63b8e64b90",
+    "left": {
+     "identifier": "eli_test_classic_catalog.clinical_study_standards.rule_document_support",
+     "alias": "rule_document_support"
+    },
+    "right": {
+     "identifier": "eli_test_classic_catalog.clinical_study.doc_section",
+     "alias": "doc_section"
+    },
+    "sql": [
+     "rule_document_support.document_id = doc_section.document_id AND rule_document_support.section = doc_section.section_number",
+     "--rt=FROM_RELATIONSHIP_TYPE_MANY_TO_ONE--"
+    ]
+   }
+  ]
+ },
+ "benchmarks": {
+  "questions": [
+   {
+    "id": "50d0befa01c3b0cbf4336d628c6078fe",
+    "question": [
+     "What Week 24 window half-width does EP-A-WT24.R2 use?"
+    ],
+    "answer": [
+     {
+      "format": "SQL",
+      "content": [
+       "SELECT window_half_width_days FROM eli_test_classic_catalog.clinical_study_standards.rule_version WHERE endpoint_version = 'EP-A-WT24.R2'"
+      ]
+     }
+    ],
+    "evaluation_note": [
+     "From the approved registry; stated in CSL-A-SAP-v2.0 §9.4.1."
+    ]
+   },
+   {
+    "id": "99b63a51a383a95acf92b5383645a527",
+    "question": [
+     "What is the review state of the proposed ±21-day Week 24 window?"
+    ],
+    "answer": [
+     {
+      "format": "SQL",
+      "content": [
+       "SELECT review_state FROM eli_test_classic_catalog.clinical_study.rule_assertion WHERE assertion_type = 'FOLLOWUP_WINDOW_HALF_WIDTH' AND value = '21'"
+      ]
+     }
+    ],
+    "evaluation_note": [
+     "Draft Amendment 3 memo; never executed."
+    ]
+   },
+   {
+    "id": "c2e201d53ee614d892431c93a1433c9e",
+    "question": [
+     "Which document section supports EP-A-WT24.R2?"
+    ],
+    "answer": [
+     {
+      "format": "SQL",
+      "content": [
+       "SELECT CONCAT(document_id, ' §', section) FROM eli_test_classic_catalog.clinical_study_standards.rule_document_support WHERE rule_id = 'EP-A-WT24.R2'"
+      ]
+     }
     ]
    }
   ]

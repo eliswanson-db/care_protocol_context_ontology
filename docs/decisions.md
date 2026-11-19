@@ -5,6 +5,27 @@ statement in the source plans under `docs/sources/`.
 
 ---
 
+## ADR-0027 — Genie-space knowledge stores are repo-managed context, held to the same parity as everything else
+**Date:** 2026-11-19 · **Status:** accepted · **Extends:** ADR-0025, ADR-0026
+**Finding:** of 50 HEDIS inferred snippets in recorded Genie One runs, 36 were mined from Genie-space knowledge stores
+(measures, filters, expressions, joins, example SQL) and 14 from query history. None came from Pages, column comments
+or the bundle spaces, which had no knowledge stores. The two source spaces were unmanaged dev copies
+(`docs/ontology/GENIE_SPACES_FLAGGED.md`). Life sciences had no knowledge stores, so it had no inferred-snippet
+source beyond query history.
+
+**Decision:** knowledge stores are defined in `src/genie/knowledge_stores.py` for all 7 managed spaces. They are
+applied by `scripts/genie_knowledge.py` (also run by `scripts/ls_genie_spaces.py`) and deployed with the bundle.
+Every item restates existing facts: HEDIS snippets restate metric-view expressions; life-sciences rule-version
+filters, class membership (via `class_root` + closures), the GLP-1 class and benchmark answers come from the registry,
+the KB and the oracles. HEDIS benchmarks are the gold answer-key queries. `--validate` runs all of them live (250
+items, 0 failures at adoption). `tests/test_genie_knowledge.py` checks parity, API constraints (sorted unique ids)
+and demo isolation offline, and is mutation-checked.
+
+**Consequence:** the Genie Ontology lane's content is now reproducible and reviewed. The unmanaged dev spaces are
+flagged, not touched. Re-record Genie One about a day after deploy to confirm snippets come from the managed spaces.
+
+---
+
 ## ADR-0026 — Pages are deployed through the Pages API (content-as-code), not Genie Code bulk import
 **Date:** 2026-11-15 · **Status:** accepted · **Supersedes:** ADR-0008's "Pages have no API: manual bulk import"
 The Pages REST API is available (`/api/2.0/knowledge/pages`, create/get/list/patch/delete, state DRAFT|PUBLISHED;

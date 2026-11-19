@@ -1,0 +1,618 @@
+{
+ "space_id": "01f1d4983b7e1d71b07aec80b1bb5c5f",
+ "title": "[dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev)",
+ "snapshot_date": "2026-11-19",
+ "serialized_space": {
+  "version": 2,
+  "config": {
+   "sample_questions": [
+    {
+     "id": "01f1d94010ea1e52af88a6801c54f9df",
+     "question": [
+      "Which clinics have the lowest Protocol Step-3 A1c follow-up adherence, and how many open obligations do they have?"
+     ]
+    },
+    {
+     "id": "01f1d94011001204855ce0d50a76101d",
+     "question": [
+      "Which clinic's Step-3 adherence is drifting below its own baseline right now?"
+     ]
+    },
+    {
+     "id": "01f1d940111a15f1aa5b857ea01ee82d",
+     "question": [
+      "What is the MAD medication adherence rate by clinic?"
+     ]
+    },
+    {
+     "id": "01f1d94011381d7d93198ee3d358d09d",
+     "question": [
+      "List KED care-gap patients at CLINIC-08 with their gap reason."
+     ]
+    },
+    {
+     "id": "a0000000000000000000000000000001",
+     "question": [
+      "What is the overall GSD compliance rate?"
+     ]
+    },
+    {
+     "id": "a0000000000000000000000000000002",
+     "question": [
+      "Show the GSD compliance rate by age band."
+     ]
+    },
+    {
+     "id": "a0000000000000000000000000000003",
+     "question": [
+      "What is the KED compliance rate, and how do the eGFR and uACR components compare?"
+     ]
+    },
+    {
+     "id": "a0000000000000000000000000000004",
+     "question": [
+      "How many diabetic patients have a care gap for kidney evaluation (KED)?"
+     ]
+    },
+    {
+     "id": "a0000000000000000000000000000005",
+     "question": [
+      "What is the blood pressure control (BPD) rate for diabetic patients?"
+     ]
+    },
+    {
+     "id": "a0000000000000000000000000000006",
+     "question": [
+      "What share of eligible diabetic patients are on statin therapy (SPD)?"
+     ]
+    },
+    {
+     "id": "a0000000000000000000000000000007",
+     "question": [
+      "What is the diabetic eye exam (EED) rate?"
+     ]
+    },
+    {
+     "id": "a0000000000000000000000000000008",
+     "question": [
+      "Compare all five diabetes measure compliance rates."
+     ]
+    }
+   ]
+  },
+  "data_sources": {
+   "tables": [
+    {
+     "identifier": "eli_test_classic_catalog.care_protocol.gold_adherence_bpd",
+     "column_configs": [
+      {
+       "column_name": "clinic_id",
+       "synonyms": [
+        "clinic",
+        "site",
+        "location"
+       ],
+       "enable_format_assistance": true,
+       "enable_entity_matching": true
+      },
+      {
+       "column_name": "eligible_flag",
+       "exclude": true
+      },
+      {
+       "column_name": "panel_id",
+       "synonyms": [
+        "panel",
+        "pcp panel",
+        "care team"
+       ],
+       "enable_format_assistance": true,
+       "enable_entity_matching": true
+      }
+     ]
+    },
+    {
+     "identifier": "eli_test_classic_catalog.care_protocol.gold_adherence_eed",
+     "column_configs": [
+      {
+       "column_name": "clinic_id",
+       "synonyms": [
+        "clinic",
+        "site",
+        "location"
+       ],
+       "enable_format_assistance": true,
+       "enable_entity_matching": true
+      },
+      {
+       "column_name": "eligible_flag",
+       "exclude": true
+      },
+      {
+       "column_name": "evidence_code",
+       "enable_format_assistance": true,
+       "enable_entity_matching": true
+      },
+      {
+       "column_name": "evidence_exam",
+       "synonyms": [
+        "eye exam",
+        "retinal exam",
+        "exam type"
+       ],
+       "enable_format_assistance": true,
+       "enable_entity_matching": true
+      },
+      {
+       "column_name": "panel_id",
+       "synonyms": [
+        "panel",
+        "pcp panel",
+        "care team"
+       ],
+       "enable_format_assistance": true,
+       "enable_entity_matching": true
+      }
+     ]
+    },
+    {
+     "identifier": "eli_test_classic_catalog.care_protocol.gold_adherence_gsd",
+     "column_configs": [
+      {
+       "column_name": "clinic_id",
+       "synonyms": [
+        "clinic",
+        "site",
+        "location"
+       ],
+       "enable_format_assistance": true,
+       "enable_entity_matching": true
+      },
+      {
+       "column_name": "eligible_flag",
+       "exclude": true
+      },
+      {
+       "column_name": "evidence_code",
+       "enable_format_assistance": true,
+       "enable_entity_matching": true
+      },
+      {
+       "column_name": "evidence_value",
+       "description": [
+        "Latest measurement-year HbA1c result, in percent (e.g. 7.4 means 7.4%). Null when the patient had no A1c test (a GSD care gap)."
+       ],
+       "synonyms": [
+        "a1c",
+        "hba1c",
+        "latest a1c"
+       ]
+      },
+      {
+       "column_name": "panel_id",
+       "synonyms": [
+        "panel",
+        "pcp panel",
+        "care team"
+       ],
+       "enable_format_assistance": true,
+       "enable_entity_matching": true
+      }
+     ]
+    },
+    {
+     "identifier": "eli_test_classic_catalog.care_protocol.gold_adherence_ked",
+     "column_configs": [
+      {
+       "column_name": "clinic_id",
+       "synonyms": [
+        "clinic",
+        "site",
+        "location"
+       ],
+       "enable_format_assistance": true,
+       "enable_entity_matching": true
+      },
+      {
+       "column_name": "egfr_code",
+       "enable_format_assistance": true,
+       "enable_entity_matching": true
+      },
+      {
+       "column_name": "eligible_flag",
+       "exclude": true
+      },
+      {
+       "column_name": "panel_id",
+       "synonyms": [
+        "panel",
+        "pcp panel",
+        "care team"
+       ],
+       "enable_format_assistance": true,
+       "enable_entity_matching": true
+      },
+      {
+       "column_name": "uacr_code",
+       "enable_format_assistance": true,
+       "enable_entity_matching": true
+      }
+     ]
+    },
+    {
+     "identifier": "eli_test_classic_catalog.care_protocol.gold_adherence_spd",
+     "column_configs": [
+      {
+       "column_name": "clinic_id",
+       "synonyms": [
+        "clinic",
+        "site",
+        "location"
+       ],
+       "enable_format_assistance": true,
+       "enable_entity_matching": true
+      },
+      {
+       "column_name": "eligible_flag",
+       "exclude": true
+      },
+      {
+       "column_name": "evidence_code",
+       "enable_format_assistance": true,
+       "enable_entity_matching": true
+      },
+      {
+       "column_name": "evidence_drug",
+       "synonyms": [
+        "statin",
+        "drug",
+        "medication"
+       ],
+       "enable_format_assistance": true,
+       "enable_entity_matching": true
+      },
+      {
+       "column_name": "panel_id",
+       "synonyms": [
+        "panel",
+        "pcp panel",
+        "care team"
+       ],
+       "enable_format_assistance": true,
+       "enable_entity_matching": true
+      }
+     ]
+    },
+    {
+     "identifier": "eli_test_classic_catalog.care_protocol_semantic.bpd_compliance_metrics"
+    },
+    {
+     "identifier": "eli_test_classic_catalog.care_protocol_semantic.eed_compliance_metrics"
+    },
+    {
+     "identifier": "eli_test_classic_catalog.care_protocol_semantic.gsd_compliance_metrics"
+    },
+    {
+     "identifier": "eli_test_classic_catalog.care_protocol_semantic.ked_compliance_metrics"
+    },
+    {
+     "identifier": "eli_test_classic_catalog.care_protocol_semantic.lab_result_metrics"
+    },
+    {
+     "identifier": "eli_test_classic_catalog.care_protocol_semantic.mad_compliance_metrics"
+    },
+    {
+     "identifier": "eli_test_classic_catalog.care_protocol_semantic.protocol_adherence_metrics"
+    },
+    {
+     "identifier": "eli_test_classic_catalog.care_protocol_semantic.protocol_drift_metrics"
+    },
+    {
+     "identifier": "eli_test_classic_catalog.care_protocol_semantic.spd_compliance_metrics"
+    },
+    {
+     "identifier": "eli_test_classic_catalog.care_protocol_semantic.ssd_compliance_metrics"
+    }
+   ]
+  },
+  "instructions": {
+   "text_instructions": [
+    {
+     "id": "c0000000000000000000000000000001",
+     "content": [
+      "This agent answers HEDIS diabetes quality and care-protocol questions over synthetic demo data. Results are HEDIS-aligned but not NCQA-certified; say so when reporting rates.\n",
+      "\n",
+      "## Where each answer comes from\n",
+      "- Measure rates, counts, numerators and denominators come from the governed metric views in the care_protocol_semantic schema: GSD (A1c testing, plus good/poor control bands), KED (kidney evaluation, with eGFR and uACR components), BPD (blood pressure control), SPD (statin therapy), EED (diabetic eye exam), MAD (medication adherence by PDC), SSD (diabetes screening for patients with schizophrenia or bipolar disorder on antipsychotics), Protocol Step-3 adherence (A1c follow-up after a high result), protocol drift, and lab results by LOINC concept.\n",
+      "- Always use MEASURE() with the view's named measures. Never re-derive a rate by summing or averaging, and never recompute a rate from the gold tables; the compliance rules are defined only in the metric views.\n",
+      "- Patient-level detail and worklists come from the gold_adherence tables. These tables hold evidence only (dates, codes, values) and no status column. To identify gap patients there, use the matching \"care gap - patient worklist\" filter, and the KED or BPD gap reason snippets for reasons. These mirror the metric view rules exactly.\n",
+      "- For gap counts or gap-reason breakdowns, prefer the metric view with the \"Care-gap rows only\" filter.\n",
+      "\n",
+      "## Defaults\n",
+      "- Unless the user names a year, apply the \"Latest measurement year\" filter. The data currently covers measurement year 2026 only; say \"latest available year (2026)\" when the user says \"this year\".\n",
+      "- All rows in the gold tables are already in the measure denominator; no extra eligibility filter is needed.\n",
+      "- Always report the denominator (Eligible Patients, or Trigger Events for Step-3) alongside any rate, and show rates as percentages.\n",
+      "\n",
+      "## Measure notes\n",
+      "- SSD is a different population (serious mental illness patients on antipsychotics), not the diabetes cohort. Do not compare its denominator to the other measures.\n",
+      "- MAD covers adults with at least two biguanide (metformin) fills; adherent means PDC of at least 80 percent.\n",
+      "- KED: uACR is usually the limiting component; show both component rates when explaining KED performance.\n",
+      "- Protocol Step-3 counts only closed 90-day follow-up windows. Open Obligations are high-A1c patients still closable this year; surface them for action questions. Do not describe recent months as a decline, because recent windows are not yet closed.\n",
+      "- For \"which clinic is slipping\" or drift questions, use the protocol drift view grouped by clinic and month, reading the latest closed month. Annual Step-3 rates can hide a recent clinic-level drop. Treat small trigger counts as directional.\n",
+      "\n",
+      "## Caveats to mention when relevant\n",
+      "- Hospice, ESRD, frailty and contraindication exclusions are not applied, so denominators run slightly high.\n",
+      "- KED eGFR value-set drift: a later measurement year's eGFR value set keeps only the CKD-EPI code, so cross-year KED comparisons can show an artificial drop.\n",
+      "- The agent has no diagnosis, medication-order or protocol-rule tables. For comorbidity counts, contraindications or recommended therapy, say the question is out of scope for this agent."
+     ]
+    }
+   ],
+   "example_question_sqls": [
+    {
+     "id": "01f1d93fdf3e1191a541423d6194a53f",
+     "question": [
+      "Compare all diabetes measure compliance rates side by side"
+     ],
+     "sql": [
+      "SELECT 'GSD' AS measure, MEASURE(`Eligible Patients`) AS eligible_patients, MEASURE(`GSD Compliance Rate`) AS compliance_rate FROM eli_test_classic_catalog.care_protocol_semantic.gsd_compliance_metrics WHERE `Measurement Year` = (SELECT MAX(measurement_year) FROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd)\n",
+      "UNION ALL SELECT 'KED', MEASURE(`Eligible Patients`), MEASURE(`KED Compliance Rate`) FROM eli_test_classic_catalog.care_protocol_semantic.ked_compliance_metrics WHERE `Measurement Year` = (SELECT MAX(measurement_year) FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked)\n",
+      "UNION ALL SELECT 'BPD', MEASURE(`Eligible Patients`), MEASURE(`BPD Compliance Rate`) FROM eli_test_classic_catalog.care_protocol_semantic.bpd_compliance_metrics WHERE `Measurement Year` = (SELECT MAX(measurement_year) FROM eli_test_classic_catalog.care_protocol.gold_adherence_bpd)\n",
+      "UNION ALL SELECT 'SPD', MEASURE(`Eligible Patients`), MEASURE(`SPD Compliance Rate`) FROM eli_test_classic_catalog.care_protocol_semantic.spd_compliance_metrics WHERE `Measurement Year` = (SELECT MAX(measurement_year) FROM eli_test_classic_catalog.care_protocol.gold_adherence_spd)\n",
+      "UNION ALL SELECT 'EED', MEASURE(`Eligible Patients`), MEASURE(`EED Compliance Rate`) FROM eli_test_classic_catalog.care_protocol_semantic.eed_compliance_metrics WHERE `Measurement Year` = (SELECT MAX(measurement_year) FROM eli_test_classic_catalog.care_protocol.gold_adherence_eed)\n",
+      "UNION ALL SELECT 'MAD', MEASURE(`Eligible Patients`), MEASURE(`MAD Adherence Rate`) FROM eli_test_classic_catalog.care_protocol_semantic.mad_compliance_metrics WHERE `Measurement Year` = (SELECT MAX(measurement_year) FROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd)\n",
+      "ORDER BY compliance_rate"
+     ]
+    },
+    {
+     "id": "01f1d93fdf3e1650ae847bdafe811d32",
+     "question": [
+      "GSD compliance and poor A1c control by clinic"
+     ],
+     "sql": [
+      "SELECT Clinic, MEASURE(`Eligible Patients`) AS eligible_patients, MEASURE(`GSD Compliance Rate`) AS gsd_compliance_rate, MEASURE(`Poor Control Rate`) AS poor_control_rate FROM eli_test_classic_catalog.care_protocol_semantic.gsd_compliance_metrics WHERE `Measurement Year` = (SELECT MAX(measurement_year) FROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd) GROUP BY Clinic ORDER BY gsd_compliance_rate"
+     ]
+    },
+    {
+     "id": "01f1d93fdf3e1b238b2b46b3da147688",
+     "question": [
+      "Protocol Step-3 (A1c follow-up) adherence by clinic, with open obligations"
+     ],
+     "sql": [
+      "SELECT Clinic, MEASURE(`Trigger Events`) AS closed_triggers, MEASURE(`Followed Up In Time`) AS followed_up, MEASURE(`Protocol Step 3 Adherence Rate`) AS step3_adherence_rate, MEASURE(`Open Obligations`) AS open_obligations, MEASURE(`Avg Days To Follow-up`) AS avg_days_to_followup FROM eli_test_classic_catalog.care_protocol_semantic.protocol_adherence_metrics GROUP BY Clinic ORDER BY step3_adherence_rate"
+     ]
+    },
+    {
+     "id": "01f1d93fdf3f10abb0c136eb8e3191e3",
+     "question": [
+      "Which clinic's Step-3 adherence is drifting below its own baseline?"
+     ],
+     "sql": [
+      "WITH d AS (SELECT Clinic, Month, MEASURE(`Triggers (trailing 3mo)`) AS triggers_trailing_3mo, MEASURE(`Adherence (trailing 3mo)`) AS adherence_trailing_3mo, MEASURE(`Adherence (baseline)`) AS adherence_baseline, MEASURE(`Drift (trailing vs baseline)`) AS drift FROM eli_test_classic_catalog.care_protocol_semantic.protocol_drift_metrics GROUP BY Clinic, Month)\n",
+      "SELECT Clinic, Month AS latest_closed_month, triggers_trailing_3mo, adherence_trailing_3mo, adherence_baseline, drift FROM d WHERE Month = (SELECT MAX(Month) FROM d) ORDER BY drift"
+     ]
+    },
+    {
+     "id": "01f1d93fdf3f1528995206f721e503c8",
+     "question": [
+      "MAD medication adherence (PDC) rate by clinic"
+     ],
+     "sql": [
+      "SELECT Clinic, MEASURE(`Eligible Patients`) AS eligible_patients, MEASURE(`Adherent Patients`) AS adherent_patients, MEASURE(`MAD Adherence Rate`) AS mad_adherence_rate, MEASURE(`Avg PDC`) AS avg_pdc FROM eli_test_classic_catalog.care_protocol_semantic.mad_compliance_metrics GROUP BY Clinic ORDER BY mad_adherence_rate"
+     ]
+    },
+    {
+     "id": "01f1d93fdf3f19bc9a1f622915eff1b9",
+     "question": [
+      "List KED care-gap patients at CLINIC-08, lowest eGFR first"
+     ],
+     "sql": [
+      "SELECT k.patient_id, k.clinic_id, k.panel_id, k.age, CASE WHEN k.egfr_datetime IS NULL AND k.uacr_datetime IS NULL THEN 'No eGFR or uACR test' WHEN k.egfr_datetime IS NULL THEN 'No eGFR test' ELSE 'No uACR test' END AS gap_reason, k.egfr_value, k.egfr_datetime, k.uacr_value, k.uacr_datetime FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked k WHERE k.measurement_year = (SELECT MAX(measurement_year) FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked) AND NOT (k.egfr_datetime IS NOT NULL AND k.uacr_datetime IS NOT NULL) AND k.clinic_id = 'CLINIC-08' ORDER BY k.egfr_value ASC NULLS LAST"
+     ]
+    },
+    {
+     "id": "b0000000000000000000000000000001",
+     "question": [
+      "What is the overall GSD compliance rate?"
+     ],
+     "sql": [
+      "SELECT `Measurement Year`, MEASURE(`Eligible Patients`) AS eligible_patients, MEASURE(`Compliant Patients`) AS compliant_patients, MEASURE(`GSD Compliance Rate`) AS gsd_compliance_rate FROM eli_test_classic_catalog.care_protocol_semantic.gsd_compliance_metrics WHERE `Measurement Year` = (SELECT MAX(measurement_year) FROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd) GROUP BY `Measurement Year`"
+     ]
+    },
+    {
+     "id": "b0000000000000000000000000000002",
+     "question": [
+      "What is the KED compliance rate and its eGFR and uACR components?"
+     ],
+     "sql": [
+      "SELECT `Measurement Year`, MEASURE(`Eligible Patients`) AS eligible_patients, MEASURE(`KED Compliance Rate`) AS ked_rate, MEASURE(`eGFR Test Rate`) AS egfr_rate, MEASURE(`uACR Test Rate`) AS uacr_rate FROM eli_test_classic_catalog.care_protocol_semantic.ked_compliance_metrics WHERE `Measurement Year` = (SELECT MAX(measurement_year) FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked) GROUP BY `Measurement Year`"
+     ]
+    },
+    {
+     "id": "b0000000000000000000000000000003",
+     "question": [
+      "How many patients have a KED care gap, and why?"
+     ],
+     "sql": [
+      "SELECT `Gap Reason`, MEASURE(`Eligible Patients`) AS patients FROM eli_test_classic_catalog.care_protocol_semantic.ked_compliance_metrics WHERE `Compliance Status` = 'NOT_MET' AND `Measurement Year` = (SELECT MAX(measurement_year) FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked) GROUP BY `Gap Reason` ORDER BY patients DESC"
+     ]
+    },
+    {
+     "id": "b0000000000000000000000000000004",
+     "question": [
+      "What is the blood pressure control (BPD) rate?"
+     ],
+     "sql": [
+      "SELECT `Measurement Year`, MEASURE(`Eligible Patients`) AS eligible_patients, MEASURE(`Controlled Patients`) AS controlled_patients, MEASURE(`BPD Compliance Rate`) AS bpd_rate FROM eli_test_classic_catalog.care_protocol_semantic.bpd_compliance_metrics WHERE `Measurement Year` = (SELECT MAX(measurement_year) FROM eli_test_classic_catalog.care_protocol.gold_adherence_bpd) GROUP BY `Measurement Year`"
+     ]
+    },
+    {
+     "id": "b0000000000000000000000000000005",
+     "question": [
+      "What is the statin therapy (SPD) rate?"
+     ],
+     "sql": [
+      "SELECT `Measurement Year`, MEASURE(`Eligible Patients`) AS eligible_patients, MEASURE(`On Statin Patients`) AS on_statin_patients, MEASURE(`SPD Compliance Rate`) AS spd_rate FROM eli_test_classic_catalog.care_protocol_semantic.spd_compliance_metrics WHERE `Measurement Year` = (SELECT MAX(measurement_year) FROM eli_test_classic_catalog.care_protocol.gold_adherence_spd) GROUP BY `Measurement Year`"
+     ]
+    },
+    {
+     "id": "b0000000000000000000000000000006",
+     "question": [
+      "What is the diabetic eye exam (EED) rate?"
+     ],
+     "sql": [
+      "SELECT `Measurement Year`, MEASURE(`Eligible Patients`) AS eligible_patients, MEASURE(`Eye Exam Patients`) AS eye_exam_patients, MEASURE(`EED Compliance Rate`) AS eed_rate FROM eli_test_classic_catalog.care_protocol_semantic.eed_compliance_metrics WHERE `Measurement Year` = (SELECT MAX(measurement_year) FROM eli_test_classic_catalog.care_protocol.gold_adherence_eed) GROUP BY `Measurement Year`"
+     ]
+    }
+   ],
+   "sql_snippets": {
+    "filters": [
+     {
+      "id": "01f1d93fdf39105a8461a407e5fc1dab",
+      "sql": [
+       "`Measurement Year` = (SELECT MAX(measurement_year) FROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd)"
+      ],
+      "display_name": "Latest measurement year (default for metric view rate questions unless a year is named)"
+     },
+     {
+      "id": "01f1d93fdf3918f492a386c96455d4f5",
+      "sql": [
+       "gold_adherence_gsd.measurement_year = (SELECT MAX(measurement_year) FROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd)"
+      ],
+      "display_name": "Latest measurement year - GSD patient detail (default)"
+     },
+     {
+      "id": "01f1d93fdf391e5a8c55f799861e5546",
+      "sql": [
+       "gold_adherence_gsd.evidence_datetime IS NULL"
+      ],
+      "display_name": "GSD care gap - patient worklist (no A1c test)"
+     },
+     {
+      "id": "01f1d93fdf3a132cb5d617382cb29198",
+      "sql": [
+       "NOT (gold_adherence_ked.egfr_datetime IS NOT NULL AND gold_adherence_ked.uacr_datetime IS NOT NULL)"
+      ],
+      "display_name": "KED care gap - patient worklist (missing eGFR or uACR)"
+     },
+     {
+      "id": "01f1d93fdf3a17aea3c4c85fabebd01a",
+      "sql": [
+       "NOT (COALESCE(gold_adherence_bpd.systolic < 140 AND gold_adherence_bpd.diastolic < 90, FALSE))"
+      ],
+      "display_name": "BPD care gap - patient worklist (uncontrolled or no BP reading)"
+     },
+     {
+      "id": "01f1d93fdf3a1c4f940a88b7fcb5bacd",
+      "sql": [
+       "gold_adherence_spd.evidence_datetime IS NULL"
+      ],
+      "display_name": "SPD care gap - patient worklist (no statin dispensed)"
+     },
+     {
+      "id": "01f1d93fdf3b123e942f3c31d86c8fa6",
+      "sql": [
+       "gold_adherence_eed.evidence_datetime IS NULL"
+      ],
+      "display_name": "EED care gap - patient worklist (no diabetic eye exam)"
+     },
+     {
+      "id": "01f1d93fdf3b1631bc628844b9955b4c",
+      "sql": [
+       "`Compliance Status` = 'NOT_MET'"
+      ],
+      "display_name": "Care-gap rows only - metric views (gap counts and gap-reason breakdowns)"
+     }
+    ],
+    "expressions": [
+     {
+      "id": "01f1d93fdf3b1a5d92b6cf60d0e525bf",
+      "sql": [
+       "CASE WHEN gold_adherence_ked.egfr_datetime IS NOT NULL AND gold_adherence_ked.uacr_datetime IS NOT NULL THEN 'Met' WHEN gold_adherence_ked.egfr_datetime IS NULL AND gold_adherence_ked.uacr_datetime IS NULL THEN 'No eGFR or uACR test' WHEN gold_adherence_ked.egfr_datetime IS NULL THEN 'No eGFR test' ELSE 'No uACR test' END"
+      ],
+      "display_name": "KED gap reason (patient level, matches the KED metric view)"
+     },
+     {
+      "id": "01f1d93fdf3b1ef586606d4a787267c3",
+      "sql": [
+       "CASE WHEN gold_adherence_bpd.systolic < 140 AND gold_adherence_bpd.diastolic < 90 THEN 'Met' WHEN gold_adherence_bpd.bp_datetime IS NULL THEN 'No BP reading in measurement year' ELSE 'BP not controlled (>=140/90)' END"
+      ],
+      "display_name": "BPD gap reason (patient level, matches the BPD metric view)"
+     },
+     {
+      "id": "01f1d93fdf3c14b2a33dc965b162e1d9",
+      "sql": [
+       "CASE WHEN gold_adherence_gsd.evidence_value IS NULL THEN 'No A1c' WHEN gold_adherence_gsd.evidence_value < 8 THEN 'Good control (<8%)' WHEN gold_adherence_gsd.evidence_value > 9 THEN 'Poor control (>9%)' ELSE '8-9%' END"
+      ],
+      "display_name": "GSD A1c control band (patient level)"
+     }
+    ]
+   }
+  },
+  "benchmarks": {
+   "questions": [
+    {
+     "id": "01f1d940530e108881e005a00c6ff29b",
+     "question": [
+      "Which clinic has the largest drop in Step-3 adherence versus its own baseline in the latest month?"
+     ],
+     "answer": [
+      {
+       "format": "SQL",
+       "content": [
+        "WITH d AS (SELECT Clinic, Month, MEASURE(`Adherence (trailing 3mo)`) AS adherence_trailing_3mo, MEASURE(`Adherence (baseline)`) AS adherence_baseline, MEASURE(`Drift (trailing vs baseline)`) AS drift FROM eli_test_classic_catalog.care_protocol_semantic.protocol_drift_metrics GROUP BY Clinic, Month) SELECT Clinic, adherence_trailing_3mo, adherence_baseline, drift FROM d WHERE Month = (SELECT MAX(Month) FROM d) ORDER BY drift"
+       ]
+      }
+     ],
+     "evaluation_note": [
+      "The answer must name the single clinic with the most negative drift; a ranked list of all clinics is acceptable."
+     ]
+    },
+    {
+     "id": "01f1d94052f71b72b4fee51b01a3d76d",
+     "question": [
+      "What is the SPD statin therapy rate for patients aged 65-75?"
+     ],
+     "answer": [
+      {
+       "format": "SQL",
+       "content": [
+        "SELECT `Age Band`, MEASURE(`Eligible Patients`) AS eligible_patients, MEASURE(`SPD Compliance Rate`) AS spd_rate FROM eli_test_classic_catalog.care_protocol_semantic.spd_compliance_metrics WHERE `Measurement Year` = (SELECT MAX(measurement_year) FROM eli_test_classic_catalog.care_protocol.gold_adherence_spd) GROUP BY `Age Band` ORDER BY `Age Band`"
+       ]
+      }
+     ],
+     "evaluation_note": [
+      "The answer must clearly state the 65-75 band rate; showing other age bands for comparison is acceptable."
+     ]
+    },
+    {
+     "id": "01f1d940110e1ef5bc249608db22c3ef",
+     "question": [
+      "How many BPD care-gap patients are there by gap reason?"
+     ],
+     "answer": [
+      {
+       "format": "SQL",
+       "content": [
+        "SELECT `Gap Reason`, MEASURE(`Eligible Patients`) AS patients FROM eli_test_classic_catalog.care_protocol_semantic.bpd_compliance_metrics WHERE `Compliance Status` = 'NOT_MET' AND `Measurement Year` = (SELECT MAX(measurement_year) FROM eli_test_classic_catalog.care_protocol.gold_adherence_bpd) GROUP BY `Gap Reason` ORDER BY patients DESC"
+       ]
+      }
+     ]
+    },
+    {
+     "id": "01f1d94010ee1dda91bd7f04cd6d3586",
+     "question": [
+      "What is the KED compliance rate by clinic?"
+     ],
+     "answer": [
+      {
+       "format": "SQL",
+       "content": [
+        "SELECT Clinic, MEASURE(`Eligible Patients`) AS eligible_patients, MEASURE(`KED Compliance Rate`) AS ked_compliance_rate FROM eli_test_classic_catalog.care_protocol_semantic.ked_compliance_metrics WHERE `Measurement Year` = (SELECT MAX(measurement_year) FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked) GROUP BY Clinic ORDER BY Clinic"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ }
+}

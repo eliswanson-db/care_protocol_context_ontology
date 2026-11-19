@@ -37,25 +37,135 @@
  "data_sources": {
   "tables": [
    {
-    "identifier": "eli_test_classic_catalog.clinical_study.gold_eligibility_criterion"
+    "identifier": "eli_test_classic_catalog.clinical_study.gold_eligibility_criterion",
+    "column_configs": [
+     {
+      "column_name": "criterion_id",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "criterion"
+      ]
+     },
+     {
+      "column_name": "outcome",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "outcome"
+      ]
+     }
+    ]
    },
    {
-    "identifier": "eli_test_classic_catalog.clinical_study.silver_vs"
+    "identifier": "eli_test_classic_catalog.clinical_study.silver_vs",
+    "column_configs": [
+     {
+      "column_name": "CPL_UNIT_MAPPING_STATUS",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "unit mapping"
+      ]
+     },
+     {
+      "column_name": "VSORRESU",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "unit"
+      ]
+     },
+     {
+      "column_name": "VSTESTCD",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "test code"
+      ]
+     }
+    ]
    },
    {
     "identifier": "eli_test_classic_catalog.clinical_study_standards.bc_closure"
    },
    {
-    "identifier": "eli_test_classic_catalog.clinical_study_standards.class_root"
+    "identifier": "eli_test_classic_catalog.clinical_study_standards.class_root",
+    "column_configs": [
+     {
+      "column_name": "class_id",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "concept class"
+      ]
+     },
+     {
+      "column_name": "kind",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "root kind"
+      ]
+     }
+    ]
    },
    {
     "identifier": "eli_test_classic_catalog.clinical_study_standards.concept_class"
    },
    {
-    "identifier": "eli_test_classic_catalog.clinical_study_standards.kb_concept"
+    "identifier": "eli_test_classic_catalog.clinical_study_standards.kb_concept",
+    "column_configs": [
+     {
+      "column_name": "concept_type",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "concept type"
+      ]
+     },
+     {
+      "column_name": "label",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "name",
+       "concept name",
+       "term"
+      ]
+     },
+     {
+      "column_name": "scheme",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "vocabulary",
+       "code system"
+      ]
+     }
+    ]
    },
    {
-    "identifier": "eli_test_classic_catalog.clinical_study_standards.kb_edge"
+    "identifier": "eli_test_classic_catalog.clinical_study_standards.kb_edge",
+    "column_configs": [
+     {
+      "column_name": "predicate",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "relationship",
+       "edge type"
+      ]
+     },
+     {
+      "column_name": "source_artifact",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "source"
+      ]
+     }
+    ]
    },
    {
     "identifier": "eli_test_classic_catalog.clinical_study_standards.medrt_class_closure"
@@ -130,6 +240,263 @@
     ],
     "sql": [
      "SELECT criterion_id, outcome, detail, path_labels FROM eli_test_classic_catalog.clinical_study.gold_eligibility_criterion WHERE USUBJID = 'CSL-A-FX-25' AND outcome IN ('TRIGGERED', 'NOT_MET')"
+    ]
+   }
+  ],
+  "sql_snippets": {
+   "measures": [
+    {
+     "id": "4a6837217833b2aaa6be8d5d2900c355",
+     "display_name": "Direct facts",
+     "sql": [
+      "COUNT(kb_edge.edge_id)"
+     ],
+     "alias": "n_edges",
+     "synonyms": [
+      "edges",
+      "relationships"
+     ]
+    },
+    {
+     "id": "bfee6d009d7b91599916827a4a85ecdc",
+     "display_name": "Distinct concepts reached",
+     "sql": [
+      "COUNT(DISTINCT mondo_closure.descendant_code)"
+     ],
+     "alias": "n_descendants"
+    }
+   ],
+   "filters": [
+    {
+     "id": "1a54f442e8e949ced85779437b1c0b18",
+     "display_name": "WRC-V1 weight-related comorbidity members (closure; carve-outs applied)",
+     "sql": [
+      "mondo_closure.ancestor_code IN (SELECT concept_id FROM eli_test_classic_catalog.clinical_study_standards.class_root WHERE class_id = 'WRC-V1' AND kind = 'root') AND mondo_closure.descendant_code NOT IN (SELECT x.descendant_code FROM eli_test_classic_catalog.clinical_study_standards.mondo_closure x JOIN eli_test_classic_catalog.clinical_study_standards.class_root r ON x.ancestor_code = r.concept_id WHERE r.class_id = 'WRC-V1' AND r.kind = 'exclude_root')"
+     ],
+     "synonyms": [
+      "weight-related comorbidity",
+      "comorbidity class"
+     ]
+    },
+    {
+     "id": "3542a845c2e1fbc972043235ca4d04f6",
+     "display_name": "Unmapped or missing units",
+     "sql": [
+      "silver_vs.CPL_UNIT_MAPPING_STATUS <> 'MAPPED'"
+     ],
+     "synonyms": [
+      "unsupported units"
+     ]
+    },
+    {
+     "id": "833833e0c10d98bde7775b944ba2cb54",
+     "display_name": "MED-RT contraindications",
+     "sql": [
+      "kb_edge.predicate = 'medrt:CI_with'"
+     ],
+     "synonyms": [
+      "contraindicated with"
+     ]
+    },
+    {
+     "id": "a2494b9925b06caa6f640d710b6ec691",
+     "display_name": "Official facts only (no demo extension)",
+     "sql": [
+      "kb_edge.predicate NOT LIKE 'cpl:%'"
+     ],
+     "synonyms": [
+      "official"
+     ]
+    },
+    {
+     "id": "cbeddc78d755f725a42f0e0a2953eb9e",
+     "display_name": "GLP-1 receptor agonist class members (MED-RT)",
+     "sql": [
+      "kb_edge.predicate = 'medrt:memberOf' AND kb_edge.object = 'MEDRT:N0000178480'"
+     ],
+     "synonyms": [
+      "GLP-1 RA",
+      "GLP-1 drugs"
+     ]
+    },
+    {
+     "id": "d7f3197d3a76feedf552ef5cdcf7f6a2",
+     "display_name": "EXCL-MH-V1 exclusionary history members (closure)",
+     "sql": [
+      "mondo_closure.ancestor_code IN (SELECT concept_id FROM eli_test_classic_catalog.clinical_study_standards.class_root WHERE class_id = 'EXCL-MH-V1' AND kind = 'root')"
+     ],
+     "synonyms": [
+      "exclusionary conditions"
+     ]
+    },
+    {
+     "id": "d817e6ee49ec32e48ceb9bd008298553",
+     "display_name": "Demo-extension facts (cpl:)",
+     "sql": [
+      "kb_edge.predicate LIKE 'cpl:%'"
+     ],
+     "synonyms": [
+      "demo extension",
+      "custom"
+     ]
+    },
+    {
+     "id": "e3063840f7235f1a671c438be600fe0e",
+     "display_name": "Body weight observations",
+     "sql": [
+      "silver_vs.VSTESTCD = 'WEIGHT'"
+     ],
+     "synonyms": [
+      "weight records"
+     ]
+    },
+    {
+     "id": "e6912abe5a2c06052883f0495ec65ae7",
+     "display_name": "Direct is-a edges",
+     "sql": [
+      "kb_edge.predicate = 'rdfs:subClassOf'"
+     ],
+     "synonyms": [
+      "is a",
+      "parent"
+     ]
+    },
+    {
+     "id": "f43fa5afe78aa1f8888889d2dde19398",
+     "display_name": "Criteria that excluded or failed",
+     "sql": [
+      "gold_eligibility_criterion.outcome IN ('TRIGGERED', 'NOT_MET')"
+     ],
+     "synonyms": [
+      "why ineligible"
+     ]
+    }
+   ],
+   "expressions": [
+    {
+     "id": "a62eef2824ec27291c7b77c390b0778f",
+     "display_name": "Ontology path (readable)",
+     "sql": [
+      "ARRAY_JOIN(gold_eligibility_criterion.path_labels, ' → ')"
+     ],
+     "alias": "path_text"
+    }
+   ]
+  },
+  "join_specs": [
+   {
+    "id": "45353068daed4a59909e759641442da9",
+    "left": {
+     "identifier": "eli_test_classic_catalog.clinical_study_standards.kb_edge",
+     "alias": "kb_edge"
+    },
+    "right": {
+     "identifier": "eli_test_classic_catalog.clinical_study_standards.kb_concept",
+     "alias": "kb_concept"
+    },
+    "sql": [
+     "kb_edge.subject = kb_concept.concept_id",
+     "--rt=FROM_RELATIONSHIP_TYPE_MANY_TO_ONE--"
+    ]
+   },
+   {
+    "id": "58866489df89d2b0d065c9d1a4e1a2a3",
+    "left": {
+     "identifier": "eli_test_classic_catalog.clinical_study_standards.class_root",
+     "alias": "class_root"
+    },
+    "right": {
+     "identifier": "eli_test_classic_catalog.clinical_study_standards.kb_concept",
+     "alias": "kb_concept"
+    },
+    "sql": [
+     "class_root.concept_id = kb_concept.concept_id",
+     "--rt=FROM_RELATIONSHIP_TYPE_MANY_TO_ONE--"
+    ]
+   },
+   {
+    "id": "a8cf7cfac88de8dea05f351fadbf10b8",
+    "left": {
+     "identifier": "eli_test_classic_catalog.clinical_study_standards.class_root",
+     "alias": "class_root"
+    },
+    "right": {
+     "identifier": "eli_test_classic_catalog.clinical_study_standards.concept_class",
+     "alias": "concept_class"
+    },
+    "sql": [
+     "class_root.class_id = concept_class.class_id",
+     "--rt=FROM_RELATIONSHIP_TYPE_MANY_TO_ONE--"
+    ]
+   },
+   {
+    "id": "f40d998298f6266d63325a05a74167d3",
+    "left": {
+     "identifier": "eli_test_classic_catalog.clinical_study_standards.mondo_closure",
+     "alias": "mondo_closure"
+    },
+    "right": {
+     "identifier": "eli_test_classic_catalog.clinical_study_standards.kb_concept",
+     "alias": "kb_concept"
+    },
+    "sql": [
+     "mondo_closure.descendant_code = kb_concept.concept_id",
+     "--rt=FROM_RELATIONSHIP_TYPE_MANY_TO_ONE--"
+    ]
+   }
+  ]
+ },
+ "benchmarks": {
+  "questions": [
+   {
+    "id": "0a29baf8fd8c753a43eb16a5c68a0d4e",
+    "question": [
+     "Which criterion excluded CSL-A-FX-25?"
+    ],
+    "answer": [
+     {
+      "format": "SQL",
+      "content": [
+       "SELECT criterion_id FROM eli_test_classic_catalog.clinical_study.gold_eligibility_criterion WHERE USUBJID = 'CSL-A-FX-25' AND outcome = 'TRIGGERED'"
+      ]
+     }
+    ],
+    "evaluation_note": [
+     "Diabetic ketoacidosis: MED-RT CI_with on a GLP-1 RA (expected_eligibility.yaml)."
+    ]
+   },
+   {
+    "id": "33a531c78ec1350a9351fb7bd79e2735",
+    "question": [
+     "Is obstructive sleep apnea (MONDO:0007147) a WRC-V1 member?"
+    ],
+    "answer": [
+     {
+      "format": "SQL",
+      "content": [
+       "SELECT CASE WHEN COUNT(*) > 0 THEN 'yes' ELSE 'no' END FROM eli_test_classic_catalog.clinical_study_standards.mondo_closure WHERE descendant_code = 'MONDO:0007147' AND mondo_closure.ancestor_code IN (SELECT concept_id FROM eli_test_classic_catalog.clinical_study_standards.class_root WHERE class_id = 'WRC-V1' AND kind = 'root') AND mondo_closure.descendant_code NOT IN (SELECT x.descendant_code FROM eli_test_classic_catalog.clinical_study_standards.mondo_closure x JOIN eli_test_classic_catalog.clinical_study_standards.class_root r ON x.ancestor_code = r.concept_id WHERE r.class_id = 'WRC-V1' AND r.kind = 'exclude_root')"
+      ]
+     }
+    ],
+    "evaluation_note": [
+     "Added only by Amendment 2 (WRC-V2)."
+    ]
+   },
+   {
+    "id": "b09f1c15b58891264a45d12d1304bd24",
+    "question": [
+     "Is familial hypercholesterolemia (MONDO:0005439) a WRC-V1 weight-related comorbidity?"
+    ],
+    "answer": [
+     {
+      "format": "SQL",
+      "content": [
+       "SELECT CASE WHEN COUNT(*) > 0 THEN 'yes' ELSE 'no' END FROM eli_test_classic_catalog.clinical_study_standards.mondo_closure WHERE descendant_code = 'MONDO:0005439' AND mondo_closure.ancestor_code IN (SELECT concept_id FROM eli_test_classic_catalog.clinical_study_standards.class_root WHERE class_id = 'WRC-V1' AND kind = 'root') AND mondo_closure.descendant_code NOT IN (SELECT x.descendant_code FROM eli_test_classic_catalog.clinical_study_standards.mondo_closure x JOIN eli_test_classic_catalog.clinical_study_standards.class_root r ON x.ancestor_code = r.concept_id WHERE r.class_id = 'WRC-V1' AND r.kind = 'exclude_root')"
+      ]
+     }
+    ],
+    "evaluation_note": [
+     "Expected from expected_eligibility.yaml (FX-21)."
     ]
    }
   ]

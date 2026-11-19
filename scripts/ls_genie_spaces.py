@@ -262,7 +262,14 @@ def main() -> None:
         return
     for name, spec in SPACES.items():
         (ROOT / "resources" / f"{name}.geniespace.json").write_text(json.dumps(body(spec), indent=1) + "\n")
-    print("wrote", ", ".join(f"resources/{n}.geniespace.json" for n in SPACES))
+    # knowledge stores (ADR-0027) are layered on by the shared applier, so regenerating never drops them
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("genie_knowledge", ROOT / "scripts/genie_knowledge.py")
+    gk = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(gk)
+    gk.apply_all()
+    print("wrote", ", ".join(f"resources/{n}.geniespace.json" for n in SPACES), "+ knowledge stores")
 
 
 if __name__ == "__main__":

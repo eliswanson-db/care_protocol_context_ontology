@@ -142,6 +142,9 @@ and `vite build` does not type-check.
   API by `scripts/sync_pages.py` (job `sync_pages`; ADR-0026). It only ever updates Pages it created (footer +
   content hash). Never edit or delete other Pages automatically: they are flagged in `docs/ontology/PAGES_FLAGGED.md`.
   Page titles must be unique among published Pages in a domain, and both demos share `Clinical Domain`.
+- Genie-space knowledge stores (measures, filters, expressions, joins, column settings, benchmarks):
+  `src/genie/knowledge_stores.py`, applied by `scripts/genie_knowledge.py [--validate]` (ADR-0027). They are
+  the main source of Genie Ontology inferred snippets, so they must only restate facts already in code.
 - Metric views: `src/semantic/metric_views/*.metric_view.sql`. Comments: `src/semantic/comments/*.sql`.
   Domains: `scripts/create_domains.py`, which is scripted and outside the DAB. ECT hit the tag-policy cap and
   reuses the `Clinical Domain` tag.

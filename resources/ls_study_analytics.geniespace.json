@@ -49,16 +49,188 @@
  "data_sources": {
   "tables": [
    {
-    "identifier": "eli_test_classic_catalog.clinical_study.gold_amendment_impact"
+    "identifier": "eli_test_classic_catalog.clinical_study.gold_amendment_impact",
+    "column_configs": [
+     {
+      "column_name": "STUDYID",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "study"
+      ]
+     }
+    ]
    },
    {
-    "identifier": "eli_test_classic_catalog.clinical_study.gold_endpoint_candidate"
+    "identifier": "eli_test_classic_catalog.clinical_study.gold_endpoint_candidate",
+    "column_configs": [
+     {
+      "column_name": "decision",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "decision"
+      ]
+     },
+     {
+      "column_name": "reason",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "reason",
+       "why excluded"
+      ]
+     },
+     {
+      "column_name": "role",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "role"
+      ]
+     },
+     {
+      "column_name": "visit",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "visit"
+      ]
+     }
+    ]
    },
    {
-    "identifier": "eli_test_classic_catalog.clinical_study.gold_endpoint_result"
+    "identifier": "eli_test_classic_catalog.clinical_study.gold_endpoint_result",
+    "column_configs": [
+     {
+      "column_name": "AVAL_FU",
+      "description": [
+       "Week 24 follow-up body weight (kg)."
+      ],
+      "synonyms": [
+       "week 24 weight",
+       "follow-up weight"
+      ]
+     },
+     {
+      "column_name": "BASE",
+      "description": [
+       "Baseline body weight (kg)."
+      ],
+      "synonyms": [
+       "baseline weight"
+      ]
+     },
+     {
+      "column_name": "PCHG",
+      "description": [
+       "Percent change in body weight from baseline, unrounded; negative = weight loss."
+      ],
+      "synonyms": [
+       "percent change",
+       "% change in body weight",
+       "weight change"
+      ]
+     },
+     {
+      "column_name": "STUDYID",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "study"
+      ]
+     },
+     {
+      "column_name": "endpoint_version",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "rule version",
+       "endpoint version",
+       "derivation version"
+      ]
+     },
+     {
+      "column_name": "exclusion_reason",
+      "enable_format_assistance": true,
+      "enable_entity_matching": false,
+      "synonyms": [
+       "why not derived"
+      ]
+     },
+     {
+      "column_name": "result_status",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "status",
+       "result status"
+      ]
+     }
+    ]
    },
    {
-    "identifier": "eli_test_classic_catalog.clinical_study.gold_participant_population"
+    "identifier": "eli_test_classic_catalog.clinical_study.gold_participant_population",
+    "column_configs": [
+     {
+      "column_name": "ARMCD",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "arm",
+       "treatment arm"
+      ]
+     },
+     {
+      "column_name": "COUNTRY",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "country"
+      ]
+     },
+     {
+      "column_name": "FASFL",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "FAS flag"
+      ]
+     },
+     {
+      "column_name": "PPSFL",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "PPS flag"
+      ]
+     },
+     {
+      "column_name": "SITEID",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "site",
+       "center"
+      ]
+     },
+     {
+      "column_name": "STUDYID",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "study"
+      ]
+     },
+     {
+      "column_name": "reconciliation",
+      "enable_format_assistance": true,
+      "enable_entity_matching": true,
+      "synonyms": [
+       "eligibility reconciliation"
+      ]
+     }
+    ]
    },
    {
     "identifier": "eli_test_classic_catalog.clinical_study.gold_study_summary"
@@ -89,7 +261,7 @@
     "content": [
      "SYNTHETIC educational demo (Clinical Study Context & Evidence Lab). CSL-101 is a fictional GLP-1 receptor agonist; studies CSL-A and CSL-B are not real. Data are SDTM-/ADaM-shaped, not submission-ready. Results are descriptive: never state or imply efficacy, superiority or a causal effect.",
      "This space covers ONLY the Clinical Study lab. It has no HEDIS, health-plan, NCQA or care-gap data; if asked about those, say they are out of scope for this space.",
-     "Approved endpoint results only. Every number must state its study AND endpoint rule version: EP-A-WT24.R1 (CSL-A, \u00b17-day Week 24 window, protocol/SAP 1.0), EP-A-WT24.R2 (CSL-A, \u00b114 days, Amendment 1, protocol/SAP 2.0), EP-B-WT24.R1 (CSL-B, mean baseline, \u00b110 days). If the user does not say which version, ask, or show each version separately. Never pool studies or rule versions.",
+     "Approved endpoint results only. Every number must state its study AND endpoint rule version: EP-A-WT24.R1 (CSL-A, ±7-day Week 24 window, protocol/SAP 1.0), EP-A-WT24.R2 (CSL-A, ±14 days, Amendment 1, protocol/SAP 2.0), EP-B-WT24.R1 (CSL-B, mean baseline, ±10 days). If the user does not say which version, ask, or show each version separately. Never pool studies or rule versions.",
      "Use the metric views with MEASURE(`<name>`). Every endpoint measure returns NULL unless exactly one `Rule Version` is in scope: filter WHERE `Rule Version` = '...' or GROUP BY `Rule Version`. A NULL means the question pooled versions, not that the value is zero.",
      "The endpoint population is the FAS (`In FAS` = 'Y'). Percent change: negative = weight loss. PCHG is unrounded; round only for display.",
      "Amendment impact: amendment_impact_metrics compares CSL-A R1 with R2 per participant. With closest-to-target selection a wider window can only add a record, never replace one that already qualified.",
@@ -160,6 +332,384 @@
     ],
     "sql": [
      "SELECT rule_version, obs_id, visit, vsdtc, days_from_target, decision, reason FROM eli_test_classic_catalog.clinical_study.gold_endpoint_candidate WHERE USUBJID = 'CSL-A-FX-05' AND role = 'FOLLOWUP' ORDER BY rule_version, vsseq"
+    ]
+   }
+  ],
+  "sql_snippets": {
+   "measures": [
+    {
+     "id": "12d38497fea9a37036498a3ca488a11d",
+     "display_name": "PPS participants",
+     "sql": [
+      "COUNT_IF(gold_participant_population.PPSFL = 'Y')"
+     ],
+     "alias": "n_pps",
+     "synonyms": [
+      "per protocol set"
+     ]
+    },
+    {
+     "id": "24121d9d2a0cdde7dea93f4a9f8acd38",
+     "display_name": "FAS participants",
+     "sql": [
+      "COUNT_IF(gold_participant_population.FASFL = 'Y')"
+     ],
+     "alias": "n_fas",
+     "synonyms": [
+      "full analysis set"
+     ]
+    },
+    {
+     "id": "32607e02adfafc28277d57e7d60d3b5e",
+     "display_name": "Enrolled in error",
+     "sql": [
+      "COUNT_IF(gold_participant_population.reconciliation = 'ENROLLED_BUT_RULE_INELIGIBLE')"
+     ],
+     "alias": "n_enrolled_in_error",
+     "synonyms": [
+      "eligibility violations"
+     ]
+    },
+    {
+     "id": "5de9070be8586dbfa627fa5f92eb3cf5",
+     "display_name": "Participants with a derived Week 24 result",
+     "sql": [
+      "COUNT_IF(gold_endpoint_result.result_status = 'DERIVED')"
+     ],
+     "alias": "n_derived",
+     "synonyms": [
+      "evaluable participants",
+      "derived"
+     ]
+    },
+    {
+     "id": "7191e2f1828eb5dbdbf88123a8d38c3e",
+     "display_name": "Mean percent change in body weight (derived only)",
+     "sql": [
+      "AVG(gold_endpoint_result.PCHG)"
+     ],
+     "alias": "mean_pchg",
+     "synonyms": [
+      "mean weight change",
+      "average % change"
+     ]
+    },
+    {
+     "id": "c89f2b7df8a5e944164dbb444b880515",
+     "display_name": "Excluded observations",
+     "sql": [
+      "COUNT_IF(gold_endpoint_candidate.decision = 'EXCLUDED')"
+     ],
+     "alias": "n_excluded"
+    },
+    {
+     "id": "cffb545b432aa618d735bd4e5a5814af",
+     "display_name": "Participants who became derivable (R1 -> R2)",
+     "sql": [
+      "COUNT_IF(gold_amendment_impact.endpoint_became_derivable)"
+     ],
+     "alias": "n_recovered",
+     "synonyms": [
+      "recovered by amendment 1"
+     ]
+    },
+    {
+     "id": "fe4bd82c340a4d496428dbfa9d320a88",
+     "display_name": "Endpoint missingness rate",
+     "sql": [
+      "1 - COUNT_IF(gold_endpoint_result.result_status = 'DERIVED') / COUNT(*)"
+     ],
+     "alias": "missingness",
+     "synonyms": [
+      "missing rate",
+      "not evaluable"
+     ]
+    }
+   ],
+   "filters": [
+    {
+     "id": "081739ec25d76d124afd451f715c8dbf",
+     "display_name": "Study CSL-A",
+     "sql": [
+      "gold_participant_population.STUDYID = 'CSL-A'"
+     ],
+     "synonyms": [
+      "CSL-A"
+     ]
+    },
+    {
+     "id": "23f1a839805c9bd0348d0d7766b7d9f6",
+     "display_name": "Derived results only",
+     "sql": [
+      "gold_endpoint_result.result_status = 'DERIVED'"
+     ],
+     "synonyms": [
+      "evaluable"
+     ]
+    },
+    {
+     "id": "2a9dd48484aa9015438f82b5230a76bb",
+     "display_name": "Study CSL-B",
+     "sql": [
+      "gold_participant_population.STUDYID = 'CSL-B'"
+     ],
+     "synonyms": [
+      "CSL-B"
+     ]
+    },
+    {
+     "id": "317ff8851059e5548966a23042c79572",
+     "display_name": "Enrolled in error",
+     "sql": [
+      "gold_participant_population.reconciliation = 'ENROLLED_BUT_RULE_INELIGIBLE'"
+     ]
+    },
+    {
+     "id": "3aed4b68fbe47f7d0d54678b9aa12221",
+     "display_name": "Follow-up candidates",
+     "sql": [
+      "gold_endpoint_candidate.role = 'FOLLOWUP'"
+     ],
+     "synonyms": [
+      "week 24 candidates"
+     ]
+    },
+    {
+     "id": "55890ab3e3cf5040d2ba3eac8bf3fa67",
+     "display_name": "Named fixture participants",
+     "sql": [
+      "gold_endpoint_result.USUBJID LIKE '%-FX-%'"
+     ],
+     "synonyms": [
+      "edge cases",
+      "tracers"
+     ]
+    },
+    {
+     "id": "6410064eea5fb277b45fa36241dcda66",
+     "display_name": "EP-B-WT24.R1: CSL-B protocol 1.0 / SAP 1.0 (±10-day Week 24 window)",
+     "sql": [
+      "gold_endpoint_result.endpoint_version = 'EP-B-WT24.R1'"
+     ],
+     "synonyms": [
+      "CSL-B R1",
+      "±10 day window",
+      "protocol 1.0"
+     ]
+    },
+    {
+     "id": "8dc95e839693694154640f72880703bb",
+     "display_name": "EP-A-WT24.R2: CSL-A protocol 2.0 / SAP 2.0 (±14-day Week 24 window)",
+     "sql": [
+      "gold_endpoint_result.endpoint_version = 'EP-A-WT24.R2'"
+     ],
+     "synonyms": [
+      "CSL-A R2",
+      "±14 day window",
+      "protocol 2.0"
+     ]
+    },
+    {
+     "id": "9c84a83f1adcd67c2e99f4c091626f2a",
+     "display_name": "EP-A-WT24.R1: CSL-A protocol 1.0 / SAP 1.0 (±7-day Week 24 window)",
+     "sql": [
+      "gold_endpoint_result.endpoint_version = 'EP-A-WT24.R1'"
+     ],
+     "synonyms": [
+      "CSL-A R1",
+      "±7 day window",
+      "protocol 1.0"
+     ]
+    },
+    {
+     "id": "bb6ace492c1f2ac9a0ae1e5b109037cb",
+     "display_name": "Full analysis set (endpoint rows)",
+     "sql": [
+      "gold_endpoint_result.analysis_population_status = 'IN_FAS'"
+     ],
+     "synonyms": [
+      "FAS"
+     ]
+    },
+    {
+     "id": "e1fb4d53d7b0067efdb5caad944ce3bd",
+     "display_name": "Amendment 1 changed the selected record",
+     "sql": [
+      "gold_amendment_impact.selected_followup_changed"
+     ],
+     "synonyms": [
+      "changed selection"
+     ]
+    },
+    {
+     "id": "ee3d75b5c01c8c4825049bd56d861218",
+     "display_name": "Excluded observations",
+     "sql": [
+      "gold_endpoint_candidate.decision = 'EXCLUDED'"
+     ],
+     "synonyms": [
+      "excluded"
+     ]
+    }
+   ],
+   "expressions": [
+    {
+     "id": "5baf7d25525c7c992f5447da2a896528",
+     "display_name": "Weight change in kg",
+     "sql": [
+      "gold_endpoint_result.AVAL_FU - gold_endpoint_result.BASE"
+     ],
+     "alias": "weight_change_kg"
+    },
+    {
+     "id": "9d53b24c8e4eda22a66c836b44f08759",
+     "display_name": "Exclusion reason category",
+     "sql": [
+      "SPLIT(gold_endpoint_result.exclusion_reason, ':')[0]"
+     ],
+     "alias": "exclusion_category"
+    },
+    {
+     "id": "fdd118fd304ce9f853c69c54996406ce",
+     "display_name": "Absolute days from Week 24 target",
+     "sql": [
+      "ABS(gold_endpoint_candidate.days_from_target)"
+     ],
+     "alias": "abs_days_from_target"
+    }
+   ]
+  },
+  "join_specs": [
+   {
+    "id": "57fe8f011914fa2b14b017e2a278119b",
+    "left": {
+     "identifier": "eli_test_classic_catalog.clinical_study.gold_amendment_impact",
+     "alias": "gold_amendment_impact"
+    },
+    "right": {
+     "identifier": "eli_test_classic_catalog.clinical_study.gold_participant_population",
+     "alias": "gold_participant_population"
+    },
+    "sql": [
+     "gold_amendment_impact.USUBJID = gold_participant_population.USUBJID",
+     "--rt=FROM_RELATIONSHIP_TYPE_ONE_TO_ONE--"
+    ]
+   },
+   {
+    "id": "5e0259a0ee430df2cd6ff19bad9f2d8a",
+    "left": {
+     "identifier": "eli_test_classic_catalog.clinical_study.gold_endpoint_result",
+     "alias": "gold_endpoint_result"
+    },
+    "right": {
+     "identifier": "eli_test_classic_catalog.clinical_study_standards.rule_version",
+     "alias": "rule_version"
+    },
+    "sql": [
+     "gold_endpoint_result.endpoint_version = rule_version.endpoint_version",
+     "--rt=FROM_RELATIONSHIP_TYPE_MANY_TO_ONE--"
+    ]
+   },
+   {
+    "id": "91732abc17a9c4591c105305ea8e2616",
+    "left": {
+     "identifier": "eli_test_classic_catalog.clinical_study.gold_endpoint_result",
+     "alias": "gold_endpoint_result"
+    },
+    "right": {
+     "identifier": "eli_test_classic_catalog.clinical_study.gold_participant_population",
+     "alias": "gold_participant_population"
+    },
+    "sql": [
+     "gold_endpoint_result.USUBJID = gold_participant_population.USUBJID",
+     "--rt=FROM_RELATIONSHIP_TYPE_MANY_TO_ONE--"
+    ]
+   },
+   {
+    "id": "af8c0bb487f491bb122fe5eaa756f689",
+    "left": {
+     "identifier": "eli_test_classic_catalog.clinical_study.gold_endpoint_candidate",
+     "alias": "gold_endpoint_candidate"
+    },
+    "right": {
+     "identifier": "eli_test_classic_catalog.clinical_study.gold_endpoint_result",
+     "alias": "gold_endpoint_result"
+    },
+    "sql": [
+     "gold_endpoint_candidate.USUBJID = gold_endpoint_result.USUBJID AND gold_endpoint_candidate.endpoint_id = gold_endpoint_result.endpoint_id AND gold_endpoint_candidate.rule_version = gold_endpoint_result.rule_version",
+     "--rt=FROM_RELATIONSHIP_TYPE_MANY_TO_ONE--"
+    ]
+   }
+  ]
+ },
+ "benchmarks": {
+  "questions": [
+   {
+    "id": "02c00788d65cd506f4f86e55b2d37c61",
+    "question": [
+     "What is CSL-A-FX-05's Week 24 percent change under EP-A-WT24.R2?"
+    ],
+    "answer": [
+     {
+      "format": "SQL",
+      "content": [
+       "SELECT ROUND(PCHG, 6) FROM eli_test_classic_catalog.clinical_study.gold_endpoint_result WHERE USUBJID = 'CSL-A-FX-05' AND endpoint_version = 'EP-A-WT24.R2'"
+      ]
+     }
+    ],
+    "evaluation_note": [
+     "Oracle fixture (hand-authored)."
+    ]
+   },
+   {
+    "id": "8fc09cdd087fd7bfb4968859eb281b30",
+    "question": [
+     "How many CSL-A participants became derivable under Amendment 1 (R1 -> R2)?"
+    ],
+    "answer": [
+     {
+      "format": "SQL",
+      "content": [
+       "SELECT COUNT_IF(endpoint_became_derivable) FROM eli_test_classic_catalog.clinical_study.gold_amendment_impact"
+      ]
+     }
+    ],
+    "evaluation_note": [
+     "Computed from gold; compare with the Amendment Lab."
+    ]
+   },
+   {
+    "id": "a3957e11e5e0f815082653eb26c368dd",
+    "question": [
+     "Why does CSL-A-FX-05 have no Week 24 result under EP-A-WT24.R1?"
+    ],
+    "answer": [
+     {
+      "format": "SQL",
+      "content": [
+       "SELECT exclusion_reason FROM eli_test_classic_catalog.clinical_study.gold_endpoint_result WHERE USUBJID = 'CSL-A-FX-05' AND endpoint_version = 'EP-A-WT24.R1'"
+      ]
+     }
+    ],
+    "evaluation_note": [
+     "Oracle fixture (hand-authored)."
+    ]
+   },
+   {
+    "id": "a9ba5845084be9100ba2d1f9a0c5bd14",
+    "question": [
+     "What is CSL-B-FX-18's Week 24 percent change under EP-B-WT24.R1?"
+    ],
+    "answer": [
+     {
+      "format": "SQL",
+      "content": [
+       "SELECT ROUND(PCHG, 6) FROM eli_test_classic_catalog.clinical_study.gold_endpoint_result WHERE USUBJID = 'CSL-B-FX-18' AND endpoint_version = 'EP-B-WT24.R1'"
+      ]
+     }
+    ],
+    "evaluation_note": [
+     "Oracle fixture (hand-authored)."
     ]
    }
   ]
