@@ -89,3 +89,25 @@ Domain, so the domain alone can't tell them apart.
 "Protocol amendments (CSL-A)"), delegated to the Protocol Evidence agent, and answered correctly (±21 is a draft
 candidate). **All 10 inferred snippets were HEDIS:** no life-sciences inferred snippets exist yet (extraction is
 roughly daily), and the shared workspace lets HEDIS ones in. Expected, and now visible in the card, not hidden.
+
+## Genie knowledge stores (2026-11-19, ADR-0027)
+
+The recorded Genie One runs show inferred snippets are mined mainly from Genie-space knowledge stores: 36 of 50 HEDIS
+snippets, all from two unmanaged dev spaces, plus 14 from query history. Pages, comments and the bundle spaces (which
+had no knowledge stores) contributed none. All 7 managed spaces now carry repo-defined knowledge stores that restate
+existing facts. Deployed on ECT:
+
+| Space | Measures | Filters | Expressions | Joins | Column settings | Benchmarks |
+|---|---|---|---|---|---|---|
+| HEDIS Diabetes Quality | 10 | 10 | 4 | 4 | 26 | 3 (gold key) |
+| Protocol Process & Medication Adherence | 6 | 5 | 2 | 3 | 13 | 3 (gold key) |
+| LOINC Lab Measures | 3 | 4 | 1 | 1 | 9 | 1 (gold key) |
+| Cohort & Terminology | 1 | 8 | 0 | 5 | 9 | 3 (gold key) |
+| Clinical Study — Study Analytics | 8 | 12 | 3 | 4 | 19 | 4 (oracle) |
+| Clinical Study — Protocol Evidence | 1 | 8 | 1 | 6 | 15 | 3 (registry) |
+| Clinical Study — Standards & Semantics | 2 | 10 | 1 | 4 | 12 | 3 (oracle) |
+
+All 250 items run live and match (`scripts/genie_knowledge.py --validate`). Spot check through the Conversation API:
+both spaces used the new filters and answered correctly. **Pending:** re-record Genie One once extraction has run
+(about a day) to confirm the inferred snippets now come from the managed spaces. Unmanaged dev spaces:
+`docs/ontology/GENIE_SPACES_FLAGGED.md`.
