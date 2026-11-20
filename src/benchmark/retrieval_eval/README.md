@@ -26,7 +26,7 @@ while this arm isolates *what each retrieval approach contributes in the absence
   Genie One, so both arms call identical retrieval). Best-effort from local (doc-RLS / Lakebase Search); the
   arm reports degraded mode rather than failing the run.
 - `ontobricks` — A5 graph arm: **entity-linked subgraph retrieval** against the published, live triplestore
-  `eswanson_demo.ontobricks.triplestore_clinicaldomain_v2_graph` (~55M triples). **Eli owns the modeling
+  `eli_test_classic_catalog.ontobricks.triplestore_clinicaldomain_v<N>_graph` (moved from the deleted `eswanson_demo` 2026-11-20). **Eli owns the modeling
   (ADR-0005); this is only the retrieval plumbing.** It links the question's clinical terms to IRI *nodes* (a
   synonym→node lexicon — the standard graph-RAG NER/EL layer, pointing at entities not answers), then returns
   their typed 1-hop neighbourhood (the cross-vocab guideline/structural edges, then a small sample of patient

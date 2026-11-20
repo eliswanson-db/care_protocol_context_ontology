@@ -1,7 +1,12 @@
-# Republishing the clinicaldomain graph (checked 2026-11-06)
+# Republishing the clinicaldomain graph (checked 2026-11-06; target moved 2026-11-20)
+
+**2026-11-20:** the `eswanson_demo` catalog was deleted, and the published v3 went with it. Publish into
+`eli_test_classic_catalog.ontobricks` (schema created; the ECT app SP has USE SCHEMA + SELECT). The app is now
+unpinned. The v3 checks below are history: `check_graph_version.py` now falls back to the v3 mapping's predicates
+until you save a baseline with `--save-baseline`.
 
 **What Ontobricks actually runs.** The published graph is built from the Ontobricks project's own mapping, compiled
-into the live view `eswanson_demo.ontobricks.triplestore_clinicaldomain_v<N>` (copy of v3:
+into the live view `eli_test_classic_catalog.ontobricks.triplestore_clinicaldomain_v<N>` (copy of v3:
 `ontobricks_compiled_mapping_v3.sql`). It is NOT generated from `src/ontology/care_protocol.r2rml.ttl`; that file
 documents the intended sources but uses different IRIs (`patient/`, `drugclass/` vs the graph's `Patient/`,
 `DrugClass/`). Because the view is live, querying it shows exactly what a republish would materialize.
@@ -30,9 +35,9 @@ Simulated (no tables written) in `docs/benchmark/republish_check/simulated_graph
    tools depend on `icd/`, `rx/`, `ing/`, `DrugClass/`, `ValueSet/`, `Measure/`, `Patient/`).
 
 ## After republishing (either path)
-1. `.venv/bin/python -I scripts/check_graph_version.py --graph eswanson_demo.ontobricks.triplestore_clinicaldomain_v<N>_graph`
+1. `.venv/bin/python -I scripts/check_graph_version.py --graph eli_test_classic_catalog.ontobricks.triplestore_clinicaldomain_v<N>_graph --save-baseline`
    — every REQUIRED check must pass (Path B: OPTIONAL too).
-2. Move the pin in `src/app/app.yaml` to the new version, deploy.
+2. Set the pin in `src/app/app.yaml` to the new version, deploy.
 3. Re-run the eval: `PYTHONPATH=src DATABRICKS_CONFIG_PROFILE=ECT CARE_ONTOBRICKS_TABLE=triplestore_clinicaldomain_v<N> .venv/bin/python -m benchmark.retrieval_eval.run_retrieval_eval --out retrieval_eval_arena.json`,
    copy it to `src/app/server/benchmark_data/`, deploy.
 

@@ -1,8 +1,8 @@
 """Acceptance checks for an Ontobricks graph version BEFORE the app is pointed at it (read-only).
 
-  .venv/bin/python -I scripts/check_graph_version.py --graph eswanson_demo.ontobricks.triplestore_clinicaldomain_v4_graph
+  .venv/bin/python -I scripts/check_graph_version.py --graph eli_test_classic_catalog.ontobricks.triplestore_clinicaldomain_v<N>_graph
   # simulate a republish: the live compiled-mapping VIEW recomputes the triples from today's source tables
-  .venv/bin/python -I scripts/check_graph_version.py --graph eswanson_demo.ontobricks.triplestore_clinicaldomain_v3
+  .venv/bin/python -I scripts/check_graph_version.py --graph eli_test_classic_catalog.ontobricks.triplestore_clinicaldomain_v<N>
 
 REQUIRED checks protect the app and the eval (IRI convention, no lost predicates, the expected new edges, the graph
 runner's tool results). OPTIONAL checks track the Ontobricks-side mapping fixes (names on the edge nodes, every drug
@@ -11,8 +11,11 @@ class's membership, clean hasIngredient). Exit code 0 only if every REQUIRED che
 from __future__ import annotations
 
 import argparse
+import json
 import os
+import re
 import sys
+from pathlib import Path
 
 sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "src")))
 sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "src", "app")))
@@ -23,7 +26,11 @@ from server import graph_runner as gr  # noqa: E402
 from server.context_retrieval import graph_context  # noqa: E402
 
 NS = "https://care-protocol.example/ontology/"
-BASELINE = "eswanson_demo.ontobricks.triplestore_clinicaldomain_v3_graph"
+# The v3 table was lost with eswanson_demo (2026-11-20). The baseline is now a committed snapshot of a verified graph
+# (--save-baseline writes it). Until one exists, predicate PRESENCE is checked against the saved v3 mapping.
+ROOT = Path(__file__).resolve().parents[1]
+BASELINE_FILE = ROOT / "docs/ontology/graph_baseline_clinicaldomain.json"
+V3_MAPPING = ROOT / "docs/ontology/ontobricks_compiled_mapping_v3.sql"
 OBS = f"'{NS}hasObservation', '{NS}ofTest', '{NS}resultValue'"
 # Edge-endpoint prefixes the app, the entity linker and the graph tools rely on.
 EDGE_PREFIXES = {"Patient", "icd", "rx", "ing", "DrugClass", "Measure", "ValueSet", "Threshold", "part", "loinc"}
@@ -54,18 +61,29 @@ def edge_prefixes(table: str) -> set[str]:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--graph", required=True, help="catalog.schema.table (or view) to check")
+    ap.add_argument("--save-baseline", action="store_true",
+                    help="after all REQUIRED checks pass, save this graph's predicate counts as the new baseline")
     args = ap.parse_args()
     g_tab = args.graph
 
-    # ---- structure vs the v3 baseline --------------------------------------------------------------------------
-    base, new = pred_counts(BASELINE), pred_counts(g_tab)
+    # ---- structure vs the committed baseline (or, if none yet, the predicates of the v3 mapping) ---------------
+    new = pred_counts(g_tab)
+    if BASELINE_FILE.exists():
+        bl = json.loads(BASELINE_FILE.read_text())
+        base, base_prefixes, what = bl["predicates"], set(bl["edge_prefixes"]), f"baseline {bl['graph']}"
+    else:
+        names = set(re.findall(r"'https://care-protocol\.example/ontology/([A-Za-z]\w*)' AS predicate",
+                               V3_MAPPING.read_text()))
+        names -= {"hasObservation", "ofTest", "resultValue"}  # excluded by pred_counts (OBS)
+        base, base_prefixes, what = {n: 0 for n in names}, set(EDGE_PREFIXES), "v3 mapping (presence only)"
     lost = sorted(p for p in base if p not in new)
-    check("REQUIRED", "no predicate lost vs v3", not lost, f"lost: {lost}" if lost else f"{len(new)} predicates")
+    check("REQUIRED", f"no predicate lost vs {what}", not lost, f"lost: {lost}" if lost else f"{len(new)} predicates")
     shrunk = sorted(f"{p} {base[p]}->{new.get(p, 0)}" for p in base
-                    if p in new and new[p] < 0.9 * base[p] and p not in ("hasIngredient",))
-    check("REQUIRED", "no predicate shrank >10% (hasIngredient may shrink by design)", not shrunk, "; ".join(shrunk))
-    prefixes, base_prefixes = edge_prefixes(g_tab), edge_prefixes(BASELINE)
-    ok = EDGE_PREFIXES <= prefixes and prefixes == base_prefixes
+                    if base[p] and p in new and new[p] < 0.9 * base[p] and p not in ("hasIngredient",))
+    check("REQUIRED", "no predicate shrank >10% (hasIngredient may shrink by design)", not shrunk,
+          "; ".join(shrunk) or ("" if BASELINE_FILE.exists() else "skipped: no count baseline yet"))
+    prefixes = edge_prefixes(g_tab)
+    ok = EDGE_PREFIXES <= prefixes and (prefixes == base_prefixes or not BASELINE_FILE.exists())
     check("REQUIRED", "edge nodes keep the v3 IRI convention", ok,
           f"missing {sorted(base_prefixes - prefixes)}, new {sorted(prefixes - base_prefixes)}" if not ok else
           ", ".join(sorted(prefixes)))
@@ -117,7 +135,12 @@ def main():
 
     req = [r for r in results if r[0] == "REQUIRED"]
     opt = [r for r in results if r[0] == "OPTIONAL"]
-    print(f"\nREQUIRED {sum(r[2] for r in req)}/{len(req)} passed; OPTIONAL {sum(r[2] for r in opt)}/{len(opt)} passed")
+    print(f"\nREQUIRED {sum(r[2] for r in req)}/{len(req)} passed; "
+          f"OPTIONAL {sum(r[2] for r in opt)}/{len(opt)} passed")
+    if args.save_baseline and all(r[2] for r in req):
+        snap = {"graph": g_tab, "predicates": new, "edge_prefixes": sorted(prefixes)}
+        BASELINE_FILE.write_text(json.dumps(snap, indent=1, sort_keys=True) + "\n")
+        print(f"baseline saved: {BASELINE_FILE.relative_to(ROOT)}")
     sys.exit(0 if all(r[2] for r in req) else 1)
 
 

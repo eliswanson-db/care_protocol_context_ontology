@@ -326,7 +326,7 @@ GRANT USE CATALOG ON CATALOG eli_test_classic_catalog TO `<sp>`;
 GRANT USE SCHEMA, SELECT ON SCHEMA eli_test_classic_catalog.{care_protocol,care_protocol_semantic,care_protocol_terminology} TO `<sp>`;
 GRANT USE SCHEMA, SELECT ON SCHEMA eli_test_classic_catalog.{clinical_study,clinical_study_semantic,clinical_study_standards,clinical_study_graph} TO `<sp>`;
 GRANT READ VOLUME ON VOLUME eli_test_classic_catalog.care_protocol.documents TO `<sp>`;
-GRANT USE CATALOG ON CATALOG eswanson_demo TO `<sp>`;  GRANT USE SCHEMA, SELECT ON SCHEMA eswanson_demo.ontobricks TO `<sp>`;
+GRANT USE SCHEMA, SELECT ON SCHEMA eli_test_classic_catalog.ontobricks TO `<sp>`;   -- Ontobricks graphs (moved 2026-11-20)
 ```
 Plus `CAN_RUN` on the 4 HEDIS and 3 Clinical Study Genie spaces, and `CAN_VIEW` on jobs `setup_ect`, `semantic_ect`,
 `ls_bootstrap_ect`, `ls_context_ect` (the readiness drawer reads their last run). Not yet granted: the SP's

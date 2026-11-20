@@ -226,7 +226,7 @@ def checklist(catalog: str) -> str:
         "rejects anything, fix it with the tables below. Each row is one view → one mapping, columns `ID`/`Label` "
         "for entities and `source_id`/`target_id` for relationships.",
         "4. Set source scope to the schema above, then build/publish.",
-        "5. Send Claude the published triplestore table name (e.g. `eswanson_demo.ontobricks.triplestore_<project>_v1`). "
+        "5. Send Claude the published triplestore table name (e.g. `eli_test_classic_catalog.ontobricks.triplestore_<project>_v1`). "
         "Claude runs the graph checks against it.",
         "",
         "## Entities",

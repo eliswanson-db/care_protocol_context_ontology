@@ -109,7 +109,7 @@ and `vite build` does not type-check.
 | M0 / metric_view | Governed `MEASURE()` over metric views | `src/semantic/metric_views/` |
 | closure_sql | Fixed-shape SQL over closure/edge tables; also the gold answer key | `src/benchmark/gold_queries.sql` |
 | A4 | Lakebase hybrid RAG (BM25 + vector) over the care-protocol corpus, with **document-level RLS** through a SECURITY DEFINER function (ADR-0014/0016) | `src/retrieval/a4_lakebase.py`, `src/retrieval/lakebase/schema.sql`, `scripts/lakebase_*.py` |
-| A5 | Ontobricks OWL graph, published live (`eswanson_demo.ontobricks.triplestore_clinicaldomain_v2*`, ~55M triples) | `src/ontology/*.ttl` (TBox + R2RML), app `routes/ontobricks.py` |
+| A5 | Ontobricks OWL graph, published to `eli_test_classic_catalog.ontobricks.triplestore_clinicaldomain_v<N>` (republish pending: the old `eswanson_demo` copy was deleted 2026-11-20) | `src/ontology/*.ttl` (TBox + R2RML), app `routes/ontobricks.py` |
 | A6 | Supervisor + custom MCP: deterministic, reviewed tools with no free-form SQL | `src/mcp/` |
 
 - The benchmark is a **capability map, not a leaderboard** (ADR-0010, `docs/BENCHMARK_CHARTER.md`). For each
