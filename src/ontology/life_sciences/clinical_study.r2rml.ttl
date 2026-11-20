@@ -6,7 +6,7 @@
 
 map:e_disease a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.e_disease" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Disease/{ID}" ; rr:class <https://clinical-study-lab.example/ontology#Disease> ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Disease/{disease_id}" ; rr:class <https://clinical-study-lab.example/ontology#Disease> ] ;
     rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "Label" ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/code> ; rr:objectMap [ rr:column "code" ; rr:datatype xsd:string ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/scheme> ; rr:objectMap [ rr:column "scheme" ; rr:datatype xsd:string ] ] ;
@@ -16,7 +16,7 @@ map:e_disease a rr:TriplesMap ;
 
 map:e_drug a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.e_drug" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Drug/{ID}" ; rr:class <https://clinical-study-lab.example/ontology#Drug> ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Drug/{drug_id}" ; rr:class <https://clinical-study-lab.example/ontology#Drug> ] ;
     rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "Label" ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/code> ; rr:objectMap [ rr:column "code" ; rr:datatype xsd:string ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/scheme> ; rr:objectMap [ rr:column "scheme" ; rr:datatype xsd:string ] ] ;
@@ -26,7 +26,7 @@ map:e_drug a rr:TriplesMap ;
 
 map:e_drug_class a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.e_drug_class" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/DrugClass/{ID}" ; rr:class <https://clinical-study-lab.example/ontology#DrugClass> ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/DrugClass/{drug_class_id}" ; rr:class <https://clinical-study-lab.example/ontology#DrugClass> ] ;
     rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "Label" ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/code> ; rr:objectMap [ rr:column "code" ; rr:datatype xsd:string ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/scheme> ; rr:objectMap [ rr:column "scheme" ; rr:datatype xsd:string ] ] ;
@@ -37,7 +37,7 @@ map:e_drug_class a rr:TriplesMap ;
 
 map:e_mesh_record a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.e_mesh_record" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/MeshRecord/{ID}" ; rr:class <https://clinical-study-lab.example/ontology#MeshRecord> ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/MeshRecord/{mesh_record_id}" ; rr:class <https://clinical-study-lab.example/ontology#MeshRecord> ] ;
     rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "Label" ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/code> ; rr:objectMap [ rr:column "code" ; rr:datatype xsd:string ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/scheme> ; rr:objectMap [ rr:column "scheme" ; rr:datatype xsd:string ] ] ;
@@ -48,7 +48,7 @@ map:e_mesh_record a rr:TriplesMap ;
 
 map:e_mesh_concept a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.e_mesh_concept" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/MeshConcept/{ID}" ; rr:class <https://clinical-study-lab.example/ontology#MeshConcept> ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/MeshConcept/{mesh_concept_id}" ; rr:class <https://clinical-study-lab.example/ontology#MeshConcept> ] ;
     rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "Label" ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/code> ; rr:objectMap [ rr:column "code" ; rr:datatype xsd:string ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/scheme> ; rr:objectMap [ rr:column "scheme" ; rr:datatype xsd:string ] ] ;
@@ -58,7 +58,7 @@ map:e_mesh_concept a rr:TriplesMap ;
 
 map:e_reference_concept a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.e_reference_concept" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/ReferenceConcept/{ID}" ; rr:class <https://clinical-study-lab.example/ontology#ReferenceConcept> ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/ReferenceConcept/{reference_concept_id}" ; rr:class <https://clinical-study-lab.example/ontology#ReferenceConcept> ] ;
     rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "Label" ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/code> ; rr:objectMap [ rr:column "code" ; rr:datatype xsd:string ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/scheme> ; rr:objectMap [ rr:column "scheme" ; rr:datatype xsd:string ] ] ;
@@ -68,7 +68,7 @@ map:e_reference_concept a rr:TriplesMap ;
 
 map:e_codelist a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.e_codelist" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Codelist/{ID}" ; rr:class <https://clinical-study-lab.example/ontology#Codelist> ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Codelist/{codelist_id}" ; rr:class <https://clinical-study-lab.example/ontology#Codelist> ] ;
     rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "Label" ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/code> ; rr:objectMap [ rr:column "code" ; rr:datatype xsd:string ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/scheme> ; rr:objectMap [ rr:column "scheme" ; rr:datatype xsd:string ] ] ;
@@ -79,7 +79,7 @@ map:e_codelist a rr:TriplesMap ;
 
 map:e_codelist_term a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.e_codelist_term" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/CodelistTerm/{ID}" ; rr:class <https://clinical-study-lab.example/ontology#CodelistTerm> ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/CodelistTerm/{codelist_term_id}" ; rr:class <https://clinical-study-lab.example/ontology#CodelistTerm> ] ;
     rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "Label" ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/code> ; rr:objectMap [ rr:column "code" ; rr:datatype xsd:string ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/scheme> ; rr:objectMap [ rr:column "scheme" ; rr:datatype xsd:string ] ] ;
@@ -90,7 +90,7 @@ map:e_codelist_term a rr:TriplesMap ;
 
 map:e_biomedical_concept a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.e_biomedical_concept" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/BiomedicalConcept/{ID}" ; rr:class <https://clinical-study-lab.example/ontology#BiomedicalConcept> ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/BiomedicalConcept/{biomedical_concept_id}" ; rr:class <https://clinical-study-lab.example/ontology#BiomedicalConcept> ] ;
     rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "Label" ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/code> ; rr:objectMap [ rr:column "code" ; rr:datatype xsd:string ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/scheme> ; rr:objectMap [ rr:column "scheme" ; rr:datatype xsd:string ] ] ;
@@ -100,7 +100,7 @@ map:e_biomedical_concept a rr:TriplesMap ;
 
 map:e_dataset_specialization a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.e_dataset_specialization" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/DatasetSpecialization/{ID}" ; rr:class <https://clinical-study-lab.example/ontology#DatasetSpecialization> ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/DatasetSpecialization/{dataset_specialization_id}" ; rr:class <https://clinical-study-lab.example/ontology#DatasetSpecialization> ] ;
     rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "Label" ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/code> ; rr:objectMap [ rr:column "code" ; rr:datatype xsd:string ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/scheme> ; rr:objectMap [ rr:column "scheme" ; rr:datatype xsd:string ] ] ;
@@ -111,7 +111,7 @@ map:e_dataset_specialization a rr:TriplesMap ;
 
 map:e_d_s_s_variable_binding a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.e_d_s_s_variable_binding" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/DSSVariableBinding/{ID}" ; rr:class <https://clinical-study-lab.example/ontology#DSSVariableBinding> ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/DSSVariableBinding/{d_s_s_variable_binding_id}" ; rr:class <https://clinical-study-lab.example/ontology#DSSVariableBinding> ] ;
     rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "Label" ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/code> ; rr:objectMap [ rr:column "code" ; rr:datatype xsd:string ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/scheme> ; rr:objectMap [ rr:column "scheme" ; rr:datatype xsd:string ] ] ;
@@ -122,7 +122,7 @@ map:e_d_s_s_variable_binding a rr:TriplesMap ;
 
 map:e_dataset_variable a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.e_dataset_variable" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/DatasetVariable/{ID}" ; rr:class <https://clinical-study-lab.example/ontology#DatasetVariable> ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/DatasetVariable/{dataset_variable_id}" ; rr:class <https://clinical-study-lab.example/ontology#DatasetVariable> ] ;
     rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "Label" ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/code> ; rr:objectMap [ rr:column "code" ; rr:datatype xsd:string ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/scheme> ; rr:objectMap [ rr:column "scheme" ; rr:datatype xsd:string ] ] ;
@@ -133,7 +133,7 @@ map:e_dataset_variable a rr:TriplesMap ;
 
 map:e_s_d_t_m_domain a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.e_s_d_t_m_domain" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/SDTMDomain/{ID}" ; rr:class <https://clinical-study-lab.example/ontology#SDTMDomain> ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/SDTMDomain/{s_d_t_m_domain_id}" ; rr:class <https://clinical-study-lab.example/ontology#SDTMDomain> ] ;
     rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "Label" ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/code> ; rr:objectMap [ rr:column "code" ; rr:datatype xsd:string ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/scheme> ; rr:objectMap [ rr:column "scheme" ; rr:datatype xsd:string ] ] ;
@@ -143,14 +143,14 @@ map:e_s_d_t_m_domain a rr:TriplesMap ;
 
 map:e_study a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.e_study" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Study/{ID}" ; rr:class <https://clinical-study-lab.example/ontology#Study> ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Study/{study_id}" ; rr:class <https://clinical-study-lab.example/ontology#Study> ] ;
     rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "Label" ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/phase> ; rr:objectMap [ rr:column "phase" ; rr:datatype xsd:string ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/durationWeeks> ; rr:objectMap [ rr:column "duration_weeks" ; rr:datatype xsd:integer ] ] .
 
 map:e_study_version a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.e_study_version" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/StudyVersion/{ID}" ; rr:class <https://clinical-study-lab.example/ontology#StudyVersion> ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/StudyVersion/{study_version_id}" ; rr:class <https://clinical-study-lab.example/ontology#StudyVersion> ] ;
     rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "Label" ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/protocolVersion> ; rr:objectMap [ rr:column "protocol_version" ; rr:datatype xsd:string ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/sapVersion> ; rr:objectMap [ rr:column "sap_version" ; rr:datatype xsd:string ] ] ;
@@ -160,13 +160,13 @@ map:e_study_version a rr:TriplesMap ;
 
 map:e_endpoint_definition a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.e_endpoint_definition" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EndpointDefinition/{ID}" ; rr:class <https://clinical-study-lab.example/ontology#EndpointDefinition> ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EndpointDefinition/{endpoint_definition_id}" ; rr:class <https://clinical-study-lab.example/ontology#EndpointDefinition> ] ;
     rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "Label" ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/formula> ; rr:objectMap [ rr:column "formula" ; rr:datatype xsd:string ] ] .
 
 map:e_endpoint_rule_version a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.e_endpoint_rule_version" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EndpointRuleVersion/{ID}" ; rr:class <https://clinical-study-lab.example/ontology#EndpointRuleVersion> ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EndpointRuleVersion/{endpoint_rule_version_id}" ; rr:class <https://clinical-study-lab.example/ontology#EndpointRuleVersion> ] ;
     rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "Label" ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/ruleVersion> ; rr:objectMap [ rr:column "rule_version" ; rr:datatype xsd:string ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/baselineMethod> ; rr:objectMap [ rr:column "baseline_method" ; rr:datatype xsd:string ] ] ;
@@ -183,34 +183,34 @@ map:e_endpoint_rule_version a rr:TriplesMap ;
 
 map:e_analysis_population a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.e_analysis_population" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/AnalysisPopulation/{ID}" ; rr:class <https://clinical-study-lab.example/ontology#AnalysisPopulation> ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/AnalysisPopulation/{analysis_population_id}" ; rr:class <https://clinical-study-lab.example/ontology#AnalysisPopulation> ] ;
     rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "Label" ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/populationDefinition> ; rr:objectMap [ rr:column "definition" ; rr:datatype xsd:string ] ] .
 
 map:e_eligibility_rule a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.e_eligibility_rule" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EligibilityRule/{ID}" ; rr:class <https://clinical-study-lab.example/ontology#EligibilityRule> ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EligibilityRule/{eligibility_rule_id}" ; rr:class <https://clinical-study-lab.example/ontology#EligibilityRule> ] ;
     rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "Label" ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/reviewState> ; rr:objectMap [ rr:column "review_state" ; rr:datatype xsd:string ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/approvedBy> ; rr:objectMap [ rr:column "approved_by" ; rr:datatype xsd:string ] ] .
 
 map:e_eligibility_criterion a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.e_eligibility_criterion" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EligibilityCriterion/{ID}" ; rr:class <https://clinical-study-lab.example/ontology#EligibilityCriterion> ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EligibilityCriterion/{eligibility_criterion_id}" ; rr:class <https://clinical-study-lab.example/ontology#EligibilityCriterion> ] ;
     rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "Label" ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/criterionType> ; rr:objectMap [ rr:column "criterion_type" ; rr:datatype xsd:string ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/parameters> ; rr:objectMap [ rr:column "params_json" ; rr:datatype xsd:string ] ] .
 
 map:e_concept_class a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.e_concept_class" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/ConceptClass/{ID}" ; rr:class <https://clinical-study-lab.example/ontology#ConceptClass> ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/ConceptClass/{concept_class_id}" ; rr:class <https://clinical-study-lab.example/ontology#ConceptClass> ] ;
     rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "Label" ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/scheme> ; rr:objectMap [ rr:column "scheme" ; rr:datatype xsd:string ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/registryVersion> ; rr:objectMap [ rr:column "registry_version" ; rr:datatype xsd:string ] ] .
 
 map:e_document a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.e_document" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Document/{ID}" ; rr:class <https://clinical-study-lab.example/ontology#Document> ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Document/{document_id}" ; rr:class <https://clinical-study-lab.example/ontology#Document> ] ;
     rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "Label" ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/documentType> ; rr:objectMap [ rr:column "doc_type" ; rr:datatype xsd:string ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/documentVersion> ; rr:objectMap [ rr:column "version" ; rr:datatype xsd:string ] ] ;
@@ -219,19 +219,19 @@ map:e_document a rr:TriplesMap ;
 
 map:e_document_section a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.e_document_section" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/DocumentSection/{ID}" ; rr:class <https://clinical-study-lab.example/ontology#DocumentSection> ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/DocumentSection/{document_section_id}" ; rr:class <https://clinical-study-lab.example/ontology#DocumentSection> ] ;
     rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "Label" ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/sectionNumber> ; rr:objectMap [ rr:column "section_number" ; rr:datatype xsd:string ] ] .
 
 map:e_site a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.e_site" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Site/{ID}" ; rr:class <https://clinical-study-lab.example/ontology#Site> ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Site/{site_id}" ; rr:class <https://clinical-study-lab.example/ontology#Site> ] ;
     rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "Label" ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/country> ; rr:objectMap [ rr:column "country" ; rr:datatype xsd:string ] ] .
 
 map:e_participant a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.e_participant" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Participant/{ID}" ; rr:class <https://clinical-study-lab.example/ontology#Participant> ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Participant/{participant_id}" ; rr:class <https://clinical-study-lab.example/ontology#Participant> ] ;
     rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "Label" ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/age> ; rr:objectMap [ rr:column "age" ; rr:datatype xsd:integer ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/sex> ; rr:objectMap [ rr:column "sex" ; rr:datatype xsd:string ] ] ;
@@ -244,20 +244,20 @@ map:e_participant a rr:TriplesMap ;
 
 map:e_medical_history_record a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.e_medical_history_record" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/MedicalHistoryRecord/{ID}" ; rr:class <https://clinical-study-lab.example/ontology#MedicalHistoryRecord> ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/MedicalHistoryRecord/{medical_history_record_id}" ; rr:class <https://clinical-study-lab.example/ontology#MedicalHistoryRecord> ] ;
     rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "Label" ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/startDate> ; rr:objectMap [ rr:column "start_date" ; rr:datatype xsd:string ] ] .
 
 map:e_con_med_record a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.e_con_med_record" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/ConMedRecord/{ID}" ; rr:class <https://clinical-study-lab.example/ontology#ConMedRecord> ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/ConMedRecord/{con_med_record_id}" ; rr:class <https://clinical-study-lab.example/ontology#ConMedRecord> ] ;
     rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "Label" ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/startDate> ; rr:objectMap [ rr:column "start_date" ; rr:datatype xsd:string ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/endDate> ; rr:objectMap [ rr:column "end_date" ; rr:datatype xsd:string ] ] .
 
 map:e_weight_observation a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.e_weight_observation" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/WeightObservation/{ID}" ; rr:class <https://clinical-study-lab.example/ontology#WeightObservation> ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/WeightObservation/{weight_observation_id}" ; rr:class <https://clinical-study-lab.example/ontology#WeightObservation> ] ;
     rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "Label" ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/visit> ; rr:objectMap [ rr:column "visit" ; rr:datatype xsd:string ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/dateTime> ; rr:objectMap [ rr:column "vsdtc" ; rr:datatype xsd:string ] ] ;
@@ -271,13 +271,13 @@ map:e_weight_observation a rr:TriplesMap ;
 
 map:e_source_record a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.e_source_record" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/SourceRecord/{ID}" ; rr:class <https://clinical-study-lab.example/ontology#SourceRecord> ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/SourceRecord/{source_record_id}" ; rr:class <https://clinical-study-lab.example/ontology#SourceRecord> ] ;
     rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "Label" ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/sourceFile> ; rr:objectMap [ rr:column "source_file" ; rr:datatype xsd:string ] ] .
 
 map:e_endpoint_result a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.e_endpoint_result" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EndpointResult/{ID}" ; rr:class <https://clinical-study-lab.example/ontology#EndpointResult> ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EndpointResult/{endpoint_result_id}" ; rr:class <https://clinical-study-lab.example/ontology#EndpointResult> ] ;
     rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "Label" ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/resultStatus> ; rr:objectMap [ rr:column "result_status" ; rr:datatype xsd:string ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/percentChange> ; rr:objectMap [ rr:column "pchg" ; rr:datatype xsd:double ] ] ;
@@ -291,438 +291,438 @@ map:e_endpoint_result a rr:TriplesMap ;
 
 map:e_execution_run a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.e_execution_run" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/ExecutionRun/{ID}" ; rr:class <https://clinical-study-lab.example/ontology#ExecutionRun> ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/ExecutionRun/{execution_run_id}" ; rr:class <https://clinical-study-lab.example/ontology#ExecutionRun> ] ;
     rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "Label" ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/engineVersion> ; rr:objectMap [ rr:column "engine_version" ; rr:datatype xsd:string ] ] .
 
 map:r_sub_class_of__disease__disease a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_sub_class_of__disease__disease" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Disease/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Disease/{disease_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/subClassOf> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/Disease/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/Disease/{disease_target_id}" ] ] .
 
 map:r_sub_class_of__drug_class__drug_class a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_sub_class_of__drug_class__drug_class" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/DrugClass/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/DrugClass/{drug_class_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/subClassOf> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/DrugClass/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/DrugClass/{drug_class_target_id}" ] ] .
 
 map:r_exact_match__disease__mesh_record a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_exact_match__disease__mesh_record" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Disease/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Disease/{disease_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/exactMatch> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/MeshRecord/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/MeshRecord/{mesh_record_id}" ] ] .
 
 map:r_exact_match__disease__reference_concept a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_exact_match__disease__reference_concept" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Disease/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Disease/{disease_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/exactMatch> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/ReferenceConcept/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/ReferenceConcept/{reference_concept_id}" ] ] .
 
 map:r_has_db_xref__disease__mesh_record a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_has_db_xref__disease__mesh_record" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Disease/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Disease/{disease_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/hasDbXref> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/MeshRecord/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/MeshRecord/{mesh_record_id}" ] ] .
 
 map:r_has_db_xref__disease__reference_concept a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_has_db_xref__disease__reference_concept" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Disease/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Disease/{disease_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/hasDbXref> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/ReferenceConcept/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/ReferenceConcept/{reference_concept_id}" ] ] .
 
 map:r_curated_equivalent__disease__mesh_record a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_curated_equivalent__disease__mesh_record" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Disease/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Disease/{disease_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/curatedEquivalent> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/MeshRecord/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/MeshRecord/{mesh_record_id}" ] ] .
 
 map:r_broader_descriptor__mesh_record__mesh_record a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_broader_descriptor__mesh_record__mesh_record" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/MeshRecord/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/MeshRecord/{mesh_record_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/broaderDescriptor> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/MeshRecord/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/MeshRecord/{mesh_record_target_id}" ] ] .
 
 map:r_heading_mapped_to__mesh_record__mesh_record a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_heading_mapped_to__mesh_record__mesh_record" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/MeshRecord/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/MeshRecord/{mesh_record_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/headingMappedTo> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/MeshRecord/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/MeshRecord/{mesh_record_target_id}" ] ] .
 
 map:r_concept_of__mesh_concept__mesh_record a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_concept_of__mesh_concept__mesh_record" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/MeshConcept/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/MeshConcept/{mesh_concept_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/conceptOf> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/MeshRecord/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/MeshRecord/{mesh_record_id}" ] ] .
 
 map:r_member_of_class__drug__drug_class a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_member_of_class__drug__drug_class" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Drug/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Drug/{drug_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/memberOfClass> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/DrugClass/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/DrugClass/{drug_class_id}" ] ] .
 
 map:r_has_mechanism_of_action__drug__drug_class a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_has_mechanism_of_action__drug__drug_class" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Drug/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Drug/{drug_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/hasMechanismOfAction> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/DrugClass/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/DrugClass/{drug_class_id}" ] ] .
 
 map:r_has_mechanism_of_action__drug_class__drug_class a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_has_mechanism_of_action__drug_class__drug_class" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/DrugClass/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/DrugClass/{drug_class_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/hasMechanismOfAction> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/DrugClass/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/DrugClass/{drug_class_target_id}" ] ] .
 
 map:r_has_physiologic_effect__drug__drug_class a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_has_physiologic_effect__drug__drug_class" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Drug/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Drug/{drug_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/hasPhysiologicEffect> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/DrugClass/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/DrugClass/{drug_class_id}" ] ] .
 
 map:r_has_physiologic_effect__drug_class__drug_class a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_has_physiologic_effect__drug_class__drug_class" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/DrugClass/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/DrugClass/{drug_class_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/hasPhysiologicEffect> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/DrugClass/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/DrugClass/{drug_class_target_id}" ] ] .
 
 map:r_has_therapeutic_category__drug__drug_class a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_has_therapeutic_category__drug__drug_class" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Drug/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Drug/{drug_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/hasTherapeuticCategory> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/DrugClass/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/DrugClass/{drug_class_id}" ] ] .
 
 map:r_has_therapeutic_category__drug_class__drug_class a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_has_therapeutic_category__drug_class__drug_class" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/DrugClass/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/DrugClass/{drug_class_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/hasTherapeuticCategory> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/DrugClass/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/DrugClass/{drug_class_target_id}" ] ] .
 
 map:r_contraindicated_with__drug__mesh_concept a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_contraindicated_with__drug__mesh_concept" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Drug/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Drug/{drug_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/contraindicatedWith> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/MeshConcept/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/MeshConcept/{mesh_concept_id}" ] ] .
 
 map:r_contraindicated_with_mechanism__drug__drug_class a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_contraindicated_with_mechanism__drug__drug_class" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Drug/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Drug/{drug_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/contraindicatedWithMechanism> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/DrugClass/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/DrugClass/{drug_class_id}" ] ] .
 
 map:r_contraindicated_with_effect__drug__drug_class a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_contraindicated_with_effect__drug__drug_class" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Drug/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Drug/{drug_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/contraindicatedWithEffect> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/DrugClass/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/DrugClass/{drug_class_id}" ] ] .
 
 map:r_may_treat__drug__mesh_concept a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_may_treat__drug__mesh_concept" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Drug/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Drug/{drug_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/mayTreat> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/MeshConcept/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/MeshConcept/{mesh_concept_id}" ] ] .
 
 map:r_may_treat__drug_class__mesh_concept a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_may_treat__drug_class__mesh_concept" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/DrugClass/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/DrugClass/{drug_class_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/mayTreat> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/MeshConcept/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/MeshConcept/{mesh_concept_id}" ] ] .
 
 map:r_may_prevent__drug__mesh_concept a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_may_prevent__drug__mesh_concept" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Drug/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Drug/{drug_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/mayPrevent> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/MeshConcept/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/MeshConcept/{mesh_concept_id}" ] ] .
 
 map:r_in_codelist__codelist_term__codelist a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_in_codelist__codelist_term__codelist" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/CodelistTerm/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/CodelistTerm/{codelist_term_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/inCodelist> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/Codelist/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/Codelist/{codelist_id}" ] ] .
 
 map:r_nci_concept__codelist_term__reference_concept a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_nci_concept__codelist_term__reference_concept" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/CodelistTerm/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/CodelistTerm/{codelist_term_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/nciConcept> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/ReferenceConcept/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/ReferenceConcept/{reference_concept_id}" ] ] .
 
 map:r_specializes__dataset_specialization__biomedical_concept a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_specializes__dataset_specialization__biomedical_concept" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/DatasetSpecialization/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/DatasetSpecialization/{dataset_specialization_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/specializes> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/BiomedicalConcept/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/BiomedicalConcept/{biomedical_concept_id}" ] ] .
 
 map:r_has_variable_binding__dataset_specialization__d_s_s_variable_binding a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_has_variable_binding__dataset_specialization__d_s_s_variable_binding" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/DatasetSpecialization/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/DatasetSpecialization/{dataset_specialization_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/hasVariableBinding> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/DSSVariableBinding/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/DSSVariableBinding/{d_s_s_variable_binding_id}" ] ] .
 
 map:r_constrains__d_s_s_variable_binding__dataset_variable a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_constrains__d_s_s_variable_binding__dataset_variable" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/DSSVariableBinding/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/DSSVariableBinding/{d_s_s_variable_binding_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/constrains> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/DatasetVariable/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/DatasetVariable/{dataset_variable_id}" ] ] .
 
 map:r_uses_codelist__d_s_s_variable_binding__codelist a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_uses_codelist__d_s_s_variable_binding__codelist" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/DSSVariableBinding/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/DSSVariableBinding/{d_s_s_variable_binding_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/usesCodelist> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/Codelist/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/Codelist/{codelist_id}" ] ] .
 
 map:r_allowed_value__d_s_s_variable_binding__codelist_term a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_allowed_value__d_s_s_variable_binding__codelist_term" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/DSSVariableBinding/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/DSSVariableBinding/{d_s_s_variable_binding_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/allowedValue> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/CodelistTerm/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/CodelistTerm/{codelist_term_id}" ] ] .
 
 map:r_assigned_value__d_s_s_variable_binding__codelist_term a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_assigned_value__d_s_s_variable_binding__codelist_term" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/DSSVariableBinding/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/DSSVariableBinding/{d_s_s_variable_binding_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/assignedValue> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/CodelistTerm/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/CodelistTerm/{codelist_term_id}" ] ] .
 
 map:r_in_domain__dataset_variable__s_d_t_m_domain a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_in_domain__dataset_variable__s_d_t_m_domain" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/DatasetVariable/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/DatasetVariable/{dataset_variable_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/inDomain> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/SDTMDomain/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/SDTMDomain/{s_d_t_m_domain_id}" ] ] .
 
 map:r_ncit_code__biomedical_concept__reference_concept a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_ncit_code__biomedical_concept__reference_concept" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/BiomedicalConcept/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/BiomedicalConcept/{biomedical_concept_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/ncitCode> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/ReferenceConcept/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/ReferenceConcept/{reference_concept_id}" ] ] .
 
 map:r_parent_concept__biomedical_concept__biomedical_concept a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_parent_concept__biomedical_concept__biomedical_concept" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/BiomedicalConcept/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/BiomedicalConcept/{biomedical_concept_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/parentConcept> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/BiomedicalConcept/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/BiomedicalConcept/{biomedical_concept_target_id}" ] ] .
 
 map:r_version_of__study_version__study a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_version_of__study_version__study" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/StudyVersion/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/StudyVersion/{study_version_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/versionOf> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/Study/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/Study/{study_id}" ] ] .
 
 map:r_screened_for__participant__study a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_screened_for__participant__study" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Participant/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Participant/{participant_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/screenedFor> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/Study/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/Study/{study_id}" ] ] .
 
 map:r_at_site__participant__site a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_at_site__participant__site" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Participant/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Participant/{participant_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/atSite> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/Site/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/Site/{site_id}" ] ] .
 
 map:r_has_medical_history__participant__medical_history_record a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_has_medical_history__participant__medical_history_record" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Participant/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Participant/{participant_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/hasMedicalHistory> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/MedicalHistoryRecord/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/MedicalHistoryRecord/{medical_history_record_id}" ] ] .
 
 map:r_coded_as__medical_history_record__disease a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_coded_as__medical_history_record__disease" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/MedicalHistoryRecord/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/MedicalHistoryRecord/{medical_history_record_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/codedAs> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/Disease/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/Disease/{disease_id}" ] ] .
 
 map:r_has_con_med__participant__con_med_record a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_has_con_med__participant__con_med_record" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Participant/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Participant/{participant_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/hasConMed> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/ConMedRecord/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/ConMedRecord/{con_med_record_id}" ] ] .
 
 map:r_coded_as__con_med_record__drug a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_coded_as__con_med_record__drug" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/ConMedRecord/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/ConMedRecord/{con_med_record_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/codedAs> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/Drug/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/Drug/{drug_id}" ] ] .
 
 map:r_has_observation__participant__weight_observation a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_has_observation__participant__weight_observation" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Participant/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Participant/{participant_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/hasObservation> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/WeightObservation/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/WeightObservation/{weight_observation_id}" ] ] .
 
 map:r_originates_from__weight_observation__source_record a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_originates_from__weight_observation__source_record" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/WeightObservation/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/WeightObservation/{weight_observation_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/originatesFrom> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/SourceRecord/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/SourceRecord/{source_record_id}" ] ] .
 
 map:r_measures__weight_observation__biomedical_concept a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_measures__weight_observation__biomedical_concept" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/WeightObservation/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/WeightObservation/{weight_observation_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/measures> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/BiomedicalConcept/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/BiomedicalConcept/{biomedical_concept_id}" ] ] .
 
 map:r_conforms_to__weight_observation__dataset_specialization a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_conforms_to__weight_observation__dataset_specialization" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/WeightObservation/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/WeightObservation/{weight_observation_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/conformsTo> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/DatasetSpecialization/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/DatasetSpecialization/{dataset_specialization_id}" ] ] .
 
 map:r_has_unit__weight_observation__codelist_term a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_has_unit__weight_observation__codelist_term" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/WeightObservation/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/WeightObservation/{weight_observation_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/hasUnit> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/CodelistTerm/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/CodelistTerm/{codelist_term_id}" ] ] .
 
 map:r_for_participant__endpoint_result__participant a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_for_participant__endpoint_result__participant" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EndpointResult/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EndpointResult/{endpoint_result_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/forParticipant> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/Participant/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/Participant/{participant_id}" ] ] .
 
 map:r_derived_under__endpoint_result__endpoint_rule_version a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_derived_under__endpoint_result__endpoint_rule_version" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EndpointResult/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EndpointResult/{endpoint_result_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/derivedUnder> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/EndpointRuleVersion/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/EndpointRuleVersion/{endpoint_rule_version_id}" ] ] .
 
 map:r_uses_baseline_observation__endpoint_result__weight_observation a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_uses_baseline_observation__endpoint_result__weight_observation" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EndpointResult/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EndpointResult/{endpoint_result_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/usesBaselineObservation> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/WeightObservation/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/WeightObservation/{weight_observation_id}" ] ] .
 
 map:r_uses_followup_observation__endpoint_result__weight_observation a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_uses_followup_observation__endpoint_result__weight_observation" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EndpointResult/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EndpointResult/{endpoint_result_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/usesFollowupObservation> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/WeightObservation/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/WeightObservation/{weight_observation_id}" ] ] .
 
 map:r_generated_by__endpoint_result__execution_run a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_generated_by__endpoint_result__execution_run" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EndpointResult/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EndpointResult/{endpoint_result_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/generatedBy> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/ExecutionRun/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/ExecutionRun/{execution_run_id}" ] ] .
 
 map:r_version_of_endpoint__endpoint_rule_version__endpoint_definition a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_version_of_endpoint__endpoint_rule_version__endpoint_definition" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EndpointRuleVersion/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EndpointRuleVersion/{endpoint_rule_version_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/versionOfEndpoint> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/EndpointDefinition/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/EndpointDefinition/{endpoint_definition_id}" ] ] .
 
 map:r_amends__endpoint_rule_version__endpoint_rule_version a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_amends__endpoint_rule_version__endpoint_rule_version" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EndpointRuleVersion/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EndpointRuleVersion/{endpoint_rule_version_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/amends> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/EndpointRuleVersion/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/EndpointRuleVersion/{endpoint_rule_version_target_id}" ] ] .
 
 map:r_applies_to__endpoint_rule_version__study_version a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_applies_to__endpoint_rule_version__study_version" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EndpointRuleVersion/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EndpointRuleVersion/{endpoint_rule_version_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/appliesTo> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/StudyVersion/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/StudyVersion/{study_version_id}" ] ] .
 
 map:r_supported_by__endpoint_rule_version__document_section a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_supported_by__endpoint_rule_version__document_section" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EndpointRuleVersion/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EndpointRuleVersion/{endpoint_rule_version_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/supportedBy> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/DocumentSection/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/DocumentSection/{document_section_id}" ] ] .
 
 map:r_endpoint_of__endpoint_definition__study a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_endpoint_of__endpoint_definition__study" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EndpointDefinition/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EndpointDefinition/{endpoint_definition_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/endpointOf> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/Study/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/Study/{study_id}" ] ] .
 
 map:r_measures__endpoint_definition__biomedical_concept a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_measures__endpoint_definition__biomedical_concept" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EndpointDefinition/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EndpointDefinition/{endpoint_definition_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/measures> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/BiomedicalConcept/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/BiomedicalConcept/{biomedical_concept_id}" ] ] .
 
 map:r_uses_specialization__endpoint_definition__dataset_specialization a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_uses_specialization__endpoint_definition__dataset_specialization" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EndpointDefinition/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EndpointDefinition/{endpoint_definition_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/usesSpecialization> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/DatasetSpecialization/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/DatasetSpecialization/{dataset_specialization_id}" ] ] .
 
 map:r_uses_population__endpoint_definition__analysis_population a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_uses_population__endpoint_definition__analysis_population" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EndpointDefinition/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EndpointDefinition/{endpoint_definition_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/usesPopulation> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/AnalysisPopulation/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/AnalysisPopulation/{analysis_population_id}" ] ] .
 
 map:r_eligibility_of__eligibility_rule__study a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_eligibility_of__eligibility_rule__study" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EligibilityRule/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EligibilityRule/{eligibility_rule_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/eligibilityOf> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/Study/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/Study/{study_id}" ] ] .
 
 map:r_applies_to__eligibility_rule__study_version a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_applies_to__eligibility_rule__study_version" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EligibilityRule/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EligibilityRule/{eligibility_rule_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/appliesTo> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/StudyVersion/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/StudyVersion/{study_version_id}" ] ] .
 
 map:r_supported_by__eligibility_rule__document_section a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_supported_by__eligibility_rule__document_section" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EligibilityRule/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EligibilityRule/{eligibility_rule_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/supportedBy> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/DocumentSection/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/DocumentSection/{document_section_id}" ] ] .
 
 map:r_has_criterion__eligibility_rule__eligibility_criterion a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_has_criterion__eligibility_rule__eligibility_criterion" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EligibilityRule/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EligibilityRule/{eligibility_rule_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/hasCriterion> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/EligibilityCriterion/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/EligibilityCriterion/{eligibility_criterion_id}" ] ] .
 
 map:r_uses_class__eligibility_criterion__concept_class a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_uses_class__eligibility_criterion__concept_class" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EligibilityCriterion/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/EligibilityCriterion/{eligibility_criterion_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/usesClass> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/ConceptClass/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/ConceptClass/{concept_class_id}" ] ] .
 
 map:r_extends_class__concept_class__concept_class a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_extends_class__concept_class__concept_class" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/ConceptClass/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/ConceptClass/{concept_class_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/extendsClass> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/ConceptClass/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/ConceptClass/{concept_class_target_id}" ] ] .
 
 map:r_has_root__concept_class__disease a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_has_root__concept_class__disease" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/ConceptClass/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/ConceptClass/{concept_class_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/hasRoot> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/Disease/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/Disease/{disease_id}" ] ] .
 
 map:r_excludes_root__concept_class__disease a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_excludes_root__concept_class__disease" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/ConceptClass/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/ConceptClass/{concept_class_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/excludesRoot> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/Disease/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/Disease/{disease_id}" ] ] .
 
 map:r_has_drug_class__concept_class__drug_class a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_has_drug_class__concept_class__drug_class" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/ConceptClass/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/ConceptClass/{concept_class_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/hasDrugClass> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/DrugClass/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/DrugClass/{drug_class_id}" ] ] .
 
 map:r_has_prohibited_effect__concept_class__drug_class a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_has_prohibited_effect__concept_class__drug_class" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/ConceptClass/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/ConceptClass/{concept_class_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/hasProhibitedEffect> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/DrugClass/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/DrugClass/{drug_class_id}" ] ] .
 
 map:r_excludes_contraindication_target__concept_class__mesh_record a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_excludes_contraindication_target__concept_class__mesh_record" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/ConceptClass/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/ConceptClass/{concept_class_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/excludesContraindicationTarget> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/MeshRecord/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/MeshRecord/{mesh_record_id}" ] ] .
 
 map:r_section_of__document_section__document a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_section_of__document_section__document" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/DocumentSection/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/DocumentSection/{document_section_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/sectionOf> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/Document/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/Document/{document_id}" ] ] .
 
 map:r_document_for__document__study a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_document_for__document__study" ] ;
-    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Document/{source_id}" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Document/{document_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/documentFor> ;
-        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/Study/{target_id}" ] ] .
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/Study/{study_id}" ] ] .

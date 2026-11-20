@@ -320,13 +320,14 @@ graph views (`clinical_study_graph`) + semantic validation (`clinical_study.dq_s
 ### ECT app (both demos) — post-deploy grants (applied 2026-11-15)
 The ECT app (`care-protocol-context-ect`, SP `bc1e55f0-5388-4eed-b946-df521d3a4bca`) serves both demos. The grants
 above were originally applied only to the DMVM app's SP, so the ECT SP had none. Re-run per fresh deploy (all
-read-only, to the app's own identity):
+read-only, to the app's own identity). Scripted: `.venv/bin/python -I scripts/grant_app_uc_reader.py --profile ECT --app care-protocol-context-ect` applies exactly these:
 ```
 GRANT USE CATALOG ON CATALOG eli_test_classic_catalog TO `<sp>`;
 GRANT USE SCHEMA, SELECT ON SCHEMA eli_test_classic_catalog.{care_protocol,care_protocol_semantic,care_protocol_terminology} TO `<sp>`;
 GRANT USE SCHEMA, SELECT ON SCHEMA eli_test_classic_catalog.{clinical_study,clinical_study_semantic,clinical_study_standards,clinical_study_graph} TO `<sp>`;
 GRANT READ VOLUME ON VOLUME eli_test_classic_catalog.care_protocol.documents TO `<sp>`;
-GRANT USE SCHEMA, SELECT ON SCHEMA eli_test_classic_catalog.ontobricks TO `<sp>`;   -- Ontobricks graphs (moved 2026-11-20)
+GRANT USE CATALOG ON CATALOG eswanson_demo TO `<sp>`;  GRANT USE SCHEMA, SELECT ON SCHEMA eswanson_demo.ontobricks TO `<sp>`;
+# (applied by scripts/grant_app_uc_reader.py; re-run it whenever eswanson_demo is recreated)
 ```
 Plus `CAN_RUN` on the 4 HEDIS and 3 Clinical Study Genie spaces, and `CAN_VIEW` on jobs `setup_ect`, `semantic_ect`,
 `ls_bootstrap_ect`, `ls_context_ect` (the readiness drawer reads their last run). Not yet granted: the SP's

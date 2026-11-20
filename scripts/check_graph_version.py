@@ -1,8 +1,8 @@
 """Acceptance checks for an Ontobricks graph version BEFORE the app is pointed at it (read-only).
 
-  .venv/bin/python -I scripts/check_graph_version.py --graph eli_test_classic_catalog.ontobricks.triplestore_clinicaldomain_v<N>_graph
+  .venv/bin/python -I scripts/check_graph_version.py --graph eswanson_demo.ontobricks.triplestore_clinicaldomain_v<N>_graph
   # simulate a republish: the live compiled-mapping VIEW recomputes the triples from today's source tables
-  .venv/bin/python -I scripts/check_graph_version.py --graph eli_test_classic_catalog.ontobricks.triplestore_clinicaldomain_v<N>
+  .venv/bin/python -I scripts/check_graph_version.py --graph eswanson_demo.ontobricks.triplestore_clinicaldomain_v<N>
 
 REQUIRED checks protect the app and the eval (IRI convention, no lost predicates, the expected new edges, the graph
 runner's tool results). OPTIONAL checks track the Ontobricks-side mapping fixes (names on the edge nodes, every drug
@@ -26,7 +26,7 @@ from server import graph_runner as gr  # noqa: E402
 from server.context_retrieval import graph_context  # noqa: E402
 
 NS = "https://care-protocol.example/ontology/"
-# The v3 table was lost with eswanson_demo (2026-11-20). The baseline is now a committed snapshot of a verified graph
+# The original v3 was lost when eswanson_demo was recreated (2026-11-20). The baseline is now a committed snapshot of a verified graph
 # (--save-baseline writes it). Until one exists, predicate PRESENCE is checked against the saved v3 mapping.
 ROOT = Path(__file__).resolve().parents[1]
 BASELINE_FILE = ROOT / "docs/ontology/graph_baseline_clinicaldomain.json"

@@ -594,7 +594,7 @@ class Rel:
     prop: str
     subject: str
     object: str
-    sql: str  # must yield source_id, target_id
+    sql: str  # must yield source_id, target_id (the generator renames them per class)
 
 
 DATA_RELS: list[Rel] = [

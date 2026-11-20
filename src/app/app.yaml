@@ -21,6 +21,9 @@ env:
     value: "2026"
   - name: CARE_ARM
     value: "dmvm"
-  # Ontobricks graphs publish to eli_test_classic_catalog.ontobricks (eswanson_demo was deleted 2026-11-20, taking
-  # the pinned v3 with it). Unpinned until the republished HEDIS graph passes scripts/check_graph_version.py; then
-  # pin it here: - name: CARE_ONTOBRICKS_TABLE / value: "triplestore_clinicaldomain_v<N>"
+  # Pin the Ontobricks graph version (published to eswanson_demo.ontobricks). Without a pin the app follows the
+  # newest triplestore_clinicaldomain_v<N> within 5 minutes of a republish -- unverified. v3 was republished
+  # 2026-11-20 after the catalog was recreated and passes scripts/check_graph_version.py (REQUIRED 12/12). Move the
+  # pin only after a new version passes the same checks.
+  - name: CARE_ONTOBRICKS_TABLE
+    value: "triplestore_clinicaldomain_v3"

@@ -84,6 +84,29 @@ def test_generated_graph_artifacts_are_current():
     )
 
 
+def test_relationship_endpoints_resolve_by_column_name():
+    """Ontobricks binds a relationship endpoint to the entity whose id column has the same NAME (HEDIS rev 2; the
+    first ClinicalStudyLab import failed all 72 relationships on generic source_id/target_id). So: every entity
+    has its own id column, and every relationship template uses its classes' id columns."""
+    import re
+
+    g = _gen()
+    ttl = g.r2rml("eli_test_classic_catalog")
+    ents = [c.name for c in graph_spec.CLASSES if c.sql is not None or c.attrs]
+    ids = {c: g.id_col(c) for c in ents}
+    assert len(set(ids.values())) == len(ids), "two entities share an id column"
+    for c, col in ids.items():
+        assert f'/{c}/{{{col}}}" ; rr:class' in ttl, c
+    attr_cols = {a.column for c in graph_spec.CLASSES for a in c.attrs}
+    assert not attr_cols & set(ids.values()), "an attribute column shadows an entity id column"
+    rel_maps = re.findall(r'ontology/(\w+)/\{(\w+)\}" \] ;\n.*?ontology/(\w+)/\{(\w+)\}" \] \] \.', ttl, re.DOTALL)
+    assert len(rel_maps) == len(g.all_rels())
+    for s, sc, o, oc in rel_maps:
+        assert sc == ids[s], (s, sc)
+        assert oc == (ids[o] if o != s else f"{g.snake(o)}_target_id"), (s, o, oc)
+    assert "source_id" not in ttl and "target_id}" not in ttl.replace("_target_id}", "")
+
+
 def test_every_rule_cites_a_real_section_and_every_version_a_real_document():
     sections = {(s.document_id, s.section_number) for d in DOCS for s in d.sections}
     doc_ids = {d.meta["document_id"] for d in DOCS}

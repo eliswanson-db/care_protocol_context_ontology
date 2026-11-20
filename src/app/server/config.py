@@ -34,7 +34,7 @@ LAKEBASE_SEARCH_EXT = os.environ.get("CARE_LAKEBASE_SEARCH_EXT", "1") == "1"
 
 # A5 Ontobricks — the LIVE published OWL triplestore (Eli-owned, ADR-0005). The app queries the asserted-triple
 # table directly. Defaults to the published clinical-domain v2 graph; override per workspace via env.
-ONTOBRICKS_CATALOG = os.environ.get("CARE_ONTOBRICKS_CATALOG", "eli_test_classic_catalog")
+ONTOBRICKS_CATALOG = os.environ.get("CARE_ONTOBRICKS_CATALOG", "eswanson_demo")
 ONTOBRICKS_SCHEMA = os.environ.get("CARE_ONTOBRICKS_SCHEMA", "ontobricks")
 # Each Ontobricks republish writes a NEW version (triplestore_clinicaldomain_v<N>); the app follows the latest unless
 # CARE_ONTOBRICKS_TABLE pins one. Re-discovered every 5 minutes, so a republish shows up without a redeploy.

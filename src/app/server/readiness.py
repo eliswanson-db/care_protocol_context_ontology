@@ -99,8 +99,11 @@ def _ontobricks(c: dict) -> dict:
         f"SELECT table_name FROM {ONTOBRICKS_CATALOG}.information_schema.tables WHERE table_schema = "
         f"'{ONTOBRICKS_SCHEMA}' AND table_name LIKE '{c['table_prefix']}%_graph'"
     )
-    if rows:
-        latest = sorted(r["table_name"] for r in rows)[-1]
+    pre = c["table_prefix"]
+    vers = [(int(n[len(pre):-len("_graph")]), n) for r in rows
+            if (n := r["table_name"])[len(pre):-len("_graph")].isdigit()]
+    if vers:
+        latest = max(vers)[1]  # numeric: v10 is newer than v9
         return _r("ready", f"published: {ONTOBRICKS_CATALOG}.{ONTOBRICKS_SCHEMA}.{latest}", table=latest)
     return _r("manual_action_required", c.get("manual", "no published triplestore found"))
 

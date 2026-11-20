@@ -1,0 +1,43 @@
+{
+ "edge_prefixes": [
+  "DrugClass",
+  "Measure",
+  "Patient",
+  "Threshold",
+  "ValueSet",
+  "icd",
+  "ing",
+  "loinc",
+  "part",
+  "rx"
+ ],
+ "graph": "eswanson_demo.ontobricks.triplestore_clinicaldomain_v3_graph",
+ "predicates": {
+  "ageAtPeriodEnd": 2399,
+  "contains": 20,
+  "contraindicatedWhen": 2,
+  "contraindicatedWith": 4,
+  "definedBy": 1,
+  "eligibleFor": 13133,
+  "firstLineFor": 1,
+  "hasCareGap": 6744,
+  "hasComponent": 9,
+  "hasDiagnosis": 17871,
+  "hasIngredient": 42,
+  "hasMethod": 5,
+  "hasSystem": 9,
+  "hasThreshold": 4,
+  "icd10Code": 756,
+  "inDrugClass": 3,
+  "label": 26027,
+  "loincCode": 308,
+  "monitoredBy": 5,
+  "prescribed": 156532,
+  "recommendedFor": 5,
+  "rxnormCode": 48,
+  "subClassOf": 28,
+  "thresholdValue": 7,
+  "type": 15120316,
+  "valueSetId": 21
+ }
+}

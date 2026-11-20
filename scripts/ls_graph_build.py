@@ -37,6 +37,19 @@ def rel_view(prop: str, subj: str, obj: str) -> str:
     return f"r_{snake(prop)}__{snake(subj)}__{snake(obj)}"
 
 
+def id_col(cls: str) -> str:
+    """The entity's id column. Ontobricks resolves a relationship endpoint to an entity BY COLUMN NAME, so each
+    entity needs its own name, reused verbatim in every relationship view (HEDIS rev 2; generic ID/source_id/
+    target_id left all 72 relationships unresolved on the first ClinicalStudyLab import)."""
+    return f"{snake(cls)}_id"
+
+
+def rel_cols(subj: str, obj: str) -> tuple[str, str]:
+    """Source/target id columns. A same-class edge (Disease subClassOf Disease) can't use one name twice, so its
+    target gets <class>_target_id, the analogue of HEDIS icd_code -> icd_parent."""
+    return id_col(subj), (id_col(obj) if obj != subj else f"{snake(obj)}_target_id")
+
+
 def lit(s: str) -> str:
     return '"' + s.replace("\\", "\\\\").replace('"', '\\"').replace("\n", " ") + '"'
 
@@ -67,21 +80,24 @@ FROM {std}.kb_concept;
         )
         out.append(
             f"CREATE OR REPLACE VIEW {g}.{entity_view(c)} COMMENT {lit('Entity source for ' + c.name)} AS\n"
-            f"{body};\n"
+            f"SELECT ID AS {id_col(c.name)}, * EXCEPT (ID) FROM (\n{body}\n);\n"
         )
     for pred, s, o in gs.KB_RELS:
         p = gs.KB_PREDICATES[pred]
+        sc, oc = rel_cols(s, o)
         out.append(f"""CREATE OR REPLACE VIEW {g}.{rel_view(p.name, s, o)} COMMENT {lit(f"{s} {p.name} {o} ({pred})")} AS
-SELECT e.subject AS source_id, e.object AS target_id, e.authority, e.release
+SELECT e.subject AS {sc}, e.object AS {oc}, e.authority, e.release
 FROM {std}.kb_edge e
 JOIN {g}.kb_node s ON s.concept_id = e.subject
 JOIN {g}.kb_node o ON o.concept_id = e.object
 WHERE e.predicate = '{pred}' AND s.graph_class = '{s}' AND o.graph_class = '{o}';
 """)
     for r in gs.DATA_RELS:
+        sc, oc = rel_cols(r.subject, r.object)
         out.append(
             f"CREATE OR REPLACE VIEW {g}.{rel_view(r.prop, r.subject, r.object)} "
-            f"COMMENT {lit(f'{r.subject} {r.prop} {r.object}')} AS\n{r.sql};\n"
+            f"COMMENT {lit(f'{r.subject} {r.prop} {r.object}')} AS\n"
+            f"SELECT source_id AS {sc}, target_id AS {oc}, * EXCEPT (source_id, target_id) FROM (\n{r.sql}\n);\n"
         )
     return "\n".join(out)
 
@@ -184,17 +200,18 @@ def r2rml(catalog: str) -> str:
             )
         L.append(
             f'map:{v} a rr:TriplesMap ;\n    rr:logicalTable [ rr:tableName "{g}.{v}" ] ;\n'
-            f'    rr:subjectMap [ rr:template "{gs.NS}/{c.name}/{{ID}}" ; rr:class <{gs.NS}#{c.name}> ] ;\n'
+            f'    rr:subjectMap [ rr:template "{gs.NS}/{c.name}/{{{id_col(c.name)}}}" ; rr:class <{gs.NS}#{c.name}> ] ;\n'
             + " ;\n".join(poms)
             + " .\n"
         )
     for p, s, o in all_rels():
         v = rel_view(p.name, s, o)
+        sc, oc = rel_cols(s, o)
         L.append(
             f'map:{v} a rr:TriplesMap ;\n    rr:logicalTable [ rr:tableName "{g}.{v}" ] ;\n'
-            f'    rr:subjectMap [ rr:template "{gs.NS}/{s}/{{source_id}}" ] ;\n'
+            f'    rr:subjectMap [ rr:template "{gs.NS}/{s}/{{{sc}}}" ] ;\n'
             f"    rr:predicateObjectMap [ rr:predicate <{gs.NS}/{p.name}> ;\n"
-            f'        rr:objectMap [ rr:template "{gs.NS}/{o}/{{target_id}}" ] ] .\n'
+            f'        rr:objectMap [ rr:template "{gs.NS}/{o}/{{{oc}}}" ] ] .\n'
         )
     return "\n".join(L)
 
@@ -219,28 +236,31 @@ def checklist(catalog: str) -> str:
         "",
         "## Steps",
         "",
-        "1. Create a new Ontobricks project/domain (suggested name **Clinical Study Lab**). Use a separate project, "
+        "1. Create a new Ontobricks project/domain, **`ClinicalStudyLab`** (names are CamelCase, no spaces/underscores). Use a separate project, "
         "not `clinicaldomain`, so the HEDIS graph and its app pin are untouched.",
         "2. Import the ontology: `src/ontology/life_sciences/clinical_study.owl.ttl`.",
         "3. Import the mapping: `src/ontology/life_sciences/clinical_study.r2rml.ttl`. If the importer rewrites or "
-        "rejects anything, fix it with the tables below. Each row is one view → one mapping, columns `ID`/`Label` "
-        "for entities and `source_id`/`target_id` for relationships.",
+        "rejects anything, fix it with the tables below. Each row is one view → one mapping. An entity's id column "
+        "is `<class>_id` (e.g. `disease_id`) and every relationship reuses those exact names for its endpoints, "
+        "because Ontobricks matches endpoints to entities by column name. A same-class edge uses `<class>_target_id` "
+        "for its target.",
         "4. Set source scope to the schema above, then build/publish.",
-        "5. Send Claude the published triplestore table name (e.g. `eli_test_classic_catalog.ontobricks.triplestore_<project>_v1`). "
+        "5. Send Claude the published triplestore table name (e.g. `eswanson_demo.ontobricks.triplestore_clinicalstudylab_v1`). "
         "Claude runs the graph checks against it.",
         "",
         "## Entities",
         "",
-        "| Class | View | Attributes |",
-        "|---|---|---|",
+        "| Class | View | Id column | Attributes |",
+        "|---|---|---|---|",
     ]
     for c in ents:
         L.append(
-            f"| `{c.name}` | `{entity_view(c)}` | {', '.join(f'{a.prop}←{a.column}' for a in c.attrs) or '—'} |"
+            f"| `{c.name}` | `{entity_view(c)}` | `{id_col(c.name)}` | {', '.join(f'{a.prop}←{a.column}' for a in c.attrs) or '—'} |"
         )
-    L += ["", "## Relationships", "", "| Property | Source class → target class | View |", "|---|---|---|"]
+    L += ["", "## Relationships", "", "| Property | Source → target | View | Endpoint columns |", "|---|---|---|---|"]
     for p, s, o in rels:
-        L.append(f"| `{p.name}` | {s} → {o} | `{rel_view(p.name, s, o)}` |")
+        sc, oc = rel_cols(s, o)
+        L.append(f"| `{p.name}` | {s} → {o} | `{rel_view(p.name, s, o)}` | `{sc}` → `{oc}` |")
     return "\n".join(L) + "\n"
 
 

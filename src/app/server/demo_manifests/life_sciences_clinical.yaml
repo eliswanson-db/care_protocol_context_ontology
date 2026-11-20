@@ -13,8 +13,8 @@ components:
   - {id: standards, label: "Standards (open, pinned)", check: tables, min_rows: 1,
      tables: [clinical_study_standards.standards_manifest, clinical_study_standards.kb_concept,
               clinical_study_standards.kb_edge, clinical_study_standards.mondo_closure]}
-  - {id: ontology, label: Ontology (Ontobricks), check: ontobricks, table_prefix: triplestore_clinical_study_lab_v,
-     manual: "Eli: create the Ontobricks project, import clinical_study.owl.ttl + .r2rml.ttl, scope clinical_study_graph, publish (docs/life_sciences/ONTOBRICKS_IMPORT.md)."}
+  - {id: ontology, label: Ontology (Ontobricks), check: ontobricks, table_prefix: triplestore_clinicalstudylab_v,
+     manual: "Eli: in Ontobricks domain ClinicalStudyLab, import clinical_study.owl.ttl + .r2rml.ttl, scope clinical_study_graph, publish to eswanson_demo.ontobricks (docs/life_sciences/ONTOBRICKS_IMPORT.md)."}
   - {id: graph_source, label: Graph source views, check: tables, min_rows: 1,
      tables: [clinical_study_graph.e_disease, clinical_study_graph.r_contraindicated_with__drug__mesh_concept,
               clinical_study_graph.e_endpoint_result]}

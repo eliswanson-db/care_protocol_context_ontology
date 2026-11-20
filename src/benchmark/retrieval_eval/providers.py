@@ -159,7 +159,7 @@ def rag(question: str, qid: str) -> list[dict]:
 #   genie_ontology  Genie Ontology's MODELED layer: Genie Pages (synonym/keyword match) + certified metric views.
 #                   Genie's own snippet search is semantic and its payload isn't exposed by the API, so this is a
 #                   transparent stand-in over the same content; inferred snippets are not included.
-ONTOBRICKS_CATALOG = os.environ.get("CARE_ONTOBRICKS_CATALOG", "eli_test_classic_catalog")
+ONTOBRICKS_CATALOG = os.environ.get("CARE_ONTOBRICKS_CATALOG", "eswanson_demo")
 ONTOBRICKS_SCHEMA = os.environ.get("CARE_ONTOBRICKS_SCHEMA", "ontobricks")
 ONTOBRICKS_TABLE = os.environ.get("CARE_ONTOBRICKS_TABLE")  # None -> the latest published clinicaldomain version
 # Full name of the triple table/view to use instead (e.g. the live compiled-mapping view, to test a republish before it
