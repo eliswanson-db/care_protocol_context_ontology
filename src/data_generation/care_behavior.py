@@ -42,7 +42,7 @@ N_PANELS = 40
 N_CLINICS = 8                     # ~5 panels/clinic -> the disrupted clinic has enough triggers to show drift
 MY = 2026                         # current measurement year, year-to-date (data horizon = AS_OF, computed)
 MY_START, MY_END = f"{MY}-01-01", f"{MY}-12-31"
-A1C_TRIGGER = 9.0                 # poor control (the storyboard threshold)
+A1C_TRIGGER = 9.0                 # Step-3 trigger: A1c > 9.0% (exclusive; same as GSD poor control)
 FOLLOWUP_DAYS = 90
 TRANSITION_DATE = f"{MY}-05-15"     # "PCP changed in the last 6 months"; leaves closed 90-day windows to measure
 GAP_RECOVERY_DAYS = 150
@@ -133,7 +133,7 @@ def main():
     # effective feed therefore (1) keeps one reading per patient per quarter (realistic diabetic monitoring),
     # (2) re-levels each patient's series to a plausible band while keeping their own reading-to-reading
     # variation -- poor-control patients around their modeled 9.3-11.7%, other cohort patients 6.0-8.6%,
-    # non-diabetics 5.0-5.8% -- and (3) makes Step-3 follow-up REAL: a trigger (A1c >= 9) that is not followed up
+    # non-diabetics 5.0-5.8% -- and (3) makes Step-3 follow-up REAL: a trigger (A1c > 9) that is not followed up
     # has no A1c in the next 90 days (those readings are removed); a followed trigger has one (kept, or emitted
     # if the quarterly cadence left the window empty). The measure then counts ANY A1c within 90 days -- no tags.
     a1c_codes = (spark.table(f"{term}.loinc_parts")
@@ -162,7 +162,7 @@ def main():
            .withColumn("v_cal", F.round(F.greatest(F.lit(4.2), F.least(
                F.lit(14.0), F.col("target") + (F.col("v") - F.col("pm")) * F.lit(1.5))), 1)))
 
-    triggers = (cal.where((F.year("result_ts") == MY) & (F.col("v_cal") >= A1C_TRIGGER)).join(cohort, "patient_id")
+    triggers = (cal.where((F.year("result_ts") == MY) & (F.col("v_cal") > A1C_TRIGGER)).join(cohort, "patient_id")
                 .select("patient_id", F.col("result_ts").alias("trigger_ts"), F.col("v_cal").alias("trigger_a1c"),
                         "units", "loinc_code", "description", "target")
                 .join(roster.select("patient_id", "engagement", "c_std", "u_panel", "panel_id", "clinic_id", "is_handoff"), "patient_id"))

@@ -23,5 +23,5 @@ components are tracked separately, the **eGFR Test Rate** and **uACR Test Rate**
 component: far fewer patients have a uACR test than an eGFR test (query the component rates for current
 values; this Page deliberately quotes no numbers that the data can change).
 
-> The eGFR value set spans LOINC vintages (e.g. `33914-3` MDRD and `98979-8`) — a reminder that value sets
-> evolve and a measure must accept all valid codes for the concept. HEDIS-aligned demo, not NCQA-certified.
+> The eGFR value set is versioned by year: MY2026 accepts CKD-EPI 2021 (`98979-8`) only, MY2025 also MDRD
+> (`33914-3`). HEDIS-aligned demo, not NCQA-certified.

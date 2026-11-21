@@ -36,13 +36,15 @@ def test_protocol_rules_page_is_current_and_complete():
 def test_step3_page_states_the_computed_rule():
     trig = float(re.search(r"^A1C_TRIGGER = ([\d.]+)", PIPE, re.M).group(1))
     days = int(re.search(r"^FOLLOWUP_DAYS = (\d+)", PIPE, re.M).group(1))
-    assert re.search(r'value_num"\) >= A1C_TRIGGER', PIPE), (
+    assert re.search(r'value_num"\) > A1C_TRIGGER', PIPE), (
         "trigger comparison changed: update the Step-3 Page"
     )
-    page = (PAGES / "protocol-step-3.md").read_text()
-    assert f"≥ {trig:.1f}%" in page and f"within {days} days" in page.replace("**", "")
+    behavior = (ROOT / "src/data_generation/care_behavior.py").read_text()
+    assert re.search(r'v_cal"\) > A1C_TRIGGER', behavior), "care-behavior model must use the same trigger"
+    page = (PAGES / "protocol-step-3.md").read_text().replace("**", "")
+    assert f"above {trig:.1f}%" in page and f"within {days} days" in page
     drift = (ROOT / "src/app/frontend/src/tabs/DriftLab.tsx").read_text()
-    assert f"within {days} days of an A1c result ≥ {trig:.0f}%" in drift
+    assert f"within {days} days of an A1c result above {trig:.0f}%" in drift
 
 
 def test_mad_page_states_the_computed_rule():

@@ -59,6 +59,16 @@ def silver_diabetes_cohort():
 
 
 # ---------------- Gold: lab results (LOINC multiaxial) ----------------
+def _value_set(segment_id: str):
+    """Codes of a value set as of the measurement year: its latest version with measurement_year <= MY.
+    Value sets are versioned per measurement year (value_set_segment.measurement_year); a set that didn't change
+    carries forward. So MY2026 KED uses the 2026 eGFR set (CKD-EPI 2021 only), MY2025 the 2025 set."""
+    seg = (spark.read.table(f"{TERM}.value_set_segment")  # noqa: F821
+           .where((F.col("segment_id") == segment_id) & (F.col("measurement_year").cast("int") <= MY)))
+    v = seg.agg(F.max(F.col("measurement_year").cast("int")).alias("v"))
+    return (seg.join(v, F.col("measurement_year").cast("int") == F.col("v")).select("code").distinct())
+
+
 @dp.materialized_view(
     comment="Lab-result fact grain for the LOINC lab-measures metric view (MV-2): one row per numeric lab "
             "observation, enriched with its LOINC multiaxial Parts (Component / System / Method) so results "
@@ -105,8 +115,7 @@ def gold_adherence_gsd():
                 .where((F.col("age") >= 18) & (F.col("age") <= 75))
                 .select("patient_id", "age"))
 
-    a1c_codes = (spark.read.table(f"{TERM}.value_set_segment")  # noqa: F821
-                 .where(F.col("segment_id") == "GSD_A1C_TEST").select("code").distinct())
+    a1c_codes = _value_set("GSD_A1C_TEST")
     obs = spark.read.table("silver_observation")  # noqa: F821
     a1c = obs.join(a1c_codes, obs["loinc_code"] == a1c_codes["code"]).where(F.year("result_ts") == MY)
     latest = (a1c.withColumn("rn", F.row_number().over(Window.partitionBy("patient_id").orderBy(F.col("result_ts").desc())))
@@ -146,7 +155,8 @@ def _latest_in_my(obs, codes_df, prefix):
     comment="KED (Kidney Health Evaluation) adherence event log. Denominator: diabetes patients aged 18-85. "
             "Numerator is COMPOUND: >=1 eGFR test (KED_EGFR value set) AND >=1 uACR test (KED_UACR value set) "
             "in the measurement year. One row per eligible patient. HEDIS-aligned demo, not NCQA-certified. "
-            "Exercises two value sets at once; eGFR spans multiple LOINC vintages (98979-8, 33914-3).")
+            "Value sets apply as of the measurement year: MY2026 eGFR = CKD-EPI 2021 (98979-8) only; MY2025 also "
+            "accepted MDRD (33914-3).")
 def gold_adherence_ked():
     patients = spark.read.table(f"{BRONZE}.bronze_patient")  # noqa: F821
     cohort = spark.read.table("silver_diabetes_cohort")  # noqa: F821
@@ -157,9 +167,8 @@ def gold_adherence_ked():
                 .where((F.col("age") >= 18) & (F.col("age") <= 85))
                 .select("patient_id", "age"))
 
-    seg = spark.read.table(f"{TERM}.value_set_segment")  # noqa: F821
-    egfr_codes = seg.where(F.col("segment_id") == "KED_EGFR").select("code").distinct()
-    uacr_codes = seg.where(F.col("segment_id") == "KED_UACR").select("code").distinct()
+    egfr_codes = _value_set("KED_EGFR")
+    uacr_codes = _value_set("KED_UACR")
     obs = spark.read.table("silver_observation")  # noqa: F821
 
     egfr = _latest_in_my(obs, egfr_codes, "egfr")
@@ -195,9 +204,8 @@ def gold_adherence_bpd():
                 .where((F.col("age") >= 18) & (F.col("age") <= 75))
                 .select("patient_id", "age"))
 
-    seg = spark.read.table(f"{TERM}.value_set_segment")  # noqa: F821
-    sys_codes = seg.where(F.col("segment_id") == "BPD_SYSTOLIC").select("code").distinct()
-    dia_codes = seg.where(F.col("segment_id") == "BPD_DIASTOLIC").select("code").distinct()
+    sys_codes = _value_set("BPD_SYSTOLIC")
+    dia_codes = _value_set("BPD_DIASTOLIC")
     obs = spark.read.table("silver_observation")  # noqa: F821
 
     sys_obs = (obs.join(sys_codes, obs["loinc_code"] == sys_codes["code"]).where(F.year("result_ts") == MY)
@@ -243,8 +251,7 @@ def gold_adherence_spd():
                 .select("patient_id", "age"))
 
     # Resolve statin INGREDIENTS (value set) to the clinical-drug codes actually prescribed, via the closure.
-    ingredients = (spark.read.table(f"{TERM}.value_set_segment")  # noqa: F821
-                   .where(F.col("segment_id") == "SPD_STATIN").select(F.col("code").alias("ing")).distinct())
+    ingredients = _value_set("SPD_STATIN").select(F.col("code").alias("ing"))
     closure = spark.read.table(f"{TERM}.rxnorm_closure")  # noqa: F821
     statin_codes = (closure.join(ingredients, closure["ancestor_code"] == ingredients["ing"])
                     .select(F.col("descendant_code").alias("code")).distinct())
@@ -287,8 +294,7 @@ def gold_adherence_eed():
                 .where((F.col("age") >= 18) & (F.col("age") <= 75))
                 .select("patient_id", "age"))
 
-    eye_codes = (spark.read.table(f"{TERM}.value_set_segment")  # noqa: F821
-                 .where(F.col("segment_id") == "EED_EYE_EXAM").select("code").distinct())
+    eye_codes = _value_set("EED_EYE_EXAM")
     proc = spark.read.table("silver_procedure")  # noqa: F821
     exams = proc.join(eye_codes, proc["snomed_code"] == eye_codes["code"]).where(F.year("proc_ts") == MY)
     latest = (exams.withColumn("rn", F.row_number().over(
@@ -313,8 +319,8 @@ def gold_adherence_eed():
 
 # ---------------- Protocol-STEP adherence (the "A Monday with Genie" hero: did the due event happen in time?) ----
 # Protocol Step: after an A1c above target, intensify therapy and recheck A1c within 90 days.
-# Trigger = A1c >= 9.0% (A1C_TRIGGER, inclusive). NOTE: the care-protocol document says "> 9.0%" and GSD's poor
-# band is "> 9%"; 35 triggers sit at exactly 9.0 -- open decision, docs/benchmark/CONTEXT_CONSISTENCY_AUDIT.md. The
+# Trigger = A1c > 9.0% (A1C_TRIGGER, exclusive), as the care-protocol document states and matching GSD's poor-control
+# band (decided 2026-11-21; it was >= 9.0, which also counted results at exactly 9.0). The
 # care-behavior model (ADR-0012) writes each poor-control patient's modeled A1c (>9%) into the event stream as a
 # real result, so the poorly-controlled cohort (~700) triggers here, not just the ~4 raw well-controlled highs.
 A1C_TRIGGER = 9.0
@@ -322,7 +328,7 @@ FOLLOWUP_DAYS = 90
 
 
 @dp.materialized_view(
-    comment="Protocol Step 3 adherence: for each A1c result >= 9.0% in the measurement year, was there "
+    comment="Protocol Step 3 adherence: for each A1c result > 9.0% in the measurement year, was there "
             "a recheck A1c within 90 days? One row per trigger event. This is the "
             "PROCESS-adherence layer (which protocol step slipped), distinct from the outcome Star measures. "
             "HEDIS-aligned demo, not NCQA-certified.")
@@ -334,8 +340,8 @@ def gold_protocol_adherence():
     a1c = (obs.join(a1c_codes, obs["loinc_code"] == a1c_codes["loinc_code"])
            .select("patient_id", "result_ts", "value_num"))
 
-    # Trigger: every A1c >= 9% in the measurement year (each is a protocol obligation).
-    triggers = (a1c.where((F.year("result_ts") == MY) & (F.col("value_num") >= A1C_TRIGGER))
+    # Trigger: every A1c > 9% in the measurement year (each is a protocol obligation).
+    triggers = (a1c.where((F.year("result_ts") == MY) & (F.col("value_num") > A1C_TRIGGER))
                 .select("patient_id", F.col("result_ts").alias("trigger_ts"), F.col("value_num").alias("trigger_a1c")))
 
     # Follow-up: ANY later A1c within 90 days -- including one that lands in January of the next year, so a late
@@ -429,15 +435,13 @@ def gold_adherence_ssd():
 
     # Re-derive antipsychotic eligibility through the graph: resolve the SSD_ANTIPSYCHOTIC ingredient value set
     # to clinical drugs via the closure, then confirm the dispensed code subsumes to an antipsychotic ingredient.
-    ingredients = (spark.read.table(f"{TERM}.value_set_segment")  # noqa: F821
-                   .where(F.col("segment_id") == "SSD_ANTIPSYCHOTIC").select(F.col("code").alias("ing")).distinct())
+    ingredients = _value_set("SSD_ANTIPSYCHOTIC").select(F.col("code").alias("ing"))
     closure = spark.read.table(f"{TERM}.rxnorm_closure")  # noqa: F821
     antipsychotic_codes = (closure.join(ingredients, closure["ancestor_code"] == ingredients["ing"])
                            .select(F.col("descendant_code").alias("code")).distinct())
 
     # Numerator value set: glucose or HbA1c (SSD screen).
-    screen_codes = (spark.read.table(f"{TERM}.value_set_segment")  # noqa: F821
-                    .where(F.col("segment_id") == "SSD_GLUCOSE_HBA1C").select(F.col("code").alias("scode")).distinct())
+    screen_codes = _value_set("SSD_GLUCOSE_HBA1C").select(F.col("code").alias("scode"))
 
     on_antipsychotic = (cohort.join(antipsychotic_codes, cohort["antipsychotic_rxnorm"] == antipsychotic_codes["code"])
                         .select(cohort["*"]))

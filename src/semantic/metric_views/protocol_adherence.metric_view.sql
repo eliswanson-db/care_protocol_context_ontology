@@ -7,7 +7,7 @@ LANGUAGE YAML
 AS $$
 version: 1.1
 source: {catalog}.{schema}.gold_protocol_adherence
-comment: "Diabetes care-protocol Step 3 adherence: after an A1c result >= 9% (poor control), was there a follow-up A1c within 90 days? The process-adherence layer that reveals WHICH step slipped. HEDIS-aligned demo, not NCQA-certified."
+comment: "Diabetes care-protocol Step 3 adherence: after an A1c result > 9% (poor control), was there a follow-up A1c within 90 days? The process-adherence layer that reveals WHICH step slipped. HEDIS-aligned demo, not NCQA-certified."
 dimensions:
   - name: Measurement Year
     expr: measurement_year
@@ -25,7 +25,7 @@ dimensions:
     display_name: Panel
   - name: Adherence Status
     expr: "CASE WHEN followup_within_90d THEN 'MET' WHEN window_closed THEN 'NOT_MET' ELSE 'OPEN' END"
-    comment: "MET = a follow-up A1c within 90 days of the >= 9% result; NOT_MET = the 90-day window closed with none; OPEN = window still open (year-to-date) and no follow-up yet -- still closable."
+    comment: "MET = a follow-up A1c within 90 days of the > 9% result; NOT_MET = the 90-day window closed with none; OPEN = window still open (year-to-date) and no follow-up yet -- still closable."
     synonyms: [status, step status, protocol status, followed up]
     display_name: Adherence Status
   - name: Follow-up Type
@@ -36,13 +36,13 @@ dimensions:
 measures:
   - name: Trigger Events
     expr: COUNT(1) FILTER (WHERE window_closed)
-    comment: "Closed Step-3 obligations: A1c >= 9% results whose 90-day window has closed (the denominator). Open windows are excluded -- counting early successes but not yet-unknown misses would inflate recent rates."
+    comment: "Closed Step-3 obligations: A1c > 9% results whose 90-day window has closed (the denominator). Open windows are excluded -- counting early successes but not yet-unknown misses would inflate recent rates."
     synonyms: [triggers, high a1c results, obligations, denominator]
     display_name: Trigger Events
     format: {type: number, decimal_places: {type: exact, places: 0}}
   - name: Followed Up In Time
     expr: COUNT(1) FILTER (WHERE window_closed AND followup_within_90d)
-    comment: "Obligations met: a follow-up A1c within 90 days of the >= 9% result (the numerator)."
+    comment: "Obligations met: a follow-up A1c within 90 days of the > 9% result (the numerator)."
     synonyms: [followed up, met, on time followups, numerator]
     display_name: Followed Up In Time
     format: {type: number, decimal_places: {type: exact, places: 0}}
@@ -54,7 +54,7 @@ measures:
     format: {type: percentage, decimal_places: {type: max, places: 1}}
   - name: Open Obligations
     expr: COUNT(1) FILTER (WHERE NOT followup_within_90d AND NOT window_closed)
-    comment: "A1c >= 9% results whose 90-day follow-up window is still open and not yet met -- the members still closable this year."
+    comment: "A1c > 9% results whose 90-day follow-up window is still open and not yet met -- the members still closable this year."
     synonyms: [open, pending, closable, still closable, open gaps, due follow-ups]
     display_name: Open Obligations
     format: {type: number, decimal_places: {type: exact, places: 0}}

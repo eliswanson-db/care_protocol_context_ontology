@@ -130,15 +130,14 @@ classes:
     intent: Same measure, different value-set VERSION -> different population. A data-model question (versioned value sets), not a retrieval one.
     questions:
       - id: vintage_egfr_2026
-        question: "Under the 2026 KED eGFR definition, how many patients have a qualifying eGFR test?"
-        gold: "distinct patients with an observation in value_set_segment KED_EGFR WHERE measurement_year=2026 (only 98979-8)"
-        gold_value_500: 0
-        gold_value_25k: 0   # drift confirmed at scale (2025 def would be >0)
+        question: "Under the 2026 KED eGFR definition, how many patients have a qualifying eGFR test in 2026?"
+        gold: "distinct patients with an MY2026 observation in value_set_segment KED_EGFR WHERE measurement_year=2026 (98979-8 only)"
+        gold_value_25k: TBD   # set from verify_gold after the 2026-11-21 reflow (lab on CKD-EPI 2021 since 2022-07-01)
         how_asked: "Genie One -> join the versioned value_set_segment filtered to 2026"
         min_approach: metric_view   # Genie Ontology over the versioned value-set table
         graph_strictly_needed: false
         hypothesis: {rag: insufficient, metric_view: sufficient, closure_sql: sufficient, graph_ontobricks: sufficient}
-        note: "RAG over current docs gives a stale/ambiguous answer; the versioned table makes it exact."
+        note: "The versioned table makes it exact. The lab reports CKD-EPI 2021 since 2022-07-01, so the 2026 set loses nothing for 2026."
 
   - class: 6_protocol_multihop
     intent: Compose diagnosis + lab + med-class + protocol rules. FIXED-shape multi-joins -> closure/edge tables + SQL suffice. Graph is more natural/maintainable but NOT strictly necessary.

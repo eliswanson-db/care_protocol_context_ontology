@@ -103,21 +103,21 @@ WHERE ancestor_code = 'DRUGCLASS-STATIN' AND descendant_code = '312961';
 -- =========================================================================================
 
 -- @id: vintage_egfr_2026
--- class: 5_value_set_vintage  min_approach: metric_view  expect: 0
--- Under the MY2026 modernized KED eGFR set (CKD-EPI 98979-8 only), no patient qualifies: the synthetic data
--- records eGFR with MDRD 33914-3, dropped in 2026. (Contrast query vintage_egfr_2025 below returns 5697.)
+-- class: 5_value_set_vintage  min_approach: metric_view  expect: TBD
+-- Patients with an MY2026 eGFR result that qualifies under the MY2026 KED eGFR value set (CKD-EPI 2021 98979-8 only).
+-- The lab switched to CKD-EPI 2021 on 2022-07-01, so this equals the count under the 2025 set.
 SELECT COUNT(DISTINCT o.patient_id) AS egfr_2026_patients
 FROM {catalog}.{schema}.silver_observation o
-WHERE o.loinc_code IN (
+WHERE year(o.result_ts) = 2026 AND o.loinc_code IN (
   SELECT code FROM {catalog}.{tschema}.value_set_segment
   WHERE segment_id = 'KED_EGFR' AND measurement_year = '2026');
 
 -- @id: vintage_egfr_2025
--- class: 5_value_set_vintage  min_approach: metric_view  expect: 5697
--- Contrast: the same measure under the MY2025 set (MDRD + CKD-EPI) qualifies 5697 -- the drift is real.
+-- class: 5_value_set_vintage  min_approach: metric_view  expect: TBD
+-- Patients with an MY2025 eGFR result that qualifies under the MY2025 set (MDRD 33914-3 + CKD-EPI 2021 98979-8).
 SELECT COUNT(DISTINCT o.patient_id) AS egfr_2025_patients
 FROM {catalog}.{schema}.silver_observation o
-WHERE o.loinc_code IN (
+WHERE year(o.result_ts) = 2025 AND o.loinc_code IN (
   SELECT code FROM {catalog}.{tschema}.value_set_segment
   WHERE segment_id = 'KED_EGFR' AND measurement_year = '2025');
 

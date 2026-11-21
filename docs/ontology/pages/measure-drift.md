@@ -12,23 +12,15 @@ related_assets:
 the underlying care changed. Value sets are versioned by **measurement year** (`value_set_segment.measurement_year`),
 which makes drift explicit, auditable, and reproducible instead of a silent code-list edit.
 
-**Worked example — eGFR code modernization (KED):**
-- **MY2025** `KED_EGFR` accepts `98979-8` (CKD-EPI) **and** `33914-3` (MDRD).
-- **MY2026** `KED_EGFR` is "modernized" to `98979-8` (CKD-EPI) only.
-- The lab data is identical (Synthea records eGFR as `33914-3`, MDRD). Yet eGFR coverage for MY2026
-  observations under each value-set version is:
+**Worked example — eGFR equation change (KED):**
+- **MY2025** `KED_EGFR` accepts `98979-8` (CKD-EPI 2021) **and** `33914-3` (MDRD).
+- **MY2026** `KED_EGFR` accepts `98979-8` only: MDRD is retired.
+- The demo health system's lab switched equations on **2022-07-01**, so every MY2026 eGFR result is `98979-8` and
+  retiring MDRD doesn't change the MY2026 KED rate.
+- Applying the 2026 version to an older year would. Every pre-switch result is `33914-3`, so 2021 eGFR coverage
+  drops to zero under the 2026 set. Each measure therefore uses the value set of its own measurement year.
 
-| Value-set version | Patients with eGFR | Codes matched |
-|---|---|---|
-| 2025 | **every patient with an eGFR result** | 33914-3 |
-| 2026 | **0** | (none) |
-
-- **How the computed KED measure handles this:** `gold_adherence_ked` (and so `ked_compliance_metrics`) accepts the
-  eGFR codes of **every** value-set version (the union), so the reported MY2026 KED rate still counts `33914-3`.
-  Applying the MY2026 value set alone is the what-if this query shows.
-
-Switching the value set silently erases eGFR coverage — which would collapse the KED rate — with zero change
-in actual testing. The demo query is `src/semantic/measure_drift_demo.sql`.
+The demo query is `src/semantic/measure_drift_demo.sql` (patients with eGFR, per result year, under each version).
 
 **Why the context layer matters:** because the value set is governed and year-stamped, you can (a) reproduce a
 measure exactly as defined in any year, (b) attribute a rate change to a definition change vs. a care change,

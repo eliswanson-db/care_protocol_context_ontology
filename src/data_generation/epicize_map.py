@@ -10,6 +10,15 @@ import os
 import pandas as pd
 from pyspark.sql import SparkSession, functions as F
 
+# eGFR reporting method. Synthea records every eGFR with the MDRD equation's LOINC (33914-3). US labs replaced
+# MDRD/CKD-EPI 2009 with the race-free CKD-EPI 2021 equation after the 2021 NKF-ASN recommendation, most during 2022,
+# and report it under LOINC 98979-8. The demo health system's lab switches on EGFR_CKD_EPI_2021_FROM: results on or
+# after it carry 98979-8. The numeric value stays Synthea's, which is synthetic under either label.
+EGFR_MDRD, EGFR_CKD_EPI_2021 = "33914-3", "98979-8"
+EGFR_CKD_EPI_2021_FROM = "2022-07-01"
+EGFR_CKD_EPI_2021_DESC = ("Glomerular filtration rate/1.73 sq M.predicted [Volume Rate/Area] in Serum, Plasma or "
+                          "Blood by Creatinine-based formula (CKD-EPI 2021)")
+
 
 def main() -> None:
     p = argparse.ArgumentParser()
@@ -53,11 +62,18 @@ def main() -> None:
     cond.join(cw, "snomed_code", "left").write.mode("overwrite").option(
         "overwriteSchema", True).saveAsTable(f"{t}.bronze_pat_enc_dx")
 
-    # bronze_order_results  (observations; LOINC in CODE)
-    raw("observations").select(
+    # bronze_order_results  (observations; LOINC in CODE). eGFR is re-labelled from the lab's CKD-EPI 2021 switch.
+    obs = raw("observations").select(
         F.col("PATIENT").alias("patient_id"), F.col("ENCOUNTER").alias("encounter_id"),
         F.to_timestamp("DATE").alias("result_ts"), F.col("CODE").cast("string").alias("loinc_code"),
         F.col("DESCRIPTION").alias("description"), F.col("VALUE").alias("value"), F.col("UNITS").alias("units"),
+    )
+    switched = (F.col("loinc_code") == EGFR_MDRD) & (F.col("result_ts") >= F.to_timestamp(F.lit(EGFR_CKD_EPI_2021_FROM)))
+    obs.select(
+        "patient_id", "encounter_id", "result_ts",
+        F.when(switched, F.lit(EGFR_CKD_EPI_2021)).otherwise(F.col("loinc_code")).alias("loinc_code"),
+        F.when(switched, F.lit(EGFR_CKD_EPI_2021_DESC)).otherwise(F.col("description")).alias("description"),
+        "value", "units",
     ).write.mode("overwrite").option("overwriteSchema", True).saveAsTable(f"{t}.bronze_order_results")
 
     # bronze_order_med  (medications; RxNorm in CODE)

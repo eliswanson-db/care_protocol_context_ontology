@@ -10,10 +10,12 @@ related_assets:
 **eGFR (estimated glomerular filtration rate)** estimates how well the kidneys filter blood. It is one of the
 two components of the **KED** numerator (the other is **uACR**).
 
-- **Terminology:** LOINC. The demo value set `KED_EGFR` includes **`33914-3`** (MDRD-based eGFR, the code
-  Synthea emits) and **`98979-8`** (a newer CKD-EPI eGFR code). A measure must accept **all** valid LOINC
-  codes for the concept — relying on a single code would undercount.
+- **Terminology:** LOINC codes eGFR by the equation used: **`98979-8`** (race-free CKD-EPI 2021) and **`33914-3`**
+  (MDRD, retired by most US labs in 2022). The demo health system's lab switched to CKD-EPI 2021 on 2022-07-01,
+  so later results carry `98979-8`.
+- **Value set `KED_EGFR`:** MY2025 accepts both codes; MY2026 accepts `98979-8` only. Each measurement year uses
+  its own version.
 - eGFR tests are conformed into `silver_observation` and feed `gold_adherence_ked` (`egfr_flag`).
 
-> This multi-code value set is the concrete example of **value-set / terminology drift** — the "right" code
-> depends on vintage and source system. HEDIS-aligned demo, not NCQA-certified.
+> The equation change is a real example of **value-set drift**: which code counts depends on the year
+> (see *Measure Drift*). HEDIS-aligned demo, not NCQA-certified.

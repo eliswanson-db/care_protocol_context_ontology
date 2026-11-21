@@ -28,7 +28,7 @@ COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ked.uacr_flag IS 'True 
 COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ked.numerator_flag IS 'KED numerator: true only when BOTH egfr_flag AND uacr_flag are true (complete kidney health evaluation).';
 COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ked.status IS 'Adherence status: MET (both eGFR and uACR found) or NOT_MET (one or both missing = care gap).';
 COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ked.egfr_datetime IS 'Timestamp of the latest eGFR result in the measurement year. Record-level traceability.';
-COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ked.egfr_code IS 'LOINC code of the eGFR test (e.g. 33914-3 MDRD, or 98979-8). The value set spans code vintages.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ked.egfr_code IS 'LOINC code of the eGFR test: 98979-8 (CKD-EPI 2021). MY2026 KED accepts only this code; MY2025 also accepted 33914-3 (MDRD), which the lab stopped reporting on 2022-07-01.';
 COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ked.egfr_value IS 'Numeric eGFR result (mL/min/1.73m2) of the latest measurement-year test.';
 COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ked.uacr_datetime IS 'Timestamp of the latest uACR result in the measurement year. Record-level traceability.';
 COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_ked.uacr_code IS 'LOINC code of the uACR test (e.g. 14959-1 Microalbumin/Creatinine ratio).';
@@ -80,7 +80,7 @@ COMMENT ON COLUMN {catalog}.care_protocol_terminology.rxnorm_closure.descendant_
 -- gold_protocol_adherence: process-adherence (which protocol step slipped), one row per A1c trigger event.
 COMMENT ON COLUMN {catalog}.care_protocol.gold_protocol_adherence.patient_id IS 'Patient the trigger belongs to.';
 COMMENT ON COLUMN {catalog}.care_protocol.gold_protocol_adherence.trigger_ts IS 'Timestamp of the A1c result at/above target that created the protocol-step obligation.';
-COMMENT ON COLUMN {catalog}.care_protocol.gold_protocol_adherence.trigger_a1c IS 'The A1c value (>= 9%, poor control) that triggered the Step-3 obligation.';
+COMMENT ON COLUMN {catalog}.care_protocol.gold_protocol_adherence.trigger_a1c IS 'The A1c value (> 9%, poor control) that triggered the Step-3 obligation.';
 COMMENT ON COLUMN {catalog}.care_protocol.gold_protocol_adherence.followup_ts IS 'Timestamp of the earliest qualifying follow-up (recheck A1c or diabetes-therapy order) within 90 days; null if none.';
 COMMENT ON COLUMN {catalog}.care_protocol.gold_protocol_adherence.followup_type IS 'What satisfied the step: recheck (a later A1c) or therapy (a diabetes-med order).';
 COMMENT ON COLUMN {catalog}.care_protocol.gold_protocol_adherence.followup_days IS 'Days from the high A1c to the follow-up.';
