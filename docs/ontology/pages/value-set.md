@@ -15,6 +15,9 @@ not raw codes, so the definition stays readable and governable.
   can span multiple **code systems** (LOINC, ICD-10-CM, RxNorm) and multiple codes.
 - Examples: `GSD_A1C_TEST` (A1c LOINC codes), `KED_EGFR` / `KED_UACR` (kidney labs), `SPD_STATIN` (statin
   RxNorm ingredients), `EXCL_ESRD` (ESRD exclusion ICD-10 codes).
+- **Contraindication value sets** (the care-protocol rules point at these; each code includes its ICD-10
+  subtree): `CONTRA_PREGNANCY` = `Z34`, `O00`, `O15`, `O26` (statins, ACE inhibitors, ARBs);
+  `CONTRA_HEPATIC` = `K70`, `K74` (statins).
 - The **`measurement_year`** column lets a value set **version** over time — the basis of the measure-drift
   story: the same measure can resolve to different codes in different years.
 

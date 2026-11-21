@@ -1,0 +1,241 @@
+# HEDIS fact list (docs/CONTEXT_LAB_PLAN.md §2): the facts the benchmark questions depend on, and where each
+# retrieval approach holds them. Questions q1..q10 = the plan's §4 table.
+#
+# Each approach gets exactly one of:
+#   {file, has: [...]}     repo text the approach is built from must contain every string (offline check)
+#   {table, where}         care_protocol_terminology table must have a matching row       (live check)
+#   {s, p, o}              the published Ontobricks graph must have a matching triple      (live check)
+#                          (IRIs relative to https://care-protocol.example/ontology/; omit a part to match any)
+#   none: <reason>         the approach can't reasonably hold this fact
+#   gap: <what + fix>      it could, and doesn't yet (reported by the test, not hidden)
+#
+# Sources per approach: metric_view = src/semantic/metric_views; closure = terminology/closure/edge tables;
+# rag = the Lakebase corpus (docs/care_protocol/{corpus,html}); genie_ontology = Pages, column comments, metric views;
+# graph = eswanson_demo.ontobricks.triplestore_clinicaldomain_v3_graph.
+# Check: python3 -I tests/test_hedis_facts.py   (CARE_LIVE=1 adds the table and graph checks against ECT)
+
+facts:
+  - id: F01
+    fact: "The diabetes cohort is every ICD-10 code under E10, E11 or E13."
+    questions: [q2, q3]
+    metric_view: {none: "metric views start from the computed eligible population; the cohort codes are upstream"}
+    closure: {table: icd10_closure, where: "ancestor_code = 'E11' AND descendant_code = 'E11.22'"}
+    rag: {file: docs/care_protocol/html/diabetes_care_protocol.html, has: ["E10", "E11", "E13"]}
+    genie_ontology: {file: docs/ontology/pages/diabetes-cohort.md, has: ["E10", "E11", "E13"]}
+    graph: {s: ValueSet/HEDIS_DIABETES_DENOM, p: contains, o: icd/E11}
+
+  - id: F02
+    fact: "Diabetes with a kidney complication is everything under E11.2, E10.2 or E13.2."
+    questions: [q3]
+    metric_view: {none: "no measure is built for this cohort"}
+    closure: {table: icd10_closure, where: "ancestor_code = 'E11.2' AND descendant_code = 'E11.22'"}
+    rag: {file: docs/care_protocol/html/diabetes_care_protocol.html, has: ["E11.21"]}
+    genie_ontology: {file: docs/ontology/pages/icd10-subsumption.md, has: ["E11.2", "E10.2", "E13.2"]}
+    graph: {s: icd/E11.22, p: subClassOf, o: icd/E11.2}
+
+  - id: F03
+    fact: "E11.22 has two parents: E11.2 (type 2 diabetes) and N18 (chronic kidney disease)."
+    questions: [q4]
+    metric_view: {none: "no hierarchy in metric views"}
+    closure: {table: icd10_hier, where: "code = 'E11.22' AND parent_code = 'N18'"}
+    rag: {none: "the care documents describe care, not the ICD-10 hierarchy"}
+    genie_ontology: {file: docs/ontology/pages/icd10-subsumption.md, has: ["E11.22", "N18"]}
+    graph: {s: icd/E11.22, p: subClassOf, o: icd/N18}
+
+  - id: F04
+    fact: "A1c is identified by its LOINC component across methods (4548-4, 17856-6, 59261-8)."
+    questions: [q1, q2]
+    metric_view: {file: src/semantic/metric_views/lab_result.metric_view.sql, has: ["4548-4", "17856-6"]}
+    closure: {table: loinc_parts, where: "loinc_code = '17856-6' AND part = 'LP-HBA1C'"}
+    rag: {file: docs/care_protocol/html/diabetes_care_protocol.html, has: ["4548-4", "17856-6", "59261-8"]}
+    genie_ontology: {file: docs/ontology/pages/hba1c.md, has: ["4548-4"]}
+    graph: {s: loinc/17856-6, p: hasComponent, o: part/LP-HBA1C}
+
+  - id: F05
+    fact: "GSD's denominator is diabetes patients aged 18-75; it scores the latest A1c in the measurement year."
+    questions: [q1]
+    metric_view: {file: src/semantic/metric_views/gsd_compliance.metric_view.sql, has: ["aged 18-75"]}
+    closure: {none: "measure definitions live in the pipeline and metric views, not the terminology tables"}
+    rag: {file: docs/care_protocol/html/diabetes_care_protocol.html, has: ["GSD", "18–75"]}
+    genie_ontology: {file: docs/ontology/pages/gsd.md, has: ["18–75"]}
+    graph: {p: eligibleFor, o: Measure/GSD}
+
+  - id: F06
+    fact: "GSD poor control is a latest A1c above 9.0%."
+    questions: [q1, q2]
+    metric_view: {file: src/semantic/metric_views/gsd_compliance.metric_view.sql, has: ["evidence_value > 9.0"]}
+    closure: {table: protocol_edges, where: "subject = 'GSD' AND predicate = 'hasThreshold' AND object = 'a1c_poor_gt_9'"}
+    rag: {file: docs/care_protocol/html/diabetes_care_protocol.html, has: ["poor control &gt; 9.0%"]}
+    genie_ontology: {file: docs/ontology/pages/hba1c.md, has: ["> 9%"]}
+    graph: {s: Measure/GSD, p: hasThreshold, o: Threshold/a1c_poor_gt_9}
+
+  - id: F07
+    fact: "Every cohort patient is attributed to one PCP panel and clinic."
+    questions: [q1]
+    metric_view: {file: src/semantic/metric_views/gsd_compliance.metric_view.sql, has: ["expr: clinic_id"]}
+    closure: {none: "attribution is operational data (panel_roster), not terminology"}
+    rag: {none: "attribution is data, not document content"}
+    genie_ontology: {file: src/semantic/comments/care_protocol.comments.sql, has: ["panel_roster.clinic_id"]}
+    graph: {gap: "Patient -> clinic isn't mapped; add a Clinic entity from panel_roster to the Ontobricks project"}
+
+  - id: F08
+    fact: "A statin is any RxNorm drug whose ingredient is in the SPD_STATIN value set (resolved through RxNorm)."
+    questions: [q2, q10]
+    metric_view: {file: src/semantic/metric_views/spd_compliance.metric_view.sql, has: ["statin"]}
+    closure: {table: rxnorm_closure, where: "ancestor_code = 'DRUGCLASS-STATIN' AND descendant_code = '312961'"}
+    rag: {file: docs/care_protocol/html/diabetes_care_protocol.html, has: ["atorvastatin", "simvastatin"]}
+    genie_ontology: {file: docs/ontology/pages/spd.md, has: ["statin"]}
+    graph: {s: ing/36567, p: inDrugClass, o: DrugClass/DRUGCLASS-STATIN}
+
+  - id: F09
+    fact: "SPD's denominator is diabetes patients aged 40-75; it is met by a statin dispensed in the measurement year."
+    questions: [q10]
+    metric_view: {file: src/semantic/metric_views/spd_compliance.metric_view.sql, has: ["40-75"]}
+    closure: {none: "measure definitions live in the pipeline and metric views"}
+    rag: {file: docs/care_protocol/html/diabetes_care_protocol.html, has: ["SPD", "40–75"]}
+    genie_ontology: {file: docs/ontology/pages/spd.md, has: ["40–75"]}
+    graph: {p: eligibleFor, o: Measure/SPD}
+
+  - id: F10
+    fact: "A1c targets are individualized by comorbidity: 6.0-7.0%, 7.0-8.0% or 8.0-9.0% by comorbidity and life expectancy."
+    questions: [q5]
+    metric_view: {none: "clinical guidance, not a measure"}
+    closure: {none: "clinical guidance, not terminology"}
+    rag: {file: docs/care_protocol/corpus/glycemic_targets_and_deprescribing.md, has: ["6.0–7.0%", "8.0–9.0%"]}
+    genie_ontology: {file: docs/ontology/pages/hba1c.md, has: ["6.0–7.0%", "8.0–9.0%"]}
+    graph: {none: "prose guidance with patient-judgement criteria; not modeled as triples"}
+
+  - id: F11
+    fact: "Recheck A1c every 3 months while above goal; after a result above 9.0%, intensify and recheck within 90 days (Step 3)."
+    questions: [q6]
+    metric_view: {file: src/semantic/metric_views/protocol_adherence.metric_view.sql, has: ["within 90 days"]}
+    closure: {none: "a care-process rule, not terminology"}
+    rag: {file: docs/care_protocol/corpus/glycemic_targets_and_deprescribing.md, has: ["every 3 months"]}
+    genie_ontology: {file: docs/ontology/pages/protocol-step-3.md, has: ["within 90 days"]}
+    graph: {gap: "Protocol Step 3 isn't mapped (audit finding 3); add the step and its trigger threshold to the project"}
+
+  - id: F12
+    fact: "KED's denominator is diabetes patients aged 18-85; compliant needs an eGFR AND a uACR test in the measurement year."
+    questions: [q7]
+    metric_view: {file: src/semantic/metric_views/ked_compliance.metric_view.sql, has: ["aged 18-85", "BOTH an eGFR and a uACR"]}
+    closure: {table: protocol_edges, where: "subject = 'KED' AND predicate = 'monitoredBy' AND object = 'LP-UACR'"}
+    rag: {file: docs/care_protocol/html/diabetes_care_protocol.html, has: ["KED", "18–85"]}
+    genie_ontology: {file: docs/ontology/pages/ked.md, has: ["18–85", "uACR"]}
+    graph: {s: Measure/KED, p: monitoredBy, o: part/LP-UACR}
+
+  - id: F13
+    fact: "KED is reported by the ked_compliance_metrics metric view."
+    questions: [q7]
+    metric_view: {file: src/semantic/metric_views/ked_compliance.metric_view.sql, has: ["KED"]}
+    closure: {none: "serving tables aren't terminology"}
+    rag: {none: "the documents don't name tables"}
+    genie_ontology: {file: docs/ontology/pages/ked.md, has: ["ked_compliance_metrics"]}
+    graph: {none: "the graph models meaning, not the serving tables"}
+
+  - id: F14
+    fact: "eGFR LOINC codes: 98979-8 (CKD-EPI 2021) and 33914-3 (MDRD, legacy)."
+    questions: [q8]
+    metric_view: {file: src/semantic/metric_views/lab_result.metric_view.sql, has: ["98979-8"]}
+    closure: {table: loinc_parts, where: "loinc_code = '98979-8' AND part = 'LP-EGFR'"}
+    rag: {file: docs/care_protocol/corpus/payer_policy_memo_MY2026.md, has: ["33914-3", "98979-8"]}
+    genie_ontology: {file: docs/ontology/pages/egfr.md, has: ["98979-8", "33914-3"]}
+    graph: {s: loinc/98979-8, p: hasComponent, o: part/LP-EGFR}
+
+  - id: F15
+    fact: "Value sets are versioned by measurement year; the MY2026 KED eGFR set is 98979-8 only."
+    questions: [q8]
+    metric_view: {none: "metric views read gold, where the year's value set is already applied"}
+    closure: {table: value_set_segment, where: "segment_id = 'KED_EGFR' AND measurement_year = '2026' AND code = '98979-8'"}
+    rag: {file: docs/care_protocol/corpus/payer_policy_memo_MY2026.md, has: ["98979-8 (CKD-EPI 2021) only"]}
+    genie_ontology: {file: docs/ontology/pages/measure-drift.md, has: ["MY2026", "98979-8"]}
+    graph: {gap: "measure value sets (KED_EGFR, GSD_A1C_TEST) aren't mapped as ValueSet contains; add them by year"}
+
+  - id: F16
+    fact: "The eGFR value set is defined in care_protocol_terminology.value_set_segment (segment KED_EGFR)."
+    questions: [q8]
+    metric_view: {none: "metric views don't reference value sets"}
+    closure: {table: value_set_segment, where: "segment_id = 'KED_EGFR'"}
+    rag: {none: "the documents don't name tables"}
+    genie_ontology: {file: docs/ontology/pages/egfr.md, has: ["KED_EGFR"]}
+    graph: {none: "where a value set is stored is catalog metadata, not graph content"}
+
+  - id: F17
+    fact: "Metformin is contraindicated at eGFR below 30."
+    questions: [q9]
+    metric_view: {none: "clinical rule, not a measure"}
+    closure: {table: protocol_edges, where: "subject = 'DRUGCLASS-BIGUANIDE' AND predicate = 'contraindicatedWhen' AND object = 'eGFR_LT_30'"}
+    rag: {file: docs/care_protocol/html/diabetes_care_protocol.html, has: ["contraindicated when eGFR &lt; 30"]}
+    genie_ontology: {file: docs/ontology/pages/care-protocol-rules.md, has: ["eGFR below 30"]}
+    graph: {s: DrugClass/DRUGCLASS-BIGUANIDE, p: contraindicatedWhen, o: Threshold/eGFR_LT_30}
+
+  - id: F18
+    fact: "SGLT2 inhibitors are not started at eGFR below 20."
+    questions: [q9]
+    metric_view: {none: "clinical rule, not a measure"}
+    closure: {table: protocol_edges, where: "subject = 'DRUGCLASS-SGLT2' AND predicate = 'contraindicatedWhen' AND object = 'eGFR_LT_20'"}
+    rag: {file: docs/care_protocol/html/diabetes_care_protocol.html, has: ["eGFR &lt; 20"]}
+    genie_ontology: {file: docs/ontology/pages/care-protocol-rules.md, has: ["eGFR below 20"]}
+    graph: {s: DrugClass/DRUGCLASS-SGLT2, p: contraindicatedWhen, o: Threshold/eGFR_LT_20}
+
+  - id: F19
+    fact: "Statins are contraindicated with pregnancy and with active hepatic disease."
+    questions: [q9]
+    metric_view: {none: "clinical rule, not a measure"}
+    closure: {table: protocol_edges, where: "subject = 'DRUGCLASS-STATIN' AND predicate = 'contraindicatedWith' AND object = 'CONTRA_HEPATIC'"}
+    rag: {file: docs/care_protocol/html/diabetes_care_protocol.html, has: ["Pregnancy", "hepatic"]}
+    genie_ontology: {file: docs/ontology/pages/care-protocol-rules.md, has: ["Statins are contraindicated with pregnancy", "active hepatic disease"]}
+    graph: {s: DrugClass/DRUGCLASS-STATIN, p: contraindicatedWith, o: ValueSet/CONTRA_HEPATIC}
+
+  - id: F20
+    fact: "ACE inhibitors and ARBs are contraindicated with pregnancy."
+    questions: [q9]
+    metric_view: {none: "clinical rule, not a measure"}
+    closure: {table: protocol_edges, where: "subject = 'DRUGCLASS-ARB' AND predicate = 'contraindicatedWith' AND object = 'CONTRA_PREGNANCY'"}
+    rag: {file: docs/care_protocol/html/diabetes_care_protocol.html, has: ["ACE inhibitor or ARB", "Pregnancy"]}
+    genie_ontology: {file: docs/ontology/pages/care-protocol-rules.md, has: ["ARBs are contraindicated with pregnancy"]}
+    graph: {s: DrugClass/DRUGCLASS-ARB, p: contraindicatedWith, o: ValueSet/CONTRA_PREGNANCY}
+
+  - id: F21
+    fact: "The pregnancy contraindication codes are ICD-10 Z34, O00, O15, O26; hepatic is K70, K74."
+    questions: [q9]
+    metric_view: {none: "clinical rule, not a measure"}
+    closure: {table: value_set_segment, where: "segment_id = 'CONTRA_PREGNANCY' AND code = 'Z34'"}
+    rag: {none: "the protocol names the conditions, not their codes"}
+    genie_ontology: {file: docs/ontology/pages/value-set.md, has: ["CONTRA_PREGNANCY", "Z34", "O26", "K70", "K74"]}
+    graph: {s: ValueSet/CONTRA_PREGNANCY, p: contains, o: icd/Z34}
+
+  - id: F22
+    fact: "Metformin is a biguanide (every drug belongs to its drug class)."
+    questions: [q9]
+    metric_view: {none: "no drug classes in metric views"}
+    closure: {table: rxnorm_closure, where: "ancestor_code = 'DRUGCLASS-BIGUANIDE'"}
+    rag: {file: docs/care_protocol/html/diabetes_care_protocol.html, has: ["Metformin"]}
+    genie_ontology: {file: docs/ontology/pages/mad.md, has: ["biguanide"]}
+    graph: {gap: "inDrugClass exists only for statins (3 edges); republish with every class (ONTOBRICKS_REPUBLISH Path B, fix 1)"}
+
+  - id: F23
+    fact: "The eGFR thresholds (eGFR_LT_30, eGFR_LT_20) apply to the eGFR test."
+    questions: [q9]
+    metric_view: {none: "clinical rule, not a measure"}
+    closure: {none: "implicit in the threshold id only (protocol_edges object 'eGFR_LT_30', value 30)"}
+    rag: {file: docs/care_protocol/html/diabetes_care_protocol.html, has: ["eGFR &lt; 30", "mL/min/1.73m"]}
+    genie_ontology: {file: docs/ontology/pages/care-protocol-rules.md, has: ["eGFR below 30"]}
+    graph: {gap: "Threshold/eGFR_LT_30 has no edge to part/LP-EGFR, so a traversal can't compare it with a patient's eGFR; map Threshold -> LoincPart"}
+
+  - id: F24
+    fact: "Patient-level facts: who is eligible for each measure, who has a gap, what they were prescribed."
+    questions: [q2, q9, q10]
+    metric_view: {file: src/semantic/metric_views/spd_compliance.metric_view.sql, has: ["Gap Reason"]}
+    closure: {none: "closures hold terminology; patient facts are in silver/gold"}
+    rag: {none: "patient records aren't documents (one outside letter is, by design)"}
+    genie_ontology: {none: "Genie Ontology retrieves context; patient rows come from querying gold"}
+    graph: {p: hasCareGap, o: Measure/SPD}
+
+  - id: F25
+    fact: "eGFR results since 2022-07-01 carry LOINC 98979-8 (the lab's switch to CKD-EPI 2021)."
+    questions: [q8, q9]
+    metric_view: {none: "metric views aggregate results; they don't describe the feed"}
+    closure: {none: "lab feed history isn't terminology"}
+    rag: {none: "the documents don't describe this lab's feed"}
+    genie_ontology: {file: docs/ontology/pages/egfr.md, has: ["2022-07-01"]}
+    graph: {gap: "v3 was published before the 2026-11-21 reflow, so its eGFR observations still use 33914-3; republish"}

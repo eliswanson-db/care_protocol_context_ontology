@@ -44,7 +44,8 @@ None has to win. Each one's value and limits should be visible.
 
 ## 2. Same information, as far as feasible
 
-- One short **fact list** per demo (~25 facts, `docs/<demo>/facts.yaml`). These are the facts the questions
+- One short **fact list** per demo (~25 facts; HEDIS: `docs/benchmark/hedis_facts.yaml`, checked by
+  `tests/test_hedis_facts.py`). These are the facts the questions
   depend on. For each fact, record where it lives in each mode, or why it can't live there (e.g. RAG can't hold
   25k patient rows). One test checks presence.
 - HEDIS: this is mostly a write-up of what the consistency audit already checks. Close the gaps it found that
@@ -134,7 +135,8 @@ HEDIS first (most of it exists), then life sciences, with the same steps:
 1. ✅ (2026-11-21) Fix the two HEDIS correctness bugs: value sets by measurement year (+ the lab's CKD-EPI 2021
    switch on 2022-07-01, so MY2026 KED keeps its eGFR results); Step 3 triggers on A1c > 9% (870 triggers, was 904).
    verify_gold 20/20.
-2. Fact list + presence test.
+2. ✅ (2026-11-21, HEDIS) Fact list + presence test: 25 facts, every pointer resolves (live too). Open: 6 graph
+   gaps that need the Ontobricks project (listed by the test).
 3. The three traces.
 4. Question set; verify each answer in the data.
 5. One harness + the simple agent; run it.

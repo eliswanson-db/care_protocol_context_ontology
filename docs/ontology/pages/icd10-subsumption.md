@@ -17,6 +17,13 @@ parent concept should automatically include all descendants.
   (depth 0 = self). A cohort or value-set membership check becomes a **single equality join** — no recursive
   CTE — which is fast, portable, and easy for Genie to generate.
 
+- **Diabetes with a kidney complication** = everything under `E11.2`, `E10.2` or `E13.2` (e.g. `E11.21`
+  nephropathy, `E11.22` diabetic CKD, `E11.29`).
+- **Multiple parents:** ICD-10 is a hierarchy with some multi-parent codes. `E11.22` *Type 2 diabetes with diabetic
+  chronic kidney disease* sits under **both** `E11.2` (→ `E11` type 2 diabetes) **and** `N18` chronic kidney
+  disease, so it counts in a diabetes cohort and in a CKD cohort. The closure lists both ancestors; the hierarchy
+  (`icd10_hier`) shows the two routes.
+
 This is the core ontology differentiator: **meaning via hierarchy**. A flat list of diabetes codes catches
 only the exact codes listed; the closure resolves the whole E10/E11/E13 subtree, so specific diagnoses like
 `E11.21` are included automatically.

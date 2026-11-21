@@ -30,7 +30,8 @@ driven by a value-set version change, not by any change in the patient's data.
 ## 2. KED kidney value-set modernization
 
 For **MY2026**, the eGFR value set is modernized to the race-free CKD-EPI 2021 estimating equation and
-**drops the legacy race-based (MDRD) eGFR code** that older lab feeds still emit. Health systems whose result
+**drops the legacy race-based (MDRD) eGFR code** (LOINC 33914-3) that older lab feeds still emit. The MY2026 eGFR
+value set is LOINC 98979-8 (CKD-EPI 2021) only. Health systems whose result
 feed still carries the legacy code will see eGFR coverage — and therefore KED compliance — fall on otherwise
 unchanged data until mapping is updated. This is the second controlled drift scenario in the demo.
 
