@@ -131,7 +131,9 @@ None has to win. Each one's value and limits should be visible.
 ## 7. Order
 
 HEDIS first (most of it exists), then life sciences, with the same steps:
-1. Fix the two HEDIS correctness bugs (value-set versioning; the Step-3 threshold).
+1. ✅ (2026-11-21) Fix the two HEDIS correctness bugs: value sets by measurement year (+ the lab's CKD-EPI 2021
+   switch on 2022-07-01, so MY2026 KED keeps its eGFR results); Step 3 triggers on A1c > 9% (870 triggers, was 904).
+   verify_gold 20/20.
 2. Fact list + presence test.
 3. The three traces.
 4. Question set; verify each answer in the data.
@@ -139,9 +141,7 @@ HEDIS first (most of it exists), then life sciences, with the same steps:
 6. Genie One run.
 7. App: Trace + Benchmark tabs.
 
-## Decisions needed
+## Decisions (2026-11-21)
 
-1. **HEDIS correctness:**
-   - apply value sets by measurement year;
-   - make Step 3 "> 9%" to match the protocol (35 triggers sit exactly at 9.0).
-2. **The draft HEDIS questions** (table above): keep, swap or add any?
+1. **HEDIS correctness:** apply value sets by measurement year: yes. Step 3 "> 9%": yes. Both done.
+2. **The draft HEDIS questions:** keep as drafted.
