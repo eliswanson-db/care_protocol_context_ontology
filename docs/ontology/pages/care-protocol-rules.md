@@ -45,4 +45,14 @@ and `protocol_edges` hold: this Page is generated from `src/terminology/protocol
 - GSD has the threshold good control: A1c below 8%. *(protocol section CP sec2)*
 - GSD has the threshold poor control: A1c above 9%. *(protocol section CP sec3)*
 
+## Which lab each threshold is measured on
+
+- Good control: A1c below 8% is measured on HbA1c (LOINC part LP-HBA1C). *(protocol section CP sec2)*
+- Poor control: A1c above 9% is measured on HbA1c (LOINC part LP-HBA1C). *(protocol section CP sec3)*
+- eGFR below 30 mL/min/1.73m² is measured on eGFR (LP-EGFR). *(protocol section CP-GLY-2)*
+- eGFR below 20 mL/min/1.73m² is measured on eGFR (LP-EGFR). *(protocol section CP sec4)*
+- uACR of 30 mg/g or more is measured on uACR (LP-UACR). *(protocol section CP sec4)*
+- Systolic below 140 mmHg is measured on systolic blood pressure (LP-SBP). *(protocol section CP sec2)*
+- Diastolic below 90 mmHg is measured on diastolic blood pressure (LP-DBP). *(protocol section CP sec2)*
+
 For the A1c recheck rule (Protocol Step 3) see the Page *Protocol Step 3 — A1c recheck within 90 days*.

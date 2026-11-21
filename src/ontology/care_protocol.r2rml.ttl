@@ -296,6 +296,14 @@
   rr:predicateObjectMap [ rr:predicate cp:hasThreshold ;
      rr:objectMap [ rr:template "https://care-protocol.example/threshold/{thr}" ] ] .
 
+# ---- Threshold -appliesTo-> LoincPart (2026-11-21): which lab a cutoff is compared with, so a traversal can
+#      test a patient's eGFR/A1c/uACR/BP result against eGFR_LT_30 etc. ----
+<#AppliesToMap> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT subject AS thr, object AS part_code FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE predicate = 'appliesTo'" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/threshold/{thr}" ] ;
+  rr:predicateObjectMap [ rr:predicate cp:appliesTo ;
+     rr:objectMap [ rr:template "https://care-protocol.example/part/{part_code}" ] ] .
+
 <#MonitoredByMap> a rr:TriplesMap ;
   rr:logicalTable [ rr:sqlQuery "SELECT subject AS measure_id, object AS part_code FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE predicate = 'monitoredBy'" ] ;
   rr:subjectMap [ rr:template "https://care-protocol.example/measure/{measure_id}" ] ;

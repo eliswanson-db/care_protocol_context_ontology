@@ -26,7 +26,8 @@ THRESH = {"eGFR_LT_30": "eGFR below 30 mL/min/1.73m²", "eGFR_LT_20": "eGFR belo
           "a1c_poor_gt_9": "poor control: A1c above 9%"}
 VERB = {"recommendedFor": "are recommended for", "firstLineFor": "is first-line for",
         "contraindicatedWith": "are contraindicated with", "contraindicatedWhen": "are contraindicated when",
-        "monitoredBy": "is monitored by", "definedBy": "is defined by", "hasThreshold": "has the threshold"}
+        "monitoredBy": "is monitored by", "definedBy": "is defined by", "hasThreshold": "has the threshold",
+        "appliesTo": "is measured on"}
 
 
 def name(code: str, vs: dict[str, str]) -> str:
@@ -46,7 +47,8 @@ def build() -> str:
     groups = [("Drug-class recommendations", ("recommendedFor", "firstLineFor")),
               ("Contraindications", ("contraindicatedWith", "contraindicatedWhen")),
               ("What each measure is monitored by", ("monitoredBy",)),
-              ("Thresholds and definitions", ("hasThreshold", "definedBy"))]
+              ("Thresholds and definitions", ("hasThreshold", "definedBy")),
+              ("Which lab each threshold is measured on", ("appliesTo",))]
     body = [
         "---",
         "name: Care-protocol rules (drug classes, contraindications, thresholds)",
@@ -75,7 +77,9 @@ def build() -> str:
             if e["subject"] in ("GSD", "KED", "BPD", "ALBUMINURIA", "DRUGCLASS-BIGUANIDE") and verb.startswith("are "):
                 verb = verb.replace("are ", "is ", 1)
             line = f"{s} {verb} {o}"
-            body.append(f"- {line[0].upper() + line[1:]}. *(protocol section {e['source']})*")
+            if line[1:2].islower():  # capitalize "good control", not "eGFR" / "uACR"
+                line = line[0].upper() + line[1:]
+            body.append(f"- {line}. *(protocol section {e['source']})*")
         body.append("")
     body.append("For the A1c recheck rule (Protocol Step 3) see the Page *Protocol Step 3 — A1c recheck within 90 days*.")
     return "\n".join(body) + "\n"

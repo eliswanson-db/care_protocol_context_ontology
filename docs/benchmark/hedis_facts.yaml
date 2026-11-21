@@ -217,9 +217,9 @@ facts:
     fact: "The eGFR thresholds (eGFR_LT_30, eGFR_LT_20) apply to the eGFR test."
     questions: [q9]
     metric_view: {none: "clinical rule, not a measure"}
-    closure: {none: "implicit in the threshold id only (protocol_edges object 'eGFR_LT_30', value 30)"}
+    closure: {table: protocol_edges, where: "subject = 'eGFR_LT_30' AND predicate = 'appliesTo' AND object = 'LP-EGFR'"}
     rag: {file: docs/care_protocol/html/diabetes_care_protocol.html, has: ["eGFR &lt; 30", "mL/min/1.73m"]}
-    genie_ontology: {file: docs/ontology/pages/care-protocol-rules.md, has: ["eGFR below 30"]}
+    genie_ontology: {file: docs/ontology/pages/care-protocol-rules.md, has: ["eGFR below 30 mL/min/1.73m² is measured on eGFR"]}
     graph: {gap: "Threshold/eGFR_LT_30 has no edge to part/LP-EGFR, so a traversal can't compare it with a patient's eGFR; map Threshold -> LoincPart"}
 
   - id: F24

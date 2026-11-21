@@ -21,3 +21,10 @@ BPD,hasThreshold,systolic_lt_140,140,CP sec2
 BPD,hasThreshold,diastolic_lt_90,90,CP sec2
 GSD,hasThreshold,a1c_good_lt_8,8,CP sec2
 GSD,hasThreshold,a1c_poor_gt_9,9,CP sec3
+a1c_good_lt_8,appliesTo,LP-HBA1C,,CP sec2
+a1c_poor_gt_9,appliesTo,LP-HBA1C,,CP sec3
+eGFR_LT_30,appliesTo,LP-EGFR,,CP-GLY-2
+eGFR_LT_20,appliesTo,LP-EGFR,,CP sec4
+uACR_GTE_30,appliesTo,LP-UACR,,CP sec4
+systolic_lt_140,appliesTo,LP-SBP,,CP sec2
+diastolic_lt_90,appliesTo,LP-DBP,,CP sec2

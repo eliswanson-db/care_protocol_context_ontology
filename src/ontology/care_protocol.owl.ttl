@@ -84,6 +84,7 @@ cp:monitoredBy        a owl:ObjectProperty ; rdfs:domain cp:Measure ;   rdfs:ran
 cp:contains           a owl:ObjectProperty ; rdfs:domain cp:ValueSet .                              # range: Condition / LabTest / Medication (coded members)
 cp:definedBy          a owl:ObjectProperty ; rdfs:domain cp:ValueSet ;  rdfs:range cp:Threshold .   # e.g. ALBUMINURIA definedBy uACR>=30
 cp:hasThreshold       a owl:ObjectProperty ; rdfs:domain cp:Measure ;   rdfs:range cp:Threshold .   # e.g. GSD a1c<8 good / >9 poor; BPD <140/90
+cp:appliesTo          a owl:ObjectProperty ; rdfs:domain cp:Threshold ; rdfs:range cp:LoincPart .  # e.g. eGFR_LT_30 appliesTo LP-EGFR (compare with that lab)
 
 # `inDrugClass` is transitive-friendly: Medication -hasIngredient-> Ingredient -inDrugClass-> DrugClass.
 # This 2-hop typed path is what the SQL rxnorm_closure flattens; the graph keeps it explicit + reasonable.
