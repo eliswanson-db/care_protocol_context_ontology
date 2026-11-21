@@ -15,6 +15,37 @@ documents the intended sources but uses different IRIs (`patient/`, `drugclass/`
 **Before republishing:** the DMVM app is pinned to v3 (`CARE_ONTOBRICKS_TABLE` in `src/app/app.yaml`); without the
 pin it would follow the new version within 5 minutes.
 
+## 2026-11-21 republish: what the benchmark needs (Eli, in the `clinicaldomain` project)
+
+The data was reflowed on 2026-11-21 (year-aware value sets, the lab's CKD-EPI 2021 eGFR switch, Step 3 > 9%), so v3
+is stale. `tests/test_hedis_facts.py` lists the graph gaps. In the project's own terms (entity id columns as the
+existing mappings use them), in priority order:
+
+**Needed for the graph's benchmark questions (q9 contraindications, q2/q10 statins):**
+1. **inDrugClass for every class** (fact F22). Replace source `src_30` with
+   `SELECT code AS ing_code, parent_code AS drug_class FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE relationship = 'class_member'`.
+2. **hasIngredient only for ingredients.** Add `WHERE relationship = 'ingredient_of'` to source `src_25`.
+3. **appliesTo: Threshold → LoincPart** (F23, new). Add object property `appliesTo` (domain Threshold, range
+   LoincPart) and a relationship with source
+   `SELECT subject AS thr, object AS part_code FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE predicate = 'appliesTo'`
+   (7 edges, e.g. `Threshold/eGFR_LT_30 appliesTo part/LP-EGFR`).
+4. **Republish** (F25). Picks up the reflowed observations (eGFR results since 2022-07-01 are `loinc/98979-8`).
+
+**Recommended (q8):**
+5. **containsTest: ValueSet → LabTest** for the measure lab value sets, current measurement year (F15). Add object
+   property `containsTest` (domain ValueSet, range LabTest) with source
+   `SELECT v.segment_id AS vs_id, v.code AS loinc_code FROM eli_test_classic_catalog.care_protocol_terminology.value_set_segment v WHERE v.code_system = 'LOINC' AND v.measurement_year = (SELECT max(measurement_year) FROM eli_test_classic_catalog.care_protocol_terminology.value_set_segment w WHERE w.segment_id = v.segment_id AND w.measurement_year <= '2026')`
+   (e.g. `ValueSet/KED_EGFR containsTest loinc/98979-8`, and no MDRD).
+
+**Optional (parity only; their questions are other approaches' showcases):**
+6. **Clinic** (F07, q1). Entity `Clinic` from `SELECT DISTINCT clinic_id FROM eli_test_classic_catalog.care_protocol.panel_roster`;
+   relationship `attributedTo` (Patient → Clinic) from `SELECT patient_id, clinic_id FROM eli_test_classic_catalog.care_protocol.panel_roster`.
+7. **Labels on edge nodes** (Path B fix 3 below).
+
+Then send Claude the new table name. Claude runs `check_graph_version.py --graph <table>_graph --save-baseline`,
+`CARE_LIVE=1 tests/test_hedis_facts.py` (after moving the graph pointers from gap to pointer), moves the app pin,
+and redeploys.
+
 ## Path A — republish as-is (verified safe)
 Diff of the live view vs published v3 (observations excluded): +1 `icd/E11.22 subClassOf icd/N18` (the multi-parent
 edge), and `Measure/BPD monitoredBy` `part/BP` -> `part/LP-SBP` + `part/LP-DBP` (the Nov 4 protocol_edges fix,
