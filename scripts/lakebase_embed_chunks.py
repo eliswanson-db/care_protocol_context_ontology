@@ -28,6 +28,7 @@ from databricks.sdk import WorkspaceClient
 EMBED_ENDPOINT = "databricks-gte-large-en"
 EP_DEFAULT = "projects/care-protocol/branches/production/endpoints/primary"
 ANN_INDEX = "rag.chunks_embedding_ann"
+BM25_INDEX = "rag.chunks_body_bm25"  # corpus stats are fixed at build time, so rebuild after a reload
 
 
 def embed(w, text):
@@ -43,7 +44,7 @@ def main():
     ap.add_argument("--user", required=True)
     ap.add_argument("--dbname", default="databricks_postgres")
     ap.add_argument("--all", action="store_true", help="re-embed every chunk (default: only NULL embeddings)")
-    ap.add_argument("--reindex", action="store_true", help="REINDEX the ANN index after backfill")
+    ap.add_argument("--reindex", action="store_true", help="REINDEX the ANN and BM25 indexes after backfill")
     ap.add_argument("--dry_run", action="store_true", help="embed + report, write NOTHING")
     args = ap.parse_args()
 
@@ -77,7 +78,8 @@ def main():
     if args.reindex and rows:
         conn.autocommit = True  # REINDEX CONCURRENTLY cannot run inside a transaction block
         with conn.cursor() as cur:
-            cur.execute(f"REINDEX INDEX CONCURRENTLY {ANN_INDEX}")
+            for ix in (ANN_INDEX, BM25_INDEX):
+                cur.execute(f"REINDEX INDEX CONCURRENTLY {ix}")
         conn.autocommit = False
 
     with conn.cursor() as cur:

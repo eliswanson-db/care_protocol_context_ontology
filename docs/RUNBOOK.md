@@ -206,8 +206,7 @@ confirm-writes). All steps re-run on a fresh workspace.
   reads `rag.chunks.content`, embeds via the governed endpoint, writes `embedding` back (idempotent: only NULLs
   unless `--all`), then `REINDEX CONCURRENTLY` the ANN index with `--reindex`. `--dry_run` embeds + reports, writes
   nothing. (Semantic/hybrid retrieval and `lakebase_ann.prefilter` need embeddings; lexical/BM25 works without.)
-  ⏳ Build the **BM25** index *after* load (corpus stats at build time); after a large reload,
-  `REINDEX INDEX CONCURRENTLY rag.chunks_body_bm25`.
+  ⏳ The **BM25** index takes corpus stats at build time, so `--reindex` rebuilds it too after every reload.
 - 🔒 **Verify authorization** (the `+perm` tracer, design doc §13). Needs the Postgres client:
   `pip install -e '.[lakebase]'` (psycopg). Host is the `primary` endpoint
   (`ep-...database.us-east-1.cloud.databricks.com` from `databricks postgres get-endpoint <EP>`):
