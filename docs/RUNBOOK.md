@@ -239,8 +239,8 @@ answers fast and grounded, and leaves a lineage record Genie One can reason over
   clinic's OWN prior baseline** (detects a *change*, not merely a low performer) and appends to
   **`${var.catalog}.care_protocol.protocol_watch_findings`**. Serious, not a toy threshold: right-censoring
   aware (a window is scored only once its 90-day follow-up is fully observed), small-N gated. On the current
-  data it fires **HIGH on CLINIC-08 (2025-09)** — the clinic with the mid-year PCP handoff (own prior 78% →
-  47%), which is **masked in the global/annual view**. Append-only — each run is an as-of snapshot (the watch
+  data (run 2026-11-21) it fires **HIGH on CLINIC-08 (3 months ending 2026-07)** — the clinic with the mid-year PCP
+  handoff (own prior 75% → 33%), which is **masked in the global/annual view**. Append-only — each run is an as-of snapshot (the watch
   log). Re-runnable. Schedule is **PAUSED** in `resources/jobs.yml` (weekly, Mon 07:00 PT); unpause to run unattended.
   - ⚠️ No external notification recipient is wired. If you want the job itself to email/Slack, that is an
     external write — tell me the destination and I'll add a SQL Alert or job notification (DAB), confirmed first.
