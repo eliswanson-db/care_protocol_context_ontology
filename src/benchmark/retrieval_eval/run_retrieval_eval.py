@@ -31,101 +31,15 @@ from server.graph_runner import TOOLS as GRAPH_TOOLS
 JUDGE = agent.JUDGE_MODEL
 EXPERIMENT = os.environ.get("CARE_EVAL_EXPERIMENT", "/Shared/care_protocol_retrieval_eval")
 
-# The scored set. Mirrors docs/benchmark/capability_matrix.csv; expected_facts are the hand-verified gold (25k).
-# Chosen to exercise every arm's lift AND its blind spot -- in particular the graph-native classes (8) where the
-# graph is the only arm that should reach, and the aggregate-COUNT classes (2/4/6) where a triple neighbourhood
-# legitimately should NOT (it carries membership + typed edges, but doesn't aggregate -- that's closure's job).
-QUESTIONS = [
-    {"qid": "kpi_gsd_rate", "cls": "1_simple_kpi", "wins": "metric_view",
-     "question": "What is the overall GSD compliance rate?",
-     "expected_facts": ["The overall GSD compliance rate for measurement year 2026 (year-to-date) is about 74.2 percent (0.7424)."]},
-    {"qid": "sub_kidney", "cls": "2_icd_subsumption", "wins": "closure_sql",
-     "question": "How many patients have diabetes WITH kidney complications?",
-     "expected_facts": ["1881 distinct patients have diabetes with a kidney complication."]},
-    {"qid": "med_on_statin", "cls": "4_rxnorm_subsumption", "wins": "closure_sql",
-     "question": "How many diabetic patients are on any statin?",
-     "expected_facts": ["1651 diabetic patients are on a statin (any member of the statin drug class)."]},
-    {"qid": "vintage_egfr_2026", "cls": "5_value_set_vintage", "wins": "metric_view",
-     "question": "Under the 2026 KED eGFR definition, how many patients have a qualifying eGFR test?",
-     "expected_facts": ["0 patients have a qualifying eGFR test under the 2026 KED definition (the MDRD code was dropped)."]},
-    {"qid": "proto_cardiorenal", "cls": "6_protocol_multihop", "wins": "closure_sql",
-     "question": ("Identify cardiorenal patients (diabetes + CKD + heart failure) and whether each is on "
-                  "statin + ACE/ARB + SGLT2."),
-     "expected_facts": ["There are 10 cardiorenal patients (diabetes AND chronic kidney disease AND heart failure).",
-                        "All 10 are on a statin, 8 of the 10 are on an ACE inhibitor or ARB, and none is on an SGLT2 "
-                        "inhibitor."]},
-    {"qid": "def_metformin_egfr", "cls": "7_definition_provenance", "wins": "rag",
-     "question": "Below what eGFR is metformin contraindicated, and where is that stated?",
-     "expected_facts": ["Metformin (a biguanide) is contraindicated when eGFR is below 30 (eGFR < 30)."]},
-    # Graph-native by construction: answering needs THIS patient's own records (diagnoses + prescriptions) joined to
-    # the protocol's typed rules (drug class -contraindicatedWith-> value set -contains-> ICD code, with ICD and
-    # RxNorm subsumption on both ends). The question names no drug class, condition or code. The rules also live
-    # relationally (protocol_edges, value_set_segment) -- the graph's difference is that patient facts, hierarchies
-    # and rules sit in ONE traversable structure. Gold: gold_queries.sql @id graph_contra_conflict.
-    {"qid": "graph_contra_conflict", "cls": "8_graph_native", "wins": "graph",
-     "question": ("Patient fa93c75f-1541-10c2-ea84-f947c8561ce5 is on a statin. Does any of their own recorded "
-                  "diagnoses contraindicate it under this care protocol? Name the drug, the diagnosis and the "
-                  "protocol rule."),
-     # Facts are stated in codes + the rule (what the question turns on), not display names: the published
-     # graph carries no labels for drugs / ICD codes / value sets, and every arm is held to the same facts.
-     "expected_facts": [
-         "Yes: the patient is prescribed RxNorm 314231, which belongs to the statin drug class.",
-         "The patient has diagnosis ICD-10 Z34.90, which falls under Z34, a code in the CONTRA_PREGNANCY value set.",
-         "The care-protocol rule is that the statin drug class is contraindicated with CONTRA_PREGNANCY."]},
-    # --- Built so the closure / edge tables should NOT suffice (they hold no patient data and no measure business
-    # logic) while the graph (patient layer) or Genie Ontology (definitions in snippets + Pages) holds the answer.
-    # Every gold was verified against current data; the graph's patient layer agrees with gold on all five measures.
-    {"qid": "graph_patient_gaps", "cls": "8_graph_native", "wins": "graph",
-     "question": ("Patient 00f63646-fc2f-16a9-53e5-951816dfefe3: which diabetes quality measures are they eligible "
-                  "for, and on which of those do they have an open care gap?"),
-     "expected_facts": ["The patient is eligible for all five measures: GSD, KED, BPD, SPD and EED.",
-                        "The patient has open care gaps on KED and EED.",
-                        "The patient has no care gap on GSD, BPD and SPD."]},
-    {"qid": "graph_statin_contra_cohort", "cls": "8_graph_native", "wins": "graph",
-     "question": ("How many patients are prescribed a statin even though one of their own diagnoses is a statin "
-                  "contraindication under the care protocol?"),
-     "expected_facts": ["198 patients are prescribed a statin while having a diagnosis in a statin-contraindication "
-                        "value set (all via CONTRA_PREGNANCY)."]},
-    {"qid": "onto_ked_definition", "cls": "10_semantic_definition", "wins": "genie_ontology",
-     "question": "Who is eligible for the KED measure, and what does a patient need to count as compliant?",
-     "expected_facts": ["KED applies to diabetic patients aged 18 to 85.",
-                        "To be compliant a patient needs BOTH an eGFR test and a uACR test in the measurement year."]},
-    {"qid": "onto_poor_control_denominator", "cls": "10_semantic_definition", "wins": "genie_ontology",
-     "question": ("Is the GSD poor-control rate calculated over all eligible patients or only some of them, and what "
-                  "A1c level counts as poor control?"),
-     "expected_facts": ["The GSD poor-control rate is computed only among A1c-tested patients, not all eligible patients.",
-                        "Poor control means the latest A1c in the measurement year is above 9.0%."]},
-    {"qid": "onto_age_and_window", "cls": "10_semantic_definition", "wins": "genie_ontology",
-     "question": ("For these diabetes quality measures, at what point in time is a patient's age evaluated for "
-                  "eligibility, and in what window must the required care happen?"),
-     "expected_facts": ["Age is evaluated at the end of the measurement year (period end, December 31).",
-                        "The required care must happen within the measurement year (January 1 to December 31)."]},
-    # Structure that breaks a closure: E11.22 has two parents (E11.2 and N18). The closure keeps one row per ancestor
-    # at the shortest distance and no routes; a traversal returns every route. Gold: @id graph_multiparent_routes.
-    {"qid": "graph_multiparent_routes", "cls": "8_graph_native", "wins": "graph",
-     "question": "Which top-level conditions does ICD-10 code E11.22 roll up to, and through which parent codes?",
-     # The question asks THROUGH WHICH parents, so each fact is a route. A list of ancestors with distances (E11.2 1,
-     # N18 1, E11 2) does not show a route: it can't tell whether E11 is reached through E11.2 or through N18.
-     "expected_facts": [
-         "The route E11.22 -> E11.2 -> E11 is shown: E11.22 reaches type 2 diabetes mellitus (E11) through E11.2. "
-         "A list of ancestors with distances alone does not show this route.",
-         "The route E11.22 -> N18 is shown: E11.22 reaches chronic kidney disease (N18) directly, as a second parent "
-         "with no code in between."]},
-    {"qid": "op_worst_clinic_annual", "cls": "9_operational_temporal", "wins": "metric_view",
-     "question": "Which clinic has the lowest protocol Step-3 (A1c follow-up) adherence overall this year?",
-     "expected_facts": ["CLINIC-04 has the lowest Step-3 adherence year-to-date (about 44.3%)."]},
-    {"qid": "op_clinic_drift", "cls": "9_operational_temporal", "wins": "metric_view",
-     "question": ("Which clinic's protocol Step-3 adherence has recently DROPPED, and by how much versus its "
-                  "own history?"),
-     "expected_facts": ["CLINIC-08 dropped the most: about 32% over the trailing three months versus its own "
-                        "baseline of about 60%."]},
-    {"qid": "op_drift_rootcause", "cls": "9_operational_temporal", "wins": "closure_sql",
-     "question": "Why did CLINIC-08's protocol Step-3 adherence slip this year?",
-     "expected_facts": ["CLINIC-08's Step-3 adherence slipped after a primary-care (PCP) handoff on 2026-05-15; "
-                        "the follow-up order set was not carried over."]},
-]
+# The scored set: the locked HEDIS benchmark v2 (docs/benchmark/questions_v2.yaml). Real analyst questions, fixed
+# dates, hand-verified expected facts; nothing is designed to win (each question's predictions are checked, not
+# assumed). The previous set is in git history.
+QUESTIONS = [{"qid": q["id"], "cls": "v2", "question": q["question"], "expected_facts": q["expected_facts"]}
+             for q in providers.QMETA.values()]
 
-ARMS = ["closed_book", "metric_view", "closure_sql", "rag", "genie_ontology", "genie_ontology_dmvm", "ontobricks"]
+# The five approaches. closed_book (no retrieval, the floor) is available with --arms; the ECT/DMVM split is retired.
+ARMS = ["metric_view", "closure_sql", "rag", "genie_ontology", "ontobricks"]
+ALL_ARMS = ["closed_book", *ARMS]
 
 
 def _yes(feedback) -> bool:
@@ -224,8 +138,8 @@ def main():
     import argparse
     global ARMS
     ap = argparse.ArgumentParser()
-    ap.add_argument("--arms", default=",".join(ARMS), help="comma-separated subset of " + ",".join(ARMS))
-    ap.add_argument("--out", default="retrieval_eval.json", help="file name under docs/benchmark/")
+    ap.add_argument("--arms", default=",".join(ARMS), help="comma-separated subset of " + ",".join(ALL_ARMS))
+    ap.add_argument("--out", default="benchmark_v2.json", help="file name under docs/benchmark/")
     ap.add_argument("--merge", action="store_true", help="replace only the (arm, question) rows run now in --out")
     ap.add_argument("--qids", default="", help="comma-separated question ids (default: the demo set in the CSV)")
     ap.add_argument("--workers", type=int, default=6)
@@ -270,12 +184,7 @@ def main():
               f"{' HARNESS-ERROR' if r.get('harness_error') else ''} ({r['latency_s']}s)", flush=True)
         return r
 
-    # Default question set = the demo set in docs/benchmark/capability_matrix.csv (the rest are archived in
-    # capability_matrix_full.csv and still runnable with --qids).
-    import csv
-    demo = [x["question_id"] for x in csv.DictReader(open(os.path.join(
-        os.path.dirname(__file__), "..", "..", "..", "docs", "benchmark", "capability_matrix.csv")))]
-    wanted = args.qids.split(",") if args.qids else demo
+    wanted = args.qids.split(",") if args.qids else [q["qid"] for q in QUESTIONS]
     cells = [(q, arm) for _ in range(args.repeats) for q in QUESTIONS for arm in ARMS if q["qid"] in wanted]
     with ThreadPoolExecutor(max_workers=args.workers) as ex:
         runs = list(ex.map(one, cells))

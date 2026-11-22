@@ -121,35 +121,42 @@ class A4RagRetriever(A4Retriever):
             return self._rows(cur)
 
     def search_documents(self, question: str, k: int = 5, mode: str = "hybrid",
-                         as_user: str | None = None) -> list[dict]:
-        """Retrieve authorized care-protocol passages. mode = lexical | semantic | hybrid."""
+                         as_user: str | None = None, patient_id: str | None = None) -> list[dict]:
+        """Retrieve authorized care-protocol passages. mode = lexical | semantic | hybrid. `patient_id` restricts
+        the search to that patient's records (rag.documents.patient_id): the standard clinical-RAG pre-filter when
+        a question is about one patient. RLS still applies on top."""
         if mode == "lexical":
-            return self.search_doc_lexical(question, k, as_user)
+            return self.search_doc_lexical(question, k, as_user, patient_id)
         if mode == "semantic":
-            return self.search_doc_semantic(question, k, as_user)
-        return self.search_doc_hybrid(question, k, as_user=as_user)
+            return self.search_doc_semantic(question, k, as_user, patient_id)
+        return self.search_doc_hybrid(question, k, as_user=as_user, patient_id=patient_id)
 
-    def search_doc_lexical(self, question: str, k: int = 5, as_user: str | None = None) -> list[dict]:
+    def search_doc_lexical(self, question: str, k: int = 5, as_user: str | None = None,
+                           patient_id: str | None = None) -> list[dict]:
+        pf, pp = ("AND d.patient_id = %s ", (patient_id,)) if patient_id else ("", ())
         if self.search_ext:  # Lakebase Search BM25
             sql = (f"SELECT {_CITE}, (c.body_tsv <@> to_bm25query(to_tsvector('english', %s), "
                    "'rag.chunks_body_bm25')) AS score FROM rag.chunks c JOIN rag.documents d "
-                   "USING (document_id) ORDER BY score LIMIT %s")
-            return self._run(sql, (question, k), as_user)
+                   f"USING (document_id) WHERE true {pf}ORDER BY score LIMIT %s")
+            return self._run(sql, (question, *pp, k), as_user)
         tsq = _tsquery(question)  # fallback: Postgres full-text
         sql = (f"SELECT {_CITE}, round(ts_rank(c.body_tsv, to_tsquery('english', %s))::numeric,4) AS score "
                "FROM rag.chunks c JOIN rag.documents d USING (document_id) "
-               "WHERE c.body_tsv @@ to_tsquery('english', %s) ORDER BY score DESC LIMIT %s")
-        return self._run(sql, (tsq, tsq, k), as_user)
+               f"WHERE c.body_tsv @@ to_tsquery('english', %s) {pf}ORDER BY score DESC LIMIT %s")
+        return self._run(sql, (tsq, tsq, *pp, k), as_user)
 
-    def search_doc_semantic(self, question: str, k: int = 5, as_user: str | None = None) -> list[dict]:
+    def search_doc_semantic(self, question: str, k: int = 5, as_user: str | None = None,
+                            patient_id: str | None = None) -> list[dict]:
+        pf, pp = ("AND d.patient_id = %s ", (patient_id,)) if patient_id else ("", ())
         qvec = self._embed(question)
         sql = (f"SELECT {_CITE}, round((1 - (c.embedding <=> %s::vector))::numeric,4) AS score "
                "FROM rag.chunks c JOIN rag.documents d USING (document_id) "
-               "WHERE c.embedding IS NOT NULL ORDER BY c.embedding <=> %s::vector LIMIT %s")
-        return self._run(sql, (qvec, qvec, k), as_user, prefilter=True)
+               f"WHERE c.embedding IS NOT NULL {pf}ORDER BY c.embedding <=> %s::vector LIMIT %s")
+        return self._run(sql, (qvec, *pp, qvec, k), as_user, prefilter=True)
 
     def search_doc_hybrid(self, question: str, k: int = 5, rrf_k: int = 60,
-                         as_user: str | None = None) -> list[dict]:
+                          as_user: str | None = None, patient_id: str | None = None) -> list[dict]:
+        pf, pp = ("WHERE d.patient_id = %s ", (patient_id,)) if patient_id else ("", ())
         tsq, qvec = _tsquery(question), self._embed(question)
         sql = (
             "WITH lex AS (SELECT chunk_id, row_number() OVER (ORDER BY ts_rank(body_tsv, "
@@ -160,5 +167,5 @@ class A4RagRetriever(A4Retriever):
             f"SELECT {_CITE}, round((coalesce(1.0/(%s+lex.rk),0)+coalesce(1.0/(%s+sem.rk),0))::numeric,5) AS score "
             "FROM rag.chunks c JOIN rag.documents d USING (document_id) "
             "LEFT JOIN lex USING (chunk_id) LEFT JOIN sem USING (chunk_id) "
-            "ORDER BY score DESC LIMIT %s")
-        return self._run(sql, (tsq, tsq, qvec, rrf_k, rrf_k, k), as_user, prefilter=True)
+            f"{pf}ORDER BY score DESC LIMIT %s")
+        return self._run(sql, (tsq, tsq, qvec, rrf_k, rrf_k, *pp, k), as_user, prefilter=True)

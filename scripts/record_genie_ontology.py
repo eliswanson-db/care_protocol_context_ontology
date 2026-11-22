@@ -1,20 +1,22 @@
-"""Record Genie Ontology's OWN retrieval for the 10 benchmark questions, per workspace, as the calling user.
+"""Record Genie Ontology's OWN retrieval for the benchmark questions, per workspace, as the calling user.
 
 Runs Genie One (responses API) and keeps ONLY its ontology retrieval: the knowledge-snippet search results
 (inferred snippets + Pages) and the Page bodies it read. Genie One's answer, SQL and other tools are discarded.
 Retrieval is identity-scoped, so each recording notes who ran it.
 
-  .venv/bin/python scripts/record_genie_ontology.py [--profiles ECT,DMVM]
--> docs/benchmark/genie_ontology_retrieval.json (+ the app's bundled copy)
+  .venv/bin/python scripts/record_genie_ontology.py [--profiles ECT]
+-> docs/benchmark/genie_ontology_retrieval_v2.json (+ the app's bundled copy), for docs/benchmark/questions_v2.yaml.
+The same run keeps Genie One's own answer per question (never fed to a retrieval arm) for its separate column.
 """
 import argparse
-import csv
 import datetime
 import json
 import os
 import shutil
 import sys
 from concurrent.futures import ThreadPoolExecutor
+
+import yaml
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src", "app"))
 from databricks.sdk import WorkspaceClient  # noqa: E402
@@ -43,13 +45,18 @@ def events(w, question):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--profiles", default="ECT,DMVM")
+    ap.add_argument("--profiles", default="ECT")
+    ap.add_argument("--questions", default="docs/benchmark/questions_v2.yaml")
+    ap.add_argument("--out", default="docs/benchmark/genie_ontology_retrieval_v2.json")
+    ap.add_argument("--qids", default="", help="comma-separated subset (default: all); merged into --out")
     ap.add_argument("--retry-missing", action="store_true",
                     help="re-run only questions where Genie One did not call its knowledge search (up to 3 attempts)")
     args = ap.parse_args()
-    dst = os.path.join(ROOT, "docs/benchmark/genie_ontology_retrieval.json")
-    prev = json.load(open(dst)) if args.retry_missing and os.path.isfile(dst) else None
-    qs = [(r["question_id"], r["question"]) for r in csv.DictReader(open(os.path.join(ROOT, "docs/benchmark/capability_matrix.csv")))]
+    dst = os.path.join(ROOT, args.out)
+    prev = json.load(open(dst)) if (args.retry_missing or args.qids) and os.path.isfile(dst) else None
+    qs = [(q["id"], q["question"]) for q in yaml.safe_load(open(os.path.join(ROOT, args.questions)))["questions"]]
+    if args.qids:
+        qs = [x for x in qs if x[0] in args.qids.split(",")]
     result = {"recorded_at": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"), "workspaces": {}}
     for prof in args.profiles.split(","):
         w = WorkspaceClient(profile=prof)
@@ -82,13 +89,15 @@ def main():
             return qid, rec
         with ThreadPoolExecutor(max_workers=4) as ex:
             by_q = dict(ex.map(one, qs))
+        if prev and args.qids:  # a subset run: keep the other questions' recordings
+            by_q = {**old, **by_q}
         result["workspaces"][prof.lower()] = {"host": host, "identity": who, "questions": by_q}
         for qid, r in by_q.items():
             print(f"{prof:<5} {qid:<24} " + ("SKIPPED SEARCH x3 " if r.get("skipped_search") else "") + (r.get("error") or
                   f"snippets={len(r['snippets'])} (on-topic {sum(x['on_topic'] for x in r['snippets'])}) "
                   f"pages={len(r['pages'])} read={len(r['pages_read'])}"))
     json.dump(result, open(dst, "w"), indent=1)
-    shutil.copy(dst, os.path.join(ROOT, "src/app/server/benchmark_data/genie_ontology_retrieval.json"))
+    shutil.copy(dst, os.path.join(ROOT, "src/app/server/benchmark_data", os.path.basename(dst)))
     print(f"-> {dst}")
 
 

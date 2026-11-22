@@ -31,6 +31,16 @@ SCHEMA_TERM = os.environ.get("CARE_SCHEMA_TERM", "care_protocol_terminology")
 _GOLD_SQL = os.path.join(os.path.dirname(__file__), "..", "gold_queries.sql")
 
 
+# Per-question metadata from the locked set: the patient a question names and the identity it runs as.
+def _qmeta() -> dict:
+    import yaml
+    path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "docs", "benchmark", "questions_v2.yaml")
+    return {q["id"]: q for q in yaml.safe_load(open(os.path.normpath(path)))["questions"]}
+
+
+QMETA = _qmeta()
+
+
 def _doc(content: str, **meta) -> dict:
     """An MLflow retriever document: page_content is what the judges read; metadata is provenance."""
     return {"page_content": content, "metadata": meta}
@@ -127,8 +137,9 @@ def _get_rag():
                             "projects/care-protocol/branches/production/endpoints/primary")
         host = w.postgres.get_endpoint(ep).status.hosts.host
         user = os.environ.get("CARE_LAKEBASE_USER") or w.current_user.me().user_name
-        # Postgres full-text fallback (search_ext=False) is the robust path when Lakebase Search isn't enabled.
-        _rag_retriever = A4RagRetriever(endpoint=ep, host=host, user=user, profile=profile, search_ext=False)
+        # The app's own RAG retrieval: Lakebase Search on (CARE_LAKEBASE_SEARCH_EXT=0 for the full-text fallback).
+        ext = os.environ.get("CARE_LAKEBASE_SEARCH_EXT", "1") != "0"
+        _rag_retriever = A4RagRetriever(endpoint=ep, host=host, user=user, profile=profile, search_ext=ext)
     except Exception as e:  # noqa: BLE001 -- RAG is best-effort locally; surface, don't crash the run
         _rag_error = f"{type(e).__name__}: {str(e)[:160]}"
     return _rag_retriever
@@ -139,9 +150,12 @@ def rag(question: str, qid: str) -> list[dict]:
     r = _get_rag()
     if r is None:
         return [_doc(f"[RAG retrieval unavailable in this environment: {_rag_error}]", source="rag_error")]
-    as_user = os.environ.get("CARE_RAG_AS_USER") or None
+    meta = QMETA.get(qid, {})
+    # A question about one patient searches that patient's records (the standard clinical-RAG pre-filter) as the
+    # question's identity (e.g. a care-team role for care-team-only letters); RLS applies either way.
+    as_user = meta.get("run_as") or os.environ.get("CARE_RAG_AS_USER") or None
     try:
-        hits = r.search_documents(question, k=5, mode="lexical", as_user=as_user)
+        hits = r.search_documents(question, k=5, mode="hybrid", as_user=as_user, patient_id=meta.get("patient"))
     except Exception as e:  # noqa: BLE001
         return [_doc(f"[RAG query failed: {type(e).__name__}: {str(e)[:160]}]", source="rag_error")]
     docs = []
@@ -194,7 +208,7 @@ def ontobricks(question: str, qid: str) -> list[dict]:
 
 
 _GO_REC = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "docs", "benchmark",
-                                       "genie_ontology_retrieval.json"))
+                                       "genie_ontology_retrieval_v2.json"))
 
 
 def _go_rec(workspace: str, qid: str) -> dict | None:
