@@ -110,6 +110,47 @@ None has to win. Each one's value and limits should be visible.
 - **Genie One** gets the same questions through the scripted trace path, hand-verified. If it misses one, we show
   that.
 
+### 4a. Step 4 plan: lock the HEDIS questions (drafted 2026-11-22)
+
+Each question gets: final wording, answer type, a gold query in `src/benchmark/gold_queries.sql` (the answer key,
+`verify_gold.py` gate), an entry in `docs/benchmark/ground_truth.yaml`, its facts (`hedis_facts.yaml`), and a
+one-line honest expectation per approach. Nothing is locked until the gold query runs on ECT and the answer is
+checked by hand.
+
+| # | Question (proposed wording) | Answer type | Gold | Live check (2026-11-22) |
+|---|---|---|---|---|
+| 1 | What is the GSD poor-control rate (latest A1c > 9%) by clinic, MY2026 year to date? | 8 (clinic, rate) pairs | new (metric view) | values exist (e.g. CLINIC-03 11.3%) |
+| 2 | Of GSD-eligible diabetics aged 65–75, how many have a latest A1c > 9% and no statin dispensed in MY2026? | count + share | new | 73 of 821 (93 with A1c > 9) |
+| 3 | How many patients have diabetes with a kidney complication? | count | `sub_kidney` | 1,881 |
+| 4 | Which top-level conditions does E11.22 roll up to, and through which parents? | set of routes | `graph_multiparent_routes` | E11.22 > E11.2 > E11, E11.22 > N18 |
+| 5 | What A1c target does the protocol recommend for an older adult with moderate comorbidity? | stated fact | doc (corpus) | 7.0–8.0% (5–10 yr life expectancy) |
+| 6 | After a poorly controlled A1c, when must it be rechecked? | stated fact | doc + metric view | above 9.0% → recheck within 90 days (3 months) |
+| 7 | What does "KED compliant" mean, and which governed view reports it? | stated facts | Page + metric view | eGFR AND uACR in MY, 18–85; `ked_compliance_metrics` |
+| 8 | Which measures use eGFR, which codes count in MY2026, and where is that defined? | stated facts | value_set_segment | KED; 98979-8 only; `value_set_segment` KED_EGFR |
+| 9 | Which patients are on a drug the protocol contraindicates for their own current labs or conditions? | patient set + reasons | new (replaces `graph_statin_contra_cohort`) | see decision 1 |
+| 10 | Why is patient X in the SPD statin gap? (the path) | path | new (per patient) | hero picked by rule |
+
+**Decisions needed**
+
+1. **"Current" for q9 (and the existing statin-contraindication gold, 198).** Bronze diagnoses keep only an onset
+   date (epicize drops Synthea's condition `STOP`), so "pregnant" today includes pregnancies years ago: 403
+   ACE-inhibitor patients any time vs 65 with onset in the last 40 weeks. Recommendation: carry `STOP` into
+   `bronze_pat_enc_dx` / `silver_condition` and define a contraindication as active (onset ≤ as-of and no stop, or stop ≥
+   as-of) while the drug is active; labs as the latest result in MY2026. That moves `graph_statin_contra_cohort` and
+   `proto_statin_gap_safe`; both get re-verified.
+2. **q2 statin definition.** "Dispensed in MY2026" (the SPD rule, used above) or "an active order". Recommend the SPD
+   rule, so q2 composes with an existing governed definition.
+3. **Scoring by answer type.** Numbers and sets exact; stated facts = every required fact present (the existing
+   tier-1 judge), then hand-verified; routes/paths exact. 3 runs per cell (the harness default is actually 1; set 3).
+4. **Retire from the benchmark (keep in the file):** the trick questions (`vintage_*` as worded, the undefined-class
+   refusal, `infer_defined_class`).
+
+**Dependencies (known, not blockers for locking)**
+- The graph can't answer q2, q9 or q10 fully until the republish (items 1, 3, 3b, 4). Until then its cell shows not
+  answered, with the reason, rather than being dropped.
+- The Genie Ontology provider replays recorded Genie One retrievals, so the new questions need one scripted
+  recording run (`scripts/record_genie_ontology.py`).
+
 ## 5. What changes (HEDIS: small; nothing deleted)
 
 - **App:** lead with **Trace** and **Benchmark**. The other tabs (drift lab, ontology explorer) stay, behind them.
