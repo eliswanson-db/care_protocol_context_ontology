@@ -33,14 +33,25 @@ def silver_condition():
                     "description"))
 
 
-@dp.materialized_view(comment="Conformed lab observations (LOINC) with numeric value.")
+@dp.materialized_view(comment="Conformed lab observations (LOINC) with numeric value: one row per patient, LOINC "
+                                "code and result time (source_rows > 1 = conflicting duplicates resolved to the lower value).")
 def silver_observation():
     # Effective observation layer (ADR-0012): pristine bronze + care-behavior model overlay (modeled A1c
     # rechecks, raised latest A1c for the poor-control subset). Drives GSD / KED / BPD / protocol.
-    return (spark.read.table(f"{BRONZE}.care_order_results")  # noqa: F821
-            .where(F.col("loinc_code").isNotNull())
-            .withColumn("value_num", F.col("value").cast("double"))
-            .select("patient_id", "encounter_id", "result_ts", "loinc_code", "description", "value_num", "units"))
+    # Conformance (2026-11-22): the source sometimes sends two results for the same patient, code and moment with
+    # different values (e.g. eGFR 22.2 and 10.8); a lab reports one final result per specimen. Keep the LOWER value
+    # (conservative for safety rules: a lower eGFR is worse kidney function), deterministically, and record how many
+    # source rows were collapsed.
+    obs = (spark.read.table(f"{BRONZE}.care_order_results")  # noqa: F821
+           .where(F.col("loinc_code").isNotNull())
+           .withColumn("value_num", F.col("value").cast("double")))
+    key = Window.partitionBy("patient_id", "loinc_code", "result_ts")
+    return (obs.withColumn("source_rows", F.count(F.lit(1)).over(key))
+            .withColumn("rn", F.row_number().over(key.orderBy(F.col("value_num").asc_nulls_last(),
+                                                             F.col("encounter_id").asc_nulls_last())))
+            .where(F.col("rn") == 1)
+            .select("patient_id", "encounter_id", "result_ts", "loinc_code", "description", "value_num", "units",
+                    "source_rows"))
 
 
 @dp.materialized_view(comment="Conformed procedures (SNOMED) from bronze. Feeds the EED eye-exam measure.")

@@ -313,7 +313,7 @@ SELECT concat_ws('|',
   'value_set_segment.KED_EGFR') AS answer;
 
 -- @id: bq6_contra_active_patients
--- class: bench_v2  min_approach: graph  expect: 87
+-- class: bench_v2  min_approach: graph  expect: 65
 -- holdout: benchmark question 6
 -- On 2026-10-30: patients with an order active that day (care_order_med: the effective medication layer the
 -- measures read; diabetes drugs are 30-day fills there) for a drug class the protocol contraindicates either for a
@@ -330,20 +330,21 @@ by_condition AS (
   JOIN {catalog}.{tschema}.value_set_segment v ON v.segment_id = e.object
   JOIN {catalog}.{schema}.silver_condition dx ON dx.patient_id = rx.patient_id AND dx.icd10_code LIKE concat(v.code, '%')
   WHERE dx.onset_date <= DATE'2026-10-30' AND (dx.stop_date IS NULL OR dx.stop_date > DATE'2026-10-30')),
-last_lab AS (
-  SELECT patient_id, loinc_code, max_by(value_num, result_ts) AS value FROM {catalog}.{schema}.silver_observation
-  WHERE result_ts <= TIMESTAMP'2026-10-30 23:59:59' GROUP BY patient_id, loinc_code),
+last_lab AS (  -- the patient's last result on or before D for each lab COMPONENT, whichever LOINC code reported it
+  SELECT o.patient_id, lp.part, max_by(o.value_num, o.result_ts) AS value
+  FROM {catalog}.{schema}.silver_observation o
+  JOIN {catalog}.{tschema}.loinc_parts lp ON lp.loinc_code = o.loinc_code AND lp.predicate = 'has_component'
+  WHERE o.result_ts <= TIMESTAMP'2026-10-30 23:59:59' GROUP BY o.patient_id, lp.part),
 by_lab AS (
   SELECT DISTINCT rx.patient_id, rx.drug_class, e.object AS reason FROM rx
   JOIN {catalog}.{tschema}.protocol_edges e ON e.subject = rx.drug_class AND e.predicate = 'contraindicatedWhen'
   JOIN {catalog}.{tschema}.protocol_edges a ON a.subject = e.object AND a.predicate = 'appliesTo'
-  JOIN {catalog}.{tschema}.loinc_parts lp ON lp.part = a.object AND lp.predicate = 'has_component'
-  JOIN last_lab l ON l.patient_id = rx.patient_id AND l.loinc_code = lp.loinc_code
+  JOIN last_lab l ON l.patient_id = rx.patient_id AND l.part = a.object
   WHERE l.value < CAST(e.value AS DOUBLE))
 SELECT COUNT(DISTINCT patient_id) AS patients FROM (SELECT * FROM by_condition UNION SELECT * FROM by_lab);
 
 -- @id: bq6_contra_active_reasons
--- class: bench_v2  min_approach: graph  expect: ACExCONTRA_PREGNANCY:11,BIGUANIDExeGFR_LT_30:68,STATINxCONTRA_PREGNANCY:9
+-- class: bench_v2  min_approach: graph  expect: ACExCONTRA_PREGNANCY:11,BIGUANIDExeGFR_LT_30:46,STATINxCONTRA_PREGNANCY:9
 -- holdout: benchmark question 6 (the reasons behind bq6_contra_active_patients)
 WITH rx AS (
   SELECT DISTINCT m.patient_id, c.ancestor_code AS drug_class
@@ -356,15 +357,16 @@ by_condition AS (
   JOIN {catalog}.{tschema}.value_set_segment v ON v.segment_id = e.object
   JOIN {catalog}.{schema}.silver_condition dx ON dx.patient_id = rx.patient_id AND dx.icd10_code LIKE concat(v.code, '%')
   WHERE dx.onset_date <= DATE'2026-10-30' AND (dx.stop_date IS NULL OR dx.stop_date > DATE'2026-10-30')),
-last_lab AS (
-  SELECT patient_id, loinc_code, max_by(value_num, result_ts) AS value FROM {catalog}.{schema}.silver_observation
-  WHERE result_ts <= TIMESTAMP'2026-10-30 23:59:59' GROUP BY patient_id, loinc_code),
+last_lab AS (  -- the patient's last result on or before D for each lab COMPONENT, whichever LOINC code reported it
+  SELECT o.patient_id, lp.part, max_by(o.value_num, o.result_ts) AS value
+  FROM {catalog}.{schema}.silver_observation o
+  JOIN {catalog}.{tschema}.loinc_parts lp ON lp.loinc_code = o.loinc_code AND lp.predicate = 'has_component'
+  WHERE o.result_ts <= TIMESTAMP'2026-10-30 23:59:59' GROUP BY o.patient_id, lp.part),
 by_lab AS (
   SELECT DISTINCT rx.patient_id, rx.drug_class, e.object AS reason FROM rx
   JOIN {catalog}.{tschema}.protocol_edges e ON e.subject = rx.drug_class AND e.predicate = 'contraindicatedWhen'
   JOIN {catalog}.{tschema}.protocol_edges a ON a.subject = e.object AND a.predicate = 'appliesTo'
-  JOIN {catalog}.{tschema}.loinc_parts lp ON lp.part = a.object AND lp.predicate = 'has_component'
-  JOIN last_lab l ON l.patient_id = rx.patient_id AND l.loinc_code = lp.loinc_code
+  JOIN last_lab l ON l.patient_id = rx.patient_id AND l.part = a.object
   WHERE l.value < CAST(e.value AS DOUBLE))
 SELECT array_join(array_sort(collect_list(concat(replace(drug_class, 'DRUGCLASS-', ''), 'x', reason, ':', n))), ',') AS by_reason
 FROM (SELECT drug_class, reason, COUNT(DISTINCT patient_id) AS n

@@ -155,6 +155,7 @@ COMMENT ON COLUMN {catalog}.care_protocol.silver_condition.description IS 'Human
 COMMENT ON COLUMN {catalog}.care_protocol.silver_observation.patient_id IS 'Patient the observation belongs to.';
 COMMENT ON COLUMN {catalog}.care_protocol.silver_observation.encounter_id IS 'Encounter in which the observation was taken.';
 COMMENT ON COLUMN {catalog}.care_protocol.silver_observation.result_ts IS 'Timestamp of the lab result.';
+COMMENT ON COLUMN {catalog}.care_protocol.silver_observation.source_rows IS 'Source rows collapsed into this result: 1 normally; more than 1 means the source sent conflicting results for the same patient, code and moment, resolved to the lowest value.';
 COMMENT ON COLUMN {catalog}.care_protocol.silver_observation.loinc_code IS 'LOINC code identifying the lab test (e.g. 4548-4 = Hemoglobin A1c).';
 COMMENT ON COLUMN {catalog}.care_protocol.silver_observation.description IS 'Human-readable lab/test name.';
 COMMENT ON COLUMN {catalog}.care_protocol.silver_observation.value_num IS 'Numeric result value (cast to double).';

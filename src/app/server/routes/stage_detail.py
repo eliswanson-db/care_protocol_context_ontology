@@ -894,8 +894,12 @@ def _closure_ret(pid, my, log, trace="a1c"):
                                   AND (stop_ts IS NULL OR stop_ts >= TIMESTAMP'2026-10-30')
                                   AND rxnorm_code IN (SELECT descendant_code FROM {C}.{ST}.rxnorm_closure
                                                       WHERE ancestor_code LIKE 'DRUGCLASS-%')),
-                          lab AS (SELECT loinc_code, max_by(value_num, result_ts) AS value, max(result_ts) AS ts
-                                  FROM {C}.{S}.silver_observation WHERE patient_id = :pid GROUP BY loinc_code)
+                          lab AS (SELECT lp.part, max_by(o.loinc_code, o.result_ts) AS loinc_code,
+                                         max_by(o.value_num, o.result_ts) AS value, max(o.result_ts) AS ts
+                                  FROM {C}.{S}.silver_observation o
+                                  JOIN {C}.{ST}.loinc_parts lp ON lp.loinc_code = o.loinc_code AND lp.predicate = 'has_component'
+                                  WHERE o.patient_id = :pid AND o.result_ts <= TIMESTAMP'2026-10-30 23:59:59'
+                                  GROUP BY lp.part)
                      SELECT rx.drug, rc.ancestor_code AS drug_class, e.object AS threshold, CAST(e.value AS DOUBLE) AS cutoff,
                             a.object AS measured_on, lab.loinc_code, lab.value AS latest_value, CAST(lab.ts AS DATE) AS on_date,
                             e.source AS protocol_section, lab.value < CAST(e.value AS DOUBLE) AS violated
@@ -903,11 +907,11 @@ def _closure_ret(pid, my, log, trace="a1c"):
                      JOIN {C}.{ST}.rxnorm_closure rc ON rc.descendant_code = rx.rxnorm_code AND rc.ancestor_code LIKE 'DRUGCLASS-%'
                      JOIN {C}.{ST}.protocol_edges e ON e.subject = rc.ancestor_code AND e.predicate = 'contraindicatedWhen'
                      JOIN {C}.{ST}.protocol_edges a ON a.subject = e.object AND a.predicate = 'appliesTo'
-                     JOIN {C}.{ST}.loinc_parts lp ON lp.part = a.object AND lp.predicate = 'has_component'
-                     JOIN lab ON lab.loinc_code = lp.loinc_code
+                     JOIN lab ON lab.part = a.object
                      ORDER BY lab.ts DESC LIMIT 3""", p, log,
-                 "Drug → class → contraindicatedWhen threshold → the lab it is measured on → the patient's latest "
-                 "value (one fixed-shape join over rxnorm_closure, protocol_edges, loinc_parts, silver_observation)")
+                 "Drug → class → contraindicatedWhen threshold → the lab it is measured on → the patient's last value "
+                 "of that lab on or before 2026-10-30, any code (rxnorm_closure, protocol_edges, loinc_parts, "
+                 "silver_observation)")
         h0 = hit[0] if hit else {}
         v = h0.get("violated") in (True, "true")
         return {
