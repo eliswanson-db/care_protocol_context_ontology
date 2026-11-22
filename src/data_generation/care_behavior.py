@@ -214,8 +214,14 @@ def main():
                                              F.first("rxnorm_code").alias("rxnorm_code"),
                                              F.first("description").alias("description"),
                                              F.first("encounter_id").alias("encounter_id")))
+    # A patient already on metformin before the year has a refill rhythm of their own: their first in-year fill lands
+    # on a fixed per-patient day 0-29 of January (hash), not on January 1 for everyone (which synchronized every
+    # refill in the cohort). Patients who start during the year keep their own start date.
     cohort_big = (cohort_big
-                  .withColumn("rx_start", F.greatest("rx_start", F.to_date(F.lit(MY_START))))
+                  .withColumn("phase", (u("fill_phase", "patient_id") * F.lit(30)).cast("int"))
+                  .withColumn("rx_start", F.when(F.col("rx_start") < F.to_date(F.lit(MY_START)),
+                                                 F.expr(f"date_add(to_date('{MY_START}'), phase)"))
+                                           .otherwise(F.col("rx_start")))
                   .withColumn("rx_stop", F.least("rx_stop", F.to_date(F.lit(MY_END)), F.to_date(AS_OF)))
                   .where(F.col("rx_stop") > F.col("rx_start"))
                   .join(adh.select("patient_id", "a_p"), "patient_id"))
