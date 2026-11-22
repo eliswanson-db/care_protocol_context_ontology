@@ -117,32 +117,39 @@ Each question gets: final wording, answer type, a gold query in `src/benchmark/g
 one-line honest expectation per approach. Nothing is locked until the gold query runs on ECT and the answer is
 checked by hand.
 
+Every question names a fixed date or period; no "current", "recent", "this year" or unanchored "latest" (the gold
+answer must not depend on when it is asked). Anchor: MY2026 data runs through **2026-10-30** (the extract horizon).
+The gold SQL filters on the same dates explicitly (e.g. `result_ts <= '2026-10-30'`), so a longer extract can't move it.
+
 | # | Question (proposed wording) | Answer type | Gold | Live check (2026-11-22) |
 |---|---|---|---|---|
-| 1 | What is the GSD poor-control rate (latest A1c > 9%) by clinic, MY2026 year to date? | 8 (clinic, rate) pairs | new (metric view) | values exist (e.g. CLINIC-03 11.3%) |
-| 2 | Of GSD-eligible diabetics aged 65–75, how many have a latest A1c > 9% and no statin dispensed in MY2026? | count + share | new | 73 of 821 (93 with A1c > 9) |
-| 3 | How many patients have diabetes with a kidney complication? | count | `sub_kidney` | 1,881 |
+| 1 | What was the GSD poor-control rate (last A1c of MY2026 above 9%) by clinic, for MY2026 through 2026-10-30? | 8 (clinic, rate) pairs | new (metric view) | values exist (e.g. CLINIC-03 11.3%) |
+| 2 | Of GSD-eligible diabetics aged 65–75 in MY2026, how many had a last MY2026 A1c (through 2026-10-30) above 9% and no statin dispensed in MY2026? | count + share | new | 73 of 821 (93 above 9%) |
+| 3 | How many patients have diabetes with a kidney complication (any diagnosis on or before 2026-10-30)? | count | `sub_kidney` | 1,881 |
 | 4 | Which top-level conditions does E11.22 roll up to, and through which parents? | set of routes | `graph_multiparent_routes` | E11.22 > E11.2 > E11, E11.22 > N18 |
-| 5 | What A1c target does the protocol recommend for an older adult with moderate comorbidity? | stated fact | doc (corpus) | 7.0–8.0% (5–10 yr life expectancy) |
-| 6 | After a poorly controlled A1c, when must it be rechecked? | stated fact | doc + metric view | above 9.0% → recheck within 90 days (3 months) |
-| 7 | What does "KED compliant" mean, and which governed view reports it? | stated facts | Page + metric view | eGFR AND uACR in MY, 18–85; `ked_compliance_metrics` |
-| 8 | Which measures use eGFR, which codes count in MY2026, and where is that defined? | stated facts | value_set_segment | KED; 98979-8 only; `value_set_segment` KED_EGFR |
-| 9 | Which patients are on a drug the protocol contraindicates for their own current labs or conditions? | patient set + reasons | new (replaces `graph_statin_contra_cohort`) | see decision 1 |
-| 10 | Why is patient X in the SPD statin gap? (the path) | path | new (per patient) | hero picked by rule |
+| 5 | What A1c target does the care protocol (v2025.1) recommend for an older adult with moderate comorbidity? | stated fact | doc (corpus) | 7.0–8.0% (5–10 yr life expectancy) |
+| 6 | Under the care protocol (v2025.1), after an A1c above 9%, when must A1c be rechecked? | stated fact | doc + metric view | within 90 days (3 months) |
+| 7 | What does "KED compliant" mean for MY2026, and which governed view reports it? | stated facts | Page + metric view | eGFR AND uACR in MY2026, 18–85; `ked_compliance_metrics` |
+| 8 | Which measures use eGFR, which LOINC codes count in MY2026, and where is that defined? | stated facts | value_set_segment | KED; 98979-8 only; `value_set_segment` KED_EGFR |
+| 9 | On 2026-10-30, which patients had an active order for a drug the protocol contraindicates for a condition active on that date, or for their last lab result on or before it? | patient set + reasons | new (replaces `graph_statin_contra_cohort`) | see decision 1 |
+| 10 | Why was patient X in the SPD statin gap for MY2026 (through 2026-10-30)? (the path) | path | new (per patient) | hero picked by rule |
 
 **Decisions needed**
 
-1. **"Current" for q9 (and the existing statin-contraindication gold, 198).** Bronze diagnoses keep only an onset
-   date (epicize drops Synthea's condition `STOP`), so "pregnant" today includes pregnancies years ago: 403
-   ACE-inhibitor patients any time vs 65 with onset in the last 40 weeks. Recommendation: carry `STOP` into
-   `bronze_pat_enc_dx` / `silver_condition` and define a contraindication as active (onset ≤ as-of and no stop, or stop ≥
-   as-of) while the drug is active; labs as the latest result in MY2026. That moves `graph_statin_contra_cohort` and
-   `proto_statin_gap_safe`; both get re-verified.
+1. **"Active on 2026-10-30" for q9 (and the existing statin-contraindication gold, 198).** Bronze diagnoses keep only
+   an onset date (epicize drops Synthea's condition `STOP`), so a pregnancy coded years ago still matches: 403
+   ACE-inhibitor patients with any pregnancy diagnosis vs 65 with one starting within 40 weeks of MY2026.
+   Recommendation: carry `STOP` into `bronze_pat_enc_dx` / `silver_condition`, so "condition active on 2026-10-30" =
+   onset on or before that date and no stop before it, and "drug active" = an order spanning that date. That moves
+   `graph_statin_contra_cohort` and `proto_statin_gap_safe`; both get re-verified.
 2. **q2 statin definition.** "Dispensed in MY2026" (the SPD rule, used above) or "an active order". Recommend the SPD
    rule, so q2 composes with an existing governed definition.
 3. **Scoring by answer type.** Numbers and sets exact; stated facts = every required fact present (the existing
    tier-1 judge), then hand-verified; routes/paths exact. 3 runs per cell (the harness default is actually 1; set 3).
-4. **Retire from the benchmark (keep in the file):** the trick questions (`vintage_*` as worded, the undefined-class
+4. **Reword in `ground_truth.yaml` (fixed dates):** `op_worst_clinic_annual` ("this year" → MY2026 through
+   2026-10-30), `op_clinic_drift` ("recently" → a named 3-month window vs the prior months), `op_drift_rootcause`
+   ("this year" → MY2026). Their gold answers stay the same; the wording stops depending on when it is asked.
+5. **Retire from the benchmark (keep in the file):** the trick questions (`vintage_*` as worded, the undefined-class
    refusal, `infer_defined_class`).
 
 **Dependencies (known, not blockers for locking)**
