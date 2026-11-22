@@ -53,10 +53,12 @@ def main() -> None:
         F.col("ENCOUNTERCLASS").alias("encounter_class"), F.col("DESCRIPTION").alias("description"),
     ).write.mode("overwrite").option("overwriteSchema", True).saveAsTable(f"{t}.bronze_pat_enc")
 
-    # bronze_pat_enc_dx  (SNOMED -> ICD-10-CM; unmapped stays null = a deliberate data gap)
+    # bronze_pat_enc_dx  (SNOMED -> ICD-10-CM; unmapped stays null = a deliberate data gap). stop_date = Synthea's
+    # condition STOP (resolved / ended); NULL = still active. Questions about conditions "active on <date>" need it.
     cond = raw("conditions").select(
         F.col("PATIENT").alias("patient_id"), F.col("ENCOUNTER").alias("encounter_id"),
-        F.to_date("START").alias("onset_date"), F.col("CODE").cast("string").alias("snomed_code"),
+        F.to_date("START").alias("onset_date"), F.to_date("STOP").alias("stop_date"),
+        F.col("CODE").cast("string").alias("snomed_code"),
         F.col("DESCRIPTION").alias("description"),
     )
     cond.join(cw, "snomed_code", "left").write.mode("overwrite").option(

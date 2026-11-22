@@ -29,7 +29,8 @@ def _roster():
 def silver_condition():
     return (spark.read.table(f"{BRONZE}.bronze_pat_enc_dx")  # noqa: F821
             .where(F.col("icd10_code").isNotNull())
-            .select("patient_id", "encounter_id", "onset_date", "snomed_code", "icd10_code", "description"))
+            .select("patient_id", "encounter_id", "onset_date", "stop_date", "snomed_code", "icd10_code",
+                    "description"))
 
 
 @dp.materialized_view(comment="Conformed lab observations (LOINC) with numeric value.")

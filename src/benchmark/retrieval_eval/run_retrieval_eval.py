@@ -7,8 +7,9 @@ three tiers from the SAME retrieved context:
                                  given); we run it (read-only guard) and judge the result rows against each gold fact
   tier 3  neither
 
-LLM steps vary run to run, so each cell runs --repeats times (default 3) and the majority tier is reported with
-every run's tier kept. Infrastructure failures (auth, truncation) are retried and never scored.
+LLM steps vary run to run, so each cell runs --repeats times and the majority tier is reported with every run's tier
+kept. Test mode (the default) is 1 run per cell; use --final (= 3 runs) only for final demo testing, since every run
+costs model and warehouse time. Infrastructure failures (auth, truncation) are retried and never scored.
 
 Usage (run as a user with read access to the shared catalog):
   PYTHONPATH=src DATABRICKS_CONFIG_PROFILE=ECT .venv/bin/python -m benchmark.retrieval_eval.run_retrieval_eval \
@@ -228,8 +229,11 @@ def main():
     ap.add_argument("--merge", action="store_true", help="replace only the (arm, question) rows run now in --out")
     ap.add_argument("--qids", default="", help="comma-separated question ids (default: the demo set in the CSV)")
     ap.add_argument("--workers", type=int, default=6)
-    ap.add_argument("--repeats", type=int, default=1, help="runs per cell; the majority tier is reported")
+    ap.add_argument("--repeats", type=int, default=1, help="runs per cell (test mode: 1); the majority tier is reported")
+    ap.add_argument("--final", action="store_true", help="final demo testing: 3 runs per cell (overrides --repeats)")
     args = ap.parse_args()
+    if args.final:
+        args.repeats = 3
     ARMS = [a for a in args.arms.split(",") if a]
     # Judges authenticate to Databricks via the model URI regardless of the trace store, so if the SP cannot
     # create the workspace experiment we fall back to a LOCAL trace store -- the matrix is still produced.

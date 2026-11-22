@@ -146,6 +146,7 @@ COMMENT ON COLUMN {catalog}.care_protocol.gold_adherence_mad.panel_id IS 'PCP pa
 COMMENT ON COLUMN {catalog}.care_protocol.silver_condition.patient_id IS 'Patient identifier the diagnosis belongs to.';
 COMMENT ON COLUMN {catalog}.care_protocol.silver_condition.encounter_id IS 'Encounter in which the diagnosis was recorded.';
 COMMENT ON COLUMN {catalog}.care_protocol.silver_condition.onset_date IS 'Date the condition was first recorded.';
+COMMENT ON COLUMN {catalog}.care_protocol.silver_condition.stop_date IS 'Date the condition resolved or ended; NULL = still active. A condition is active on a date D when onset_date <= D AND (stop_date IS NULL OR stop_date > D).';
 COMMENT ON COLUMN {catalog}.care_protocol.silver_condition.snomed_code IS 'Source SNOMED CT concept from Synthea (pre-crosswalk).';
 COMMENT ON COLUMN {catalog}.care_protocol.silver_condition.icd10_code IS 'ICD-10-CM code crosswalked from SNOMED. Drives cohort membership via the ICD-10 hierarchy closure.';
 COMMENT ON COLUMN {catalog}.care_protocol.silver_condition.description IS 'Human-readable diagnosis description.';
