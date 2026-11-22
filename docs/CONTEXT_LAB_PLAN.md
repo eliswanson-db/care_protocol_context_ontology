@@ -149,21 +149,28 @@ The gold SQL filters on the same dates explicitly (e.g. `result_ts <= '2026-10-3
 6. **Fixed dates** in every question and gold query (above).
 7. **Reword** `op_worst_clinic_annual`, `op_clinic_drift`, `op_drift_rootcause` to fixed dates.
 
-**Proposed set (8): two per approach where it matters, graph only where it really stands out**
+**Proposed set (7): real analyst questions; no approach is designed to win**
 
-| # | Showcases | Question | Why this one |
-|---|---|---|---|
-| 1 | Metric views | q1 GSD poor-control rate by clinic, MY2026 through 2026-10-30 | the prebuilt, governed measure: exact and fast |
-| 2 | Metric views' limit | q2 diabetics 65–75 with A1c > 9% and no statin (SPD rule) | crosses two measures; no prebuilt view answers it |
-| 3 | Closure tables | q3 diabetes with a kidney complication | subtree rollup in one equality join |
-| 4 | RAG | q5 A1c target for an older adult with moderate comorbidity | stated only in a protocol document |
-| 5 | Genie Ontology | q8 which measures use eGFR, which codes count in MY2026, where defined | Page + value-set table + metric view together |
-| 6 | Genie Ontology | is the GSD poor-control rate over all eligible patients or only those tested? | semantic-layer knowledge (metric view comment, knowledge store) that no document states |
-| 7 | Graph | q9 patients on a drug contraindicated by a condition active on 2026-10-30 or their last lab | drug class × rule × lab or condition, with dates: needs a reasoning engine |
-| 8 | Graph | q10 why patient X was in the SPD statin gap (the path) | a per-patient explanation found by traversal |
+The story is honest: different approaches help in different situations, and sometimes the simplest is as good as
+the most complex. So questions are chosen because an analyst would ask them, not to make one approach win, and the
+expectations below are predictions to be checked by the runs, not targets. Where the context is equivalent, RAG and
+Genie Ontology should do about equally well; Genie Ontology should only beat RAG where it holds context the documents
+genuinely don't (e.g. which table or view holds something). Metric views and closure tables may be the only exact
+answer for what was built ahead of time, and fail on anything that wasn't.
 
-Dropped from the draft: q4 (E11.22 routes; trace 2 shows it), q6 (Step 3 recheck; trace 1 shows it, and it overlaps
-q5), q7 (KED definition; overlaps q8).
+| # | Question | Metric views | Closure | RAG | Genie Ontology | Graph |
+|---|---|---|---|---|---|---|
+| 1 | GSD poor-control rate by clinic, MY2026 through 2026-10-30 | exact (prebuilt) | no measure | no data | finds the view; one query | no clinic yet (F07) |
+| 2 | Of GSD-eligible diabetics 65–75 in MY2026, how many had a last A1c above 9% and no statin dispensed (SPD rule)? | not prebuilt across two measures | partial (statin; no labs) | no data | context only; needs a query | yes after republish (F22, F26) |
+| 3 | How many patients have diabetes with a kidney complication (diagnosis on or before 2026-10-30)? | no such view | exact (one join) | no data | context only | yes (subClassOf* walk) |
+| 4 | What A1c target does the care protocol (v2025.1) recommend for an older adult with moderate comorbidity? | — | — | yes | yes (HbA1c Page) | not modeled |
+| 5 | Which measures use eGFR, which LOINC codes count in MY2026, and where is that defined? | partial (KED view) | codes yes, measures partial | codes yes (payer memo), location no | yes (Pages + value-set table) | partial (no measure value sets, F15) |
+| 6 | On 2026-10-30, which patients had an active order for a drug the protocol contraindicates for a condition active that day or their last lab result on or before it? | — | one hand-written join per rule shape | rule text only | context only | yes after republish (F22, F23, F26) |
+| 7 | Why was patient X in the SPD statin gap for MY2026 (through 2026-10-30)? | rule, not the patient | joins | rule text only | context only | yes (traversal) |
+
+Dropped: E11.22 routes (trace 2 shows it), Step-3 recheck timing (trace 1), KED definition (overlaps #5), and the
+GSD poor-control denominator question (it worked only because no document states the denominator: that would
+have been designed to make RAG fail).
 
 **Dependencies (known, not blockers for locking)**
 - The graph can't answer q2, q9 or q10 fully until the republish (items 1, 3, 3b, 4). Until then its cell shows not
