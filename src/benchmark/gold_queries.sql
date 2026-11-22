@@ -313,7 +313,7 @@ SELECT concat_ws('|',
   'value_set_segment.KED_EGFR') AS answer;
 
 -- @id: bq6_contra_active_patients
--- class: bench_v2  min_approach: graph  expect: 65
+-- class: bench_v2  min_approach: graph  expect: 68
 -- holdout: benchmark question 6
 -- On 2026-10-30: patients with an order active that day (care_order_med: the effective medication layer the
 -- measures read; diabetes drugs are 30-day fills there) for a drug class the protocol contraindicates either for a
@@ -344,7 +344,7 @@ by_lab AS (
 SELECT COUNT(DISTINCT patient_id) AS patients FROM (SELECT * FROM by_condition UNION SELECT * FROM by_lab);
 
 -- @id: bq6_contra_active_reasons
--- class: bench_v2  min_approach: graph  expect: ACExCONTRA_PREGNANCY:11,BIGUANIDExeGFR_LT_30:46,STATINxCONTRA_PREGNANCY:9
+-- class: bench_v2  min_approach: graph  expect: ACExCONTRA_PREGNANCY:11,BIGUANIDExeGFR_LT_30:49,STATINxCONTRA_PREGNANCY:9
 -- holdout: benchmark question 6 (the reasons behind bq6_contra_active_patients)
 WITH rx AS (
   SELECT DISTINCT m.patient_id, c.ancestor_code AS drug_class

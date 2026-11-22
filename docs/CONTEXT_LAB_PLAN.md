@@ -232,7 +232,9 @@ HEDIS first (most of it exists), then life sciences, with the same steps:
 5. ✅ (2026-11-22, HEDIS, test mode) Harness on the locked set, five approaches, RAG = the app's hybrid retrieval with
    the patient filter: `docs/benchmark/BENCHMARK_V2_RESULTS.md`. Before `--final`: re-record Genie Ontology after the
    daily extraction, decide the stale dev assets, republish Ontobricks, hand-verify.
-6. Genie One run.
+6. ✅ (2026-11-22, HEDIS) Genie One column, hand-verified: 5 of 8 (q1, q2, q3, q5, q6). Its misses led to fixes on
+   our side: recorder truncation, the q6 gold's medication layer, a fill-cycle artifact, and conflicting duplicate
+   lab results (silver keeps the lower). `docs/benchmark/BENCHMARK_V2_RESULTS.md`.
 7. App: Trace + Benchmark tabs.
 
 ## Decisions (2026-11-21)
