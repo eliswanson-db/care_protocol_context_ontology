@@ -1,0 +1,136 @@
+# HEDIS benchmark v2: the locked question set (docs/CONTEXT_LAB_PLAN.md §4a), locked 2026-11-22.
+#
+# Real analyst questions; no approach is designed to win. `predictions` are what we expect each approach to do,
+# to be checked by the runs (step 5), not targets. Every question names a fixed date or period (MY2026 data runs
+# through 2026-10-30). Gold answers are hand-verified gold queries in src/benchmark/gold_queries.sql (verify_gold.py
+# gate), marked `-- holdout:` so no approach holds them in its context; question 4's gold is a document passage.
+# Heroes are chosen by a stated rule, never by hand. `patient` = the patient a question names (RAG may pre-filter on
+# rag.documents.patient_id, the standard clinical pattern). `facts` = docs/benchmark/hedis_facts.yaml ids.
+#
+# tests/test_benchmark_v2.py checks: fixed dates only, every gold id exists and is holdout, every fact id exists, and
+# question 8's letter says what its gold says.
+
+questions:
+  - id: q1
+    question: "What was the GSD poor-control rate (last A1c of the year above 9%, or no A1c test) by clinic, for MY2026 through 2026-10-30?"
+    answer_type: set of (clinic, rate)
+    gold: bq1_gsd_poor_by_clinic
+    expected_facts:
+      - "GSD poor-control rate by clinic, MY2026 through 2026-10-30: CLINIC-01 37.2%, CLINIC-02 35.3%, CLINIC-03 35.7%, CLINIC-04 37.9%, CLINIC-05 32.6%, CLINIC-06 39.7%, CLINIC-07 36.5%, CLINIC-08 38.3%."
+    facts: [F05, F06, F07]
+    predictions:
+      metric_view: "exact: Poor Control Rate by Clinic is a prebuilt, governed measure"
+      closure: "no: closures hold terminology, not measures"
+      rag: "no: documents hold no patient data"
+      genie_ontology: "context points to the governed view; the rate needs one query"
+      graph: "no: patient-to-clinic isn't mapped (F07)"
+
+  - id: q2
+    question: "Of GSD-eligible diabetics aged 65-75 in MY2026, how many had a last MY2026 A1c (through 2026-10-30) above 9% and no statin dispensed in MY2026 through 2026-10-30?"
+    answer_type: count
+    gold: bq2_older_poor_no_statin
+    expected_facts:
+      - "73 of the 821 GSD-eligible diabetics aged 65-75 had a last MY2026 A1c above 9% and no statin dispensed in MY2026 (through 2026-10-30), using the SPD statin rule."
+    facts: [F05, F06, F08, F09, F26]
+    predictions:
+      metric_view: "no: it crosses two measures (GSD and SPD); no prebuilt view combines them"
+      closure: "partial: the statin class resolves through rxnorm_closure; the A1c values and ages aren't in the closures"
+      rag: "no: documents hold no patient data"
+      genie_ontology: "context names both gold tables and their rules; the count needs a query"
+      graph: "yes once observation values and drug classes are reachable (republish items 1, 3b; F22, F26)"
+
+  - id: q3
+    question: "How many patients have diabetes with a kidney complication (a diagnosis on or before 2026-10-30)?"
+    answer_type: count
+    gold: bq3_kidney_complication
+    expected_facts:
+      - "1,881 patients have diabetes with a kidney complication: a diagnosis under E11.2, E10.2 or E13.2 on or before 2026-10-30."
+    facts: [F01, F02]
+    predictions:
+      metric_view: "no: no measure is built for this cohort"
+      closure: "exact: one equality join on icd10_closure"
+      rag: "no: documents hold no patient data"
+      genie_ontology: "context explains subsumption and the closure table; the count needs a query"
+      graph: "yes: subClassOf* walk from the diabetic-kidney roots"
+
+  - id: q4
+    question: "What A1c target does the care protocol (v2025.1) recommend for an older adult with moderate comorbidity?"
+    answer_type: stated fact
+    gold: "doc: CP-GLY-TARGETS-2025.1, section Individualized A1c targets"
+    expected_facts:
+      - "For moderate comorbidity with a 5-10 year life expectancy, the protocol's A1c target range is 7.0-8.0%."
+    facts: [F10]
+    predictions:
+      metric_view: "no: clinical guidance, not a measure"
+      closure: "no: clinical guidance, not terminology"
+      rag: "yes: stated in the glycemic-targets document"
+      genie_ontology: "yes: the HbA1c Page states the same targets"
+      graph: "no: prose guidance isn't modeled as triples"
+
+  - id: q5
+    question: "Which measures use eGFR, which LOINC codes count as eGFR in MY2026, and where is that defined?"
+    answer_type: stated facts
+    gold: bq5_egfr_measures_codes
+    expected_facts:
+      - "KED (Kidney Health Evaluation) is the measure that uses eGFR."
+      - "In MY2026 only LOINC 98979-8 (CKD-EPI 2021) counts as eGFR; MDRD 33914-3 was dropped."
+      - "The eGFR value set is defined in care_protocol_terminology.value_set_segment, segment KED_EGFR (versioned by measurement year)."
+    facts: [F12, F14, F15, F16]
+    predictions:
+      metric_view: "partial: the KED view names eGFR; not the codes or where the value set lives"
+      closure: "codes yes (value_set_segment); which measures, partial (protocol_edges monitoredBy)"
+      rag: "codes yes (payer memo); where it is defined in the catalog, no"
+      genie_ontology: "yes: the eGFR / Measure Drift Pages, the value-set table and the KED view together"
+      graph: "partial: KED monitoredBy LP-EGFR; measure value sets aren't mapped (F15)"
+
+  - id: q6
+    question: "On 2026-10-30, which patients had an active order for a drug the care protocol contraindicates for a condition active that day, or for their last lab result on or before that day?"
+    answer_type: count + reasons
+    gold: [bq6_contra_active_patients, bq6_contra_active_reasons]
+    expected_facts:
+      - "87 patients on 2026-10-30."
+      - "68 had an active metformin order with a last eGFR below 30; 11 an active ACE-inhibitor order with a pregnancy active that day; 9 an active statin order with a pregnancy active that day."
+    facts: [F17, F18, F19, F20, F21, F22, F23, F26, F28]
+    predictions:
+      metric_view: "no: not a measure"
+      closure: "yes, with one hand-written join per rule shape (condition rules and lab rules differ)"
+      rag: "rule text only; can't apply it to patients"
+      genie_ontology: "context holds the rules and tables; applying them needs multi-step querying"
+      graph: "yes once the drug classes, threshold-to-lab edges and observation values are reachable (F22, F23, F26), and the graph carries dates (F28)"
+
+  - id: q7
+    question: "Why was patient 00040be9-7fcf-0ca1-0263-b4197b8f8d28 in the SPD statin gap for MY2026 (through 2026-10-30)?"
+    answer_type: path
+    gold: bq7_spd_gap_path
+    patient: 00040be9-7fcf-0ca1-0263-b4197b8f8d28
+    hero_rule: "lowest patient id among MY2026 SPD gaps whose statin lapsed before 2026"
+    expected_facts:
+      - "The patient is coded E11.9, a form of type 2 diabetes (E11), so they are in the diabetes cohort."
+      - "They are 61, inside SPD's 40-75 window."
+      - "No statin was dispensed between 2026-01-01 and 2026-10-30; their last statin (Simvastatin 20 MG) was dispensed on 2009-11-16."
+      - "The care protocol recommends a statin for SPD, so the patient is a statin care gap."
+    facts: [F01, F08, F09, F24]
+    predictions:
+      metric_view: "the rule, not this patient (no patient dimension)"
+      closure: "yes, with joins written for this question"
+      rag: "the rule text only"
+      genie_ontology: "context for the rule and tables; the patient's path needs querying"
+      graph: "yes: a traversal from the patient (eligibleFor, hasDiagnosis -> subClassOf*, prescribed history, recommendedFor)"
+
+  - id: q8
+    question: "Patient 0b4f4745-1c22-260c-494b-f91aa1e81cfc had an EED gap for MY2026 (through 2026-10-30). Is there any record of a diabetic eye exam outside our EHR?"
+    answer_type: stated facts
+    gold: bq8_eed_gap_outside_letter
+    patient: 0b4f4745-1c22-260c-494b-f91aa1e81cfc
+    hero_rule: "lowest patient id among the outside-letter patients with an EHR EED gap"
+    run_as: clinician@example.org   # the letter is care-team only (document-level RLS)
+    expected_facts:
+      - "Yes: an outside consultation letter (Northside Optometry Group, LETTER-EYE-0b4f4745) documents a dilated fundus examination of both eyes on 2026-09-02, with no evidence of diabetic retinopathy."
+      - "The exam is not in the EHR, which is why the EED gap shows; the letter would need to be abstracted to close it."
+    facts: [F27]
+    predictions:
+      metric_view: "no: sees only the EHR, so it reports the gap"
+      closure: "no: EHR data only"
+      rag: "yes: the letter is indexed (care-team access; patient pre-filter)"
+      genie_ontology: "no: per-patient correspondence isn't curated into Pages, metadata or knowledge stores"
+      graph: "no: per-patient correspondence isn't mapped"

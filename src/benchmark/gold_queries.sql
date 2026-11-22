@@ -43,6 +43,7 @@ FROM {catalog}.{schema}.gold_adherence_ked;
 
 -- @id: sub_kidney
 -- class: 2_icd_subsumption  min_approach: closure_sql  expect: 1881
+-- holdout: same question as benchmark question 3 (bq3_kidney_complication)
 -- Diabetes WITH kidney complication = any dx that is a descendant of the diabetic-kidney roots
 -- (E11.2 / E10.2 / E13.2) via the is-a closure. Robust to depth; a 'E11.2%' string prefix only approximates it.
 SELECT COUNT(DISTINCT dx.patient_id) AS sub_kidney
@@ -237,16 +238,17 @@ GROUP BY clinic_id ORDER BY step3_adherence_rate, clinic_id;
 
 -- @id: op_clinic_drift
 -- class: 9_operational_temporal  min_approach: metric_view  expect: CLINIC-08
--- Each clinic's trailing-3-month adherence (ending the latest closed month) vs its OWN year-to-date baseline.
+-- Each clinic's Step-3 adherence for triggers in May-July 2026 vs its own MY2026 baseline (all triggers through
+-- 2026-07-31; July 2026 is the last month whose 90-day windows have all closed by the 2026-10-30 horizon).
 WITH c AS (
   SELECT clinic_id, date_trunc('MONTH', trigger_ts) AS m, CAST(followup_within_90d AS INT) AS f
-  FROM {catalog}.{schema}.gold_protocol_adherence WHERE measurement_year = 2026 AND window_closed),
-last AS (SELECT max(m) AS lm FROM c)
+  FROM {catalog}.{schema}.gold_protocol_adherence
+  WHERE measurement_year = 2026 AND window_closed AND trigger_ts <= TIMESTAMP'2026-07-31 23:59:59')
 SELECT clinic_id,
-       ROUND(AVG(CASE WHEN m > add_months(lm, -3) THEN f END), 3) AS trailing_3mo,
+       ROUND(AVG(CASE WHEN m >= DATE'2026-05-01' THEN f END), 3) AS may_jul_2026,
        ROUND(AVG(f), 3) AS own_baseline,
-       ROUND(AVG(CASE WHEN m > add_months(lm, -3) THEN f END) - AVG(f), 3) AS drift
-FROM c CROSS JOIN last GROUP BY clinic_id ORDER BY drift;
+       ROUND(AVG(CASE WHEN m >= DATE'2026-05-01' THEN f END) - AVG(f), 3) AS drift
+FROM c GROUP BY clinic_id ORDER BY drift;
 
 -- @id: op_drift_rootcause
 -- class: 9_operational_temporal  min_approach: closure_sql  expect: 2026-05-15
@@ -259,3 +261,144 @@ FROM {catalog}.{schema}.panel_pcp_transition t
 JOIN {catalog}.{schema}.gold_protocol_adherence p
   ON p.clinic_id = t.clinic_id AND p.window_closed AND p.measurement_year = 2026
 GROUP BY ALL;
+
+-- =========================================================================================
+-- BENCHMARK v2 (docs/CONTEXT_LAB_PLAN.md §4a). Every question names a fixed date or period; MY2026 data runs through
+-- 2026-10-30 and each query filters on it explicitly. `-- holdout:` = an answer key no approach may hold in its context
+-- (src/genie/knowledge_stores.py skips these, so they never become Genie-space benchmarks). Question 4 is answered
+-- from the care-protocol corpus (no SQL); its gold is in ground_truth.yaml.
+-- =========================================================================================
+
+-- @id: bq1_gsd_poor_by_clinic
+-- class: bench_v2  min_approach: metric_view  expect: CLINIC-01:0.372,CLINIC-02:0.353,CLINIC-03:0.357,CLINIC-04:0.379,CLINIC-05:0.326,CLINIC-06:0.397,CLINIC-07:0.365,CLINIC-08:0.383
+-- holdout: benchmark question 1
+-- GSD poor-control rate (HEDIS > 9.0% indicator: last A1c above 9% or no test, over all eligible) by clinic, MY2026
+-- through 2026-10-30.
+SELECT array_join(array_sort(collect_list(concat(clinic_id, ':', format_number(rate, 3)))), ',') AS poor_control_by_clinic
+FROM (SELECT clinic_id,
+             SUM(CASE WHEN evidence_value > 9.0 OR evidence_datetime IS NULL
+                       OR evidence_datetime > TIMESTAMP'2026-10-30 23:59:59' THEN 1 ELSE 0 END) / COUNT(*) AS rate
+      FROM {catalog}.{schema}.gold_adherence_gsd WHERE measurement_year = 2026 GROUP BY clinic_id);
+
+-- @id: bq2_older_poor_no_statin
+-- class: bench_v2  min_approach: graph  expect: 73
+-- holdout: benchmark question 2
+-- Of GSD-eligible diabetics aged 65-75 in MY2026 (821), those whose last MY2026 A1c (through 2026-10-30) was above 9%
+-- and who had no statin dispensed in MY2026 through 2026-10-30, by the governed SPD rule.
+SELECT COUNT(*) AS n
+FROM {catalog}.{schema}.gold_adherence_gsd g
+JOIN {catalog}.{schema}.gold_adherence_spd s ON s.patient_id = g.patient_id AND s.measurement_year = 2026
+WHERE g.measurement_year = 2026 AND g.age BETWEEN 65 AND 75
+  AND g.evidence_value > 9.0 AND g.evidence_datetime <= TIMESTAMP'2026-10-30 23:59:59'
+  AND (s.evidence_datetime IS NULL OR s.evidence_datetime > TIMESTAMP'2026-10-30 23:59:59');
+
+-- @id: bq3_kidney_complication
+-- class: bench_v2  min_approach: closure_sql  expect: 1881
+-- holdout: benchmark question 3
+-- Patients with diabetes with a kidney complication: a diagnosis on or before 2026-10-30 under E11.2 / E10.2 / E13.2.
+SELECT COUNT(DISTINCT dx.patient_id) AS n
+FROM {catalog}.{schema}.bronze_pat_enc_dx dx
+JOIN {catalog}.{tschema}.icd10_closure c ON dx.icd10_code = c.descendant_code
+WHERE c.ancestor_code IN ('E11.2', 'E10.2', 'E13.2') AND dx.onset_date <= DATE'2026-10-30';
+
+-- @id: bq5_egfr_measures_codes
+-- class: bench_v2  min_approach: genie_ontology  expect: KED|98979-8|value_set_segment.KED_EGFR
+-- holdout: benchmark question 5
+-- Measures monitored by eGFR, the LOINC codes that count as eGFR in MY2026, and where that value set is defined.
+SELECT concat_ws('|',
+  (SELECT array_join(array_sort(collect_set(subject)), ',') FROM {catalog}.{tschema}.protocol_edges
+   WHERE predicate = 'monitoredBy' AND object = 'LP-EGFR'),
+  (SELECT array_join(array_sort(collect_set(code)), ',') FROM {catalog}.{tschema}.value_set_segment
+   WHERE segment_id = 'KED_EGFR' AND measurement_year = '2026'),
+  'value_set_segment.KED_EGFR') AS answer;
+
+-- @id: bq6_contra_active_patients
+-- class: bench_v2  min_approach: graph  expect: 87
+-- holdout: benchmark question 6
+-- On 2026-10-30: patients with an order active that day for a drug class the protocol contraindicates either for a
+-- condition active that day (contraindicatedWith -> value set; onset <= D and no stop before D) or for their last
+-- result on or before D of the lab the threshold applies to (contraindicatedWhen -> appliesTo -> LOINC part).
+WITH rx AS (
+  SELECT DISTINCT m.patient_id, c.ancestor_code AS drug_class
+  FROM {catalog}.{schema}.bronze_order_med m
+  JOIN {catalog}.{tschema}.rxnorm_closure c ON c.descendant_code = m.rxnorm_code AND c.ancestor_code LIKE 'DRUGCLASS-%'
+  WHERE m.start_ts <= TIMESTAMP'2026-10-30 23:59:59' AND (m.stop_ts IS NULL OR m.stop_ts >= TIMESTAMP'2026-10-30')),
+by_condition AS (
+  SELECT DISTINCT rx.patient_id, rx.drug_class, e.object AS reason FROM rx
+  JOIN {catalog}.{tschema}.protocol_edges e ON e.subject = rx.drug_class AND e.predicate = 'contraindicatedWith'
+  JOIN {catalog}.{tschema}.value_set_segment v ON v.segment_id = e.object
+  JOIN {catalog}.{schema}.silver_condition dx ON dx.patient_id = rx.patient_id AND dx.icd10_code LIKE concat(v.code, '%')
+  WHERE dx.onset_date <= DATE'2026-10-30' AND (dx.stop_date IS NULL OR dx.stop_date > DATE'2026-10-30')),
+last_lab AS (
+  SELECT patient_id, loinc_code, max_by(value_num, result_ts) AS value FROM {catalog}.{schema}.silver_observation
+  WHERE result_ts <= TIMESTAMP'2026-10-30 23:59:59' GROUP BY patient_id, loinc_code),
+by_lab AS (
+  SELECT DISTINCT rx.patient_id, rx.drug_class, e.object AS reason FROM rx
+  JOIN {catalog}.{tschema}.protocol_edges e ON e.subject = rx.drug_class AND e.predicate = 'contraindicatedWhen'
+  JOIN {catalog}.{tschema}.protocol_edges a ON a.subject = e.object AND a.predicate = 'appliesTo'
+  JOIN {catalog}.{tschema}.loinc_parts lp ON lp.part = a.object AND lp.predicate = 'has_component'
+  JOIN last_lab l ON l.patient_id = rx.patient_id AND l.loinc_code = lp.loinc_code
+  WHERE l.value < CAST(e.value AS DOUBLE))
+SELECT COUNT(DISTINCT patient_id) AS patients FROM (SELECT * FROM by_condition UNION SELECT * FROM by_lab);
+
+-- @id: bq6_contra_active_reasons
+-- class: bench_v2  min_approach: graph  expect: ACExCONTRA_PREGNANCY:11,BIGUANIDExeGFR_LT_30:68,STATINxCONTRA_PREGNANCY:9
+-- holdout: benchmark question 6 (the reasons behind bq6_contra_active_patients)
+WITH rx AS (
+  SELECT DISTINCT m.patient_id, c.ancestor_code AS drug_class
+  FROM {catalog}.{schema}.bronze_order_med m
+  JOIN {catalog}.{tschema}.rxnorm_closure c ON c.descendant_code = m.rxnorm_code AND c.ancestor_code LIKE 'DRUGCLASS-%'
+  WHERE m.start_ts <= TIMESTAMP'2026-10-30 23:59:59' AND (m.stop_ts IS NULL OR m.stop_ts >= TIMESTAMP'2026-10-30')),
+by_condition AS (
+  SELECT DISTINCT rx.patient_id, rx.drug_class, e.object AS reason FROM rx
+  JOIN {catalog}.{tschema}.protocol_edges e ON e.subject = rx.drug_class AND e.predicate = 'contraindicatedWith'
+  JOIN {catalog}.{tschema}.value_set_segment v ON v.segment_id = e.object
+  JOIN {catalog}.{schema}.silver_condition dx ON dx.patient_id = rx.patient_id AND dx.icd10_code LIKE concat(v.code, '%')
+  WHERE dx.onset_date <= DATE'2026-10-30' AND (dx.stop_date IS NULL OR dx.stop_date > DATE'2026-10-30')),
+last_lab AS (
+  SELECT patient_id, loinc_code, max_by(value_num, result_ts) AS value FROM {catalog}.{schema}.silver_observation
+  WHERE result_ts <= TIMESTAMP'2026-10-30 23:59:59' GROUP BY patient_id, loinc_code),
+by_lab AS (
+  SELECT DISTINCT rx.patient_id, rx.drug_class, e.object AS reason FROM rx
+  JOIN {catalog}.{tschema}.protocol_edges e ON e.subject = rx.drug_class AND e.predicate = 'contraindicatedWhen'
+  JOIN {catalog}.{tschema}.protocol_edges a ON a.subject = e.object AND a.predicate = 'appliesTo'
+  JOIN {catalog}.{tschema}.loinc_parts lp ON lp.part = a.object AND lp.predicate = 'has_component'
+  JOIN last_lab l ON l.patient_id = rx.patient_id AND l.loinc_code = lp.loinc_code
+  WHERE l.value < CAST(e.value AS DOUBLE))
+SELECT array_join(array_sort(collect_list(concat(replace(drug_class, 'DRUGCLASS-', ''), 'x', reason, ':', n))), ',') AS by_reason
+FROM (SELECT drug_class, reason, COUNT(DISTINCT patient_id) AS n
+      FROM (SELECT * FROM by_condition UNION SELECT * FROM by_lab) GROUP BY drug_class, reason);
+
+-- @id: bq7_spd_gap_path
+-- class: bench_v2  min_approach: graph  expect: E11.9|E11|61|no statin 2026-01-01..2026-10-30|last statin 2009-11-16|STATIN recommendedFor SPD
+-- holdout: benchmark question 7
+-- Why patient 00040be9-7fcf-0ca1-0263-b4197b8f8d28 was in the SPD statin gap for MY2026 through 2026-10-30 (hero = the
+-- lowest patient id among SPD gaps whose statin lapsed before 2026): diabetes code and root, age in the 40-75 window,
+-- no statin dispensed in the period, the last statin ever, and the protocol edge that makes a statin the expectation.
+SELECT concat_ws('|',
+  (SELECT min(dx.icd10_code) FROM {catalog}.{schema}.silver_condition dx
+     JOIN {catalog}.{tschema}.icd10_closure cl ON cl.descendant_code = dx.icd10_code AND cl.ancestor_code IN ('E10', 'E11', 'E13')
+     WHERE dx.patient_id = s.patient_id AND dx.onset_date <= DATE'2026-10-30'),
+  (SELECT min(cl.ancestor_code) FROM {catalog}.{schema}.silver_condition dx
+     JOIN {catalog}.{tschema}.icd10_closure cl ON cl.descendant_code = dx.icd10_code AND cl.ancestor_code IN ('E10', 'E11', 'E13')
+     WHERE dx.patient_id = s.patient_id AND dx.onset_date <= DATE'2026-10-30'),
+  CAST(s.age AS STRING),
+  CASE WHEN s.evidence_datetime IS NULL OR s.evidence_datetime > TIMESTAMP'2026-10-30 23:59:59'
+       THEN 'no statin 2026-01-01..2026-10-30' ELSE 'statin dispensed' END,
+  (SELECT concat('last statin ', CAST(CAST(max(m.start_ts) AS DATE) AS STRING)) FROM {catalog}.{schema}.bronze_order_med m
+     JOIN {catalog}.{tschema}.rxnorm_closure c ON c.descendant_code = m.rxnorm_code AND c.ancestor_code = 'DRUGCLASS-STATIN'
+     WHERE m.patient_id = s.patient_id AND m.start_ts <= TIMESTAMP'2026-10-30 23:59:59'),
+  (SELECT concat(replace(subject, 'DRUGCLASS-', ''), ' ', predicate, ' ', object) FROM {catalog}.{tschema}.protocol_edges
+     WHERE subject = 'DRUGCLASS-STATIN' AND predicate = 'recommendedFor' AND object = 'SPD')) AS path
+FROM {catalog}.{schema}.gold_adherence_spd s
+WHERE s.patient_id = '00040be9-7fcf-0ca1-0263-b4197b8f8d28' AND s.measurement_year = 2026;
+
+-- @id: bq8_eed_gap_outside_letter
+-- class: bench_v2  min_approach: rag  expect: NOT_MET
+-- holdout: benchmark question 8
+-- Patient 0b4f4745-1c22-260c-494b-f91aa1e81cfc (hero = the lowest patient id among the outside-letter patients with an
+-- EHR EED gap) had no diabetic eye exam in the EHR in MY2026 through 2026-10-30. The outside letter
+-- LETTER-EYE-0b4f4745 (2026-09-02, no retinopathy) is the evidence; tests/test_benchmark_v2.py checks it.
+SELECT CASE WHEN evidence_datetime IS NULL OR evidence_datetime > TIMESTAMP'2026-10-30 23:59:59' THEN 'NOT_MET' ELSE 'MET' END
+FROM {catalog}.{schema}.gold_adherence_eed
+WHERE patient_id = '0b4f4745-1c22-260c-494b-f91aa1e81cfc' AND measurement_year = 2026;

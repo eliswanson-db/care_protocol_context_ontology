@@ -248,3 +248,21 @@ facts:
     rag: {none: "patient records aren't documents"}
     genie_ontology: {none: "Genie Ontology retrieves context; result values come from querying silver/gold"}
     graph: {gap: "resultValue sits on Observation/{id}, but hasObservation points at obs/{id}, so traversal from a patient never reaches a value (ONTOBRICKS_REPUBLISH 2026-11-21 item 3b)"}
+
+  - id: F27
+    fact: "Patient 0b4f4745's diabetic eye exam on 2026-09-02 (no retinopathy) is recorded only in an outside, care-team-only letter, not in the EHR."
+    questions: [q8]
+    metric_view: {none: "metric views see only the EHR's structured evidence"}
+    closure: {none: "closures hold terminology; the exam isn't structured data"}
+    rag: {file: docs/care_protocol/corpus/letters/LETTER-EYE-0b4f4745.md, has: ["2026-09-02", "No evidence of diabetic retinopathy", "access: [care_team]"]}
+    genie_ontology: {none: "per-patient correspondence isn't curated into Pages, metadata or knowledge stores"}
+    graph: {none: "per-patient correspondence isn't mapped into the graph"}
+
+  - id: F28
+    fact: "Conditions and orders carry start and stop dates, so whether a condition or drug was active on 2026-10-30 can be decided."
+    questions: [q6]
+    metric_view: {none: "metric views aggregate evidence; they don't hold condition or order dates"}
+    closure: {none: "closures hold terminology, not patient dates"}
+    rag: {none: "patient records aren't documents"}
+    genie_ontology: {file: src/semantic/comments/care_protocol.comments.sql, has: ["silver_condition.stop_date"]}
+    graph: {gap: "hasDiagnosis and prescribed carry no dates, so the graph can't tell an active condition or order from a past one (ONTOBRICKS_REPUBLISH 2026-11-21 item 5b)"}

@@ -224,7 +224,7 @@ classes:
       join to the panel/PCP-transition dimension. Gold values PINNED 2026-10-30 against ect (25k, MY2025).
     questions:
       - id: op_worst_clinic_annual
-        question: "Which clinic has the lowest protocol Step-3 (A1c follow-up) adherence overall this year?"
+        question: "Which clinic had the lowest protocol Step-3 (A1c follow-up) adherence in MY2026 through 2026-10-30?"
         gold: "min annual follow-up rate over gold_protocol_adherence grouped by clinic_id"
         gold_value_25k: "CLINIC-04 (0.443)"   # MY2026 YTD, closed 90-day windows only; re-pinned 2026-11-04
         how_asked: "Genie One -> protocol_adherence_metrics with the Clinic dimension, ranked"
@@ -236,7 +236,7 @@ classes:
           this one. The annual ranking is where the real problem HIDES (see op_clinic_drift). Sufficient for the
           question as literally asked; insufficient for the question the business actually cares about.
       - id: op_clinic_drift
-        question: "Which clinic's protocol Step-3 adherence has recently DROPPED, and by how much versus its own history?"
+        question: "Which clinic's protocol Step-3 adherence DROPPED for triggers in May-July 2026, and by how much versus its own MY2026 baseline (triggers through 2026-07-31)?"
         gold: "trailing-3-month rate per clinic vs that clinic's own prior pooled baseline (self-referential), censoring-aware"
         gold_value_25k: "CLINIC-08 (trailing May-Jul 0.324 vs own YTD baseline 0.600; drift -0.276, ~4x any other clinic). CLINIC-08 is the BEST clinic YTD (0.600), so the annual ranking hides it."   # MY2026, closed windows; re-pinned 2026-11-04
         how_asked: "Genie One -> protocol_watch_findings (precomputed by the watch job); OR recompute the trailing-vs-own-baseline window from gold_protocol_adherence"
@@ -250,7 +250,7 @@ classes:
           self-referential comparison. This is why the Weekly Protocol Watch (ADR-0011) exists -- "nobody asked;
           Genie noticed." Right-censoring and small-N gating matter (an un-gated window flags early-N noise).
       - id: op_drift_rootcause
-        question: "Why did CLINIC-08's protocol Step-3 adherence slip this year?"
+        question: "Why did CLINIC-08's protocol Step-3 adherence slip in MY2026?"
         gold: "a mid-year PCP handoff (panel_pcp_transition) on CLINIC-08 -- the highest-complexity clinic -- dropped the A1c-recheck order set; the effect is confounded with that clinic's higher case-mix"
         gold_value_25k: "explanation: PCP transition 2026-05-15 on CLINIC-08; recovery ~150d; case-mix confound (complexity ~4.55 vs ~4.12)"
         how_asked: "Genie One -> join the drift finding to panel_pcp_transition + clinic case-mix + the care-protocol PDF (which step), then reason"

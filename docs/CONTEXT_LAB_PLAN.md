@@ -225,7 +225,10 @@ HEDIS first (most of it exists), then life sciences, with the same steps:
    by rule): an A1c result (11.0% → GSD poor control → missed Step 3), E11.22 (two parents → diabetes + CKD value
    sets → SGLT2), metformin at eGFR < 30 (CP-GLY-2 → a patient on metformin at eGFR 19.4). Every stage is live. The
    graph stops short where the republish list says (F22, F23, F26).
-4. Question set; verify each answer in the data.
+4. ✅ (2026-11-22, HEDIS) Question set locked: 8 questions in `docs/benchmark/questions_v2.yaml` (fixed dates, honest
+   per-approach predictions, no designed winners). Gold = holdout queries `bq1`-`bq8` in `gold_queries.sql` (never
+   in a Genie space); `verify_gold` 28/28; `tests/test_benchmark_v2.py` guards the rules. Also: HEDIS GSD aligned,
+   condition stop dates, outside letters, `op_clinic_drift` pinned to May-July 2026.
 5. One harness + the simple agent; run it.
 6. Genie One run.
 7. App: Trace + Benchmark tabs.

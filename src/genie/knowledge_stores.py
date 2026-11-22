@@ -110,6 +110,8 @@ def gold_benchmarks(tables: set[str]) -> list[Bench]:
                                                                                       "care_protocol_terminology")
         used = set(re.findall(rf"{C}\.\w+\.\w+", sql))
         desc = " ".join(ln[3:].strip() for ln in body if ln.startswith("-- ") and not ln.startswith("-- class:"))
+        if any(ln.startswith("-- holdout:") for ln in body):
+            continue  # a benchmark answer key: never in any approach's context (gold_queries.sql BENCHMARK v2)
         if sql and used and used <= tables and m:
             out.append(Bench(desc.split(". ")[0][:240] or qid, sql, m.group(1),
                              f"Gold answer key {qid} (hand-verified, MY2026). Expected value: {m.group(1)}."))

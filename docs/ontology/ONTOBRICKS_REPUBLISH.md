@@ -41,7 +41,12 @@ existing mappings use them), in priority order:
    `SELECT v.segment_id AS vs_id, v.code AS loinc_code FROM eli_test_classic_catalog.care_protocol_terminology.value_set_segment v WHERE v.code_system = 'LOINC' AND v.measurement_year = (SELECT max(measurement_year) FROM eli_test_classic_catalog.care_protocol_terminology.value_set_segment w WHERE w.segment_id = v.segment_id AND w.measurement_year <= '2026')`
    (e.g. `ValueSet/KED_EGFR containsTest loinc/98979-8`, and no MDRD).
 
-**Optional (parity only; their questions are other approaches' showcases):**
+5b. **Dates on diagnoses and orders** (F28, benchmark q6). q6 asks about conditions and orders active on 2026-10-30,
+   but `hasDiagnosis` / `prescribed` carry no dates. Map them as dated nodes: a `ConditionRecord` per
+   `silver_condition` row (`onset_date`, `stop_date`, `hasCode` → `icd/{code}`) and a `MedicationOrder` per
+   `bronze_order_med` row (`start_ts`, `stop_ts`, `hasDrug` → `rx/{code}`), linked from the patient.
+
+**Optional (parity only):**
 6. **Clinic** (F07, q1). Entity `Clinic` from `SELECT DISTINCT clinic_id FROM eli_test_classic_catalog.care_protocol.panel_roster`;
    relationship `attributedTo` (Patient → Clinic) from `SELECT patient_id, clinic_id FROM eli_test_classic_catalog.care_protocol.panel_roster`.
 7. **Labels on edge nodes** (Path B fix 3 below).
