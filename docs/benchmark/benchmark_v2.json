@@ -2694,25 +2694,25 @@
       "sql_result": null,
       "facts": [
         {
-          "fact": "68 patients on 2026-10-30.",
+          "fact": "67 patients on 2026-10-30.",
           "in_context": {
             "ok": false,
             "quote": "",
-            "rationale": "The text contains no query result or statement giving a patient count of 68 for 2026-10-30; only metric view definitions are shown."
+            "rationale": "The TEXT contains only metric view definitions/schemas, not an actual query result listing 67 patients for 2026-10-30."
           },
           "in_result": null
         },
         {
-          "fact": "49 held an active metformin fill with a last eGFR below 30; 11 an active ACE-inhibitor order with a pregnancy active that day; 9 an active statin order with a pregnancy active that day (one patient has both of the last two).",
+          "fact": "48 held an active metformin fill with a last eGFR below 30; 11 an active ACE-inhibitor order with a pregnancy active that day; 9 an active statin order with a pregnancy active that day (one patient has both of the last two).",
           "in_context": {
             "ok": false,
             "quote": "",
-            "rationale": "The text is only metric view/schema definitions with no actual query results or patient counts matching the fact."
+            "rationale": "The text is only schema/metric definitions with no actual patient counts or results for the specified fact."
           },
           "in_result": null
         }
       ],
-      "reason": "The retrieved metric view YAMLs lack per-patient contraindication logic, so the agent declined to query and found none of the 68 patients.",
+      "reason": "The metric view definitions lacked patient-level data, so the agent declined to query and found none of the 67 patients.",
       "retrieved": "Definitions of gsd_compliance_metrics, protocol_drift_metrics, lab_result_metrics.",
       "n_docs": 3,
       "skipped_search": false,
@@ -2722,7 +2722,7 @@
       ],
       "facts_in_result": null,
       "context": "UC metric view eli_test_classic_catalog.care_protocol_semantic.gsd_compliance_metrics (query measures with MEASURE(`<measure name>`) FROM eli_test_classic_catalog.care_protocol_semantic.gsd_compliance_metrics):\nversion: 1.1\n\nsource: eli_test_classic_catalog.care_protocol.gold_adherence_gsd\n\ncomment: \"HEDIS GSD (Glycemic Status Assessment) for the diabetes population aged\\\n  \\ 18-75, computed live over the gold evidence base. Denominator = eligible diabetes\\\n  \\ patients. Compliant (Blood Sugar Controlled) = last A1c of the measurement year\\\n  \\ is 9.0% or below. HEDIS indicators over the eligible population: Good Control\\\n  \\ Rate (last A1c < 8.0%) and Poor Control Rate (last A1c > 9.0% OR no A1c test).\\\n  \\ HEDIS-aligned demo, not NCQA-certified.\"\n\ndimensions:\n  - name: Measurement Year\n    expr: measurement_year\n    comment: HEDIS measurement year the metrics are computed for (e.g. 2026).\n    display_name: Measurement Year\n    synonyms:\n      - year\n      - reporting year\n      - MY\n\n  - name: Compliance Status\n    expr: CASE WHEN evidence_value <= 9.0 THEN 'MET' ELSE 'NOT_MET' END\n    comment: \"Computed live: MET = last A1c of the measurement year is 9.0% or below\\\n      \\ (Blood Sugar Controlled); NOT_MET = last A1c above 9.0% or no A1c test. The\\\n      \\ rule lives in this metric view, not in gold.\"\n    display_name: Compliance Status\n    synonyms:\n      - status\n      - met status\n      - adherence status\n      - gap status\n\n  - name: Clinic\n    expr: clinic_id\n    comment: Clinic (site) the patient's panel belongs to. Enables care-gap and compliance\n      rates by site.\n    display_name: Clinic\n    synonyms:\n      - clinic\n      - site\n      - location\n      - facility\n\n  - name: Panel\n    expr: panel_id\n    comment: PCP panel the patient belongs to.\n    display_name: Panel\n    synonyms:\n      - panel\n      - pcp panel\n      - provider panel\n      - care team\n\n  - name: Gap Reason\n    expr: CASE WHEN evidence_value <= 9.0 THEN 'Met' WHEN evidence_datetime IS NULL\n      THEN 'No A1c test in measurement year' ELSE 'Last A1c above 9%' END\n    comment: \"Computed live: why the patient is a care gap (NOT_MET); 'Met' when compliant.\\\n      \\ Group care gaps by reason.\"\n    display_name: Gap Reason\n    synonyms:\n      - gap reason\n      - reason\n      - care gap reason\n      - why gap\n\n  - name: Age Band\n    expr: CASE WHEN age < 45 THEN '18-44' WHEN age < 65 THEN '45-64' ELSE '65-75'\n      END\n    comment: Age band at the end of the measurement year (eligible population is 18-75).\n    display_name: Age Band\n    synonyms:\n      - age group\n      - age bracket\n      - age range\n\n  - name: Measure\n    expr: measure_id\n    comment: HEDIS measure code; this view reports GSD (Glycemic Status Assessment).\n    display_name: HEDIS Measure\n    synonyms:\n      - measure id\n      - hedis measure\n      - quality measure\n\nmeasures:\n  - name: Eligible Patients\n    expr: COUNT(1)\n    comment: Diabetes patients aged 18-75 eligible for GSD (the measure denominator).\n      One row per patient.\n    display_name: Eligible Patients\n    format:\n      type: number\n      decimal_places:\n        type: exact\n        places: 0\n    synonyms:\n      - denominator\n      - eligible population\n      - eligible count\n      - patients eligible\n\n  - name: Tested Patients\n    expr: COUNT(1) FILTER (WHERE evidence_datetime IS NOT NULL)\n    comment: Eligible patients with at least one A1c test in the measurement year\n      (not a HEDIS indicator; testing coverage).\n    display_name: Tested Patients\n    format:\n      type: number\n      decimal_places:\n        type: exact\n        places: 0\n    synonyms:\n      - tested patients\n      - a1c tested\n      - patients with an a1c\n\n  - name: Compliant Patients\n    expr: COUNT(1) FILTER (WHERE evidence_value <= 9.0)\n    comment: Eligible patients whose last A1c of the measurement year is 9.0% or below\n      (Blood Sugar Controlled; the measure numerator) \u2014 computed live from the evidence.\n    display_name: Compliant Patients\n    format:\n      type: number\n      decimal_places:\n        type: exact\n        places: 0\n    synonyms:\n      - numerator\n      - compliant count\n      - patients met\n      - blood sugar controlled\n      - controlled patients\n\n  - name: GSD Compliance Rate\n    expr: MEASURE(`Compliant Patients`) / MEASURE(`Eligible Patients`)\n    comment: Share of eligible diabetes patients whose last A1c of the measurement\n      year is 9.0% or below (Blood Sugar Controlled; the inverse of the HEDIS GSD\n      > 9.0% indicator). Re-aggregates at any grain.\n    display_name: GSD Compliance Rate\n    format:\n      type: percentage\n      decimal_places:\n        type: max\n        places: 1\n    synonyms:\n      - compliance rate\n      - gsd rate\n      - blood sugar controlled rate\n      - met rate\n\n  - name: Good Control Patients\n    expr: COUNT(1) FILTER (WHERE evidence_value < 8.0)\n    comment: Patients whose latest measurement-year A1c is < 8.0% (good glycemic control)\n      \u2014 band computed live from evidence_value.\n    display_name: Good Control (<8%) Patients\n    format:\n      type: number\n      decimal_places:\n        type: exact\n        places: 0\n    synonyms:\n      - good control\n      - well controlled\n      - a1c under 8\n\n  - name: Good Control Rate\n    expr: MEASURE(`Good Control Patients`) / MEASURE(`Eligible Patients`)\n    comment: \"HEDIS GSD < 8.0% indicator: share of eligible patients whose last A1c\\\n      \\ of the measurement year is below 8.0%.\"\n    display_name: Good Control (<8%) Rate\n    format:\n      type: percentage\n      decimal_places:\n        type: max\n        places: 1\n    synonyms:\n      - good control rate\n      - a1c under 8 rate\n\n  - name: Poor Control Patients\n    expr: COUNT(1) FILTER (WHERE evidence_value > 9.0 OR evidence_datetime IS NULL)\n    comment: \"Patients whose last A1c of the measurement year is above 9.0%, or who\\\n      \\ had no A1c test (HEDIS counts a missing test as > 9.0%).\"\n    display_name: Poor Control (>9%) Patients\n    format:\n      type",
-      "latency_s": 11.2,
+      "latency_s": 10.8,
       "tier_runs": [
         3
       ],
@@ -2754,7 +2754,7 @@
       "sql_result": null,
       "facts": [
         {
-          "fact": "68 patients on 2026-10-30.",
+          "fact": "67 patients on 2026-10-30.",
           "in_context": {
             "ok": false,
             "quote": "",
@@ -2763,7 +2763,7 @@
           "in_result": null
         },
         {
-          "fact": "49 held an active metformin fill with a last eGFR below 30; 11 an active ACE-inhibitor order with a pregnancy active that day; 9 an active statin order with a pregnancy active that day (one patient has both of the last two).",
+          "fact": "48 held an active metformin fill with a last eGFR below 30; 11 an active ACE-inhibitor order with a pregnancy active that day; 9 an active statin order with a pregnancy active that day (one patient has both of the last two).",
           "in_context": {
             "ok": false,
             "quote": "",
@@ -2772,7 +2772,7 @@
           "in_result": null
         }
       ],
-      "reason": "This approach only resolves diagnosis/drug concept hierarchies and cannot evaluate protocol contraindications against active orders and labs, so it retrieved nothing.",
+      "reason": "This approach only maps concepts to hierarchy nodes and cannot cross-reference active orders, conditions, or labs against protocol contraindications, so it retrieved nothing.",
       "retrieved": "Retrieved nothing.",
       "n_docs": 0,
       "skipped_search": false,
@@ -2782,7 +2782,7 @@
       ],
       "facts_in_result": null,
       "context": "(no context retrieved)",
-      "latency_s": 8.0,
+      "latency_s": 6.8,
       "tier_runs": [
         3
       ],
@@ -2814,25 +2814,25 @@
       "sql_result": null,
       "facts": [
         {
-          "fact": "68 patients on 2026-10-30.",
+          "fact": "67 patients on 2026-10-30.",
           "in_context": {
             "ok": false,
             "quote": "",
-            "rationale": "The text only lists individual patient correspondence without stating the total count of 68 patients meeting the criteria."
+            "rationale": "The text lists individual patient correspondences without stating a count of 67 patients matching the criteria."
           },
           "in_result": null
         },
         {
-          "fact": "49 held an active metformin fill with a last eGFR below 30; 11 an active ACE-inhibitor order with a pregnancy active that day; 9 an active statin order with a pregnancy active that day (one patient has both of the last two).",
+          "fact": "48 held an active metformin fill with a last eGFR below 30; 11 an active ACE-inhibitor order with a pregnancy active that day; 9 an active statin order with a pregnancy active that day (one patient has both of the last two).",
           "in_context": {
             "ok": false,
             "quote": "",
-            "rationale": "The text contains only generic patient correspondence headers with no mention of counts, drugs, conditions, or eGFR/pregnancy data."
+            "rationale": "The text contains only generic correspondence templates with no patient-specific counts or facts about contraindicated drug orders."
           },
           "in_result": null
         }
       ],
-      "reason": "Retrieved only unrelated eye-exam letters, lacking any drug-contraindication or lab-threshold data needed to identify the 68 patients.",
+      "reason": "Retrieved only unrelated eye exam letters, not care-protocol contraindication rules or patient drug/lab data, so it couldn't answer.",
       "retrieved": "5 passages from: Outside Eye Exam Letter \u2014 Chi O'Reilly (2026-08-19), Outside Eye Exam Letter \u2014 Corinna Schuster (2026-05-31), Outside Eye Exam Letter \u2014 Santiago Fadel (2026-02-15), Outside Eye Exam Letter \u2014 Ludivina Wunsch (2026-01-12), Outside Eye Exam Letter \u2014 Chi Hamill (2026-08-09).",
       "n_docs": 5,
       "skipped_search": false,
@@ -2842,7 +2842,7 @@
       ],
       "facts_in_result": null,
       "context": "**Re:** Chi O'Reilly \u00b7 DOB 1961-02-09 \u00b7 patient 2c419662-d3a6-e36b-da54-44b81847a272\n**Date of service:** 2026-08-19 \u00b7 **To:** the patient's primary care clinic (CLINIC-07)\n> Synthetic patient-specific correspondence for the Care Protocol demo. No real PHI. Care-team access only.\n\n**Re:** Corinna Schuster \u00b7 DOB 1953-03-27 \u00b7 patient 34470b92-e033-6131-2ee7-a5fb0e69ecc6\n**Date of service:** 2026-05-31 \u00b7 **To:** the patient's primary care clinic (CLINIC-03)\n> Synthetic patient-specific correspondence for the Care Protocol demo. No real PHI. Care-team access only.\n\n**Re:** Santiago Fadel \u00b7 DOB 1983-04-13 \u00b7 patient 1f2fdd89-2996-1f08-8f82-4142a5df7926\n**Date of service:** 2026-02-15 \u00b7 **To:** the patient's primary care clinic (CLINIC-01)\n> Synthetic patient-specific correspondence for the Care Protocol demo. No real PHI. Care-team access only.\n\n**Re:** Ludivina Wunsch \u00b7 DOB 1966-06-27 \u00b7 patient 6585abd5-3710-8adf-5943-3fc47b602274\n**Date of service:** 2026-01-12 \u00b7 **To:** the patient's primary care clinic (CLINIC-05)\n> Synthetic patient-specific correspondence for the Care Protocol demo. No real PHI. Care-team access only.\n\n**Re:** Chi Hamill \u00b7 DOB 1961-11-09 \u00b7 patient 2061424a-7118-ff93-0dac-ada8cce3cc4a\n**Date of service:** 2026-08-09 \u00b7 **To:** the patient's primary care clinic (CLINIC-06)\n> Synthetic patient-specific correspondence for the Care Protocol demo. No real PHI. Care-team access only.",
-      "latency_s": 13.6,
+      "latency_s": 12.9,
       "tier_runs": [
         3
       ],
@@ -2874,25 +2874,25 @@
       "sql_result": null,
       "facts": [
         {
-          "fact": "68 patients on 2026-10-30.",
+          "fact": "67 patients on 2026-10-30.",
           "in_context": {
             "ok": false,
             "quote": "",
-            "rationale": "The text explains methodology for computing such patients but never states a specific count of 68 patients on 2026-10-30."
+            "rationale": "The text explains methodology for computing contraindication overlaps but never states a specific count of 67 patients for 2026-10-30."
           },
           "in_result": null
         },
         {
-          "fact": "49 held an active metformin fill with a last eGFR below 30; 11 an active ACE-inhibitor order with a pregnancy active that day; 9 an active statin order with a pregnancy active that day (one patient has both of the last two).",
+          "fact": "48 held an active metformin fill with a last eGFR below 30; 11 an active ACE-inhibitor order with a pregnancy active that day; 9 an active statin order with a pregnancy active that day (one patient has both of the last two).",
           "in_context": {
             "ok": false,
             "quote": "",
-            "rationale": "The text explicitly states this agent has no diagnosis, medication-order, or protocol-rule tables and such questions are out of scope; no actual counts are given."
+            "rationale": "Text explicitly states this agent has no diagnosis/medication/protocol-rule data and provides no patient-specific counts for the fact."
           },
           "in_result": null
         }
       ],
-      "reason": "The agent declined to run a query, leaving the contraindication logic and patient counts unresolved despite having relevant Pages.",
+      "reason": "Had Pages on care-protocol rules and conditions but declined to run a query, so no patient-specific results were computed.",
       "retrieved": "11 inferred snippets (11 about this demo); 4 Pages: Active condition, Care-protocol rules (drug classes, contraindications, thresholds), Inquiry Category, Medication Fill.",
       "n_docs": 15,
       "skipped_search": false,
@@ -2902,7 +2902,7 @@
       ],
       "facts_in_result": null,
       "context": "Inferred snippet (text) from [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev): Comorbidity counts, contraindications, and recommended therapy fall outside this agent\u2019s available data because the necessary clinical source tables are absent.\nThis agent has no diagnosis, medication-order, or protocol-rule tables. Comorbidity counts, contraindications, and recommended therapy questions are out of scope. Lab-result analysis is available by LOINC concept through eli_test_classic_catalog.care_protocol_semantic.lab_result_metrics, but the supplied portion defines no named lab measures.\n\nInferred snippet (join_hint) from Query history for eli_test_classic_catalog.care_protocol_terminology.protocol_edges and eli_test_classic_catalog.care_protocol_terminology.value_set_segment: Statin contraindication analysis connects a patient\u2019s statin medication and diagnosis through protocol rules and terminology closures.\nFor a patient-specific contraindication result, begin with statin medications from `eli_test_classic_catalog.care_protocol.care_order_med` and retain rows whose `rxnorm_code` is a descendant of `DRUGCLASS-STATIN` in `eli_test_classic_catalog.care_protocol_terminology.rxnorm_closure` (`rc.descendant_code = m.rxnorm_code AND rc.ancestor_code = 'DRUGCLASS-STATIN'`). Join those medications to `eli_test_classic_catalog.care_protocol_terminology.protocol_edges` restricted to `subject = 'DRUGCLASS-STATIN' AND predicate = 'contraindicatedWith'`; the edge\u2019s `object` is the contraindication rule. Then join `protocol_edges.object` to `eli_test_classic_catalog.care_protocol_terminology.value_set_segment.segment_id`, require `code_system = 'ICD10CM'`, join `value_set_segment.code` to `eli_test_classic_catalog.care_protocol_terminology.icd10_closure.ancestor_code`, and join `icd10_closure.descendant_code` to the patient diagnosis `eli_test_classic_catalog.care_protocol.silver_condition.icd10_code`. This complete path requires every hop; the medication-to-rule combination uses `JOIN ... ON TRUE`, so multiple patient statins and applicable contraindication edges can multiply rows and should be deduplicated when counting unique findings.\n\nInferred snippet (business_logic) from Query history for eli_test_classic_catalog.care_protocol.care_order_med and eli_test_classic_catalog.care_protocol.silver_condition: Care protocol analyses reduce diagnosis and medication evidence to patient-level facts before assessing regimen coverage or contraindication overlap.\nCare protocol analysis uses eli_test_classic_catalog.care_protocol.silver_condition for diagnosis evidence, eli_test_classic_catalog.care_protocol.care_order_med for medication-order evidence, and terminology tables in eli_test_classic_catalog.care_protocol_terminology to normalize diagnosis and drug codes. Reusable outputs in these patterns are patient-level flags, not order-level or diagnosis-row-level facts: medication and condition rows are reduced to one row per `patient_id` with `SELECT DISTINCT`, `GROUP BY patient_id`, or `MAX(CASE WHEN ... THEN 1 ELSE 0 END)`. This patient-level reduction is necessary before joining conditions to medications because both source tables can have multiple rows per patient and otherwise can fan out counts. The same sources support two recurring business questions: cardiorenal regimen coverage and patients on statins with contraindication diagnoses.\n\nInferred snippet (metric_definition) from Query history for eli_test_classic_catalog.care_protocol.bronze_order_med and eli_test_classic_catalog.care_protocol_terminology.value_set_segment: Drug-class contraindication reports count distinct affected patients for each contraindication segment and collect matching diagnosis codes.\nGeneral drug-class contraindication reports are grouped at the `(drug_class, segment_id)` grain and compute `count(DISTINCT meds.patient_id) AS patients` plus `collect_set(dx.icd10_code) AS codes`. Medication rows are first reduced to distinct `patient_id`, `ancestor_code AS drug_class`, and `rxnorm_code` from `eli_test_classic_catalog.care_protocol.bronze_order_med` joined to `eli_test_classic_catalog.care_protocol_terminology.rxnorm_closure`, with drug classes INCLUDED by `c.ancestor_code LIKE 'DRUGCLASS-%'`. Contraindication rules are INCLUDED by `eli_test_classic_catalog.care_protocol_terminology.protocol_edges.predicate = 'contraindicatedWith'`, and contraindication value-set segments are INCLUDED by `eli_test_classic_catalog.care_protocol_terminology.value_set_segment.segment_id LIKE 'CONTRA%'`. Diagnoses are deduplicated to distinct `patient_id, icd10_code` from `eli_test_classic_catalog.care_protocol.bronze_pat_enc_dx`, then matched with `dx.icd10_code LIKE concat(contra.code, '%')`; without the distinct CTEs, repeated medication orders or repeated diagnosis rows can inflate the patient counts.\n\nInferred snippet (join_hint) from Query history for eli_test_classic_catalog.care_protocol.bronze_order_med and eli_test_classic_catalog.care_protocol_terminology.value_set_segment: Contraindication analysis links medications to drug classes, class rules, coded value sets, and patient diagnoses.\nContraindication analysis uses a complete INNER JOIN path from medications to classes, class rules, value-set codes, and patient diagnoses. Start with `eli_test_classic_catalog.care_protocol.bronze_order_med m` JOIN `eli_test_classic_catalog.care_protocol_terminology.rxnorm_closure c` ON `m.rxnorm_code = c.descendant_code`, then JOIN contraindication rules from `eli_test_classic_catalog.care_protocol_terminology.protocol_edges r` ON `r.subject = c.ancestor_code` with `r.predicate = 'contraindicatedWith'`, then JOIN `eli_test_classic_catalog.care_protocol_terminology.value_set_segment v` ON `v.segment_id = r.object`, then JOIN `eli_test_classic_catalog.care_protocol.bronze_pat_enc_dx dx` ON `dx.patient_id = m.patient_id` and an ICD prefix condition such as `dx.icd10_code LIKE concat(v.code, '%')`. All joins are row-dropping INNER JOINs: orders witho",
-      "latency_s": 11.4,
+      "latency_s": 10.8,
       "tier_runs": [
         3
       ],
@@ -2934,25 +2934,25 @@
       "sql_result": null,
       "facts": [
         {
-          "fact": "68 patients on 2026-10-30.",
+          "fact": "67 patients on 2026-10-30.",
           "in_context": {
             "ok": false,
             "quote": "",
-            "rationale": "The text only lists ontology triples/schema; it never states a count of 68 patients meeting the condition."
+            "rationale": "The text only shows ontology triples/schema and does not state any count of patients matching the criteria."
           },
           "in_result": null
         },
         {
-          "fact": "49 held an active metformin fill with a last eGFR below 30; 11 an active ACE-inhibitor order with a pregnancy active that day; 9 an active statin order with a pregnancy active that day (one patient has both of the last two).",
+          "fact": "48 held an active metformin fill with a last eGFR below 30; 11 an active ACE-inhibitor order with a pregnancy active that day; 9 an active statin order with a pregnancy active that day (one patient has both of the last two).",
           "in_context": {
             "ok": false,
             "quote": "",
-            "rationale": "The text only lists guideline schema triples (contraindication rules, drug classes, ICD codes) with no patient-level counts or aggregated results matching the fact."
+            "rationale": "The text only shows generic guideline triples (schema/ontology), with no patient-level counts or specific numbers matching the fact."
           },
           "in_result": null
         }
       ],
-      "reason": "The agent declined to query, retrieving only 30 schema triples (contraindications, ingredients) with no patient-level data to count the 68 affected patients.",
+      "reason": "The agent retrieved only schema-level contraindication triples and declined to query, so it never computed the 67 patient counts.",
       "retrieved": "Linked ValueSet/CONTRA_HEPATIC, ValueSet/CONTRA_PREGNANCY; 30 triples (hasIngredient 9, contains 6, contraindicatedWith 4, subClassOf 4, recommendedFor 3).",
       "n_docs": 31,
       "skipped_search": false,
@@ -2962,7 +2962,7 @@
       ],
       "facts_in_result": null,
       "context": "Source: Ontobricks triple table eswanson_demo.ontobricks.triplestore_clinicaldomain_v3_graph (columns subject, predicate, object). Node IRIs are https://care-protocol.example/ontology/<Type>/<id> (e.g. https://care-protocol.example/ontology/Patient/<patient_id>, https://care-protocol.example/ontology/icd/E11.9, https://care-protocol.example/ontology/DrugClass/DRUGCLASS-STATIN); predicate IRIs are https://care-protocol.example/ontology/<predicate>. Triples below are shown with that prefix removed.\nGraph schema (predicate: subject type -> object type, count): ageAtPeriodEnd: Patient -> literal (2,399); contains: ValueSet -> icd (20); contraindicatedWhen: DrugClass -> Threshold (2); contraindicatedWith: DrugClass -> ValueSet (4); definedBy: ValueSet -> Threshold (1); eligibleFor: Patient -> Measure (13,133); firstLineFor: DrugClass -> ValueSet (1); hasCareGap: Patient -> Measure (6,744); hasComponent: loinc -> part (9); hasDiagnosis: Patient -> icd (17,871); hasIngredient: rx -> ing (42); hasMethod: loinc -> part (5); hasObservation: Patient -> obs (15,094,152); hasSystem: loinc -> part (9); hasThreshold: Measure -> Threshold (4); icd10Code: Pregnancy -> literal (704); icd10Code: Condition -> literal (39); icd10Code: DiabetesDiagnosis -> literal (7); icd10Code: ChronicKidneyDisease -> literal (5); icd10Code: HeartFailure -> literal (1); inDrugClass: ing -> DrugClass (3); loincCode: LabTest -> literal (308); monitoredBy: Measure -> part (5); ofTest: obs -> loinc (15,094,152); prescribed: Patient -> rx (156,532); recommendedFor: DrugClass -> ValueSet (4); recommendedFor: DrugClass -> Measure (1); resultValue: Observation -> literal (9,426,773); rxnormCode: Medication -> literal (48); subClassOf: icd -> icd (28); thresholdValue: Threshold -> literal (7); valueSetId: ValueSet -> literal (21)\n\n(ValueSet/CONTRA_HEPATIC) -[contains]-> (icd/K70)  [guideline, hop 1]\n\n(ValueSet/CONTRA_PREGNANCY) -[contains]-> (icd/O15)  [guideline, hop 1]\n\n(ValueSet/CONTRA_PREGNANCY) -[contains]-> (icd/O00)  [guideline, hop 1]\n\n(DrugClass/DRUGCLASS-ACE) -[contraindicatedWith]-> (ValueSet/CONTRA_PREGNANCY)  [guideline, hop 1]\n\n(DrugClass/DRUGCLASS-STATIN) -[contraindicatedWith]-> (ValueSet/CONTRA_HEPATIC)  [guideline, hop 1]\n\n(ValueSet/CONTRA_HEPATIC) -[contains]-> (icd/K74)  [guideline, hop 1]\n\n(DrugClass/DRUGCLASS-ARB) -[contraindicatedWith]-> (ValueSet/CONTRA_PREGNANCY)  [guideline, hop 1]\n\n(ValueSet/CONTRA_PREGNANCY) -[contains]-> (icd/Z34)  [guideline, hop 1]\n\n(ValueSet/CONTRA_PREGNANCY) -[contains]-> (icd/O26)  [guideline, hop 1]\n\n(DrugClass/DRUGCLASS-STATIN) -[contraindicatedWith]-> (ValueSet/CONTRA_PREGNANCY)  [guideline, hop 1]\n\n(icd/O15.9) -[subClassOf]-> (icd/O15)  [guideline, hop 2]\n\n(DrugClass/DRUGCLASS-ARB) -[recommendedFor]-> (ValueSet/ALBUMINURIA)  [guideline, hop 2]\n\n(DrugClass/DRUGCLASS-ACE) -[recommendedFor]-> (ValueSet/ALBUMINURIA)  [guideline, hop 2]\n\n(icd/O00.1) -[subClassOf]-> (icd/O00)  [guideline, hop 2]\n\n(icd/O26.9) -[subClassOf]-> (icd/O26)  [guideline, hop 2]\n\n(ing/83367) -[inDrugClass]-> (DrugClass/DRUGCLASS-STATIN)  [guideline, hop 2]\n\n(ing/36567) -[inDrugClass]-> (DrugClass/DRUGCLASS-STATIN)  [guideline, hop 2]\n\n(DrugClass/DRUGCLASS-STATIN) -[recommendedFor]-> (Measure/SPD)  [guideline, hop 2]\n\n(icd/Z34.90) -[subClassOf]-> (icd/Z34)  [guideline, hop 2]\n\n(ing/301542) -[inDrugClass]-> (DrugClass/DRUGCLASS-STATIN)  [guideline, hop 2]\n\n(rx/314231) -[hasIngredient]-> (ing/36567)  [guideline, hop 3]\n\n(rx/859424) -[hasIngredient]-> (ing/301542)  [guideline, hop 3]\n\n(rx/617311) -[hasIngredient]-> (ing/83367)  [guideline, hop 3]\n\n(rx/259255) -[hasIngredient]-> (ing/83367)  [guideline, hop 3]\n\n(rx/312961) -[hasIngredient]-> (ing/36567)  [guideline, hop 3]\n\n(rx/617310) -[hasIngredient]-> (ing/83367)  [guideline, hop 3]\n\n(ValueSet/ALBUMINURIA) -[definedBy]-> (Threshold/uACR_GTE_30)  [guideline, hop 3]\n\n(rx/476349) -[hasIngredient]-> (ing/36567)  [guideline, hop 3]\n\n(rx/859747) -[hasIngredient]-> (ing/301542)  [guideline, hop 3]\n\n(rx/617312) -[hasIngredient]-> (ing/83367)  [guideline, hop 3]",
-      "latency_s": 13.2,
+      "latency_s": 13.3,
       "tier_runs": [
         3
       ],
@@ -2994,25 +2994,25 @@
       "sql_result": null,
       "facts": [
         {
-          "fact": "68 patients on 2026-10-30.",
+          "fact": "67 patients on 2026-10-30.",
           "in_context": {
             "ok": true,
-            "quote": "On 2026-10-30, **68 patients** had an active order for a drug the care protocol contraindicates.",
-            "rationale": "The text explicitly states 68 patients on 2026-10-30."
+            "quote": "I found **67 patients** with an active order on 2026-10-30 for a drug the care protocol rules out.",
+            "rationale": "The text explicitly states 67 patients were found for this condition."
           },
           "in_result": null
         },
         {
-          "fact": "49 held an active metformin fill with a last eGFR below 30; 11 an active ACE-inhibitor order with a pregnancy active that day; 9 an active statin order with a pregnancy active that day (one patient has both of the last two).",
+          "fact": "48 held an active metformin fill with a last eGFR below 30; 11 an active ACE-inhibitor order with a pregnancy active that day; 9 an active statin order with a pregnancy active that day (one patient has both of the last two).",
           "in_context": {
             "ok": true,
-            "quote": "Metformin with a low last eGFR: 49 patients (rule CP-GLY-2).",
-            "rationale": "Text explicitly states 49 patients for metformin/eGFR<30, and ACE/statin pregnancy counts of 11 and 9 with one overlap patient are also given."
+            "quote": "**Lisinopril (an ACE inhibitor):** 11 patients.\n  - **Simvastatin (a statin):** 9 patients.",
+            "rationale": "Text explicitly states 48 metformin/eGFR<30, 11 ACE-inhibitor/pregnancy, 9 statin/pregnancy, with one patient in both groups."
           },
           "in_result": null
         }
       ],
-      "reason": "Genie One's answer correctly states all gold facts (68 total, 49 metformin/eGFR, 11 ACE-inhibitor, 9 statin) without running any query.",
+      "reason": "Genie One's answer matches all gold facts (67 total, 48 metformin/eGFR<30, 11 ACE-inhibitor/pregnancy, 9 statin/pregnancy) without issuing a follow-up query.",
       "retrieved": "2 documents.",
       "n_docs": 2,
       "skipped_search": false,
@@ -3021,8 +3021,8 @@
         true
       ],
       "facts_in_result": null,
-      "context": "# 68 patients had an active contraindicated drug order on 2026-10-30\n\nOn 2026-10-30, **68 patients** had an active order for a drug the care protocol contraindicates. **49** were flagged by their last lab result and **19** by a condition active that day. No patient was flagged by both. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/3d02a0c3893440fb990d1c02a73eb171?o=7474653847172668#embed-query_35ac85)\n\n<!-- begin-embedded:query_35ac85 -->\n| basis | rule | source | drug_class | patients | min_egfr | max_egfr | earliest_order | latest_order | distinct_order_dates |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n| Condition | CONTRA_PREGNANCY | CP sec4 | DRUGCLASS-ACE | 11 | None | None | 2025-11-01 | 2026-10-04 | 11 |\n| Condition | CONTRA_PREGNANCY | CP sec4 | DRUGCLASS-STATIN | 9 | None | None | 2022-07-09 | 2026-10-15 | 9 |\n| Last lab | eGFR_LT_30 | CP-GLY-2 | DRUGCLASS-BIGUANIDE | 49 | 1.2 | 28.7 | 2026-10-28 | 2026-10-28 | 1 |\n| None | None | None | None | 68 | 1.2 | 28.7 | 2022-07-09 | 2026-10-28 | 21 |\n<!-- end-embedded:query_35ac85 -->\n\n## What drives the count\n- **Metformin with a low last eGFR: 49 patients (rule CP-GLY-2).** Each had an active metformin ER 500 mg order. Their latest eGFR on or before 2026-10-30 was below 30, with values from 1.2 to 28.7. **All 49 orders started on 2026-10-28**, and the ones shown run to 2026-11-27. One start date shared by every order suggests a batch load or one order set applied to many patients. Check that before acting on these flags.\n- **Pregnancy: 19 patients (rule CP sec4).** Each had a pregnancy diagnosis active that day and an open order for a drug the protocol rules out in pregnancy:\n  - Lisinopril (an ACE inhibitor): 11 patients.\n  - Simvastatin (a statin): 9 patients.\n  - One patient had both orders, so 11 + 9 = 20 orders covers 19 people. That same patient also has a tubal pregnancy code (O00.1). Everyone else was flagged on normal pregnancy (Z34.90).\n  - None of these orders had a stop date. One simvastatin order dates back to 2022-07-09, so it may be an old order that was never closed. One patient's pregnancy was first recorded on 2026-10-30 itself.\n- **No one was flagged for statins with hepatic disease, or for SGLT2 drugs.** There are no SGLT2 orders in the data. [hedis-diabetes-quality](https://fevm-eli-test-classic.cloud.databricks.com/one/tools/skills/%2FWorkspace%2FUsers%2Feli.swanson%40databricks.com%2F.assistant%2Fskills%2Fhedis-diabetes-quality?isDbOne=true&utm_source=one-chat&o=7474653847172668)\n\n## Patient list\nThe list has 71 rows, one per patient, drug and matching diagnosis code, so some patients appear more than once. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/3d02a0c3893440fb990d1c02a73eb171?o=7474653847172668#embed-query_95ecaf)\n\n<!-- begin-embedded:query_95ecaf -->\n| patient_id | drug_class | drug | order_start | order_stop | basis | rule | source | evidence |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- |\n| 15ce684d-4abe-58f1-d28a-97f7b212fab8 | DRUGCLASS-ACE | lisinopril 10 MG Oral Tablet | 2026-10-04 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-07-12, stop open) |\n| 311f9656-f00f-3534-d365-9305c42252ae | DRUGCLASS-ACE | lisinopril 10 MG Oral Tablet | 2026-04-04 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-10-24, stop open) |\n| 410b559a-52a3-bd55-a9a9-a417f5ca1370 | DRUGCLASS-ACE | lisinopril 10 MG Oral Tablet | 2026-10-02 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-10-30, stop open) |\n| 5902d150-ebb1-0450-a2ae-90f129adde04 | DRUGCLASS-ACE | lisinopril 10 MG Oral Tablet | 2026-02-11 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-05-27, stop open) |\n| 6d935a54-1892-c094-5210-c0f0a498062a | DRUGCLASS-ACE | lisinopril 10 MG Oral Tablet | 2026-09-25 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-09-18, stop open) |\n| 7194aa16-6399-3d19-43b4-0c2eb4fff120 | DRUGCLASS-ACE | lisinopril 10 MG Oral Tablet | 2026-04-17 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-05-22, stop open) |\n| 86b4a214-db8c-802e-e144-e233cdb8eb14 | DRUGCLASS-ACE | lisinopril 10 MG Oral Tablet | 2026-08-29 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-08-08, stop open) |\n| 9c912da4-754c-20b6-e5f0-758933536d22 | DRUGCLASS-ACE | lisinopril 10 MG Oral Tablet | 2025-11-01 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-10-10, stop open) |\n| 9e485746-dc80-e94a-0dcc-0b933052a569 | DRUGCLASS-ACE | lisinopril 10 MG Oral Tablet | 2026-07-01 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-07-08, stop open) |\n| f2711bd3-b676-0b2b-3ba6-d836904aa7a3 | DRUGCLASS-ACE | lisinopril 10 MG Oral Tablet | 2025-11-18 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-10-13, stop open) |\n| f2711bd3-b676-0b2b-3ba6-d836904aa7a3 | DRUGCLASS-ACE | lisinopril 10 MG Oral Tablet | 2025-11-18 | None | Condition | CONTRA_PREGNANCY | CP sec4 | O00.1 Tubal pregnancy (disorder) (onset 2026-10-13, stop open) |\n| f5ae978e-3eae-fbc3-caab-84ea15c7bcb7 | DRUGCLASS-ACE | lisinopril 10 MG Oral Tablet | 2026-02-26 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-08-13, stop open) |\n| 21405181-f167-4b8f-b79f-4f3ed20d9a56 | DRUGCLASS-STATIN | Simvastatin 10 MG Oral Tablet | 2026-02-10 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-09-08, stop open) |\n| 2fadc0eb-e372-a5cb-2727-dc20dd0d0874 | DRUGCLASS-STATIN | Simvastatin 10 MG Oral Tablet | 2026-09-18 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pr",
-      "latency_s": 10.5,
+      "context": "I found **67 patients** with an active order on 2026-10-30 for a drug the care protocol rules out. **48** were flagged by their last eGFR result and **19** by a pregnancy diagnosis active that day. No patient was flagged on both. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/9afb0808fec0412ab2721a3d28cac48f?o=7474653847172668#embed-query_3f0019)\n\n<!-- begin-embedded:query_3f0019 -->\n| basis | rule | source | drug_class | patients | min_egfr | max_egfr | earliest_order | latest_order |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- |\n| Condition | CONTRA_PREGNANCY | CP sec4 | DRUGCLASS-ACE | 11 | None | None | 2025-11-01 | 2026-10-04 |\n| Condition | CONTRA_PREGNANCY | CP sec4 | DRUGCLASS-STATIN | 9 | None | None | 2022-07-09 | 2026-10-15 |\n| Last lab | eGFR_LT_30 | CP-GLY-2 | DRUGCLASS-BIGUANIDE | 48 | 1.2 | 28.7 | 2026-09-30 | 2026-10-29 |\n| None | None | None | None | 67 | 1.2 | 28.7 | 2022-07-09 | 2026-10-29 |\n<!-- end-embedded:query_3f0019 -->\n\n## Breakdown by rule\n- **Metformin with a last eGFR below 30: 48 patients (rule CP-GLY-2).** Each had an active extended-release metformin 500 mg order. Their latest eGFR on or before 2026-10-30 was between 1.2 and 28.7. The orders started between 2026-09-30 and 2026-10-29, and many run 30 days into November.\n- **Pregnancy: 19 patients (rule CP sec4).** Each had a pregnancy diagnosis active that day and an open order for a drug the protocol rules out in pregnancy:\n  - **Lisinopril (an ACE inhibitor):** 11 patients.\n  - **Simvastatin (a statin):** 9 patients.\n  - One patient has both orders, which is why 11 + 9 counts only 19 people. She also has a tubal pregnancy code (O00.1); everyone else matched on normal pregnancy (Z34.90).\n  - **None of these orders has a stop date.** One simvastatin order dates back to 2022-07-09 and may simply never have been closed.\n  - **Recent diagnoses:** one patient's pregnancy was first recorded on 2026-10-30 itself, and another's on 2026-10-24.\n- **No patients were flagged for these two rules:**\n  - **Statins with hepatic disease:** no matches.\n  - **SGLT2 drugs with eGFR below 20:** there are no SGLT2 orders in the data. [hedis-diabetes-quality](https://fevm-eli-test-classic.cloud.databricks.com/one/tools/skills/%2FWorkspace%2FUsers%2Feli.swanson%40databricks.com%2F.assistant%2Fskills%2Fhedis-diabetes-quality?isDbOne=true&utm_source=one-chat&o=7474653847172668)\n\n## Patient list\nThe list has 70 rows, one per patient, drug and matching diagnosis code. The patient with both orders and two pregnancy codes therefore appears more than once. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/9afb0808fec0412ab2721a3d28cac48f?o=7474653847172668#embed-query_242cfc)\n\n<!-- begin-embedded:query_242cfc -->\n| patient_id | drug_class | drug | order_start | order_stop | basis | rule | source | evidence |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- |\n| 15ce684d-4abe-58f1-d28a-97f7b212fab8 | DRUGCLASS-ACE | lisinopril 10 MG Oral Tablet | 2026-10-04 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-07-12, stop open) |\n| 311f9656-f00f-3534-d365-9305c42252ae | DRUGCLASS-ACE | lisinopril 10 MG Oral Tablet | 2026-04-04 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-10-24, stop open) |\n| 410b559a-52a3-bd55-a9a9-a417f5ca1370 | DRUGCLASS-ACE | lisinopril 10 MG Oral Tablet | 2026-10-02 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-10-30, stop open) |\n| 5902d150-ebb1-0450-a2ae-90f129adde04 | DRUGCLASS-ACE | lisinopril 10 MG Oral Tablet | 2026-02-11 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-05-27, stop open) |\n| 6d935a54-1892-c094-5210-c0f0a498062a | DRUGCLASS-ACE | lisinopril 10 MG Oral Tablet | 2026-09-25 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-09-18, stop open) |\n| 7194aa16-6399-3d19-43b4-0c2eb4fff120 | DRUGCLASS-ACE | lisinopril 10 MG Oral Tablet | 2026-04-17 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-05-22, stop open) |\n| 86b4a214-db8c-802e-e144-e233cdb8eb14 | DRUGCLASS-ACE | lisinopril 10 MG Oral Tablet | 2026-08-29 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-08-08, stop open) |\n| 9c912da4-754c-20b6-e5f0-758933536d22 | DRUGCLASS-ACE | lisinopril 10 MG Oral Tablet | 2025-11-01 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-10-10, stop open) |\n| 9e485746-dc80-e94a-0dcc-0b933052a569 | DRUGCLASS-ACE | lisinopril 10 MG Oral Tablet | 2026-07-01 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-07-08, stop open) |\n| f2711bd3-b676-0b2b-3ba6-d836904aa7a3 | DRUGCLASS-ACE | lisinopril 10 MG Oral Tablet | 2025-11-18 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-10-13, stop open) |\n| f2711bd3-b676-0b2b-3ba6-d836904aa7a3 | DRUGCLASS-ACE | lisinopril 10 MG Oral Tablet | 2025-11-18 | None | Condition | CONTRA_PREGNANCY | CP sec4 | O00.1 Tubal pregnancy (disorder) (onset 2026-10-13, stop open) |\n| f5ae978e-3eae-fbc3-caab-84ea15c7bcb7 | DRUGCLASS-ACE | lisinopril 10 MG Oral Tablet | 2026-02-26 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-08-13, stop open) |\n| 21405181-f167-4b8f-b79f-4f3ed20d9a56 | DRUGCLASS-STATIN | Simvastatin 10 MG Oral Tablet | 2026-02-10 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-09-08, stop open) |\n| 2fadc0eb-e372-a5cb-2727-dc20dd0d0874 | DRUGCLASS-STATIN | Simvastatin 10 MG Oral Tablet | 2026-09-18 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-09-25, stop open) |\n| 39b9a06f-082d-01ec-4a44-a819686b0d50",
+      "latency_s": 9.9,
       "tier_runs": [
         1
       ],

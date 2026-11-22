@@ -264,7 +264,7 @@ classes:
       - id: op_mad_rate
         question: "What is the Medication Adherence for Diabetes (MAD) rate -- the share of eligible patients with PDC >= 0.80?"
         gold: "numerator / eligible over gold_adherence_mad"
-        gold_value_25k: "0.5977 (860 eligible)"   # MY2026 through 2026-10-30, after the fill-cycle fix (2026-11-22); no gold query
+        gold_value_25k: "0.5837 (860 eligible)"   # MY2026 through 2026-10-30, after the fill-cycle and refill-phase fixes (2026-11-22); no gold query
         how_asked: "Genie One -> mad_compliance_metrics MEASURE()"
         min_approach: metric_view
         graph_strictly_needed: false

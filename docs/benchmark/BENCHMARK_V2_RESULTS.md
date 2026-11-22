@@ -73,12 +73,15 @@ Hand-verifying Genie One's misses found three problems on our side, all fixed:
    - `care_behavior` floored the number of 30-day fill cycles, so every patient's last metformin fill ended before
      2026-10-30 and almost no one held supply that day. Now the last fill runs its full 30 days (74% of 2026
      metformin patients hold supply on 2026-10-30). MAD clips coverage at the horizon, so it only loses the
-     artificial end gap: MAD rate 59.8% (860 eligible). MAD has no gold query; its ground-truth note was stale.
+     artificial end gap. Genie One then noticed every fill started on the same day ("a batch load"): all cycles
+     began on 2026-01-01. Ongoing patients now start on their own day 0-29 of January (97 distinct last-fill dates).
+     MAD rate 58.4% (860 eligible); MAD has no gold query, and its ground-truth note was stale.
    - Synthea sends two different results for the same patient, code and moment (2,989 eGFR moments in MY2026), so
      "last eGFR" depended on which row a query picked. Silver now keeps the lower value (decision 2026-11-22) and
      records `source_rows`; 36,758 conflicts collapsed. The gold also took the last result per LOINC code, so a stale
      MDRD value could count; it now takes the last result per lab component.
-   q6 gold: 68 patients (49 metformin with last eGFR < 30; 11 ACE inhibitor and 9 statin with an active pregnancy).
+   q6 gold: 67 patients (48 metformin with last eGFR < 30; 11 ACE inhibitor and 9 statin with an active pregnancy).
+   Genie One's answer matches it exactly (hand-verified).
 
 Realism caveat found on q7: SPD counts a statin **dispensed** in the year, and our data approximates dispensing by
 an order's start date. The hero's only statin is an open-ended 2009 order; an EHR order isn't a fill, so "SPD gap"

@@ -92,8 +92,8 @@ questions:
     answer_type: count + reasons
     gold: [bq6_contra_active_patients, bq6_contra_active_reasons]
     expected_facts:
-      - "68 patients on 2026-10-30."
-      - "49 held an active metformin fill with a last eGFR below 30; 11 an active ACE-inhibitor order with a pregnancy active that day; 9 an active statin order with a pregnancy active that day (one patient has both of the last two)."
+      - "67 patients on 2026-10-30."
+      - "48 held an active metformin fill with a last eGFR below 30; 11 an active ACE-inhibitor order with a pregnancy active that day; 9 an active statin order with a pregnancy active that day (one patient has both of the last two)."
     facts: [F17, F18, F19, F20, F21, F22, F23, F26, F28]
     predictions:
       metric_view: "no: not a measure"
