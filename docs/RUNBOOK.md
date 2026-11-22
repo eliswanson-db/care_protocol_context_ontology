@@ -329,8 +329,11 @@ GRANT USE CATALOG ON CATALOG eswanson_demo TO `<sp>`;  GRANT USE SCHEMA, SELECT 
 # (applied by scripts/grant_app_uc_reader.py; re-run it whenever eswanson_demo is recreated)
 ```
 Plus `CAN_RUN` on the 4 HEDIS and 3 Clinical Study Genie spaces, and `CAN_VIEW` on jobs `setup_ect`, `semantic_ect`,
-`ls_bootstrap_ect`, `ls_context_ect` (the readiness drawer reads their last run). Not yet granted: the SP's
-Lakebase Postgres role (pending the Lakebase decision), so the HEDIS RAG card can't read Lakebase on the ECT app.
+`ls_bootstrap_ect`, `ls_context_ect` (the readiness drawer reads their last run). Lakebase (granted 2026-11-22): the
+SP's Postgres role `care-protocol-app` (`databricks postgres create-role projects/care-protocol/branches/production
+--role-id care-protocol-app --json '{"spec":{"identity_type":"SERVICE_PRINCIPAL","postgres_role":"<sp>",
+"auth_method":"LAKEBASE_OAUTH_V1"}}' --profile ECT`), then `scripts/lakebase_grant_app_reader.py --sp <sp> --profile ECT`
+(rag_reader + group `care_app_service` ALLOW READ on every document; RLS stays on, no bypass).
 Verify with the app's Readiness drawer: it evaluates every component as the SP.
 
 ## Pages via the Pages API (ADR-0026) — supersedes the Genie Code steps above

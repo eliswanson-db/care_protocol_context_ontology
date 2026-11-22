@@ -53,7 +53,10 @@ def main():
                 "    AND principal_id=%s AND permission='READ' AND effect='ALLOW')",
                 (d, args.group, d, args.group))
         # Verify the RLS decision for the SP (we can't SET ROLE to it, but acl_allows is the policy itself).
-        allowed = sum(cur.execute("SELECT rag.acl_allows(%s, %s)", (d, args.sp)) or cur.fetchone()[0] for d in docs)
+        allowed = 0
+        for d in docs:
+            cur.execute("SELECT rag.acl_allows(%s, %s)", (d, args.sp))
+            allowed += bool(cur.fetchone()[0])
     print(f"{args.sp}: rag_reader + group {args.group!r} ALLOW READ on {len(docs)} docs; acl_allows true for {allowed}/{len(docs)}.")
 
 
