@@ -1,7 +1,8 @@
 # HEDIS benchmark v2: test-mode results (2026-11-22)
 
-**Test mode: 1 run per cell.** Genie One's column is hand-verified (all 8). The other columns are judge-scored and
-not hand-verified yet. Final numbers come from `--final` (3 runs) after the open items at the end. Questions, gold
+**Test mode: 1 run per cell.** Hand-verified: all of Genie One's column and every retrieval cell the judge scored as
+answered (where the hand check disagrees, it wins; `hand_overrides` in questions_v2.yaml). The judge's misses are
+not all hand-checked yet. Final numbers come from `--final` (3 runs) after the open items at the end. Questions, gold
 and predictions: `docs/benchmark/questions_v2.yaml`. Raw cells (context, queries, judge rationales):
 `docs/benchmark/benchmark_v2.json`.
 
@@ -15,7 +16,7 @@ as it chose; ✓ = every fact, ✗ = not.
 |---|---|---|---|---|---|---|---|
 | 1 | GSD poor control by clinic | **2** | 3 | 3 | 3 † | 3 | ✓ |
 | 2 | 65–75, A1c > 9%, no statin | 3 | 3 | 3 | **2** | 3 | ✓ |
-| 3 | Diabetes with kidney complication | 3 | **1** | 3 | 3 | **2** ‡ | ✓ |
+| 3 | Diabetes with kidney complication | 3 | **1** | 3 | 3 | 3 ‡ | ✓ |
 | 4 | A1c target, moderate comorbidity | 3 | 3 | **1** | 3 § | 3 | ✗ § |
 | 5 | eGFR measures, MY2026 codes, where defined | 3 (1 of 3) | 3 | 3 (2 of 3) | 3 (1 of 3) § | 3 | ✓ |
 | 6 | Contraindicated on 2026-10-30 | 3 | 3 | 3 | 3 | 3 ¶ | ✓ |
@@ -54,7 +55,9 @@ as it chose; ✓ = every fact, ✗ = not.
   Writing those joins is what Genie One did on q6.
 - **¶ Graph q6, q7 (and q2):** the published v3 stops at the documented gaps (no drug class for metformin F22,
   no threshold-to-lab edge F23, observation values on a different node F26, no dates F28).
-- **‡ Graph q3:** right number (1,881) from a narrower, undated pattern than the question. Hand-verify.
+- **‡ Graph q3: overridden to not answered by the hand check.** Its pattern asked for diagnoses under both N18
+  and E11 (only E11.22), not under E11.2 / E10.2 / E13.2; it matched 1,881 only because every kidney-complication
+  patient in this data carries E11.22.
 - **Genie One q7 (3 of 4):** it explains eligibility, age and the missing 2026 fill, but calls the 2009 simvastatin
   order "dispensed" and never cites the protocol rule that makes a statin expected for SPD.
 - **Genie One q8:** "no record". Expected: Genie doesn't read the RAG corpus, and the letters are care-team only.
@@ -92,4 +95,4 @@ is right by the rule, but the patient could equally be "on a statin with no reco
 1. Re-record Genie Ontology / Genie One after the daily extraction (§ cells).
 2. Decide the unmanaged dev dashboard and dev/Clone Genie spaces (stale schema in inferred snippets, † q7).
 3. Ontobricks republish (`ONTOBRICKS_REPUBLISH.md` 2026-11-21 items 1, 2, 3, 3b, 4, 5b).
-4. Hand-verify the remaining tier 1/2 cells (‡ q3 first), then `--final`.
+4. Hand-check the judge's misses, then `--final`.

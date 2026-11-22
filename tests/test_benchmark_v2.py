@@ -68,6 +68,17 @@ def test_every_question_has_facts_and_predictions():
         assert "wins" not in q, "no question names a designed winner"
 
 
+def test_hand_checks_name_real_cells():
+    spec = yaml.safe_load((ROOT / "docs/benchmark/questions_v2.yaml").read_text())
+    ids = {q["id"] for q in QS}
+    for arm, qids in {**spec.get("hand_verified", {})}.items():
+        assert arm in APPROACHES | {"genie_one", "closure_sql", "ontobricks"} and set(qids) <= ids, (arm, qids)
+    for arm, per_q in (spec.get("hand_overrides") or {}).items():
+        for qid, o in per_q.items():
+            assert qid in ids and o["tier"] in (1, 2, 3) and o["note"], (arm, qid)
+            assert qid in spec["hand_verified"].get(arm, []), f"override {arm}/{qid} must be a hand-verified cell"
+
+
 def test_q8_letter_matches_its_gold():
     q8 = next(q for q in QS if q["id"] == "q8")
     text = (ROOT / f"docs/care_protocol/corpus/letters/LETTER-EYE-{q8['patient'][:8]}.md").read_text()

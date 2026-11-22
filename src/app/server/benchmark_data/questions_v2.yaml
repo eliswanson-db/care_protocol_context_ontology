@@ -13,6 +13,17 @@
 # Cells checked by hand against gold (the judge is a first pass, not trusted alone). Grows as cells are verified.
 hand_verified:
   genie_one: [q1, q2, q3, q4, q5, q6, q7, q8]
+  metric_view: [q1]
+  closure_sql: [q3]
+  rag: [q4, q8]
+  genie_ontology: [q2]
+  ontobricks: [q3]
+# Where the hand check disagrees with the judge, it wins; the cell shows the reason.
+hand_overrides:
+  ontobricks:
+    q3:
+      tier: 3
+      note: "Right number, wrong reasoning: the pattern asked for diagnoses under BOTH N18 and E11 (only E11.22), not under E11.2 / E10.2 / E13.2. It matches 1,881 only because every kidney-complication patient in this data carries E11.22."
 
 questions:
   - id: q1

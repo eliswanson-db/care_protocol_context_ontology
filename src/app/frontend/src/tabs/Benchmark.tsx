@@ -57,6 +57,11 @@ function Detail({ q, arm, c }: { q: BenchmarkV2["questions"][number]; arm: Bench
         )}
       </div>
       <h3 className="mt-2 text-[17px] font-semibold leading-snug">{q.question}</h3>
+      {c.override && (
+        <p className="mt-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-[13px]">
+          <b>Hand check overrides the judge</b> (judge scored it tier {c.judge_tier}): {c.override}
+        </p>
+      )}
       {q.hero_rule && <p className="mt-1 text-[12.5px] text-muted">Patient chosen by rule: {q.hero_rule}.</p>}
 
       <div className="mt-4 grid gap-4 md:grid-cols-2">

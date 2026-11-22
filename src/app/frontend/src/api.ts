@@ -355,6 +355,7 @@ export interface V2Cell {
   tier: number | null; tier_runs?: number[]; stable?: boolean; interface?: string; retrieved?: string;
   facts?: V2Fact[]; reason?: string; sql?: string | null; sql_result?: string | null; sql_error?: string | null;
   n_docs?: number; hand_verified?: boolean; prediction?: string; answer?: string; genie_sql?: string[];
+  judge_tier?: number | null; override?: string;
 }
 export interface BenchmarkV2 {
   available: boolean;

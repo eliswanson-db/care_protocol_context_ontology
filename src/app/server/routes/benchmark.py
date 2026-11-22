@@ -233,6 +233,7 @@ def benchmark_v2():
         run = json.load(f)
     by = {(r["arm"], r["qid"]): r for r in run.get("rows", [])}
     hv = spec.get("hand_verified") or {}
+    ov = spec.get("hand_overrides") or {}
     gpath = os.path.join(BENCH_DIR, "genie_ontology_retrieval_v2.json")  # Genie One's own answers (same recording)
     g1 = {}
     if os.path.isfile(gpath):
@@ -248,6 +249,10 @@ def benchmark_v2():
             cells[a["id"]] = ({k: r.get(k) for k in keep} | {"hand_verified": q["id"] in (hv.get(a["id"]) or []),
                                                                "prediction": q["predictions"].get(_PRED_KEY.get(a["id"], a["id"]))}
                               if r else {"tier": None, "prediction": q["predictions"].get(_PRED_KEY.get(a["id"], a["id"]))})
+        for arm_id, per_q in ov.items():  # the hand check wins over the judge, with its reason
+            o = (per_q or {}).get(q["id"])
+            if o and arm_id in cells:
+                cells[arm_id].update({"judge_tier": cells[arm_id].get("tier"), "tier": o["tier"], "override": o["note"]})
         if cells.get("genie_one", {}).get("tier") is not None and q["id"] in g1:
             cells["genie_one"]["answer"] = g1[q["id"]].get("genie_one_answer")
             cells["genie_one"]["genie_sql"] = g1[q["id"]].get("genie_one_sql") or []
