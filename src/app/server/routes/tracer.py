@@ -78,7 +78,8 @@ def _answer_a1c(pid: str, my: int) -> dict:
                    {"c": clinic, "my": my}) if clinic else []
     r0 = rate[0] if rate else {}
     v, d = g0.get("evidence_value"), str(g0.get("evidence_datetime") or "")[:10]
-    tested, poor = v is not None, v is not None and float(v) > 9.0
+    poor = v is None or float(v) > 9.0  # HEDIS GSD: last A1c > 9.0% or no test
+    met = not poor
     if s0.get("followup_within_90d") in (True, "true"):
         step_txt = f"a recheck followed within 90 days ({s0.get('followup_days')} days): Step 3 met"
     elif s0.get("window_closed") in (True, "true"):
@@ -86,15 +87,16 @@ def _answer_a1c(pid: str, my: int) -> dict:
     else:
         step_txt = "the 90-day recheck window is still open"
     claims = [
-        _claim("verdict", f"Patient {pid[:8]} ", "meets GSD" if tested else "has a GSD care gap", "verdict",
-               ["metric", "gold", "silver", "bronze", "protocol"], ["genie_ontology", "graph"]),
-        _claim("evidence", " because an A1c test was recorded in MY" + str(my) + " — ", f"{v}% on {d}", "evidence",
+        _claim("verdict", f"Patient {pid[:8]} ", "meets GSD (Blood Sugar Controlled)" if met else "has a GSD care gap",
+               "verdict", ["metric", "gold", "silver", "bronze", "protocol"], ["genie_ontology", "graph"]),
+        _claim("evidence", ": their last A1c of MY" + str(my) + " was ",
+               f"{v}% on {d}" if v is not None else "missing (no test)", "evidence",
                ["gold", "silver", "bronze", "raw"], ["genie_ontology", "graph"]),
     ]
-    if poor:
-        claims.append(_claim("poor", ". That value is ", "poor control (A1c > 9%)", "definition",
+    if v is not None and float(v) > 9.0:
+        claims.append(_claim("poor", ", which is ", "poor control (A1c > 9%)", "definition",
                              ["metric", "protocol"], ["metric_view", "rag", "genie_ontology", "closure", "graph"]))
-        claims.append(_claim("step3", ", which triggers Protocol Step 3; ", step_txt, "evidence",
+        claims.append(_claim("step3", ". It also triggers Protocol Step 3; ", step_txt, "evidence",
                              ["gold", "metric", "protocol"], ["metric_view", "rag", "genie_ontology"]))
     if r0:
         claims.append(_claim("rate", ". It rolls into ", f"{clinic}: GSD {_pct(r0.get('rate'))}, poor control "
@@ -104,8 +106,8 @@ def _answer_a1c(pid: str, my: int) -> dict:
     step_short = ("Step 3 met" if s0.get("followup_within_90d") in (True, "true")
                   else "Step 3 not met" if s0.get("window_closed") in (True, "true") else "Step 3 open")
     summary = {"protocol": "CP-GLY-1 · GSD spec", "raw": "Synthea lab rows", "bronze": f"A1c “{v}” (text)",
-               "silver": f"A1c {v}% · {g0.get('evidence_code')}", "gold": f"A1c {v}% · Step-3 trigger" if poor else f"A1c {v}%",
-               "metric": f"GSD {'MET' if tested else 'NOT_MET'} · {'poor control · ' if poor else ''}{step_short}",
+               "silver": f"A1c {v}% · {g0.get('evidence_code')}", "gold": f"A1c {v}% · Step-3 trigger" if v is not None and float(v) > 9.0 else f"A1c {v}%",
+               "metric": f"GSD {'MET' if met else 'NOT_MET'} · {'poor control · ' if poor else ''}{step_short}",
                "closure_ret": f"{g0.get('evidence_code')} → thresholds", "ontobricks": "observation + thresholds"}
     return {"question": None, "claims": claims, "summary": summary}
 

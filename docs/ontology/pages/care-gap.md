@@ -11,8 +11,8 @@ related_assets:
 HEDIS measures are expressed as a **denominator** and a **numerator**, and compliance is the ratio.
 
 - **Denominator (eligible):** the patients a measure applies to (e.g. the diabetes cohort in an age band).
-- **Numerator (compliant):** the eligible patients who received the required care (e.g. an A1c test for GSD;
-  both eGFR and uACR for KED).
+- **Numerator (compliant):** the eligible patients who received the required care (e.g. a last A1c of 9.0% or below
+  for GSD; both eGFR and uACR for KED).
 - **Status:** a patient is **MET** when in the numerator, otherwise **NOT_MET** — a **care gap** (eligible but
   missing the required care). Closing care gaps raises the measure's compliance rate.
 - **Compliance rate** = compliant ÷ eligible, exposed as a governed measure in the metric views

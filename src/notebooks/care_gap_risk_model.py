@@ -46,7 +46,7 @@ WITH kidney AS (            -- diabetic kidney complication via the ICD-10 closu
 ),
 mad AS (SELECT patient_id, pdc FROM {CATALOG}.care_protocol.gold_adherence_mad WHERE measurement_year = {MY})
 SELECT g.patient_id, g.age, g.clinic_id, g.panel_id,
-       CASE WHEN g.evidence_datetime IS NULL THEN 1 ELSE 0 END         AS gap,        -- GSD rule (mirrors gsd_compliance_metrics)
+       CASE WHEN g.evidence_value <= 9.0 THEN 0 ELSE 1 END              AS gap,        -- GSD rule (mirrors gsd_compliance_metrics)
        CASE WHEN k.patient_id IS NOT NULL THEN 1 ELSE 0 END             AS kidney_comorbidity,
        COALESCE(m.pdc, 0.0)                                             AS mad_pdc,
        CASE WHEN m.patient_id IS NULL THEN 1 ELSE 0 END                 AS mad_missing,

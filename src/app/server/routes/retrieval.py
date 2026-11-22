@@ -48,8 +48,9 @@ def _metric_view_lens(pid: str, my: int) -> dict:
     t0 = time.time()
     g = run_sql(
         f"SELECT clinic_id, "
-        f"CASE WHEN evidence_datetime IS NOT NULL THEN 'MET' ELSE 'NOT_MET' END AS status, "
-        f"CASE WHEN evidence_datetime IS NOT NULL THEN NULL ELSE 'No A1c test in measurement year' END AS gap_reason "
+        f"CASE WHEN evidence_value <= 9.0 THEN 'MET' ELSE 'NOT_MET' END AS status, "
+        f"CASE WHEN evidence_value <= 9.0 THEN NULL WHEN evidence_datetime IS NULL "
+        f"THEN 'No A1c test in measurement year' ELSE 'Last A1c above 9%' END AS gap_reason "
         f"FROM {C}.{S}.gold_adherence_gsd "
         f"WHERE patient_id = :pid AND measurement_year = :my LIMIT 1", {"pid": pid, "my": my})
     clinic = g[0]["clinic_id"] if g else None

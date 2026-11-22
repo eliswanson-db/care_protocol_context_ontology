@@ -217,8 +217,8 @@ def _protocol(pid, my, log, trace="a1c"):
                    "CP-GLY-1": "A1c > 9.0% is poorly controlled and triggers escalation within 3 months",
                    "MY2026 update": "Payer memo (MY2026): a CGM-derived GMI (LOINC 97506-0) also satisfies the GSD "
                                     "numerator; the protocol text is v2025.1, the value set carries the change"}
-        take = (f"The protocol defines GSD as ≥1 HbA1c in MY{my} and poor control as A1c > 9.0%. Patient {pid[:8]} "
-                f"(age {age}) is in scope; their latest A1c is {v}%.")
+        take = (f"The protocol defines poor control as A1c > 9.0%, and GSD counts the last A1c of MY{my}. Patient "
+                f"{pid[:8]} (age {age}) is in scope; their last A1c is {v}%.")
     return {
         "what": "The human-authored care protocol. Everything downstream is an instance of these definitions.",
         "takeaway": take,

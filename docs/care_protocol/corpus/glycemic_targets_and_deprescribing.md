@@ -26,9 +26,10 @@ individualized by comorbidity burden and life expectancy:
 | Moderate comorbidity, 5–10 years life expectancy | 7.0–8.0% |
 | Marked comorbidity or end-stage disease, <5 years life expectancy | 8.0–9.0% |
 
-This is the key difference from the GSD quality **measure**, which only records whether an A1c test happened
-and buckets the latest value as good control (<8.0%) or poor control (>9.0%). The measure answers *"was a test
-done and what was the value?"*; the protocol answers *"what should this specific patient's target be?"*.
+This is the key difference from the GSD quality **measure**, which applies the same two cut-offs to everyone: the
+last A1c of the year below 8.0% (good control) or above 9.0% (poor control, where a missing test also counts as
+poor). The measure answers *"how controlled is the population?"*; the protocol answers *"what should this specific
+patient's target be?"*.
 
 ## Monitoring cadence
 
@@ -36,7 +37,7 @@ done and what was the value?"*; the protocol answers *"what should this specific
 - Check HbA1c **every 6 months** for patients who are stable at goal.
 - Do not react to a single out-of-range HbA1c; confirm with a repeat before escalating therapy.
 
-The GSD measure requires only **one** A1c in the measurement year, so it cannot distinguish a patient checked
+The GSD measure reads only the **last** A1c of the measurement year, so it cannot distinguish a patient checked
 quarterly from one checked once.
 
 ## De-intensification (deprescribing)

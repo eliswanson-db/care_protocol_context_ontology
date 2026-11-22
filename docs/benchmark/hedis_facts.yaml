@@ -65,7 +65,7 @@ facts:
     questions: [q1, q2]
     metric_view: {file: src/semantic/metric_views/gsd_compliance.metric_view.sql, has: ["evidence_value > 9.0"]}
     closure: {table: protocol_edges, where: "subject = 'GSD' AND predicate = 'hasThreshold' AND object = 'a1c_poor_gt_9'"}
-    rag: {file: docs/care_protocol/html/diabetes_care_protocol.html, has: ["poor control &gt; 9.0%"]}
+    rag: {file: docs/care_protocol/html/diabetes_care_protocol.html, has: ["&gt; 9.0% (poor control; a missing test counts as &gt; 9.0%)"]}
     genie_ontology: {file: docs/ontology/pages/hba1c.md, has: ["> 9%"]}
     graph: {s: Measure/GSD, p: hasThreshold, o: Threshold/a1c_poor_gt_9}
 

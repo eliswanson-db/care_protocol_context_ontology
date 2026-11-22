@@ -24,12 +24,13 @@
 -- =========================================================================================
 
 -- @id: kpi_gsd_rate
--- class: 1_simple_kpi  min_approach: metric_view  expect: 0.7424
--- Overall GSD compliance rate = numerator / eligible. A metric view (MEASURE) answers this directly;
--- the raw ratio here is the same number computed from the gold table.
-SELECT ROUND(SUM(CASE WHEN evidence_datetime IS NOT NULL THEN 1 ELSE 0 END)
+-- class: 1_simple_kpi  min_approach: metric_view  expect: 0.6344
+-- GSD compliance (Blood Sugar Controlled) for MY2026 through 2026-10-30 = eligible patients whose last A1c of the
+-- year is 9.0% or below / eligible (a missing test is not controlled). The metric view answers it directly.
+SELECT ROUND(SUM(CASE WHEN evidence_value <= 9.0 AND evidence_datetime <= TIMESTAMP'2026-10-30 23:59:59' THEN 1 ELSE 0 END)
              / SUM(CASE WHEN eligible_flag THEN 1 ELSE 0 END), 4) AS gsd_rate
-FROM {catalog}.{schema}.gold_adherence_gsd;
+FROM {catalog}.{schema}.gold_adherence_gsd
+WHERE measurement_year = 2026;
 
 -- @id: kpi_ked_eligible
 -- class: 1_simple_kpi  min_approach: metric_view  expect: 2802

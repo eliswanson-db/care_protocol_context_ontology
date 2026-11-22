@@ -38,10 +38,9 @@ classes:
     intent: Governed KPI a metric view answers. Control.
     questions:
       - id: kpi_gsd_rate
-        question: "What is the overall GSD compliance rate?"
-        gold: "MEASURE(`GSD Compliance Rate`) FROM gsd_compliance_metrics"
-        gold_value_500: 0.8667
-        gold_value_25k: 0.7424   # MY2026 YTD (as of 2026-10-30): 1781 / 2399 eligible
+        question: "What was the GSD compliance rate (last A1c of the year 9.0% or below) for MY2026 through 2026-10-30?"
+        gold: "MEASURE(`GSD Compliance Rate`) FROM gsd_compliance_metrics WHERE `Measurement Year` = 2026"
+        gold_value_25k: 0.6344   # 1522 / 2399 eligible (HEDIS GSD alignment, 2026-11-22; was 0.7424 = any A1c test)
         how_asked: "Genie One -> metric-view synonym match -> MEASURE() SQL"
         min_approach: metric_view
         also_solvable_by: []

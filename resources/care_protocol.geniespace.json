@@ -541,6 +541,29 @@
   "sql_snippets": {
    "measures": [
     {
+     "id": "09fb94b2dd26295e30acfb92692c7520",
+     "display_name": "GSD A1c testing rate (any A1c in the measurement year)",
+     "sql": [
+      "COUNT_IF(gold_adherence_gsd.evidence_datetime IS NOT NULL) / COUNT(*)"
+     ],
+     "alias": "gsd_testing_rate",
+     "synonyms": [
+      "A1c testing rate"
+     ]
+    },
+    {
+     "id": "706c8a08bfbf5bfb9d8cf2f06f080da6",
+     "display_name": "GSD good control rate (last A1c < 8%, of eligible)",
+     "sql": [
+      "COUNT_IF(gold_adherence_gsd.evidence_value < 8.0) / COUNT(*)"
+     ],
+     "alias": "gsd_good_control_rate",
+     "synonyms": [
+      "good glycemic control",
+      "controlled diabetes"
+     ]
+    },
+    {
      "id": "9a6d274cb2dba7c79af7264546c5cece",
      "display_name": "EED compliance rate (patient level)",
      "sql": [
@@ -574,39 +597,15 @@
      ]
     },
     {
-     "id": "ac5a9752bf524988dd38a9b1549eb136",
-     "display_name": "GSD compliance rate (patient level)",
+     "id": "c6515838d1acf87d1b1d312a521fc694",
+     "display_name": "GSD compliance rate (Blood Sugar Controlled: last A1c <= 9%)",
      "sql": [
-      "COUNT_IF(gold_adherence_gsd.evidence_datetime IS NOT NULL) / COUNT(*)"
+      "COUNT_IF(gold_adherence_gsd.evidence_value <= 9.0) / COUNT(*)"
      ],
      "alias": "gsd_compliance_rate",
      "synonyms": [
       "GSD rate",
-      "A1c testing rate"
-     ]
-    },
-    {
-     "id": "b56ec9c593b1bb173087aade3e62775b",
-     "display_name": "GSD poor control rate (A1c > 9%, among tested)",
-     "sql": [
-      "COUNT_IF(gold_adherence_gsd.evidence_value > 9.0) / COUNT_IF(gold_adherence_gsd.evidence_datetime IS NOT NULL)"
-     ],
-     "alias": "gsd_poor_control_rate",
-     "synonyms": [
-      "poor glycemic control",
-      "uncontrolled diabetes"
-     ]
-    },
-    {
-     "id": "be68864089bbc5cb95c641907681cd21",
-     "display_name": "GSD good control rate (A1c < 8%, among tested)",
-     "sql": [
-      "COUNT_IF(gold_adherence_gsd.evidence_value < 8.0) / COUNT_IF(gold_adherence_gsd.evidence_datetime IS NOT NULL)"
-     ],
-     "alias": "gsd_good_control_rate",
-     "synonyms": [
-      "good glycemic control",
-      "controlled diabetes"
+      "blood sugar controlled rate"
      ]
     },
     {
@@ -644,6 +643,18 @@
      ]
     },
     {
+     "id": "edfe63cd53bc6cfa74165526be310795",
+     "display_name": "GSD poor control rate (last A1c > 9% or no test, of eligible)",
+     "sql": [
+      "COUNT_IF(gold_adherence_gsd.evidence_value > 9.0 OR gold_adherence_gsd.evidence_datetime IS NULL) / COUNT(*)"
+     ],
+     "alias": "gsd_poor_control_rate",
+     "synonyms": [
+      "poor glycemic control",
+      "uncontrolled diabetes"
+     ]
+    },
+    {
      "id": "f8696db1b4efd56bc420d279e6ba43e3",
      "display_name": "BPD compliance rate (patient level)",
      "sql": [
@@ -677,24 +688,13 @@
      ]
     },
     {
-     "id": "6bed43b64ed198c65b62e1bd95e8ba44",
-     "display_name": "GSD care gaps (no A1c test in the measurement year)",
+     "id": "565bd01ff071a295f7fcba682cf74888",
+     "display_name": "GSD care gaps (last A1c > 9% or no A1c test)",
      "sql": [
-      "gold_adherence_gsd.evidence_datetime IS NULL"
+      "gold_adherence_gsd.evidence_value > 9.0 OR gold_adherence_gsd.evidence_datetime IS NULL"
      ],
      "synonyms": [
-      "GSD gaps",
-      "no A1c"
-     ]
-    },
-    {
-     "id": "85ab7397675c72c92604752a4fc405cd",
-     "display_name": "GSD poorly controlled (latest A1c > 9%)",
-     "sql": [
-      "gold_adherence_gsd.evidence_value > 9.0"
-     ],
-     "synonyms": [
-      "poor control"
+      "GSD gaps"
      ]
     },
     {
@@ -708,6 +708,16 @@
      ]
     },
     {
+     "id": "941ff43ff2c8991d676538b2289a5c55",
+     "display_name": "GSD no A1c test in the measurement year",
+     "sql": [
+      "gold_adherence_gsd.evidence_datetime IS NULL"
+     ],
+     "synonyms": [
+      "no A1c"
+     ]
+    },
+    {
      "id": "9f9e7c7fbb691ef6e24f5bfd9816ecb4",
      "display_name": "SPD care gaps (no statin dispensed)",
      "sql": [
@@ -715,6 +725,16 @@
      ],
      "synonyms": [
       "statin gap"
+     ]
+    },
+    {
+     "id": "ba5cd70b87843ac5df630526247cb690",
+     "display_name": "GSD tested, last A1c above 9%",
+     "sql": [
+      "gold_adherence_gsd.evidence_value > 9.0"
+     ],
+     "synonyms": [
+      "poor control"
      ]
     },
     {
@@ -878,23 +898,6 @@
     ]
    },
    {
-    "id": "9c57f8375a4ca2106953594f28f74294",
-    "question": [
-     "Overall GSD compliance rate = numerator / eligible"
-    ],
-    "answer": [
-     {
-      "format": "SQL",
-      "content": [
-       "SELECT ROUND(SUM(CASE WHEN evidence_datetime IS NOT NULL THEN 1 ELSE 0 END)\n             / SUM(CASE WHEN eligible_flag THEN 1 ELSE 0 END), 4) AS gsd_rate\nFROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd"
-      ]
-     }
-    ],
-    "evaluation_note": [
-     "Gold answer key kpi_gsd_rate (hand-verified, MY2026). Expected value: 0.7424."
-    ]
-   },
-   {
     "id": "db15762e309d1b008b8e877a521675d8",
     "question": [
      "========================================================================================= CLASS 2 -- single-relation ICD subsumption (closure == graph; prefix LIKE is the fragile approximation) =============================================="
@@ -909,6 +912,23 @@
     ],
     "evaluation_note": [
      "Gold answer key kpi_ked_eligible (hand-verified, MY2026). Expected value: 2802."
+    ]
+   },
+   {
+    "id": "ec61c1b349dfff1db54d450b2b08b0c3",
+    "question": [
+     "GSD compliance (Blood Sugar Controlled) for MY2026 through 2026-10-30 = eligible patients whose last A1c of the year is 9.0% or below / eligible (a missing test is not controlled)"
+    ],
+    "answer": [
+     {
+      "format": "SQL",
+      "content": [
+       "SELECT ROUND(SUM(CASE WHEN evidence_value <= 9.0 AND evidence_datetime <= TIMESTAMP'2026-10-30 23:59:59' THEN 1 ELSE 0 END)\n             / SUM(CASE WHEN eligible_flag THEN 1 ELSE 0 END), 4) AS gsd_rate\nFROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd\nWHERE measurement_year = 2026"
+      ]
+     }
+    ],
+    "evaluation_note": [
+     "Gold answer key kpi_gsd_rate (hand-verified, MY2026). Expected value: 0.6344."
     ]
    }
   ]

@@ -102,9 +102,9 @@ def gold_lab_result():
 # ---------------- Gold: GSD (Glycemic Status Assessment) ----------------
 @dp.materialized_view(
     comment="GSD EVIDENCE base — one row per eligible diabetes patient (18-75) with their latest measurement-year "
-            "A1c evidence (datetime/code/value) and dimensions. The compliance RULE is NOT baked here: numerator "
-            "(>=1 A1c test), MET/UNMET status, and the control bands (<8 / >9) are defined LIVE in the governed "
-            "gsd_compliance_metrics metric view. Gold = evidence; the semantic layer = the measure. HEDIS-aligned "
+            "A1c evidence (datetime/code/value) and dimensions. The compliance RULE is NOT baked here: the HEDIS "
+            "indicators (last A1c < 8%; > 9% or no test) and MET (last A1c <= 9%, Blood Sugar Controlled) are "
+            "defined LIVE in the governed gsd_compliance_metrics metric view. Gold = evidence; the semantic layer = the measure. HEDIS-aligned "
             "demo, not NCQA-certified.")
 def gold_adherence_gsd():
     patients = spark.read.table(f"{BRONZE}.bronze_patient")  # noqa: F821

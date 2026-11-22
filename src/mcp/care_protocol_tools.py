@@ -14,7 +14,7 @@ from __future__ import annotations
 # NOT_MET predicate derived from evidence (same rule the metric view applies), for the per-patient care-gap list.
 MEASURES = {
     "GSD": {"table": "gold_adherence_gsd", "view": "gsd_compliance_metrics", "rate": "GSD Compliance Rate", "numerator": "Compliant Patients",
-            "gap": "evidence_datetime IS NULL", "name": "Glycemic Status Assessment", "age": "18-75"},
+            "gap": "evidence_datetime IS NULL OR evidence_value > 9.0", "name": "Glycemic Status Assessment", "age": "18-75"},
     "KED": {"table": "gold_adherence_ked", "view": "ked_compliance_metrics", "rate": "KED Compliance Rate", "numerator": "Compliant Patients",
             "gap": "egfr_datetime IS NULL OR uacr_datetime IS NULL", "name": "Kidney Health Evaluation", "age": "18-85"},
     "BPD": {"table": "gold_adherence_bpd", "view": "bpd_compliance_metrics", "rate": "BPD Compliance Rate", "numerator": "Controlled Patients",

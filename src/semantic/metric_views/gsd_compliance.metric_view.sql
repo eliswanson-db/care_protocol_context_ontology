@@ -1,9 +1,10 @@
 -- Unity Catalog metric view: GSD (Glycemic Status Assessment for Patients With Diabetes).
 -- The GOVERNED SEMANTIC LAYER for the measure: the compliance RULE lives HERE, computed live, NOT baked in gold.
--- gold_adherence_gsd is now an EVIDENCE base (one row per eligible patient + latest A1c); this view derives the
--- numerator (>=1 A1c test = evidence_datetime IS NOT NULL), MET/UNMET status, care-gap reason, and the control
--- bands (<8 / >9 on evidence_value) as live expressions that re-aggregate at any grain. Consumed by dashboards,
--- Genie, and SQL. {catalog}/{schema}/{semantic_schema} substituted by apply_metric_views.py. HEDIS-aligned demo.
+-- gold_adherence_gsd is an EVIDENCE base (one row per eligible patient + their last A1c of the measurement year);
+-- this view derives the HEDIS GSD indicators as live expressions that re-aggregate at any grain. HEDIS GSD (MY2023+)
+-- reports two rates over the eligible population: glycemic status < 8.0%, and > 9.0% where a missing test counts as
+-- > 9.0%. "Compliant" here is the Star "Blood Sugar Controlled" view: last A1c <= 9.0% (2026-11-22; it was ">= 1 A1c
+-- test", which isn't a HEDIS indicator). Consumed by dashboards, Genie, and SQL. {catalog}/{schema}/{semantic_schema} substituted by apply_metric_views.py. HEDIS-aligned demo.
 -- Rich comment/synonyms/display_name are intentional: they are the human-modeled fuel the Genie Ontology indexes.
 CREATE OR REPLACE VIEW {catalog}.{semantic_schema}.gsd_compliance_metrics
 WITH METRICS
@@ -11,7 +12,7 @@ LANGUAGE YAML
 AS $$
 version: 1.1
 source: {catalog}.{schema}.gold_adherence_gsd
-comment: "HEDIS GSD (Glycemic Status Assessment) compliance for the diabetes population aged 18-75. The measure is DEFINED here, computed live over the gold evidence base: denominator = eligible diabetes patients; numerator = patients with an A1c test (LOINC) in the measurement year (evidence present). Also exposes glycemic-control bands (good <8%, poor >9%). HEDIS-aligned demo, not NCQA-certified."
+comment: "HEDIS GSD (Glycemic Status Assessment) for the diabetes population aged 18-75, computed live over the gold evidence base. Denominator = eligible diabetes patients. Compliant (Blood Sugar Controlled) = last A1c of the measurement year is 9.0% or below. HEDIS indicators over the eligible population: Good Control Rate (last A1c < 8.0%) and Poor Control Rate (last A1c > 9.0% OR no A1c test). HEDIS-aligned demo, not NCQA-certified."
 dimensions:
   - name: Measurement Year
     expr: measurement_year
@@ -19,8 +20,8 @@ dimensions:
     synonyms: [year, reporting year, MY]
     display_name: Measurement Year
   - name: Compliance Status
-    expr: "CASE WHEN evidence_datetime IS NOT NULL THEN 'MET' ELSE 'NOT_MET' END"
-    comment: "Computed live: MET = an A1c test exists in the measurement year; NOT_MET = no A1c test. The rule lives in this metric view, not in gold."
+    expr: "CASE WHEN evidence_value <= 9.0 THEN 'MET' ELSE 'NOT_MET' END"
+    comment: "Computed live: MET = last A1c of the measurement year is 9.0% or below (Blood Sugar Controlled); NOT_MET = last A1c above 9.0% or no A1c test. The rule lives in this metric view, not in gold."
     synonyms: [status, met status, adherence status, gap status]
     display_name: Compliance Status
   - name: Clinic
@@ -34,7 +35,7 @@ dimensions:
     synonyms: [panel, pcp panel, provider panel, care team]
     display_name: Panel
   - name: Gap Reason
-    expr: "CASE WHEN evidence_datetime IS NOT NULL THEN 'Met' ELSE 'No A1c test in measurement year' END"
+    expr: "CASE WHEN evidence_value <= 9.0 THEN 'Met' WHEN evidence_datetime IS NULL THEN 'No A1c test in measurement year' ELSE 'Last A1c above 9%' END"
     comment: "Computed live: why the patient is a care gap (NOT_MET); 'Met' when compliant. Group care gaps by reason."
     synonyms: [gap reason, reason, care gap reason, why gap]
     display_name: Gap Reason
@@ -61,18 +62,26 @@ measures:
     format:
       type: number
       decimal_places: {type: exact, places: 0}
-  - name: Compliant Patients
+  - name: Tested Patients
     expr: "COUNT(1) FILTER (WHERE evidence_datetime IS NOT NULL)"
-    comment: "Eligible patients with at least one A1c test in the measurement year (the measure numerator) — computed live from the evidence."
-    synonyms: [numerator, compliant count, patients met, tested patients, a1c tested]
+    comment: "Eligible patients with at least one A1c test in the measurement year (not a HEDIS indicator; testing coverage)."
+    synonyms: [tested patients, a1c tested, patients with an a1c]
+    display_name: Tested Patients
+    format:
+      type: number
+      decimal_places: {type: exact, places: 0}
+  - name: Compliant Patients
+    expr: "COUNT(1) FILTER (WHERE evidence_value <= 9.0)"
+    comment: "Eligible patients whose last A1c of the measurement year is 9.0% or below (Blood Sugar Controlled; the measure numerator) — computed live from the evidence."
+    synonyms: [numerator, compliant count, patients met, blood sugar controlled, controlled patients]
     display_name: Compliant Patients
     format:
       type: number
       decimal_places: {type: exact, places: 0}
   - name: GSD Compliance Rate
     expr: "MEASURE(`Compliant Patients`) / MEASURE(`Eligible Patients`)"
-    comment: "Share of eligible diabetes patients with an A1c test in the measurement year. Numerator / denominator; re-aggregates at any grain."
-    synonyms: [compliance rate, adherence rate, gsd rate, a1c testing rate, met rate, screening rate]
+    comment: "Share of eligible diabetes patients whose last A1c of the measurement year is 9.0% or below (Blood Sugar Controlled; the inverse of the HEDIS GSD > 9.0% indicator). Re-aggregates at any grain."
+    synonyms: [compliance rate, gsd rate, blood sugar controlled rate, met rate]
     display_name: GSD Compliance Rate
     format:
       type: percentage
@@ -85,17 +94,25 @@ measures:
     format:
       type: number
       decimal_places: {type: exact, places: 0}
+  - name: Good Control Rate
+    expr: "MEASURE(`Good Control Patients`) / MEASURE(`Eligible Patients`)"
+    comment: "HEDIS GSD < 8.0% indicator: share of eligible patients whose last A1c of the measurement year is below 8.0%."
+    synonyms: [good control rate, a1c under 8 rate]
+    display_name: Good Control (<8%) Rate
+    format:
+      type: percentage
+      decimal_places: {type: max, places: 1}
   - name: Poor Control Patients
-    expr: "COUNT(1) FILTER (WHERE evidence_value > 9.0)"
-    comment: "Patients whose latest measurement-year A1c is > 9.0% (poor glycemic control) — band computed live from evidence_value."
+    expr: "COUNT(1) FILTER (WHERE evidence_value > 9.0 OR evidence_datetime IS NULL)"
+    comment: "Patients whose last A1c of the measurement year is above 9.0%, or who had no A1c test (HEDIS counts a missing test as > 9.0%)."
     synonyms: [poor control, poorly controlled, uncontrolled, a1c over 9]
     display_name: Poor Control (>9%) Patients
     format:
       type: number
       decimal_places: {type: exact, places: 0}
   - name: Poor Control Rate
-    expr: "MEASURE(`Poor Control Patients`) / MEASURE(`Compliant Patients`)"
-    comment: "Share of A1c-tested patients whose latest A1c is > 9.0%."
+    expr: "MEASURE(`Poor Control Patients`) / MEASURE(`Eligible Patients`)"
+    comment: "HEDIS GSD > 9.0% indicator (lower is better): share of eligible patients whose last A1c is above 9.0% or who had no A1c test."
     synonyms: [poor control rate, uncontrolled rate]
     display_name: Poor Control Rate
     format:
