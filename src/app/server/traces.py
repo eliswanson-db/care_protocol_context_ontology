@@ -64,20 +64,22 @@ TRACES: dict[str, dict] = {
         "title": "A care-protocol rule: metformin at eGFR < 30",
         "summary": "One sentence in the protocol, followed into every mode and applied to a patient it affects.",
         "stages": ["protocol", "bronze", "silver", "closure_ret", "page", "rag", "ontobricks"],
-        # A patient with a metformin order active in the MY whose latest eGFR (taken after that order) is below 30.
+        # A patient with a metformin fill active on 2026-10-30 (care_order_med: the effective layer the measures use)
+        # whose last eGFR on or before that day is below 30 (the same rule as benchmark gold bq6).
         "hero_sql": f"""
             WITH met AS (
-              SELECT m.patient_id, max(m.start_ts) AS last_start, max_by(m.description, m.start_ts) AS drug
-              FROM {C}.{S}.bronze_order_med m
+              SELECT m.patient_id, max_by(m.description, m.start_ts) AS drug
+              FROM {C}.{S}.care_order_med m
               JOIN {C}.{ST}.rxnorm_closure c ON c.descendant_code = m.rxnorm_code AND c.ancestor_code = 'DRUGCLASS-BIGUANIDE'
-              WHERE m.stop_ts IS NULL OR m.stop_ts >= TIMESTAMP'{MY}-01-01'
+              WHERE m.start_ts <= TIMESTAMP'2026-10-30 23:59:59' AND (m.stop_ts IS NULL OR m.stop_ts >= TIMESTAMP'2026-10-30')
               GROUP BY m.patient_id),
             egfr AS (
               SELECT patient_id, max_by(value_num, result_ts) AS value, max(result_ts) AS ts
-              FROM {C}.{S}.silver_observation WHERE loinc_code IN {EGFR_CODES} GROUP BY patient_id)
+              FROM {C}.{S}.silver_observation WHERE loinc_code IN {EGFR_CODES}
+                AND result_ts <= TIMESTAMP'2026-10-30 23:59:59' GROUP BY patient_id)
             SELECT met.patient_id, met.drug, CAST(egfr.value AS STRING) AS value, CAST(egfr.ts AS DATE) AS on_date
             FROM met JOIN egfr USING (patient_id)
-            WHERE egfr.value < 30 AND year(egfr.ts) = {MY} AND egfr.ts > met.last_start
+            WHERE egfr.value < 30
             ORDER BY met.patient_id LIMIT 1""",
         "chips": lambda h: [h["drug"][:40], f"eGFR {h['value']}", str(h["on_date"])],
         "question": lambda h: (f"Patient {h['patient_id'][:8]} is on metformin and their latest eGFR is {h['value']}. "

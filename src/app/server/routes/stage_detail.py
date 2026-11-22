@@ -161,7 +161,7 @@ def _latest_egfr(pid: str) -> dict:
 def _metformin(pid: str) -> dict:
     r = run_sql(f"""SELECT max_by(m.description, m.start_ts) AS drug, max_by(m.rxnorm_code, m.start_ts) AS rx,
                            max(m.start_ts) AS since
-                    FROM {C}.{S}.bronze_order_med m
+                    FROM {C}.{S}.care_order_med m
                     JOIN {C}.{ST}.rxnorm_closure c ON c.descendant_code = m.rxnorm_code
                                                    AND c.ancestor_code = 'DRUGCLASS-BIGUANIDE'
                     WHERE m.patient_id = :pid""", {"pid": pid})
@@ -310,12 +310,18 @@ def _silver(pid, my, log, trace="a1c"):
                  ORDER BY result_ts DESC LIMIT 8""", p, log,
              f"Conformed {'eGFR' if trace == 'rule' else 'HbA1c'} observations (typed value_num, LOINC-resolved)")
     if trace == "rule":
-        return {"what": "Conformance: values typed to numbers, LOINC resolved, conditions mapped to ICD-10.",
+        fills = _q(f"""SELECT m.start_ts, m.stop_ts, m.rxnorm_code, m.description FROM {C}.{S}.care_order_med m
+                       JOIN {C}.{ST}.rxnorm_closure c ON c.descendant_code = m.rxnorm_code
+                                                      AND c.ancestor_code = 'DRUGCLASS-BIGUANIDE'
+                       WHERE m.patient_id = :pid ORDER BY m.start_ts DESC LIMIT 6""", p, log,
+                   "Metformin fills in the effective layer (care_order_med: 30-day fills, what the measures use)")
+        return {"what": "Conformance: values typed to numbers, LOINC resolved; diabetes-drug orders become 30-day fills.",
                 "takeaway": (f"eGFR typed to a number: latest {obs[0]['value_num'] if obs else '—'} "
-                             f"({obs[0]['loinc_code'] if obs else '—'}). Metformin orders stay in bronze_order_med; the "
-                             f"measures resolve them through rxnorm_closure."),
-                "source": f"{C}.{S}.silver_observation · silver_condition",
-                "sections": [{"label": "eGFR observations (typed value_num)", "kind": "table", "rows": obs}, cond_sec]}
+                             f"({obs[0]['loinc_code'] if obs else '—'}). Metformin becomes 30-day fills in "
+                             f"care_order_med (the care-behavior model's effective layer, which the measures read)."),
+                "source": f"{C}.{S}.silver_observation · care_order_med · silver_condition",
+                "sections": [{"label": "eGFR observations (typed value_num)", "kind": "table", "rows": obs},
+                             {"label": "Metformin fills (effective layer)", "kind": "table", "rows": fills}, cond_sec]}
     modeled = sum(1 for r in obs if str(r.get("origin", "")).startswith("follow-up"))
     return {
         "what": "Conformance: map to ICD-10, drop unmapped noise, type values, resolve LOINC.",
@@ -883,7 +889,9 @@ def _closure_ret(pid, my, log, trace="a1c"):
     src = f"{C}.{ST}.icd10_closure · rxnorm_closure · loinc_parts · value_set_segment · protocol_edges"
     if trace == "rule":
         hit = _q(f"""WITH rx AS (SELECT max_by(rxnorm_code, start_ts) AS rxnorm_code, max_by(description, start_ts) AS drug
-                                FROM {C}.{S}.bronze_order_med WHERE patient_id = :pid
+                                FROM {C}.{S}.care_order_med WHERE patient_id = :pid
+                                  AND start_ts <= TIMESTAMP'2026-10-30 23:59:59'
+                                  AND (stop_ts IS NULL OR stop_ts >= TIMESTAMP'2026-10-30')
                                   AND rxnorm_code IN (SELECT descendant_code FROM {C}.{ST}.rxnorm_closure
                                                       WHERE ancestor_code LIKE 'DRUGCLASS-%')),
                           lab AS (SELECT loinc_code, max_by(value_num, result_ts) AS value, max(result_ts) AS ts

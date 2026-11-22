@@ -315,12 +315,13 @@ SELECT concat_ws('|',
 -- @id: bq6_contra_active_patients
 -- class: bench_v2  min_approach: graph  expect: 87
 -- holdout: benchmark question 6
--- On 2026-10-30: patients with an order active that day for a drug class the protocol contraindicates either for a
+-- On 2026-10-30: patients with an order active that day (care_order_med: the effective medication layer the
+-- measures read; diabetes drugs are 30-day fills there) for a drug class the protocol contraindicates either for a
 -- condition active that day (contraindicatedWith -> value set; onset <= D and no stop before D) or for their last
 -- result on or before D of the lab the threshold applies to (contraindicatedWhen -> appliesTo -> LOINC part).
 WITH rx AS (
   SELECT DISTINCT m.patient_id, c.ancestor_code AS drug_class
-  FROM {catalog}.{schema}.bronze_order_med m
+  FROM {catalog}.{schema}.care_order_med m
   JOIN {catalog}.{tschema}.rxnorm_closure c ON c.descendant_code = m.rxnorm_code AND c.ancestor_code LIKE 'DRUGCLASS-%'
   WHERE m.start_ts <= TIMESTAMP'2026-10-30 23:59:59' AND (m.stop_ts IS NULL OR m.stop_ts >= TIMESTAMP'2026-10-30')),
 by_condition AS (
@@ -346,7 +347,7 @@ SELECT COUNT(DISTINCT patient_id) AS patients FROM (SELECT * FROM by_condition U
 -- holdout: benchmark question 6 (the reasons behind bq6_contra_active_patients)
 WITH rx AS (
   SELECT DISTINCT m.patient_id, c.ancestor_code AS drug_class
-  FROM {catalog}.{schema}.bronze_order_med m
+  FROM {catalog}.{schema}.care_order_med m
   JOIN {catalog}.{tschema}.rxnorm_closure c ON c.descendant_code = m.rxnorm_code AND c.ancestor_code LIKE 'DRUGCLASS-%'
   WHERE m.start_ts <= TIMESTAMP'2026-10-30 23:59:59' AND (m.stop_ts IS NULL OR m.stop_ts >= TIMESTAMP'2026-10-30')),
 by_condition AS (

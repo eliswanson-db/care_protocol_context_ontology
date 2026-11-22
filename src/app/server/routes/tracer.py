@@ -154,7 +154,7 @@ def _answer_dx(pid: str, my: int) -> dict:
 
 def _answer_rule(pid: str, my: int) -> dict:
     med = run_sql(f"""SELECT max_by(m.description, m.start_ts) AS drug, max(m.start_ts) AS since
-                      FROM {C}.{S}.bronze_order_med m
+                      FROM {C}.{S}.care_order_med m
                       JOIN {C}.{ST}.rxnorm_closure c ON c.descendant_code = m.rxnorm_code
                                                      AND c.ancestor_code = 'DRUGCLASS-BIGUANIDE'
                       WHERE m.patient_id = :pid""", {"pid": pid})

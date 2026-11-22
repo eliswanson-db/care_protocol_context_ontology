@@ -245,6 +245,18 @@ def genie_ontology_dmvm(question: str, qid: str) -> list[dict]:
     return _genie_ontology("dmvm", qid)
 
 
+@mlflow.trace(span_type="RETRIEVER", name="genie_one")
+def genie_one(question: str, qid: str) -> list[dict]:
+    """Genie One as the reasoning engine (plan step 6): its own end-to-end answer and the SQL it ran, from the same
+    recorded run as genie_ontology (never fed to any other arm). Scored on the answer; no follow-up query."""
+    rec = _go_rec("ect", qid)
+    if not rec or not rec.get("genie_one_answer"):
+        return []
+    sql = "\n\n".join(rec.get("genie_one_sql") or [])
+    return [_doc(rec["genie_one_answer"], source="genie_one_answer"),
+            *([_doc("SQL Genie One ran:\n" + sql[:6000], source="genie_one_sql")] if sql else [])]
+
+
 # The arms, in display order. closed_book first = the floor every other arm's lift is measured against.
 PROVIDERS = {
     "closed_book": None,  # sentinel: no retrieval, handled in the runner
@@ -254,6 +266,7 @@ PROVIDERS = {
     "genie_ontology": genie_ontology,
     "genie_ontology_dmvm": genie_ontology_dmvm,
     "ontobricks": ontobricks,
+    "genie_one": genie_one,
 }
 
 

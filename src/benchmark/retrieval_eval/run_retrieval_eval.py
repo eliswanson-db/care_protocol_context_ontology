@@ -39,7 +39,7 @@ QUESTIONS = [{"qid": q["id"], "cls": "v2", "question": q["question"], "expected_
 
 # The five approaches. closed_book (no retrieval, the floor) is available with --arms; the ECT/DMVM split is retired.
 ARMS = ["metric_view", "closure_sql", "rag", "genie_ontology", "ontobricks"]
-ALL_ARMS = ["closed_book", *ARMS]
+ALL_ARMS = ["closed_book", *ARMS, "genie_one"]  # genie_one = Genie One as the reasoning engine (step 6 column)
 
 
 def _yes(feedback) -> bool:
@@ -55,8 +55,9 @@ def retrieve(arm: str, question: str, qid: str) -> list[dict]:
 
 # How each approach is allowed to query in the one-shot step: its OWN native interface.
 INTERFACE = {"metric_view": "sql", "genie_ontology": "sql", "genie_ontology_dmvm": "sql", "rag": "sql",
-             "closed_book": "sql", "closure_sql": "closure", "ontobricks": "graph"}
-INTERFACE_LABEL = {"sql": "SQL", "closure": "closure-tool call", "graph": "graph-runner call"}
+             "closed_book": "sql", "closure_sql": "closure", "ontobricks": "graph", "genie_one": "answer"}
+INTERFACE_LABEL = {"sql": "SQL", "closure": "closure-tool call", "graph": "graph-runner call",
+                   "answer": "its own answer (no follow-up query)"}
 
 
 def _run_query(arm: str, query: dict) -> str:
@@ -91,7 +92,7 @@ def run_cell(arm: str, q: dict) -> dict:
 
     interface = INTERFACE.get(arm, "sql")
     query, result, error, in_res = None, None, None, None
-    if not sufficient:
+    if not sufficient and arm != "genie_one":
         tools = {"closure": CLOSURE_TOOLS, "graph": GRAPH_TOOLS}.get(interface)
         query = agent.write_query(q["question"], docs, interface, tools)
         if query:
@@ -105,7 +106,10 @@ def run_cell(arm: str, q: dict) -> dict:
     tier = 1 if sufficient else (2 if query_correct else 3)
     facts = [{"fact": f, "in_context": in_ctx[k], "in_result": (in_res[k] if in_res else None)}
              for k, f in enumerate(q["expected_facts"])]
-    what = ("retrieved nothing" if not docs else
+    what = ("no recorded Genie One answer" if arm == "genie_one" and not docs else
+            "Genie One's answer states every gold fact" if arm == "genie_one" and sufficient else
+            "Genie One's answer is missing or contradicts a gold fact" if arm == "genie_one" else
+            "retrieved nothing" if not docs else
             "every gold fact is stated in what it retrieved (no query needed)" if sufficient else
             "not every fact was in what it retrieved; the agent declined to write a query (NO_QUERY)" if not query else
             f"not every fact was in what it retrieved; the agent's {INTERFACE_LABEL[interface]} failed" if error else

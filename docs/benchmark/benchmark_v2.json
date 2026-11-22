@@ -163,66 +163,6 @@
       ]
     },
     {
-      "arm": "genie_ontology",
-      "qid": "q1",
-      "tier": 3,
-      "sufficient": false,
-      "query_correct": false,
-      "interface": "SQL",
-      "query": {
-        "kind": "sql",
-        "sql": "SELECT\n  clinic_id,\n  COUNT_IF(\n    evidence_datetime IS NULL\n    OR evidence_datetime > DATE'2026-10-30'\n    OR evidence_value > 9.0\n  ) / COUNT(*) AS poor_control_rate\nFROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd\nWHERE measurement_year = 2026\nGROUP BY clinic_id\nORDER BY poor_control_rate DESC"
-      },
-      "sql": "SELECT\n  clinic_id,\n  COUNT_IF(\n    evidence_datetime IS NULL\n    OR evidence_datetime > DATE'2026-10-30'\n    OR evidence_value > 9.0\n  ) / COUNT(*) AS poor_control_rate\nFROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd\nWHERE measurement_year = 2026\nGROUP BY clinic_id\nORDER BY poor_control_rate DESC",
-      "sql_error": null,
-      "sql_result": "clinic_id | poor_control_rate\nCLINIC-06 | 0.4007352941176471\nCLINIC-08 | 0.38275862068965516\nCLINIC-04 | 0.38205980066445183\nCLINIC-01 | 0.3719298245614035\nCLINIC-07 | 0.36789297658862874\nCLINIC-03 | 0.35964912280701755\nCLINIC-02 | 0.3525641025641026\nCLINIC-05 | 0.3288590604026846",
-      "facts": [
-        {
-          "fact": "GSD poor-control rate by clinic, MY2026 through 2026-10-30: CLINIC-01 37.2%, CLINIC-02 35.3%, CLINIC-03 35.7%, CLINIC-04 37.9%, CLINIC-05 32.6%, CLINIC-06 39.7%, CLINIC-07 36.5%, CLINIC-08 38.3%.",
-          "in_context": {
-            "ok": false,
-            "quote": "",
-            "rationale": "The text defines how poor control rate is computed and queried but never states the actual MY2026 per-clinic percentages (37.2%, 35.3%, etc.)."
-          },
-          "in_result": {
-            "ok": false,
-            "quote": "",
-            "rationale": "Several clinic rates in the text (e.g., CLINIC-03 35.96%, CLINIC-04 38.21%, CLINIC-05 32.89%, CLINIC-06 40.07%, CLINIC-07 36.79%) differ beyond rounding from the stated fact's values."
-          }
-        }
-      ],
-      "reason": "The SQL computed per-clinic poor-control rates but several values (e.g. CLINIC-03 35.96%, CLINIC-06 40.07%) diverge from the stated gold figures.",
-      "retrieved": "17 inferred snippets (17 about this demo); 4 Pages: GSD \u2014 Glycemic Status Assessment for Patients With Diabetes, HbA1c (A1c) \u2014 Hemoglobin A1c, GSD (Glycemic Status Assessment), HbA1c (A1c) \u2014 Hemoglobin A1c.",
-      "n_docs": 21,
-      "skipped_search": false,
-      "facts_in_context": [
-        false
-      ],
-      "facts_in_result": [
-        false
-      ],
-      "context": "Inferred snippet (metric_definition) from (Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev): Good and poor glycemic control rates measure tested patients, whereas glycemic assessment compliance measures testing among all eligible patients.\nOn eli_test_classic_catalog.care_protocol.gold_adherence_gsd, good control is COUNT_IF(evidence_value < 8.0) / COUNT_IF(evidence_datetime IS NOT NULL), and poor control is COUNT_IF(evidence_value > 9.0) / COUNT_IF(evidence_datetime IS NOT NULL). Both denominators count A1c-tested patient rows, unlike GSD compliance's COUNT(*) eligible-row denominator. Average latest A1c (%) is AVG(evidence_value); the supplied expression has no explicit evidence_datetime filter. The clinic example also reports COUNT(*) AS eligible_patients and COUNT_IF(evidence_datetime IS NOT NULL) / COUNT(*) AS gsd_compliance_rate, GROUP BY clinic_id ORDER BY gsd_compliance_rate DESC, without a year filter. The verified poor-control sample uses MEASURE(`Poor Control Rate`) from eli_test_classic_catalog.care_protocol_semantic.gsd_compliance_metrics. The poorly controlled patient filter INCLUDES evidence_value > 9.0.\n\nInferred snippet (metric_definition) from eli_test_classic_catalog.care_protocol_semantic.gsd_compliance_metrics: Poor control patients count A1c-tested patients whose latest measurement-year A1c exceeds 9.0 percent.\nOn `eli_test_classic_catalog.care_protocol_semantic.gsd_compliance_metrics`, `Poor Control Patients` is a predefined measure with definition-time expression `COUNT(1) FILTER (WHERE evidence_value > 9.0)` over the source. It represents patients whose latest measurement-year A1c is `> 9.0%`; the threshold is strict, so exactly 9.0 is not included. Query it as `MEASURE(`Poor Control Patients`)`, for example `SELECT `Clinic`, MEASURE(`Poor Control Patients`) AS `poor_control_patients` FROM `eli_test_classic_catalog.care_protocol_semantic.gsd_compliance_metrics` GROUP BY ALL`.\n\nInferred snippet (business_logic) from [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev): Patient-level A1c results classify patients into no-result, good-control, poor-control, or intermediate-control bands.\nThe patient-level GSD A1c control band is derived from `gold_adherence_gsd.evidence_value`. Use this exact expression: `CASE WHEN gold_adherence_gsd.evidence_value IS NULL THEN 'No A1c' WHEN gold_adherence_gsd.evidence_value < 8 THEN 'Good control (<8%)' WHEN gold_adherence_gsd.evidence_value > 9 THEN 'Poor control (>9%)' ELSE '8-9%' END`. A missing value means `No A1c`; values below 8 are `Good control (<8%)`; values above 9 are `Poor control (>9%)`; all remaining non-null values, including 8 and 9, are `8-9%`.\n\nInferred snippet (metric_definition) from [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev): A1c testing performance reports eligible and compliant patients annually, and clinic comparisons also report poor glycemic control rates.\nGSD represents A1c testing, with good and poor control bands available in eli_test_classic_catalog.care_protocol_semantic.gsd_compliance_metrics. Annual output groups by `Measurement Year` and selects MEASURE(`Eligible Patients`), MEASURE(`Compliant Patients`), and MEASURE(`GSD Compliance Rate`). Clinic output groups by Clinic and selects MEASURE(`Eligible Patients`), MEASURE(`GSD Compliance Rate`), and MEASURE(`Poor Control Rate`), ORDER BY gsd_compliance_rate. Both INCLUDE only `Measurement Year` = (SELECT MAX(measurement_year) FROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd).\n\nInferred snippet (metric_definition) from (Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev): Glycemic assessment compliance measures annual testing among eligible diabetic adults, rather than whether their blood sugar is controlled.\nGSD means Glycemic Status Assessment: diabetics aged 18-75 with an A1c test in the measurement year. Patient-level clinic/panel compliance is COUNT_IF(evidence_datetime IS NOT NULL) / COUNT(*) over eli_test_classic_catalog.care_protocol.gold_adherence_gsd, with all patient rows in the breakdown as denominator. Care gaps INCLUDE evidence_datetime IS NULL. This testing rate differs from good and poor control rates, whose denominator is A1c-tested patients rather than all eligible patient rows.\n\nInferred snippet (business_logic) from eli_test_classic_catalog.care_protocol_semantic.protocol_adherence_metrics: This metric view measures whether high A1c results receive timely follow-up, revealing protocol adherence by clinic and primary-care panel.\n`eli_test_classic_catalog.care_protocol_semantic.protocol_adherence_metrics` is a Diabetes care-protocol Step 3 metrics view. The business question is whether an A1c result >= 9% (poor control) receives a follow-up A1c within 90 days; it is HEDIS-aligned for demonstration and is not NCQA-certified. Query the exposed dimensions and measures from this metrics view rather than treating it as a raw-row table, and use `MEASURE()` for every measure with `GROUP BY ALL`. Its underlying source is `eli_test_classic_catalog.care_protocol.gold_protocol_adherence` (ASSET).\n\nInferred snippet (metric_definition) from eli_test_classic_catalog.care_protocol_semantic.gsd_compliance_metrics: Poor control rate is the proportion of A1c-tested patients whose latest measurement-year result exceeds 9.0 percent.\nOn `eli_test_classic_catalog.care_protocol_semantic.gsd_compliance_metrics`, `Poor Control Rate` is defined at metric-view definition time as `MEASURE(`Poor Control Patients`) / MEASURE(`Compliant Patients`)`. Query the predefined measure as `MEASURE(`Poor Control Rate`)`, for example `SELECT `Panel`, MEASURE(`Poor Control Rate`) AS `poor_control_rate` FROM `eli_test_classic_catalog.care_protocol_semantic.gsd_compliance_metrics` GROUP BY ALL`. This denominator is A1c-tested/compliant patients, not all eligible patients; use `MEASURE(`GSD Compliance Rate`)` for the separate question of eligible-patient compliance.\n\nInferred snippet (business_lo",
-      "latency_s": 28.9,
-      "tier_runs": [
-        3
-      ],
-      "stable": true,
-      "harness_errors": 0,
-      "runs": [
-        {
-          "tier": 3,
-          "sql": "SELECT\n  clinic_id,\n  COUNT_IF(\n    evidence_datetime IS NULL\n    OR evidence_datetime > DATE'2026-10-30'\n    OR evidence_value > 9.0\n  ) / COUNT(*) AS poor_control_rate\nFROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd\nWHERE measurement_year = 2026\nGROUP BY clinic_id\nORDER BY poor_control_rate DESC",
-          "sql_error": null,
-          "facts_in_context": [
-            false
-          ],
-          "facts_in_result": [
-            false
-          ]
-        }
-      ]
-    },
-    {
       "arm": "ontobricks",
       "qid": "q1",
       "tier": 3,
@@ -1263,77 +1203,6 @@
       ]
     },
     {
-      "arm": "genie_ontology",
-      "qid": "q5",
-      "tier": 3,
-      "sufficient": false,
-      "query_correct": false,
-      "interface": "SQL",
-      "query": null,
-      "sql": null,
-      "sql_error": null,
-      "sql_result": null,
-      "facts": [
-        {
-          "fact": "KED (Kidney Health Evaluation) is the measure that uses eGFR.",
-          "in_context": {
-            "ok": true,
-            "quote": "KED means kidney evaluation with eGFR and uACR components.",
-            "rationale": "Text explicitly states KED is the measure using eGFR (with uACR) as components."
-          },
-          "in_result": null
-        },
-        {
-          "fact": "In MY2026 only LOINC 98979-8 (CKD-EPI 2021) counts as eGFR; MDRD 33914-3 was dropped.",
-          "in_context": {
-            "ok": false,
-            "quote": "",
-            "rationale": "No snippet gives the literal LOINC code 98979-8 or names MDRD/33914-3; the text explicitly says no literal code is provided."
-          },
-          "in_result": null
-        },
-        {
-          "fact": "The eGFR value set is defined in care_protocol_terminology.value_set_segment, segment KED_EGFR (versioned by measurement year).",
-          "in_context": {
-            "ok": true,
-            "quote": "Value-set versions come from `eli_test_classic_catalog.care_protocol_terminology.value_set_segment` filtered with `segment_id = 'KED_EGFR'`",
-            "rationale": "The text explicitly names the table and segment_id used to define the eGFR value set, matching the fact."
-          },
-          "in_result": null
-        }
-      ],
-      "reason": "It found KED as the eGFR measure and the value_set_segment table/KED_EGFR definition, but had no snippet with the literal LOINC code 98979-8 and ran no SQL to confirm it.",
-      "retrieved": "32 inferred snippets (32 about this demo); 8 Pages: ESRD Risk Score-to-Action, KED (Kidney Health Evaluation), Value Set, KED \u2014 Kidney Health Evaluation for Patients With Diabetes, eGFR (Estimated Glomerular Filtration Rate), eGFR \u2014 Estimated Glomerular Filtration Rate, ESRD Risk Score-to-Action, KED \u2014 Kidney Health Evaluation for Patients With Diabetes.",
-      "n_docs": 40,
-      "skipped_search": false,
-      "facts_in_context": [
-        true,
-        false,
-        true
-      ],
-      "facts_in_result": null,
-      "context": "Inferred snippet (text) from [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev): Cross-year kidney evaluation comparisons can show an artificial decrease when later-year kidney test value sets retain only CKD-EPI evidence.\nA later measurement year's KED eGFR value set keeps only the CKD-EPI code. Cross-year KED comparisons can consequently show an artificial drop. The content provides no literal LOINC code or specific later year for this caveat.\n\nInferred snippet (metric_definition) from [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev): Kidney evaluation performance includes both kidney testing components, with urine albumin testing usually identified as the limiting component.\nKED means kidney evaluation with eGFR and uACR components. Annual performance from eli_test_classic_catalog.care_protocol_semantic.ked_compliance_metrics groups by `Measurement Year` and selects MEASURE(`Eligible Patients`), MEASURE(`KED Compliance Rate`), MEASURE(`eGFR Test Rate`), and MEASURE(`uACR Test Rate`). INCLUDE only `Measurement Year` = (SELECT MAX(measurement_year) FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked). Explanations show both component rates because uACR is usually limiting. The clinic sample uses the same year filter, groups by Clinic, selects MEASURE(`Eligible Patients`) and MEASURE(`KED Compliance Rate`), and orders by Clinic.\n\nInferred snippet (business_logic) from eli_test_classic_catalog.care_protocol_semantic.ked_compliance_metrics: KED compliance measures kidney-health testing for eligible diabetes patients aged 18 through 85 during each measurement year.\n`eli_test_classic_catalog.care_protocol_semantic.ked_compliance_metrics` is a HEDIS-aligned demonstration metrics view for Kidney Health Evaluation (KED), not an NCQA-certified measure. Its denominator is eligible diabetes patients aged 18-85, and full compliance requires BOTH an eGFR test and a uACR test in the measurement year. Query measures from the metrics view with `MEASURE()` and `GROUP BY ALL`; do not treat the view as an ordinary row-level table or reconstruct its measures with `SUM`/`COUNT`.\n\nInferred snippet (metric_definition) from Query history for eli_test_classic_catalog.care_protocol.silver_observation and eli_test_classic_catalog.care_protocol_terminology.value_set_segment: eGFR patient coverage counts distinct observed patients matched to each version of the KED eGFR code set during 2025.\nThe eGFR patient-coverage measure counts `COUNT(DISTINCT o.patient_id)` for observations in `eli_test_classic_catalog.care_protocol.silver_observation` where `YEAR(result_ts) = 2025`, grouped by value-set version. The matched observation codes are collected as a comma-separated distinct set with `concat_ws(', ', collect_set(o.loinc_code))`; this is a code-coverage result, not a count of observations. Value-set versions come from `eli_test_classic_catalog.care_protocol_terminology.value_set_segment` filtered with `segment_id = 'KED_EGFR'`, and each version is retained even when no 2025 patients match because the final joins are LEFT JOINs.\n\nInferred snippet (business_logic) from [dev eli_swanson] HEDIS Diabetes Quality \u2014 Care Protocol (dev).lvdash.json: KED measures kidney health evaluation using both eGFR and uACR testing requirements for eligible diabetes patients.\nThe business term `KED` means kidney health evaluation. For rows where `gold_adherence_ked.status = 'NOT_MET'`, classify the care gap exactly as follows: when `NOT egfr_flag AND NOT uacr_flag`, use `'No eGFR and no uACR'`; when `NOT uacr_flag` otherwise, use `'No uACR test'`; otherwise use `'No eGFR test'`. The KED compliance rate is based on `AVG(CAST(numerator_flag AS INT))` across the KED eligible rows, while the gap classification uses the two component flags.\n\nInferred snippet (metric_definition) from (Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev): Kidney evaluation compliance requires both kidney tests among diabetic adults, and missing either test constitutes a care gap.\nKED means Kidney Health Evaluation for diabetics aged 18-85 with BOTH an eGFR and a uACR test; the text identifies uACR as usually the limiting component. Patient-level clinic/panel compliance on eli_test_classic_catalog.care_protocol.gold_adherence_ked is COUNT_IF(egfr_datetime IS NOT NULL AND uacr_datetime IS NOT NULL) / COUNT(*), with all patient rows in the selected breakdown as denominator. Care-gap counts are COUNT_IF(NOT (egfr_datetime IS NOT NULL AND uacr_datetime IS NOT NULL)). The standalone gap example equivalently uses COUNT(*) with an INCLUDE filter WHERE NOT (egfr_datetime IS NOT NULL AND uacr_datetime IS NOT NULL).\n\nInferred snippet (join_hint) from Query history for eli_test_classic_catalog.care_protocol.silver_observation and eli_test_classic_catalog.care_protocol_terminology.value_set_segment: Each KED eGFR value-set version connects to observed patients through matching LOINC codes in the clinical observation records.\nThe complete relationship path for eGFR code matching is `eli_test_classic_catalog.care_protocol_terminology.value_set_segment` filtered by `segment_id = 'KED_EGFR'` -> `eli_test_classic_catalog.care_protocol_terminology.value_set_segment.code` equals `eli_test_classic_catalog.care_protocol.silver_observation.loinc_code` -> observation patients via `eli_test_classic_catalog.care_protocol.silver_observation.patient_id`. The SQL first derives distinct versions from `measurement_year`, then joins the version-and-code rows back on `measurement_year`, and finally LEFT JOINs observations on `loinc_code`; unmatched versions remain present with zero matching patients. Multiple code rows can match one version and multiple observations can match one code, so use `COUNT(DISTINCT patient_id)` rather than counting joined rows to avoid code- and observation-level fanout.\n\nInferred snippet (business_logic) from eli_test_classic_catalog.care_protocol_semantic.ked_compliance_metrics: The measure dimension identifies ",
-      "latency_s": 13.8,
-      "tier_runs": [
-        3
-      ],
-      "stable": true,
-      "harness_errors": 0,
-      "runs": [
-        {
-          "tier": 3,
-          "sql": "",
-          "sql_error": null,
-          "facts_in_context": [
-            true,
-            false,
-            true
-          ],
-          "facts_in_result": null
-        }
-      ]
-    },
-    {
       "arm": "ontobricks",
       "qid": "q5",
       "tier": 3,
@@ -1593,66 +1462,6 @@
       "facts_in_result": null,
       "context": "**Re:** Chi O'Reilly \u00b7 DOB 1961-02-09 \u00b7 patient 2c419662-d3a6-e36b-da54-44b81847a272\n**Date of service:** 2026-08-19 \u00b7 **To:** the patient's primary care clinic (CLINIC-07)\n> Synthetic patient-specific correspondence for the Care Protocol demo. No real PHI. Care-team access only.\n\n**Re:** Corinna Schuster \u00b7 DOB 1953-03-27 \u00b7 patient 34470b92-e033-6131-2ee7-a5fb0e69ecc6\n**Date of service:** 2026-05-31 \u00b7 **To:** the patient's primary care clinic (CLINIC-03)\n> Synthetic patient-specific correspondence for the Care Protocol demo. No real PHI. Care-team access only.\n\n**Re:** Santiago Fadel \u00b7 DOB 1983-04-13 \u00b7 patient 1f2fdd89-2996-1f08-8f82-4142a5df7926\n**Date of service:** 2026-02-15 \u00b7 **To:** the patient's primary care clinic (CLINIC-01)\n> Synthetic patient-specific correspondence for the Care Protocol demo. No real PHI. Care-team access only.\n\n**Re:** Ludivina Wunsch \u00b7 DOB 1966-06-27 \u00b7 patient 6585abd5-3710-8adf-5943-3fc47b602274\n**Date of service:** 2026-01-12 \u00b7 **To:** the patient's primary care clinic (CLINIC-05)\n> Synthetic patient-specific correspondence for the Care Protocol demo. No real PHI. Care-team access only.\n\n**Re:** Chi Hamill \u00b7 DOB 1961-11-09 \u00b7 patient 2061424a-7118-ff93-0dac-ada8cce3cc4a\n**Date of service:** 2026-08-09 \u00b7 **To:** the patient's primary care clinic (CLINIC-06)\n> Synthetic patient-specific correspondence for the Care Protocol demo. No real PHI. Care-team access only.",
       "latency_s": 8.2,
-      "tier_runs": [
-        3
-      ],
-      "stable": true,
-      "harness_errors": 0,
-      "runs": [
-        {
-          "tier": 3,
-          "sql": "",
-          "sql_error": null,
-          "facts_in_context": [
-            false,
-            false
-          ],
-          "facts_in_result": null
-        }
-      ]
-    },
-    {
-      "arm": "genie_ontology",
-      "qid": "q6",
-      "tier": 3,
-      "sufficient": false,
-      "query_correct": false,
-      "interface": "SQL",
-      "query": null,
-      "sql": null,
-      "sql_error": null,
-      "sql_result": null,
-      "facts": [
-        {
-          "fact": "87 patients on 2026-10-30.",
-          "in_context": {
-            "ok": false,
-            "quote": "",
-            "rationale": "No specific count of 87 patients is given anywhere in the text."
-          },
-          "in_result": null
-        },
-        {
-          "fact": "68 had an active metformin order with a last eGFR below 30; 11 an active ACE-inhibitor order with a pregnancy active that day; 9 an active statin order with a pregnancy active that day.",
-          "in_context": {
-            "ok": false,
-            "quote": "",
-            "rationale": "Text only describes methodology/queries for computing contraindication counts, never states the actual patient counts 68/11/9."
-          },
-          "in_result": null
-        }
-      ],
-      "reason": "Has contraindication rule pages and condition/lab data but declined to run the query, so no patient counts were produced.",
-      "retrieved": "10 inferred snippets (10 about this demo); 4 Pages: Care-protocol rules (drug classes, contraindications, thresholds), Active condition, Inquiry Category, Medication Fill.",
-      "n_docs": 14,
-      "skipped_search": false,
-      "facts_in_context": [
-        false,
-        false
-      ],
-      "facts_in_result": null,
-      "context": "Inferred snippet (text) from [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev): Comorbidity counts, contraindications, and recommended therapy fall outside this agent\u2019s available data because the necessary clinical source tables are absent.\nThis agent has no diagnosis, medication-order, or protocol-rule tables. Comorbidity counts, contraindications, and recommended therapy questions are out of scope. Lab-result analysis is available by LOINC concept through eli_test_classic_catalog.care_protocol_semantic.lab_result_metrics, but the supplied portion defines no named lab measures.\n\nInferred snippet (join_hint) from Query history for eli_test_classic_catalog.care_protocol_terminology.protocol_edges and eli_test_classic_catalog.care_protocol_terminology.value_set_segment: Statin contraindication analysis connects a patient\u2019s statin medication and diagnosis through protocol rules and terminology closures.\nFor a patient-specific contraindication result, begin with statin medications from `eli_test_classic_catalog.care_protocol.care_order_med` and retain rows whose `rxnorm_code` is a descendant of `DRUGCLASS-STATIN` in `eli_test_classic_catalog.care_protocol_terminology.rxnorm_closure` (`rc.descendant_code = m.rxnorm_code AND rc.ancestor_code = 'DRUGCLASS-STATIN'`). Join those medications to `eli_test_classic_catalog.care_protocol_terminology.protocol_edges` restricted to `subject = 'DRUGCLASS-STATIN' AND predicate = 'contraindicatedWith'`; the edge\u2019s `object` is the contraindication rule. Then join `protocol_edges.object` to `eli_test_classic_catalog.care_protocol_terminology.value_set_segment.segment_id`, require `code_system = 'ICD10CM'`, join `value_set_segment.code` to `eli_test_classic_catalog.care_protocol_terminology.icd10_closure.ancestor_code`, and join `icd10_closure.descendant_code` to the patient diagnosis `eli_test_classic_catalog.care_protocol.silver_condition.icd10_code`. This complete path requires every hop; the medication-to-rule combination uses `JOIN ... ON TRUE`, so multiple patient statins and applicable contraindication edges can multiply rows and should be deduplicated when counting unique findings.\n\nInferred snippet (business_logic) from Query history for eli_test_classic_catalog.care_protocol.care_order_med and eli_test_classic_catalog.care_protocol.silver_condition: Care protocol analyses reduce diagnosis and medication evidence to patient-level facts before assessing regimen coverage or contraindication overlap.\nCare protocol analysis uses eli_test_classic_catalog.care_protocol.silver_condition for diagnosis evidence, eli_test_classic_catalog.care_protocol.care_order_med for medication-order evidence, and terminology tables in eli_test_classic_catalog.care_protocol_terminology to normalize diagnosis and drug codes. Reusable outputs in these patterns are patient-level flags, not order-level or diagnosis-row-level facts: medication and condition rows are reduced to one row per `patient_id` with `SELECT DISTINCT`, `GROUP BY patient_id`, or `MAX(CASE WHEN ... THEN 1 ELSE 0 END)`. This patient-level reduction is necessary before joining conditions to medications because both source tables can have multiple rows per patient and otherwise can fan out counts. The same sources support two recurring business questions: cardiorenal regimen coverage and patients on statins with contraindication diagnoses.\n\nInferred snippet (metric_definition) from Query history for eli_test_classic_catalog.care_protocol.bronze_order_med and eli_test_classic_catalog.care_protocol_terminology.value_set_segment: Drug-class contraindication reports count distinct affected patients for each contraindication segment and collect matching diagnosis codes.\nGeneral drug-class contraindication reports are grouped at the `(drug_class, segment_id)` grain and compute `count(DISTINCT meds.patient_id) AS patients` plus `collect_set(dx.icd10_code) AS codes`. Medication rows are first reduced to distinct `patient_id`, `ancestor_code AS drug_class`, and `rxnorm_code` from `eli_test_classic_catalog.care_protocol.bronze_order_med` joined to `eli_test_classic_catalog.care_protocol_terminology.rxnorm_closure`, with drug classes INCLUDED by `c.ancestor_code LIKE 'DRUGCLASS-%'`. Contraindication rules are INCLUDED by `eli_test_classic_catalog.care_protocol_terminology.protocol_edges.predicate = 'contraindicatedWith'`, and contraindication value-set segments are INCLUDED by `eli_test_classic_catalog.care_protocol_terminology.value_set_segment.segment_id LIKE 'CONTRA%'`. Diagnoses are deduplicated to distinct `patient_id, icd10_code` from `eli_test_classic_catalog.care_protocol.bronze_pat_enc_dx`, then matched with `dx.icd10_code LIKE concat(contra.code, '%')`; without the distinct CTEs, repeated medication orders or repeated diagnosis rows can inflate the patient counts.\n\nInferred snippet (join_hint) from Query history for eli_test_classic_catalog.care_protocol.bronze_order_med and eli_test_classic_catalog.care_protocol_terminology.value_set_segment: Contraindication analysis links medications to drug classes, class rules, coded value sets, and patient diagnoses.\nContraindication analysis uses a complete INNER JOIN path from medications to classes, class rules, value-set codes, and patient diagnoses. Start with `eli_test_classic_catalog.care_protocol.bronze_order_med m` JOIN `eli_test_classic_catalog.care_protocol_terminology.rxnorm_closure c` ON `m.rxnorm_code = c.descendant_code`, then JOIN contraindication rules from `eli_test_classic_catalog.care_protocol_terminology.protocol_edges r` ON `r.subject = c.ancestor_code` with `r.predicate = 'contraindicatedWith'`, then JOIN `eli_test_classic_catalog.care_protocol_terminology.value_set_segment v` ON `v.segment_id = r.object`, then JOIN `eli_test_classic_catalog.care_protocol.bronze_pat_enc_dx dx` ON `dx.patient_id = m.patient_id` and an ICD prefix condition such as `dx.icd10_code LIKE concat(v.code, '%')`. All joins are row-dropping INNER JOINs: orders witho",
-      "latency_s": 9.4,
       "tier_runs": [
         3
       ],
@@ -1996,91 +1805,6 @@
           "tier": 3,
           "sql": "",
           "sql_error": null,
-          "facts_in_context": [
-            false,
-            false,
-            false,
-            false
-          ],
-          "facts_in_result": null
-        }
-      ]
-    },
-    {
-      "arm": "genie_ontology",
-      "qid": "q7",
-      "tier": 3,
-      "sufficient": false,
-      "query_correct": false,
-      "interface": "SQL",
-      "query": {
-        "kind": "sql",
-        "sql": "SELECT\n  patient_id,\n  measurement_year,\n  status,\n  evidence_datetime,\n  CASE WHEN status = 'NOT_MET' THEN 'No statin dispensed' ELSE NULL END AS gap_reason\nFROM eli_test_classic_catalog.care_protocol.gold_adherence_spd\nWHERE patient_id = '00040be9-7fcf-0ca1-0263-b4197b8f8d28'\n  AND measurement_year = 2026"
-      },
-      "sql": "SELECT\n  patient_id,\n  measurement_year,\n  status,\n  evidence_datetime,\n  CASE WHEN status = 'NOT_MET' THEN 'No statin dispensed' ELSE NULL END AS gap_reason\nFROM eli_test_classic_catalog.care_protocol.gold_adherence_spd\nWHERE patient_id = '00040be9-7fcf-0ca1-0263-b4197b8f8d28'\n  AND measurement_year = 2026",
-      "sql_error": "RuntimeError: SQL FAILED: [UNRESOLVED_COLUMN.WITH_SUGGESTION] A column, variable, or function parameter with name `status` cannot be resolved. Did you mean one of the following? [`age`, `panel_id`, `measure_id`, `patient_id`, `clinic_id`]. SQLSTATE: 42703; line 4 pos 2",
-      "sql_result": null,
-      "facts": [
-        {
-          "fact": "The patient is coded E11.9, a form of type 2 diabetes (E11), so they are in the diabetes cohort.",
-          "in_context": {
-            "ok": false,
-            "quote": "",
-            "rationale": "The text describes diabetes cohort definitions and SPD gap reasons generally, but never states that this specific patient is coded E11.9 or that they are in the diabetes cohort."
-          },
-          "in_result": null
-        },
-        {
-          "fact": "They are 61, inside SPD's 40-75 window.",
-          "in_context": {
-            "ok": false,
-            "quote": "",
-            "rationale": "The text defines SPD's 40-75 age window generically but never states that this specific patient is 61 or confirms their age falls within it."
-          },
-          "in_result": null
-        },
-        {
-          "fact": "No statin was dispensed between 2026-01-01 and 2026-10-30; their last statin (Simvastatin 20 MG) was dispensed on 2009-11-16.",
-          "in_context": {
-            "ok": false,
-            "quote": "",
-            "rationale": "The text describes general gap-reason logic ('No statin dispensed') but never states this specific patient's actual dispensing dates or last statin medication/date."
-          },
-          "in_result": null
-        },
-        {
-          "fact": "The care protocol recommends a statin for SPD, so the patient is a statin care gap.",
-          "in_context": {
-            "ok": false,
-            "quote": "",
-            "rationale": "The text explains general SPD gap-reason logic but never mentions this specific patient, so the fact is not stated about the entity in question."
-          },
-          "in_result": null
-        }
-      ],
-      "reason": "The SQL query failed with an unresolved \"status\" column error, so no patient-specific diabetes, age, or dispensing facts were retrieved.",
-      "retrieved": "20 inferred snippets (20 about this demo); 4 Pages: SPD \u2014 Statin Therapy for Patients With Diabetes, SPD (Statin Therapy), SPD \u2014 Statin Therapy for Patients With Diabetes, Medication Adherence.",
-      "n_docs": 24,
-      "skipped_search": false,
-      "facts_in_context": [
-        false,
-        false,
-        false,
-        false
-      ],
-      "facts_in_result": null,
-      "context": "Inferred snippet (business_logic) from [dev eli_swanson] HEDIS Diabetes Quality \u2014 Care Protocol (dev).lvdash.json: SPD measures statin therapy, and every unmet patient is assigned the gap reason that no statin was dispensed.\nThe business term `SPD` means statin therapy. For `gold_adherence_spd` rows with `status = 'NOT_MET'`, assign the exact gap reason `'No statin dispensed'`. The SPD compliance rate is `AVG(CAST(numerator_flag AS INT))` across all eligible SPD rows; gap counts use only rows satisfying `status = 'NOT_MET'`.\n\nInferred snippet (metric_definition) from (Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev): Statin therapy compliance counts eligible diabetic adults with statin dispensing evidence during the measurement year among all eligible patients.\nSPD means Statin Therapy for diabetics aged 40-75 dispensed a statin in the measurement year. Patient-level clinic/panel compliance on eli_test_classic_catalog.care_protocol.gold_adherence_spd is COUNT_IF(evidence_datetime IS NOT NULL) / COUNT(*), with all patient rows in that breakdown as denominator. Care gaps INCLUDE evidence_datetime IS NULL.\n\nInferred snippet (metric_definition) from [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev): The statin therapy view reports SPD eligibility and rates by age band using the most recent available measurement year.\nFor SPD statin-therapy rates by age band, use `eli_test_classic_catalog.care_protocol_semantic.spd_compliance_metrics`. The verified query selects ``Age Band``, `MEASURE(``Eligible Patients``) AS eligible_patients`, and `MEASURE(``SPD Compliance Rate``) AS spd_rate`, filters to the latest year with ``Measurement Year`` = `(SELECT MAX(measurement_year) FROM eli_test_classic_catalog.care_protocol.gold_adherence_spd)`, groups by ``Age Band``, and orders by ``Age Band``. This is the supplied pattern for questions such as the SPD rate for patients aged 65-75 and for the share of eligible diabetic patients on statin therapy.\n\nInferred snippet (metric_definition) from [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev): Blood pressure, statin therapy, and eye examination annual rates each pair their governed numerator with eligible patient counts.\nAnnual BPD output from eli_test_classic_catalog.care_protocol_semantic.bpd_compliance_metrics selects MEASURE(`Eligible Patients`), MEASURE(`Controlled Patients`), and MEASURE(`BPD Compliance Rate`). SPD output from eli_test_classic_catalog.care_protocol_semantic.spd_compliance_metrics selects MEASURE(`Eligible Patients`), MEASURE(`On Statin Patients`), and MEASURE(`SPD Compliance Rate`); EED output from eli_test_classic_catalog.care_protocol_semantic.eed_compliance_metrics selects MEASURE(`Eligible Patients`), MEASURE(`Eye Exam Patients`), and MEASURE(`EED Compliance Rate`). Each groups by `Measurement Year` and INCLUDES only `Measurement Year` = (SELECT MAX(measurement_year) FROM its matching eli_test_classic_catalog.care_protocol.gold_adherence_bpd, gold_adherence_spd, or gold_adherence_eed). BPD means blood pressure control, SPD statin therapy, and EED diabetic eye exam.\n\nInferred snippet (metric_definition) from (Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev): Statin-dispensing care gaps are patients whose qualifying evidence timestamp is missing.\nCount SPD care gaps with `COUNT_IF(gold_adherence_spd.evidence_datetime IS NULL)` on `eli_test_classic_catalog.care_protocol.gold_adherence_spd`. For SPD gap lists or counts, INCLUDE only rows satisfying `gold_adherence_spd.evidence_datetime IS NULL`; the agent labels this as no statin dispensed. No additional medication-status filter is specified for this care-gap definition.\n\nInferred snippet (join_hint) from eli_test_classic_catalog.care_protocol_semantic.spd_compliance_metrics: The compliance view summarizes an adherence source containing one eligible patient row for each diabetes patient in the SPD denominator.\nThe metrics view source is `eli_test_classic_catalog.care_protocol.gold_adherence_spd` (an asset). The source represents the SPD adherence population and supplies `evidence_datetime`, `age`, `measure_id`, `clinic_id`, and `panel_id` used by the view's dimensions and measures. The source-level statement that there is one row per patient applies to the denominator definition; source-only columns and raw-row queries belong to `eli_test_classic_catalog.care_protocol.gold_adherence_spd`, not to the metrics view. Use the named measures from `eli_test_classic_catalog.care_protocol_semantic.spd_compliance_metrics` instead of bypassing the view to reconstruct these metrics.\n\nInferred snippet (metric_definition) from eli_test_classic_catalog.care_protocol_semantic.spd_compliance_metrics: On-statin patients are eligible diabetes patients with statin evidence recorded during the measurement year.\nOn `eli_test_classic_catalog.care_protocol_semantic.spd_compliance_metrics`, the exposed measure `On Statin Patients` is the SPD numerator: eligible patients for whom a statin was dispensed in the measurement year. Query it as `MEASURE(`On Statin Patients`)`, such as `SELECT MEASURE(`On Statin Patients`) AS on_statin_patients FROM `eli_test_classic_catalog`.`care_protocol_semantic`.`spd_compliance_metrics` GROUP BY ALL`. Its definition-time expression over the source is `COUNT(1) FILTER (WHERE evidence_datetime IS NOT NULL)`. The `evidence_datetime IS NOT NULL` condition means recorded statin evidence qualifies the patient; this is an aggregated measure, not a row-level predicate to apply directly to the metrics view.\n\nInferred snippet (business_logic) from Query history for eli_test_classic_catalog.care_protocol.gold_adherence_gsd and eli_test_classic_catalog.care_protocol.gold_adherence_ked: Five adherence measures report whether patients met testing, blood-pressure, statin, and eye-exam care requirements.\nThe adherence reporting domain uses five measure codes: GSD, KED, BPD, SPD, and EED. Across the five physical sources `eli_test_c",
-      "latency_s": 16.6,
-      "tier_runs": [
-        3
-      ],
-      "stable": true,
-      "harness_errors": 0,
-      "runs": [
-        {
-          "tier": 3,
-          "sql": "SELECT\n  patient_id,\n  measurement_year,\n  status,\n  evidence_datetime,\n  CASE WHEN status = 'NOT_MET' THEN 'No statin dispensed' ELSE NULL END AS gap_reason\nFROM eli_test_classic_catalog.care_protocol.gold_adherence_spd\nWHERE patient_id = '00040be9-7fcf-0ca1-0263-b4197b8f8d28'\n  AND measurement_year = 2026",
-          "sql_error": "RuntimeError: SQL FAILED: [UNRESOLVED_COLUMN.WITH_SUGGESTION] A column, variable, or function parameter with name `status` cannot be resolved. Did you mean one of the following? [`age`, `panel_id`, `measure_id`, `patient_id`, `clinic_id`]. SQLSTATE: 42703; line 4 pos 2",
           "facts_in_context": [
             false,
             false,
@@ -2546,6 +2270,774 @@
             false,
             false
           ]
+        }
+      ]
+    },
+    {
+      "arm": "genie_one",
+      "qid": "q2",
+      "tier": 1,
+      "sufficient": true,
+      "query_correct": false,
+      "interface": "its own answer (no follow-up query)",
+      "query": null,
+      "sql": null,
+      "sql_error": null,
+      "sql_result": null,
+      "facts": [
+        {
+          "fact": "73 of the 821 GSD-eligible diabetics aged 65-75 had a last MY2026 A1c above 9% and no statin dispensed in MY2026 (through 2026-10-30), using the SPD statin rule.",
+          "in_context": {
+            "ok": true,
+            "quote": "Of the **821** GSD-eligible diabetics aged 65\u201375 in MY2026, **73 (about 8.9%)** had a last MY2026 A1c above 9% and no statin dispensed in MY2026, both through 2026-10-30.",
+            "rationale": "The text explicitly states the fact with the exact numbers 73 and 821."
+          },
+          "in_result": null
+        }
+      ],
+      "reason": "Genie One's own answer directly states 73 of 821 matching the gold facts without needing a query.",
+      "retrieved": "2 documents.",
+      "n_docs": 2,
+      "skipped_search": false,
+      "facts_in_context": [
+        true
+      ],
+      "facts_in_result": null,
+      "context": "## 73 patients aged 65\u201375 had A1c above 9% and no statin in MY2026\n\nOf the **821** GSD-eligible diabetics aged 65\u201375 in MY2026, **73 (about 8.9%)** had a last MY2026 A1c above 9% and no statin dispensed in MY2026, both through 2026-10-30. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/6ec58fc5838342e0aabd929fbef623ed?o=7474653847172668#embed-query_UGiq9V) [Care Protocol \u2014 HEDIS Diabetes Quality (dev)](https://fevm-eli-test-classic.cloud.databricks.com/genie/rooms/01f1d4983b7e1d71b07aec80b1bb5c5f?isDbOne=true&utm_source=one-chat&o=7474653847172668)\n\n<!-- begin-embedded:query_UGiq9V -->\n| pts | gsd_65_75 | a1c_after_cutoff | not_in_spd |\n| --- | --- | --- | --- |\n| 73 | 821 | 0 | 0 |\n<!-- end-embedded:query_UGiq9V -->\n\n**Definitions used**\n- **A1c above 9%:** the patient's last A1c of MY2026 is strictly above 9.0%, the GSD poor-control rule. A result of exactly 9.0% doesn't count. [Knowledge snippet](#snippet-fc4a3305-7c6a-4e79-a992-50dfa0a68d3e) [GSD \u2014 Glycemic Status Assessment for Patients With Diabetes](https://fevm-eli-test-classic.cloud.databricks.com/one/discover/pages/09e5fd5b-c4ed-42a7-bf34-a009c6771444?isDbOne=true&utm_source=one-chat&o=7474653847172668) Patients with no A1c test aren't counted, since they have no A1c above 9%.\n- **No statin:** the patient has no statin dispensed in MY2026 in the SPD statin-therapy measure data. Statins are matched from drug ingredients to the specific products ordered. [Knowledge snippet](#snippet-a627da6c-877e-42e7-a400-acb0695dfcd3) Every GSD patient aged 65\u201375 also appears in the SPD data, because SPD covers ages 40\u201375.\n- **The 2026-10-30 cutoff doesn't change the count:** the data ends there. The latest A1c is from 2026-10-30, the latest statin order is from 2026-10-28, and no statin orders fall after the cutoff. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/6ec58fc5838342e0aabd929fbef623ed?o=7474653847172668#embed-query_a10100)\n\n**Caveats:** this is synthetic data that follows HEDIS rules but isn't NCQA-certified. Hospice, ESRD, frailty and contraindication exclusions (such as pregnancy or liver disease) aren't applied, so the count may run slightly high. [hedis-diabetes-quality](https://fevm-eli-test-classic.cloud.databricks.com/one/tools/skills/%2FWorkspace%2FUsers%2Feli.swanson%40databricks.com%2F.assistant%2Fskills%2Fhedis-diabetes-quality?isDbOne=true&utm_source=one-chat&o=7474653847172668)\n\nSQL Genie One ran:\nSELECT (SELECT MAX(evidence_datetime) FROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd WHERE measurement_year=2026) AS max_a1c_dt,\n(SELECT MAX(evidence_datetime) FROM eli_test_classic_catalog.care_protocol.gold_adherence_spd WHERE measurement_year=2026) AS max_statin_dt,\n(SELECT COUNT(*) FROM eli_test_classic_catalog.care_protocol.gold_adherence_spd WHERE measurement_year=2026 AND evidence_datetime > '2026-10-30 23:59:59') AS statin_after_cutoff",
+      "latency_s": 7.1,
+      "tier_runs": [
+        1
+      ],
+      "stable": true,
+      "harness_errors": 0,
+      "runs": [
+        {
+          "tier": 1,
+          "sql": "",
+          "sql_error": null,
+          "facts_in_context": [
+            true
+          ],
+          "facts_in_result": null
+        }
+      ]
+    },
+    {
+      "arm": "genie_one",
+      "qid": "q3",
+      "tier": 1,
+      "sufficient": true,
+      "query_correct": false,
+      "interface": "its own answer (no follow-up query)",
+      "query": null,
+      "sql": null,
+      "sql_error": null,
+      "sql_result": null,
+      "facts": [
+        {
+          "fact": "1,881 patients have diabetes with a kidney complication: a diagnosis under E11.2, E10.2 or E13.2 on or before 2026-10-30.",
+          "in_context": {
+            "ok": true,
+            "quote": "**1,881 distinct patients** have a diagnosis of diabetes with a kidney complication recorded on or before 2026-10-30.",
+            "rationale": "The text explicitly states the count with the definition of kidney complication given nearby as E10.2/E11.2/E13.2."
+          },
+          "in_result": null
+        }
+      ],
+      "reason": "Genie One's own answer correctly states 1,881 patients with E10.2/E11.2/E13.2 diagnoses by 2026-10-30.",
+      "retrieved": "2 documents.",
+      "n_docs": 2,
+      "skipped_search": false,
+      "facts_in_context": [
+        true
+      ],
+      "facts_in_result": null,
+      "context": "## 1,881 patients have diabetes with a kidney complication\n\n**1,881 distinct patients** have a diagnosis of diabetes with a kidney complication recorded on or before 2026-10-30. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/28a64029a69e42e995f94437983b6400?o=7474653847172668#embed-query_c915e9)\n\n<!-- begin-embedded:query_c915e9 -->\n| source | patients_on_or_before_2026_10_30 | patients_any_date | patients_null_onset | min_onset | max_onset |\n| --- | --- | --- | --- | --- | --- |\n| silver_condition | 1881 | 1881 | 0 | 1944-02-09 | 2026-10-30 |\n| bronze_pat_enc_dx | 1881 | 1881 | 0 | 1944-02-09 | 2026-10-30 |\n<!-- end-embedded:query_c915e9 -->\n\n**How \"kidney complication\" is defined:** a patient counts if they have any diagnosis code that falls under ICD-10 E10.2, E11.2 or E13.2 (diabetes with kidney complications), including every more specific code beneath them. Each patient is counted once. [Knowledge snippet](#snippet-4e536900-0a96-40c5-8d15-8570f60e35fb) [hedis-diabetes-quality](https://fevm-eli-test-classic.cloud.databricks.com/one/tools/skills/%2FWorkspace%2FUsers%2Feli.swanson%40databricks.com%2F.assistant%2Fskills%2Fhedis-diabetes-quality?isDbOne=true&utm_source=one-chat&o=7474653847172668) [eli_test_classic_catalog.care_protocol.silver_condition](https://fevm-eli-test-classic.cloud.databricks.com/explore/data/eli_test_classic_catalog/care_protocol/silver_condition?isDbOne=true&utm_source=one-chat&o=7474653847172668)\n\n**About the date cutoff:**\n- The cutoff doesn't remove anyone. The latest recorded onset date in the data is 2026-10-30, so \"on or before 2026-10-30\" covers every kidney-complication diagnosis on file. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/28a64029a69e42e995f94437983b6400?o=7474653847172668#embed-query_c915e9)\n- No patient is missing an onset date.\n- Onset dates go back to 1944, so this counts every patient with this diagnosis on record, not only new diagnoses in one measurement year.\n\n**Cross-check:** the encounter-diagnosis table gives the same 1,881 patients. [eli_test_classic_catalog.care_protocol.bronze_pat_enc_dx](https://fevm-eli-test-classic.cloud.databricks.com/explore/data/eli_test_classic_catalog/care_protocol/bronze_pat_enc_dx?isDbOne=true&utm_source=one-chat&o=7474653847172668)\n\nThis is synthetic demo data aligned to HEDIS, not NCQA-certified.\n\nSQL Genie One ran:\nWITH kid AS (SELECT DISTINCT descendant_code FROM eli_test_classic_catalog.care_protocol_terminology.icd10_closure WHERE ancestor_code IN ('E11.2','E10.2','E13.2'))\nSELECT 'silver_condition' AS source,\n  COUNT(DISTINCT CASE WHEN c.onset_date <= DATE'2026-10-30' THEN c.patient_id END) AS patients_on_or_before_2026_10_30,\n  COUNT(DISTINCT c.patient_id) AS patients_any_date,\n  COUNT(DISTINCT CASE WHEN c.onset_date IS NULL THEN c.patient_id END) AS patients_null_onset,\n  MIN(c.onset_date) AS min_onset, MAX(c.onset_date) AS max_onset\nFROM eli_test_classic_catalog.care_protocol.silver_condition c JOIN kid ON c.icd10_code = kid.descendant_code\nUNION ALL\nSELECT 'bronze_pat_enc_dx',\n  COUNT(DISTINCT CASE WHEN b.onset_date <= DATE'2026-10-30' THEN b.patient_id END),\n  COUNT(DISTINCT b.patient_id),\n  COUNT(DISTINCT CASE WHEN b.onset_date IS NULL THEN b.patient_id END),\n  MIN(b.onset_date), MAX(b.onset_date)\nFROM eli_test_classic_catalog.care_protocol.bronze_pat_enc_dx b JOIN kid ON b.icd10_code = kid.descendant_code",
+      "latency_s": 7.9,
+      "tier_runs": [
+        1
+      ],
+      "stable": true,
+      "harness_errors": 0,
+      "runs": [
+        {
+          "tier": 1,
+          "sql": "",
+          "sql_error": null,
+          "facts_in_context": [
+            true
+          ],
+          "facts_in_result": null
+        }
+      ]
+    },
+    {
+      "arm": "genie_one",
+      "qid": "q4",
+      "tier": 3,
+      "sufficient": false,
+      "query_correct": false,
+      "interface": "its own answer (no follow-up query)",
+      "query": null,
+      "sql": null,
+      "sql_error": null,
+      "sql_result": null,
+      "facts": [
+        {
+          "fact": "For moderate comorbidity with a 5-10 year life expectancy, the protocol's A1c target range is 7.0-8.0%.",
+          "in_context": {
+            "ok": false,
+            "quote": "",
+            "rationale": "The text explicitly states the protocol has no A1c target for older adults with moderate comorbidity, contradicting the fact rather than stating it."
+          },
+          "in_result": null
+        }
+      ],
+      "reason": "Retrieved 2 documents but answered no such A1c target exists, contradicting the protocol's actual 7.0-8.0% range.",
+      "retrieved": "2 documents.",
+      "n_docs": 2,
+      "skipped_search": false,
+      "facts_in_context": [
+        false
+      ],
+      "facts_in_result": null,
+      "context": "## The care protocol doesn't set an A1c target for older adults with moderate comorbidity\n\nThe care protocol data has **no A1c target based on age or comorbidity**. None of its rules mention older adults, comorbidity level or an individualized glycemic goal. I searched all 29 rules in the protocol rules table and found nothing that matches. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/264d2c70dbe0445ea26370c622f7ecb7?o=7474653847172668#embed-query_d16a9d) [eli_test_classic_catalog.care_protocol_terminology.protocol_edges](https://fevm-eli-test-classic.cloud.databricks.com/explore/data/eli_test_classic_catalog/care_protocol_terminology/protocol_edges?isDbOne=true&utm_source=one-chat&o=7474653847172668)\n\n### A1c thresholds the protocol does define (same for every adult)\n\n| Rule | Threshold | Protocol section |\n|---|---|---|\n| GSD good control | A1c **below 8%** | CP sec2 |\n| GSD poor control | A1c **above 9%** | CP sec3 |\n| Monitoring | HbA1c (LOINC part LP-HBA1C) | CP sec5 |\n\nThese match the published care-protocol rules glossary page. [Care-protocol rules (drug classes, contraindications, thresholds)](https://fevm-eli-test-classic.cloud.databricks.com/one/discover/pages/e210469b-4179-45be-91f3-398359a04af3?isDbOne=true&utm_source=one-chat&o=7474653847172668) The only rule tagged with version 2025.1 (section label \"CP-DM-2025.1 sec2/sec6\") recommends statins for SPD. It doesn't cover A1c. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/264d2c70dbe0445ea26370c622f7ecb7?o=7474653847172668#embed-query_d16a9d) Step 3 of the protocol adds a separate follow-up rule: after a high A1c result, the care team should intensify therapy and recheck A1c within 90 days. [Protocol Step 3 \u2014 A1c recheck within 90 days](https://fevm-eli-test-classic.cloud.databricks.com/one/discover/pages/240387f5-7f44-4dc6-9e12-08e037f2d00d?isDbOne=true&utm_source=one-chat&o=7474653847172668)\n\n### What this means\n\n- The closest answer is **below 8%**, the protocol's general \"good control\" threshold. It applies to everyone; it is not a target set for older patients with moderate comorbidity.\n- A rule like \"older adult, moderate comorbidity \u2192 A1c below X%\" isn't recorded in the protocol rules, the glossary pages or the dashboards. If your v2025.1 protocol document includes one, it hasn't been loaded into this data, so I can't confirm the value.\n- This is a synthetic demo protocol that is HEDIS-aligned but not NCQA-certified, and it is not clinical guidance. [Knowledge snippet](#snippet-319e7122-d2a3-46b6-ad3d-d3e5096635bc) [hedis-diabetes-quality](https://fevm-eli-test-classic.cloud.databricks.com/one/tools/skills/%2FWorkspace%2FUsers%2Feli.swanson%40databricks.com%2F.assistant%2Fskills%2Fhedis-diabetes-quality?isDbOne=true&utm_source=one-chat&o=7474653847172668)\n\nSQL Genie One ran:\nSELECT * FROM `eli_test_classic_catalog`.`care_protocol_terminology`.`protocol_edges` WHERE lower(concat_ws(' ', `subject`, `predicate`, `object`, `value`, `source`)) RLIKE 'a1c|older|elder|comorb|target|goal|age'\n\nSELECT * FROM `eli_test_classic_catalog`.`care_protocol_terminology`.`protocol_edges` ORDER BY `predicate`, `subject`",
+      "latency_s": 7.3,
+      "tier_runs": [
+        3
+      ],
+      "stable": true,
+      "harness_errors": 0,
+      "runs": [
+        {
+          "tier": 3,
+          "sql": "",
+          "sql_error": null,
+          "facts_in_context": [
+            false
+          ],
+          "facts_in_result": null
+        }
+      ]
+    },
+    {
+      "arm": "genie_one",
+      "qid": "q8",
+      "tier": 3,
+      "sufficient": false,
+      "query_correct": false,
+      "interface": "its own answer (no follow-up query)",
+      "query": null,
+      "sql": null,
+      "sql_error": null,
+      "sql_result": null,
+      "facts": [
+        {
+          "fact": "Yes: an outside consultation letter (Northside Optometry Group, LETTER-EYE-0b4f4745) documents a dilated fundus examination of both eyes on 2026-09-02, with no evidence of diabetic retinopathy.",
+          "in_context": {
+            "ok": false,
+            "quote": "",
+            "rationale": "The TEXT states the opposite (no outside record found), not the fact of an outside consultation letter documenting a diabetic eye exam."
+          },
+          "in_result": null
+        },
+        {
+          "fact": "The exam is not in the EHR, which is why the EED gap shows; the letter would need to be abstracted to close it.",
+          "in_context": {
+            "ok": false,
+            "quote": "",
+            "rationale": "The text explains the exam isn't in the EHR and gap exists, but never mentions a 'letter' needing to be abstracted to close the gap."
+          },
+          "in_result": null
+        }
+      ],
+      "reason": "Retrieved 2 documents but missed the Northside Optometry Group letter documenting the outside diabetic eye exam.",
+      "retrieved": "2 documents.",
+      "n_docs": 2,
+      "skipped_search": false,
+      "facts_in_context": [
+        false,
+        false
+      ],
+      "facts_in_result": null,
+      "context": "## No outside eye exam on record for this patient\n\n**No.** The workspace has no record of a diabetic eye exam for patient 0b4f4745-1c22-260c-494b-f91aa1e81cfc from outside the EHR, or from inside it. The workspace also has no outside data sources to check: no claims, HIE, payer supplemental or outside-provider tables. Closing this gap would need records from outside this data.\n\n### What the measure shows\nFor MY2026 (2026-01-01 to 2026-12-31) the patient is **NOT_MET** for EED. There's no exam date, code or exam name on file. The patient is assigned to CLINIC-02, PANEL-37. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/e663c6c67bed468dab554d372274aa05?o=7474653847172668#embed-query_eeTMku) [Care Protocol \u2014 HEDIS Diabetes Quality (dev)](https://fevm-eli-test-classic.cloud.databricks.com/genie/rooms/01f1d4983b7e1d71b07aec80b1bb5c5f?isDbOne=true&utm_source=one-chat&o=7474653847172668)\n\n<!-- begin-embedded:query_eeTMku -->\n| patient_id | measurement_year | period_start | period_end | evidence_datetime | evidence_code | evidence_exam | compliance_status | clinic_id | panel_id |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n| 0b4f4745-1c22-260c-494b-f91aa1e81cfc | 2026 | 2026-01-01 | 2026-12-31 |  |  |  | NOT_MET | CLINIC-02 | PANEL-37 |\n<!-- end-embedded:query_eeTMku -->\n\n### Where I looked\n- **Every stage of the procedure data, all years:** the raw source data, the intake table (bronze) and the cleaned table (silver). I searched for any code in the EED eye-exam value set, and for any description mentioning eye, retina, ophthalmology, fundus, optometry or vision. Nothing matched, in 2026 or any earlier year. That also means there's no prior-year negative screen, which full HEDIS would accept. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/e663c6c67bed468dab554d372274aa05?o=7474653847172668#embed-query_876be6)\n- **This isn't a data-loading problem:** the patient has 699 procedures on file from 2017-04-26 to 2026-09-24, including 113 in 2026. None of them is an eye exam. There are also no eye or retina diagnoses (no retinopathy, macular edema, glaucoma or cataract). [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/e663c6c67bed468dab554d372274aa05?o=7474653847172668#embed-query_a25f07)\n- **No outside sources exist:** a search of every schema in the catalog found no claims, HIE, supplemental, payer or outside-record tables. This patient also has no planted test-case note in the tracer registry. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/e663c6c67bed468dab554d372274aa05?o=7474653847172668#embed-query_12397a)\n\n### What this means\nEverything in this data comes from a single synthetic EHR feed. In this data, EED counts only an EHR procedure with a SNOMED code. [EED (Eye Exam for Diabetes)](https://fevm-eli-test-classic.cloud.databricks.com/one/discover/pages/ffde4925-9200-4d93-96bc-7f1cb5cb860e?isDbOne=true&utm_source=one-chat&o=7474653847172668) To close the gap, the eye exam would have to come from records outside this data: claims with eye-exam billing codes, an eye care provider's report, or an HIE or retinal-imaging vendor feed. Until then, this is a real gap to work through outreach to the patient. [Knowledge snippet](#snippet-0feb1388-da20-46d3-8655-66bd5e2dcb1e)\n\nThe data now covers measurement year 2026, so your HEDIS diabetes skill's note that it covers only 2025 is out of date. [hedis-diabetes-quality](https://fevm-eli-test-classic.cloud.databricks.com/one/tools/skills/%2FWorkspace%2FUsers%2Feli.swanson%40databricks.com%2F.assistant%2Fskills%2Fhedis-diabetes-quality?isDbOne=true&utm_source=one-chat&o=7474653847172668) *This is synthetic demo data aligned to HEDIS, not NCQA-certified.*\n\nSQL Genie One ran:\nWITH vs AS (SELECT DISTINCT code FROM eli_test_classic_catalog.care_protocol_terminology.value_set_segment WHERE segment_id = 'EED_EYE_EXAM')\nSELECT 'raw_synthea_procedures' AS layer, `START` AS ts, CAST(`CODE` AS STRING) AS code, `DESCRIPTION` AS description, `SYSTEM` AS src_system,\n  CAST(`CODE` AS STRING) IN (SELECT code FROM vs) AS in_eed_value_set\nFROM eli_test_classic_catalog.care_protocol.raw_synthea_procedures\nWHERE `PATIENT` = '0b4f4745-1c22-260c-494b-f91aa1e81cfc'\n  AND (lower(`DESCRIPTION`) RLIKE 'eye|retin|ophthalm|fundus|optom|vision' OR CAST(`CODE` AS STRING) IN (SELECT code FROM vs))\nUNION ALL\nSELECT 'bronze_procedure', proc_ts, snomed_code, description, NULL, snomed_code IN (SELECT code FROM vs)\nFROM eli_test_classic_catalog.care_protocol.bronze_procedure\nWHERE patient_id = '0b4f4745-1c22-260c-494b-f91aa1e81cfc'\n  AND (lower(description) RLIKE 'eye|retin|ophthalm|fundus|optom|vision' OR snomed_code IN (SELECT code FROM vs))\nUNION ALL\nSELECT 'silver_procedure', proc_ts, snomed_code, description, NULL, snomed_code IN (SELECT code FROM vs)\nFROM eli_test_classic_catalog.care_protocol.silver_procedure\nWHERE patient_id = '0b4f4745-1c22-260c-494b-f91aa1e81cfc'\n  AND (lower(description) RLIKE 'eye|retin|ophthalm|fundus|optom|vision' OR snomed_code IN (SELECT code FROM vs))\nORDER BY ts\n\nSELECT 'tracer' AS kind, tracer_id AS name, layer AS detail, narrative, expected FROM eli_test_classic_catalog.care_protocol.tracer_registry WHERE patient_id = '0b4f4745-1c22-260c-494b-f91aa1e81cfc'\nUNION ALL\nSELECT 'table', concat(table_schema, '.', table_name), table_type, comment, NULL FROM eli_test_classic_catalog.information_schema.tables\nWHERE lower(table_name) RLIKE 'claim|extern|hie|supplement|outside|payer|ccd|ophth|eye|retin|immuniz|registry'\n\nSELECT 'all procedures (any type)' AS check, COUNT(*) AS n, CAST(MIN(`START`) AS STRING) AS first_ts, CAST(MAX(`START`) AS STRING) AS last_ts\nFROM eli_test_classic_catalog.care_protocol.raw_synthea_procedures WHERE `PATIENT` = '0b4f4745-1c22-260c-494b-f91aa1e81cfc'\nUNION ALL\nSELECT 'eye/retinal conditions', COUNT(*), CAST(MIN(`START`) AS STRING), CAST(MAX(`START`) AS STRING)\nFROM eli_test_clas",
+      "latency_s": 8.6,
+      "tier_runs": [
+        3
+      ],
+      "stable": true,
+      "harness_errors": 0,
+      "runs": [
+        {
+          "tier": 3,
+          "sql": "",
+          "sql_error": null,
+          "facts_in_context": [
+            false,
+            false
+          ],
+          "facts_in_result": null
+        }
+      ]
+    },
+    {
+      "arm": "genie_one",
+      "qid": "q1",
+      "tier": 1,
+      "sufficient": true,
+      "query_correct": false,
+      "interface": "its own answer (no follow-up query)",
+      "query": null,
+      "sql": null,
+      "sql_error": null,
+      "sql_result": null,
+      "facts": [
+        {
+          "fact": "GSD poor-control rate by clinic, MY2026 through 2026-10-30: CLINIC-01 37.2%, CLINIC-02 35.3%, CLINIC-03 35.7%, CLINIC-04 37.9%, CLINIC-05 32.6%, CLINIC-06 39.7%, CLINIC-07 36.5%, CLINIC-08 38.3%.",
+          "in_context": {
+            "ok": true,
+            "quote": "| CLINIC-06 | 272 | 108 | 0.39705882352941174 |\n| CLINIC-08 | 290 | 111 | 0.38275862068965516 |\n| CLINIC-04 | 301 | 114 | 0.3787375415282392 |\n| CLINIC-01 | 285 | 106 | 0.3719298245614035 |\n| CLINIC-07 | 299 | 109 | 0.36454849498327757 |\n| CLINIC-03 | 342 | 122 | 0.3567251461988304 |\n| CLINIC-02 | 312 | 110 | 0.3525641025641026 |\n| CLINIC-05 | 298 | 97 | 0.32550335570469796 |",
+            "rationale": "The embedded query table lists the exact poor-control rate for each clinic for MY2026, and the text confirms these figures already reflect the through-2026-10-30 cutoff."
+          },
+          "in_result": null
+        }
+      ],
+      "reason": "Genie One's answer directly reports the correct GSD poor-control rate per clinic matching all gold values.",
+      "retrieved": "2 documents.",
+      "n_docs": 2,
+      "skipped_search": false,
+      "facts_in_context": [
+        true
+      ],
+      "facts_in_result": null,
+      "context": "# GSD Poor-Control Rate by Clinic, MY2026 (through 2026-10-30)\n\n**In MY2026, 36.6% of eligible patients were in poor control (877 of 2,399).** The rate ranges from **39.7% at CLINIC-06** to **32.6% at CLINIC-05**. These figures come from the governed GSD metric view, through the Care Protocol \u2014 HEDIS Diabetes Quality (dev) Genie space. [Care Protocol \u2014 HEDIS Diabetes Quality (dev)](https://fevm-eli-test-classic.cloud.databricks.com/genie/rooms/01f1d4983b7e1d71b07aec80b1bb5c5f?isDbOne=true&utm_source=one-chat&o=7474653847172668) [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/f5093ec44c1445ca88e8568df5724f46?o=7474653847172668#embed-query_6tWq6W) [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/f5093ec44c1445ca88e8568df5724f46?o=7474653847172668#embed-query_3dcdfa)\n\n<!-- begin-embedded:query_6tWq6W -->\n| Clinic | eligible_patients | poor_control_patients | poor_control_rate |\n| --- | --- | --- | --- |\n| CLINIC-06 | 272 | 108 | 0.39705882352941174 |\n| CLINIC-08 | 290 | 111 | 0.38275862068965516 |\n| CLINIC-04 | 301 | 114 | 0.3787375415282392 |\n| CLINIC-01 | 285 | 106 | 0.3719298245614035 |\n| CLINIC-07 | 299 | 109 | 0.36454849498327757 |\n| CLINIC-03 | 342 | 122 | 0.3567251461988304 |\n| CLINIC-02 | 312 | 110 | 0.3525641025641026 |\n| CLINIC-05 | 298 | 97 | 0.32550335570469796 |\n<!-- end-embedded:query_6tWq6W -->\n\n## What drives each clinic's rate\nI rebuilt the measure from the patient-level table, and every clinic's count matched the Genie figures exactly. Most poor-control patients had **no A1c test** (618 of 877). The other 259 had a last A1c above 9%. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/f5093ec44c1445ca88e8568df5724f46?o=7474653847172668#embed-query_c16b79) [eli_test_classic_catalog.care_protocol.gold_adherence_gsd](https://fevm-eli-test-classic.cloud.databricks.com/explore/data/eli_test_classic_catalog/care_protocol/gold_adherence_gsd?isDbOne=true&utm_source=one-chat&o=7474653847172668)\n\n- **CLINIC-06 (39.7%)** has the highest rate. 78 of its 272 patients had no test.\n- **CLINIC-08 (38.3%)** has the most patients with a last A1c above 9% (39). Its problem is more about control than testing.\n- **CLINIC-03** has the most untested patients (94), but it sits mid-pack at 35.7% because only 28 of its patients are above 9%.\n- **CLINIC-05 (32.6%)** has the lowest rate. It has the fewest untested patients (66).\n\n<!-- begin-embedded:query_c16b79 -->\n| clinic_id | eligible | no_test | last_a1c_gt9 | poor_control | poor_control_pct | latest_a1c | after_cutoff |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| CLINIC-06 | 272 | 78 | 30 | 108 | 39.7 | 2026-10-30T05:31:43.000Z | 0 |\n| CLINIC-08 | 290 | 72 | 39 | 111 | 38.3 | 2026-10-29T04:01:49.000Z | 0 |\n| CLINIC-04 | 301 | 79 | 35 | 114 | 37.9 | 2026-10-30T05:32:11.000Z | 0 |\n| CLINIC-01 | 285 | 69 | 37 | 106 | 37.2 | 2026-10-29T14:28:23.000Z | 0 |\n| CLINIC-07 | 299 | 72 | 37 | 109 | 36.5 | 2026-10-30T06:09:26.000Z | 0 |\n| CLINIC-03 | 342 | 94 | 28 | 122 | 35.7 | 2026-10-30T11:38:59.000Z | 0 |\n| CLINIC-02 | 312 | 88 | 22 | 110 | 35.3 | 2026-10-29T05:12:39.000Z | 0 |\n| CLINIC-05 | 298 | 66 | 31 | 97 | 32.6 | 2026-10-30T16:11:00.000Z | 0 |\n<!-- end-embedded:query_c16b79 -->\n\n## Definition and scope\n- **Poor control** means the last A1c of the measurement year is above 9.0%, or there was no A1c test. The denominator is all eligible diabetes patients aged 18\u201375, and lower is better. This matches the GSD glossary page. [GSD \u2014 Glycemic Status Assessment for Patients With Diabetes](https://fevm-eli-test-classic.cloud.databricks.com/one/discover/pages/09e5fd5b-c4ed-42a7-bf34-a009c6771444?isDbOne=true&utm_source=one-chat&o=7474653847172668) Some ontology snippets describe a denominator of tested patients only. The governed measure doesn't work that way: it divides by all eligible patients, which matches your definition. [Knowledge snippet](#snippet-9c07c0a7-1d48-4ab7-9855-678958a92e70)\n- **Date cutoff:** the latest MY2026 A1c result is from 2026-10-30, and none fall after that date. So the full-year MY2026 figures are already the \"through 2026-10-30\" figures. (The Genie space flagged that it couldn't filter by date. This check shows the cutoff makes no difference.) The year isn't over, so some untested patients may still get tested, and the rates may improve by year end.\n- This approach repeats your earlier analysis of the same question, re-run on current data. [GSD poor-control by clinic](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/f3f3fe5f74c24d30a7c1c7d0a83720f1?o=7474653847172668)\n- This is synthetic demo data. It follows HEDIS but isn't NCQA-certified. Hospice, ESRD and frailty exclusions aren't applied, so denominators run slightly high. [hedis-diabetes-quality](https://fevm-eli-test-classic.cloud.databricks.com/one/tools/skills/%2FWorkspace%2FUsers%2Feli.swanson%40databricks.com%2F.assistant%2Fskills%2Fhedis-diabetes-quality?isDbOne=true&utm_source=one-chat&o=7474653847172668)\n\nYour `hedis-diabetes-quality` skill still says the data covers MY2025 only. The data now covers MY2026, so that note is out of date. I can update the skill if you'd like.\n\nSQL Genie One ran:\nSELECT `clinic_id`, COUNT(*) AS eligible,\n COUNT_IF(`evidence_datetime` IS NULL) AS no_test,\n COUNT_IF(`evidence_value` > 9) AS last_a1c_gt9,\n COUNT_IF(`evidence_value` > 9 OR `evidence_datetime` IS NULL) AS poor_control,\n ROUND(COUNT_IF(`evidence_value` > 9 OR `evidence_datetime` IS NULL)/COUNT(*)*100,1) AS poor_control_pct,\n MAX(`evidence_datetime`) AS latest_a1c,\n COUNT_IF(`evidence_datetime` > TIMESTAMP'2026-10-30 23:59:59') AS after_cutoff\nFROM `eli_test_classic_catalog`.`care_protocol`.`gold_adherence_gsd`\nWHERE `measurement_year` = 2026\nGROUP BY ALL ORDER BY poor_control_pct DESC\n\nSELECT COUNT(*) AS eligible, COUNT_IF(`evidence_datetime` IS NULL) AS no_test, COUNT_IF(`evidence_value` > 9) AS last_a1c_gt9,\n COUNT_IF(`evidence_value` > 9 OR `eviden",
+      "latency_s": 12.9,
+      "tier_runs": [
+        1
+      ],
+      "stable": true,
+      "harness_errors": 0,
+      "runs": [
+        {
+          "tier": 1,
+          "sql": "",
+          "sql_error": null,
+          "facts_in_context": [
+            true
+          ],
+          "facts_in_result": null
+        }
+      ]
+    },
+    {
+      "arm": "genie_ontology",
+      "qid": "q1",
+      "tier": 3,
+      "sufficient": false,
+      "query_correct": false,
+      "interface": "SQL",
+      "query": {
+        "kind": "sql",
+        "sql": "SELECT\n  clinic_id,\n  COUNT_IF(\n    evidence_datetime IS NULL\n    OR evidence_datetime > DATE'2026-10-30'\n    OR evidence_value > 9.0\n  ) / COUNT(*) AS poor_control_rate\nFROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd\nWHERE measurement_year = 2026\nGROUP BY clinic_id\nORDER BY poor_control_rate DESC"
+      },
+      "sql": "SELECT\n  clinic_id,\n  COUNT_IF(\n    evidence_datetime IS NULL\n    OR evidence_datetime > DATE'2026-10-30'\n    OR evidence_value > 9.0\n  ) / COUNT(*) AS poor_control_rate\nFROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd\nWHERE measurement_year = 2026\nGROUP BY clinic_id\nORDER BY poor_control_rate DESC",
+      "sql_error": null,
+      "sql_result": "clinic_id | poor_control_rate\nCLINIC-06 | 0.4007352941176471\nCLINIC-08 | 0.38275862068965516\nCLINIC-04 | 0.38205980066445183\nCLINIC-01 | 0.3719298245614035\nCLINIC-07 | 0.36789297658862874\nCLINIC-03 | 0.35964912280701755\nCLINIC-02 | 0.3525641025641026\nCLINIC-05 | 0.3288590604026846",
+      "facts": [
+        {
+          "fact": "GSD poor-control rate by clinic, MY2026 through 2026-10-30: CLINIC-01 37.2%, CLINIC-02 35.3%, CLINIC-03 35.7%, CLINIC-04 37.9%, CLINIC-05 32.6%, CLINIC-06 39.7%, CLINIC-07 36.5%, CLINIC-08 38.3%.",
+          "in_context": {
+            "ok": false,
+            "quote": "",
+            "rationale": "The text explains definitions and query patterns but never states the actual MY2026 per-clinic poor-control rate values (37.2%, 35.3%, etc.)."
+          },
+          "in_result": {
+            "ok": false,
+            "quote": "",
+            "rationale": "Several clinic rates in the TEXT (e.g., CLINIC-03 35.96%, CLINIC-04 38.2%, CLINIC-05 32.9%, CLINIC-06 40.1%, CLINIC-07 36.8%) differ from the stated FACT values beyond rounding tolerance, so the FACT is not accurately stated by the TEXT."
+          }
+        }
+      ],
+      "reason": "The SQL grouped by clinic but computed slightly different rates than stated, e.g. CLINIC-06 40.1% vs 39.7%.",
+      "retrieved": "20 inferred snippets (20 about this demo); 4 Pages: GSD \u2014 Glycemic Status Assessment for Patients With Diabetes, GSD (Glycemic Status Assessment), HbA1c (A1c) \u2014 Hemoglobin A1c, ESRD Risk Score-to-Action.",
+      "n_docs": 24,
+      "skipped_search": false,
+      "facts_in_context": [
+        false
+      ],
+      "facts_in_result": [
+        false
+      ],
+      "context": "Inferred snippet (metric_definition) from (Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev): Good and poor glycemic control rates measure tested patients, whereas glycemic assessment compliance measures testing among all eligible patients.\nOn eli_test_classic_catalog.care_protocol.gold_adherence_gsd, good control is COUNT_IF(evidence_value < 8.0) / COUNT_IF(evidence_datetime IS NOT NULL), and poor control is COUNT_IF(evidence_value > 9.0) / COUNT_IF(evidence_datetime IS NOT NULL). Both denominators count A1c-tested patient rows, unlike GSD compliance's COUNT(*) eligible-row denominator. Average latest A1c (%) is AVG(evidence_value); the supplied expression has no explicit evidence_datetime filter. The clinic example also reports COUNT(*) AS eligible_patients and COUNT_IF(evidence_datetime IS NOT NULL) / COUNT(*) AS gsd_compliance_rate, GROUP BY clinic_id ORDER BY gsd_compliance_rate DESC, without a year filter. The verified poor-control sample uses MEASURE(`Poor Control Rate`) from eli_test_classic_catalog.care_protocol_semantic.gsd_compliance_metrics. The poorly controlled patient filter INCLUDES evidence_value > 9.0.\n\nInferred snippet (metric_definition) from eli_test_classic_catalog.care_protocol_semantic.gsd_compliance_metrics: Poor control patients count A1c-tested patients whose latest measurement-year A1c exceeds 9.0 percent.\nOn `eli_test_classic_catalog.care_protocol_semantic.gsd_compliance_metrics`, `Poor Control Patients` is a predefined measure with definition-time expression `COUNT(1) FILTER (WHERE evidence_value > 9.0)` over the source. It represents patients whose latest measurement-year A1c is `> 9.0%`; the threshold is strict, so exactly 9.0 is not included. Query it as `MEASURE(`Poor Control Patients`)`, for example `SELECT `Clinic`, MEASURE(`Poor Control Patients`) AS `poor_control_patients` FROM `eli_test_classic_catalog.care_protocol_semantic.gsd_compliance_metrics` GROUP BY ALL`.\n\nInferred snippet (metric_definition) from [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev): A1c testing performance reports eligible and compliant patients annually, and clinic comparisons also report poor glycemic control rates.\nGSD represents A1c testing, with good and poor control bands available in eli_test_classic_catalog.care_protocol_semantic.gsd_compliance_metrics. Annual output groups by `Measurement Year` and selects MEASURE(`Eligible Patients`), MEASURE(`Compliant Patients`), and MEASURE(`GSD Compliance Rate`). Clinic output groups by Clinic and selects MEASURE(`Eligible Patients`), MEASURE(`GSD Compliance Rate`), and MEASURE(`Poor Control Rate`), ORDER BY gsd_compliance_rate. Both INCLUDE only `Measurement Year` = (SELECT MAX(measurement_year) FROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd).\n\nInferred snippet (business_logic) from [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev): Patient-level A1c results classify patients into no-result, good-control, poor-control, or intermediate-control bands.\nThe patient-level GSD A1c control band is derived from `gold_adherence_gsd.evidence_value`. Use this exact expression: `CASE WHEN gold_adherence_gsd.evidence_value IS NULL THEN 'No A1c' WHEN gold_adherence_gsd.evidence_value < 8 THEN 'Good control (<8%)' WHEN gold_adherence_gsd.evidence_value > 9 THEN 'Poor control (>9%)' ELSE '8-9%' END`. A missing value means `No A1c`; values below 8 are `Good control (<8%)`; values above 9 are `Poor control (>9%)`; all remaining non-null values, including 8 and 9, are `8-9%`.\n\nInferred snippet (metric_definition) from (Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev): Glycemic assessment compliance measures annual testing among eligible diabetic adults, rather than whether their blood sugar is controlled.\nGSD means Glycemic Status Assessment: diabetics aged 18-75 with an A1c test in the measurement year. Patient-level clinic/panel compliance is COUNT_IF(evidence_datetime IS NOT NULL) / COUNT(*) over eli_test_classic_catalog.care_protocol.gold_adherence_gsd, with all patient rows in the breakdown as denominator. Care gaps INCLUDE evidence_datetime IS NULL. This testing rate differs from good and poor control rates, whose denominator is A1c-tested patients rather than all eligible patient rows.\n\nInferred snippet (metric_definition) from eli_test_classic_catalog.care_protocol_semantic.gsd_compliance_metrics: Poor control rate is the proportion of A1c-tested patients whose latest measurement-year result exceeds 9.0 percent.\nOn `eli_test_classic_catalog.care_protocol_semantic.gsd_compliance_metrics`, `Poor Control Rate` is defined at metric-view definition time as `MEASURE(`Poor Control Patients`) / MEASURE(`Compliant Patients`)`. Query the predefined measure as `MEASURE(`Poor Control Rate`)`, for example `SELECT `Panel`, MEASURE(`Poor Control Rate`) AS `poor_control_rate` FROM `eli_test_classic_catalog.care_protocol_semantic.gsd_compliance_metrics` GROUP BY ALL`. This denominator is A1c-tested/compliant patients, not all eligible patients; use `MEASURE(`GSD Compliance Rate`)` for the separate question of eligible-patient compliance.\n\nInferred snippet (business_logic) from eli_test_classic_catalog.care_protocol_semantic.protocol_adherence_metrics: This metric view measures whether high A1c results receive timely follow-up, revealing protocol adherence by clinic and primary-care panel.\n`eli_test_classic_catalog.care_protocol_semantic.protocol_adherence_metrics` is a Diabetes care-protocol Step 3 metrics view. The business question is whether an A1c result >= 9% (poor control) receives a follow-up A1c within 90 days; it is HEDIS-aligned for demonstration and is not NCQA-certified. Query the exposed dimensions and measures from this metrics view rather than treating it as a raw-row table, and use `MEASURE()` for every measure with `GROUP BY ALL`. Its underlying source is `eli_test_classic_catalog.care_protocol.gold_protocol_adherence` (ASSET).\n\nInferred snippet (business_lo",
+      "latency_s": 29.0,
+      "tier_runs": [
+        3
+      ],
+      "stable": true,
+      "harness_errors": 0,
+      "runs": [
+        {
+          "tier": 3,
+          "sql": "SELECT\n  clinic_id,\n  COUNT_IF(\n    evidence_datetime IS NULL\n    OR evidence_datetime > DATE'2026-10-30'\n    OR evidence_value > 9.0\n  ) / COUNT(*) AS poor_control_rate\nFROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd\nWHERE measurement_year = 2026\nGROUP BY clinic_id\nORDER BY poor_control_rate DESC",
+          "sql_error": null,
+          "facts_in_context": [
+            false
+          ],
+          "facts_in_result": [
+            false
+          ]
+        }
+      ]
+    },
+    {
+      "arm": "genie_one",
+      "qid": "q5",
+      "tier": 1,
+      "sufficient": true,
+      "query_correct": false,
+      "interface": "its own answer (no follow-up query)",
+      "query": null,
+      "sql": null,
+      "sql_error": null,
+      "sql_result": null,
+      "facts": [
+        {
+          "fact": "KED (Kidney Health Evaluation) is the measure that uses eGFR.",
+          "in_context": {
+            "ok": true,
+            "quote": "KED (Kidney Health Evaluation) is the only quality measure that uses eGFR.",
+            "rationale": "Text explicitly states KED is the only measure using eGFR."
+          },
+          "in_result": null
+        },
+        {
+          "fact": "In MY2026 only LOINC 98979-8 (CKD-EPI 2021) counts as eGFR; MDRD 33914-3 was dropped.",
+          "in_context": {
+            "ok": true,
+            "quote": "KED (Kidney Health Evaluation) is the only quality measure that uses eGFR. For MY2026, one LOINC code counts as eGFR: `98979-8` (CKD-EPI). For MY2025, two codes counted: `33914-3` (MDRD) and `98979-8`.",
+            "rationale": "Text explicitly states KED uses eGFR, MY2026 has only 98979-8 (CKD-EPI), and MDRD code 33914-3 was present in MY2025 but dropped, with location defined in value_set_segment table."
+          },
+          "in_result": null
+        },
+        {
+          "fact": "The eGFR value set is defined in care_protocol_terminology.value_set_segment, segment KED_EGFR (versioned by measurement year).",
+          "in_context": {
+            "ok": true,
+            "quote": "**Code list:** the `KED_EGFR` segment of the value-set table [eli_test_classic_catalog.care_protocol_terminology.value_set_segment]",
+            "rationale": "The text explicitly states the eGFR value set is the KED_EGFR segment in the value_set_segment table, with rows tied to measurement year."
+          },
+          "in_result": null
+        }
+      ],
+      "reason": "Genie One's answer confirms all facts: KED uses eGFR, MY2026 code 98979-8, defined in value_set_segment's KED_EGFR segment.",
+      "retrieved": "2 documents.",
+      "n_docs": 2,
+      "skipped_search": false,
+      "facts_in_context": [
+        true,
+        true,
+        true
+      ],
+      "facts_in_result": null,
+      "context": "## eGFR: which measures use it, the MY2026 codes, and where they're defined\n\n**KED (Kidney Health Evaluation) is the only quality measure that uses eGFR. For MY2026, one LOINC code counts as eGFR: `98979-8` (CKD-EPI).** For MY2025, two codes counted: `33914-3` (MDRD) and `98979-8`. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/a57cc2ab04a2425899ab01fe07da4667?o=7474653847172668#embed-query_e60be1) Two care-protocol medication rules also use eGFR thresholds, but they aren't quality measures. [Earlier eGFR question](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/eeb38a3a26cf4d9a90f2394dcf98be5f?o=7474653847172668)\n\n### Where eGFR is used\n\n| Where | How eGFR is used | Source |\n|---|---|---|\n| **KED** (patients with diabetes, ages 18\u201385) | One of the two numerator tests. A patient needs both an eGFR and a uACR test in the year. It appears as `egfr_flag` in `gold_adherence_ked` and as the `eGFR Test Rate` and `eGFR Tested Patients` metrics. | Protocol rule `KED monitoredBy LP-EGFR`, section \"CP sec5\" [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/a57cc2ab04a2425899ab01fe07da4667?o=7474653847172668#embed-query_c17216) [KED (Kidney Health Evaluation)](https://fevm-eli-test-classic.cloud.databricks.com/one/discover/pages/2917aa8e-38e0-48a0-90b5-040c2931541a?isDbOne=true&utm_source=one-chat&o=7474653847172668) [Knowledge snippet](#snippet-b8b53658-03e0-4831-9241-26c62476f047) |\n| Metformin (biguanide class) | Not allowed when eGFR < 30 | Protocol section \"CP-GLY-2\" [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/a57cc2ab04a2425899ab01fe07da4667?o=7474653847172668#embed-query_c17216) |\n| SGLT2 inhibitors | Not allowed when eGFR < 20 | Protocol section \"CP sec4\" [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/a57cc2ab04a2425899ab01fe07da4667?o=7474653847172668#embed-query_c17216) |\n\nGSD, SPD, BPD, eye exam and MAD don't use eGFR.\n\n### Codes that count, by year\n\n<!-- begin-embedded:query_e60be1 -->\n| segment_id | segment_name | code | code_system | measurement_year | owner |\n| --- | --- | --- | --- | --- | --- |\n| KED_EGFR | Kidney eval - eGFR (KED) | 33914-3 | LOINC | 2025 | eli.swanson@databricks.com |\n| KED_EGFR | Kidney eval - eGFR (KED) | 98979-8 | LOINC | 2025 | eli.swanson@databricks.com |\n| KED_EGFR | Kidney eval - eGFR (KED) [MY2026 modernized: CKD-EPI only] | 98979-8 | LOINC | 2026 | eli.swanson@databricks.com |\n<!-- end-embedded:query_e60be1 -->\n\n### Where it's defined\n- **Code list:** the `KED_EGFR` segment of the value-set table [eli_test_classic_catalog.care_protocol_terminology.value_set_segment](https://fevm-eli-test-classic.cloud.databricks.com/explore/data/eli_test_classic_catalog/care_protocol_terminology/value_set_segment?isDbOne=true&utm_source=one-chat&o=7474653847172668). Each row is tied to a measurement year, and the MY2026 row is labeled \"MY2026 modernized: CKD-EPI only\". You match codes on `loinc_code = code` for the segment and year you want. [Knowledge snippet](#snippet-edda8620-a170-4029-82f4-21a22de79a49)\n- **Thresholds and measure links:** the protocol rules table, which records the protocol section for each rule [eli_test_classic_catalog.care_protocol_terminology.protocol_edges](https://fevm-eli-test-classic.cloud.databricks.com/explore/data/eli_test_classic_catalog/care_protocol_terminology/protocol_edges?isDbOne=true&utm_source=one-chat&o=7474653847172668).\n- **Business definition:** the glossary page **eGFR (Estimated Glomerular Filtration Rate)**, which isn't certified. It lists both codes. [eGFR (Estimated Glomerular Filtration Rate)](https://fevm-eli-test-classic.cloud.databricks.com/one/discover/pages/150dfd59-85b9-4efd-8014-bb170bfe626e?isDbOne=true&utm_source=one-chat&o=7474653847172668)\n\n### Three conflicts to be aware of\n- **The glossary page hasn't been updated for MY2026.** It still lists `33914-3`, which the MY2026 code list removed. The Genie space notes add that this change can make KED appear to drop when you compare years. [Knowledge snippet](#snippet-ed62bbb6-6537-45d5-9de2-05957f4f1f00)\n- **The lab data doesn't support the expected drop to near zero.** Your HEDIS skill notes say lab results use the MDRD code, so a CKD-EPI-only list would push MY2026 KED to about zero. [hedis-diabetes-quality](https://fevm-eli-test-classic.cloud.databricks.com/one/tools/skills/%2FWorkspace%2FUsers%2Feli.swanson%40databricks.com%2F.assistant%2Fskills%2Fhedis-diabetes-quality?isDbOne=true&utm_source=one-chat&o=7474653847172668) In practice, `33914-3` appears only through 2022. From 2023 on, every result uses `98979-8`: 4,419 patients in 2025 and 4,097 in 2026. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/a57cc2ab04a2425899ab01fe07da4667?o=7474653847172668#embed-query_1bce2e) Removing `33914-3` therefore shouldn't lower MY2025 or MY2026 KED. It would only matter if you look back at results from 2022 or earlier.\n- **2026 data exists.** The skill notes say the data covers MY2025 only, but the lab table has 2026 results.\n\nYou may want to update the glossary page and the skill notes to match. This is synthetic demo data built to follow HEDIS rules, not NCQA-certified.\n\nSQL Genie One ran:\nSELECT * FROM `eli_test_classic_catalog`.`care_protocol_terminology`.`value_set_segment` WHERE `segment_id` ILIKE '%EGFR%' ORDER BY `measurement_year`, `code`\n\nSELECT * FROM `eli_test_classic_catalog`.`care_protocol_terminology`.`protocol_edges` WHERE lower(concat_ws(' ', `subject`, `predicate`, `object`, `value`, `source`)) LIKE '%egfr%'\n\nSELECT `loinc_code`, YEAR(`result_ts`) AS yr, COUNT(*) AS n_obs, COUNT(DISTINCT `patient_id`) AS n_patients FROM `eli_test_classic_catalog`.`care_protocol`.`silver_observation` WHERE `loinc_code` IN ('33914-3','98979-8','62238-1','48642-3','48643-1') GROUP BY ALL ORDER BY 1,2",
+      "latency_s": 13.9,
+      "tier_runs": [
+        1
+      ],
+      "stable": true,
+      "harness_errors": 0,
+      "runs": [
+        {
+          "tier": 1,
+          "sql": "",
+          "sql_error": null,
+          "facts_in_context": [
+            true,
+            true,
+            true
+          ],
+          "facts_in_result": null
+        }
+      ]
+    },
+    {
+      "arm": "genie_ontology",
+      "qid": "q5",
+      "tier": 3,
+      "sufficient": false,
+      "query_correct": false,
+      "interface": "SQL",
+      "query": {
+        "kind": "sql",
+        "sql": "SELECT\n  segment_id,\n  measurement_year,\n  code AS loinc_code\nFROM eli_test_classic_catalog.care_protocol_terminology.value_set_segment\nWHERE segment_id = 'KED_EGFR'\n  AND measurement_year = '2026'"
+      },
+      "sql": "SELECT\n  segment_id,\n  measurement_year,\n  code AS loinc_code\nFROM eli_test_classic_catalog.care_protocol_terminology.value_set_segment\nWHERE segment_id = 'KED_EGFR'\n  AND measurement_year = '2026'",
+      "sql_error": null,
+      "sql_result": "segment_id | measurement_year | loinc_code\nKED_EGFR | 2026 | 98979-8",
+      "facts": [
+        {
+          "fact": "KED (Kidney Health Evaluation) is the measure that uses eGFR.",
+          "in_context": {
+            "ok": true,
+            "quote": "eGFR (Estimated Glomerular Filtration Rate) [Clinical Domain]: Kidney-function lab estimating how well kidneys filter blood (LOINC 33914-3 MDRD, 98979-8 CKD-EPI); one of KED's two tests.",
+            "rationale": "This explicitly identifies KED as the measure using eGFR."
+          },
+          "in_result": {
+            "ok": true,
+            "quote": "KED_EGFR",
+            "rationale": "The segment_id 'KED_EGFR' explicitly ties the KED measure to eGFR."
+          }
+        },
+        {
+          "fact": "In MY2026 only LOINC 98979-8 (CKD-EPI 2021) counts as eGFR; MDRD 33914-3 was dropped.",
+          "in_context": {
+            "ok": false,
+            "quote": "",
+            "rationale": "The text discusses a later-year value set keeping only CKD-EPI but explicitly says it provides no literal LOINC code or specific year, so the MY2026/98979-8/33914-3 fact is never stated explicitly."
+          },
+          "in_result": {
+            "ok": false,
+            "quote": "",
+            "rationale": "The result only shows that 98979-8 is the eGFR code for MY2026; it never mentions 33914-3 or that MDRD was dropped."
+          }
+        },
+        {
+          "fact": "The eGFR value set is defined in care_protocol_terminology.value_set_segment, segment KED_EGFR (versioned by measurement year).",
+          "in_context": {
+            "ok": false,
+            "quote": "",
+            "rationale": "Text describes how eGFR codes are derived via value_set_segment filtered by segment_id='KED_EGFR' through query logic, but never explicitly states this as a fact about MY2026 LOINC codes or names the table/segment as the defined location in a standalone statement."
+          },
+          "in_result": {
+            "ok": false,
+            "quote": "",
+            "rationale": "The result only lists rows of data (segment_id, year, loinc_code) but never states that this value set is defined in care_protocol_terminology.value_set_segment or names which measures use eGFR."
+          }
+        }
+      ],
+      "reason": "The SQL query correctly found KED_EGFR's 98979-8 for MY2026 but never named the defining table or confirmed MDRD's removal.",
+      "retrieved": "20 inferred snippets (20 about this demo); 4 Pages: ESRD Risk Score-to-Action, eGFR (Estimated Glomerular Filtration Rate), KED (Kidney Health Evaluation), KED \u2014 Kidney Health Evaluation for Patients With Diabetes.",
+      "n_docs": 24,
+      "skipped_search": false,
+      "facts_in_context": [
+        true,
+        false,
+        false
+      ],
+      "facts_in_result": [
+        true,
+        false,
+        false
+      ],
+      "context": "Inferred snippet (metric_definition) from Query history for eli_test_classic_catalog.care_protocol.silver_observation and eli_test_classic_catalog.care_protocol_terminology.value_set_segment: eGFR patient coverage counts distinct observed patients matched to each version of the KED eGFR code set during 2025.\nThe eGFR patient-coverage measure counts `COUNT(DISTINCT o.patient_id)` for observations in `eli_test_classic_catalog.care_protocol.silver_observation` where `YEAR(result_ts) = 2025`, grouped by value-set version. The matched observation codes are collected as a comma-separated distinct set with `concat_ws(', ', collect_set(o.loinc_code))`; this is a code-coverage result, not a count of observations. Value-set versions come from `eli_test_classic_catalog.care_protocol_terminology.value_set_segment` filtered with `segment_id = 'KED_EGFR'`, and each version is retained even when no 2025 patients match because the final joins are LEFT JOINs.\n\nInferred snippet (text) from [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev): Cross-year kidney evaluation comparisons can show an artificial decrease when later-year kidney test value sets retain only CKD-EPI evidence.\nA later measurement year's KED eGFR value set keeps only the CKD-EPI code. Cross-year KED comparisons can consequently show an artificial drop. The content provides no literal LOINC code or specific later year for this caveat.\n\nInferred snippet (join_hint) from Query history for eli_test_classic_catalog.care_protocol.silver_observation and eli_test_classic_catalog.care_protocol_terminology.value_set_segment: Each KED eGFR value-set version connects to observed patients through matching LOINC codes in the clinical observation records.\nThe complete relationship path for eGFR code matching is `eli_test_classic_catalog.care_protocol_terminology.value_set_segment` filtered by `segment_id = 'KED_EGFR'` -> `eli_test_classic_catalog.care_protocol_terminology.value_set_segment.code` equals `eli_test_classic_catalog.care_protocol.silver_observation.loinc_code` -> observation patients via `eli_test_classic_catalog.care_protocol.silver_observation.patient_id`. The SQL first derives distinct versions from `measurement_year`, then joins the version-and-code rows back on `measurement_year`, and finally LEFT JOINs observations on `loinc_code`; unmatched versions remain present with zero matching patients. Multiple code rows can match one version and multiple observations can match one code, so use `COUNT(DISTINCT patient_id)` rather than counting joined rows to avoid code- and observation-level fanout.\n\nInferred snippet (business_logic) from Query history for eli_test_classic_catalog.care_protocol.silver_observation and eli_test_classic_catalog.care_protocol_terminology.value_set_segment: KED_EGFR terminology versions are compared by counting distinct patients with matching laboratory observations from calendar year 2025.\nTo calculate coverage for one terminology version, first select `measurement_year` values from `eli_test_classic_catalog.care_protocol_terminology.value_set_segment` where `segment_id = 'KED_EGFR'`, then use that same segment and `measurement_year` to obtain its complete code set. Join those codes to `eli_test_classic_catalog.care_protocol.silver_observation` using `loinc_code = code` and restrict observations with `YEAR(result_ts) = 2025`. For the 2026 version specifically, include `measurement_year = '2026'` and compute `COUNT(DISTINCT patient_id)`; the source uses a LEFT JOIN from the version/code set, so a version with no matching observations remains represented with a zero-like unmatched result rather than being removed by the join itself.\n\nInferred snippet (business_logic) from eli_test_classic_catalog.care_protocol_semantic.ked_compliance_metrics: KED compliance measures kidney-health testing for eligible diabetes patients aged 18 through 85 during each measurement year.\n`eli_test_classic_catalog.care_protocol_semantic.ked_compliance_metrics` is a HEDIS-aligned demonstration metrics view for Kidney Health Evaluation (KED), not an NCQA-certified measure. Its denominator is eligible diabetes patients aged 18-85, and full compliance requires BOTH an eGFR test and a uACR test in the measurement year. Query measures from the metrics view with `MEASURE()` and `GROUP BY ALL`; do not treat the view as an ordinary row-level table or reconstruct its measures with `SUM`/`COUNT`.\n\nInferred snippet (metric_definition) from [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev): Kidney evaluation performance includes both kidney testing components, with urine albumin testing usually identified as the limiting component.\nKED means kidney evaluation with eGFR and uACR components. Annual performance from eli_test_classic_catalog.care_protocol_semantic.ked_compliance_metrics groups by `Measurement Year` and selects MEASURE(`Eligible Patients`), MEASURE(`KED Compliance Rate`), MEASURE(`eGFR Test Rate`), and MEASURE(`uACR Test Rate`). INCLUDE only `Measurement Year` = (SELECT MAX(measurement_year) FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked). Explanations show both component rates because uACR is usually limiting. The clinic sample uses the same year filter, groups by Clinic, selects MEASURE(`Eligible Patients`) and MEASURE(`KED Compliance Rate`), and orders by Clinic.\n\nInferred snippet (business_logic) from [dev eli_swanson] HEDIS Diabetes Quality \u2014 Care Protocol (dev).lvdash.json: KED measures kidney health evaluation using both eGFR and uACR testing requirements for eligible diabetes patients.\nThe business term `KED` means kidney health evaluation. For rows where `gold_adherence_ked.status = 'NOT_MET'`, classify the care gap exactly as follows: when `NOT egfr_flag AND NOT uacr_flag`, use `'No eGFR and no uACR'`; when `NOT uacr_flag` otherwise, use `'No uACR test'`; otherwise use `'No eGFR test'`. The KED compliance rate is based on `AVG(CAST(numerator_flag AS INT))` across the KED eligible rows, wh",
+      "latency_s": 25.8,
+      "tier_runs": [
+        3
+      ],
+      "stable": true,
+      "harness_errors": 0,
+      "runs": [
+        {
+          "tier": 3,
+          "sql": "SELECT\n  segment_id,\n  measurement_year,\n  code AS loinc_code\nFROM eli_test_classic_catalog.care_protocol_terminology.value_set_segment\nWHERE segment_id = 'KED_EGFR'\n  AND measurement_year = '2026'",
+          "sql_error": null,
+          "facts_in_context": [
+            true,
+            false,
+            false
+          ],
+          "facts_in_result": [
+            true,
+            false,
+            false
+          ]
+        }
+      ]
+    },
+    {
+      "arm": "genie_one",
+      "qid": "q6",
+      "tier": 3,
+      "sufficient": false,
+      "query_correct": false,
+      "interface": "its own answer (no follow-up query)",
+      "query": null,
+      "sql": null,
+      "sql_error": null,
+      "sql_result": null,
+      "facts": [
+        {
+          "fact": "87 patients on 2026-10-30.",
+          "in_context": {
+            "ok": false,
+            "quote": "",
+            "rationale": "The text states 19 patients, not 87, contradicting the fact."
+          },
+          "in_result": null
+        },
+        {
+          "fact": "68 had an active metformin order with a last eGFR below 30; 11 an active ACE-inhibitor order with a pregnancy active that day; 9 an active statin order with a pregnancy active that day.",
+          "in_context": {
+            "ok": false,
+            "quote": "",
+            "rationale": "The text contradicts the metformin/eGFR<30 count (68) by stating only one patient had an active metformin order with eGFR 125.4, so the fact is not stated as true."
+          },
+          "in_result": null
+        }
+      ],
+      "reason": "Genie One returned only 19 patients from 2 documents, contradicting the gold count of 87 and the metformin/eGFR breakdown.",
+      "retrieved": "2 documents.",
+      "n_docs": 2,
+      "skipped_search": false,
+      "facts_in_context": [
+        false,
+        false
+      ],
+      "facts_in_result": null,
+      "context": "# Contraindicated active orders on 2026-10-30: 19 patients\n\n**19 patients** had an active order on 2026-10-30 for a drug the care protocol contraindicates. In every case the reason was a **pregnancy diagnosis active that day**. The last-lab rule didn't flag anyone. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/53a4eb0f0bab4adfbb9bdace0807e78f?o=7474653847172668#embed-query_306215) [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/53a4eb0f0bab4adfbb9bdace0807e78f?o=7474653847172668#embed-query_e4cc5b)\n\n| Drug class (order) | Patients | Protocol rule |\n|---|---|---|\n| ACE inhibitor (lisinopril 10 mg) | 11 | Not to be used in pregnancy (CP sec4) |\n| Statin (simvastatin 10 or 20 mg) | 9 | Not to be used in pregnancy (CP sec4) |\n| ARB | 0 | Not to be used in pregnancy (CP sec4) |\n\nThe two classes add to 20 because one patient had both a lisinopril and a simvastatin order. That patient's record carries two pregnancy codes: a normal pregnancy (Z34.90) and a tubal pregnancy (O00.1). Everyone else was flagged on Z34.90 (normal pregnancy). None of the 19 orders had a stop date. In one case the pregnancy was first recorded on 2026-10-30 itself. One simvastatin 20 mg order dates back to 2022-07-09, so it may be an old order nobody closed out.\n\n<!-- begin-embedded:query_306215 -->\n| patient_id | drug_class | drug | order_start | order_stop | basis | rule | source | evidence |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- |\n| 15ce684d-4abe-58f1-d28a-97f7b212fab8 | DRUGCLASS-ACE | lisinopril 10 MG Oral Tablet | 2026-10-04 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-07-12, stop open) |\n| 311f9656-f00f-3534-d365-9305c42252ae | DRUGCLASS-ACE | lisinopril 10 MG Oral Tablet | 2026-04-04 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-10-24, stop open) |\n| 410b559a-52a3-bd55-a9a9-a417f5ca1370 | DRUGCLASS-ACE | lisinopril 10 MG Oral Tablet | 2026-10-02 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-10-30, stop open) |\n| 5902d150-ebb1-0450-a2ae-90f129adde04 | DRUGCLASS-ACE | lisinopril 10 MG Oral Tablet | 2026-02-11 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-05-27, stop open) |\n| 6d935a54-1892-c094-5210-c0f0a498062a | DRUGCLASS-ACE | lisinopril 10 MG Oral Tablet | 2026-09-25 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-09-18, stop open) |\n| 7194aa16-6399-3d19-43b4-0c2eb4fff120 | DRUGCLASS-ACE | lisinopril 10 MG Oral Tablet | 2026-04-17 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-05-22, stop open) |\n| 86b4a214-db8c-802e-e144-e233cdb8eb14 | DRUGCLASS-ACE | lisinopril 10 MG Oral Tablet | 2026-08-29 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-08-08, stop open) |\n| 9c912da4-754c-20b6-e5f0-758933536d22 | DRUGCLASS-ACE | lisinopril 10 MG Oral Tablet | 2025-11-01 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-10-10, stop open) |\n| 9e485746-dc80-e94a-0dcc-0b933052a569 | DRUGCLASS-ACE | lisinopril 10 MG Oral Tablet | 2026-07-01 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-07-08, stop open) |\n| f2711bd3-b676-0b2b-3ba6-d836904aa7a3 | DRUGCLASS-ACE | lisinopril 10 MG Oral Tablet | 2025-11-18 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-10-13, stop open) |\n| f2711bd3-b676-0b2b-3ba6-d836904aa7a3 | DRUGCLASS-ACE | lisinopril 10 MG Oral Tablet | 2025-11-18 | None | Condition | CONTRA_PREGNANCY | CP sec4 | O00.1 Tubal pregnancy (disorder) (onset 2026-10-13, stop open) |\n| f5ae978e-3eae-fbc3-caab-84ea15c7bcb7 | DRUGCLASS-ACE | lisinopril 10 MG Oral Tablet | 2026-02-26 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-08-13, stop open) |\n| 21405181-f167-4b8f-b79f-4f3ed20d9a56 | DRUGCLASS-STATIN | Simvastatin 10 MG Oral Tablet | 2026-02-10 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-09-08, stop open) |\n| 2fadc0eb-e372-a5cb-2727-dc20dd0d0874 | DRUGCLASS-STATIN | Simvastatin 10 MG Oral Tablet | 2026-09-18 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-09-25, stop open) |\n| 39b9a06f-082d-01ec-4a44-a819686b0d50 | DRUGCLASS-STATIN | Simvastatin 10 MG Oral Tablet | 2026-05-12 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-05-18, stop open) |\n| 533c70f2-f8ba-83a6-fb6f-79456722bf89 | DRUGCLASS-STATIN | Simvastatin 10 MG Oral Tablet | 2026-10-15 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-06-16, stop open) |\n| 7e0dcd42-8193-5222-7ec1-f19587954d1c | DRUGCLASS-STATIN | Simvastatin 20 MG Oral Tablet | 2022-07-09 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-09-26, stop open) |\n| 89b7bf10-dfc7-7935-ad55-a4ebf6ce4ff3 | DRUGCLASS-STATIN | Simvastatin 20 MG Oral Tablet | 2026-09-22 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-07-22, stop open) |\n| c1640181-27ef-8a3a-6b8d-4867e60cb699 | DRUGCLASS-STATIN | Simvastatin 10 MG Oral Tablet | 2026-09-14 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-05-17, stop open) |\n| f2711bd3-b676-0b2b-3ba6-d836904aa7a3 | DRUGCLASS-STATIN | Simvastatin 10 MG Oral Tablet | 2025-12-09 | None | Condition | CONTRA_PREGNANCY | CP sec4 | Z34.90 Normal pregnancy (finding) (onset 2026-10-13, stop open) |\n| f2711bd3-b676-0b2b-3ba6-d836904aa7a3 | DRUGCLASS-STATIN | Simvastatin 10 MG Oral Tablet | 2025-12-09 | None | Condition | CONTRA_PREGNANCY | CP sec4 | O00.",
+      "latency_s": 8.4,
+      "tier_runs": [
+        3
+      ],
+      "stable": true,
+      "harness_errors": 0,
+      "runs": [
+        {
+          "tier": 3,
+          "sql": "",
+          "sql_error": null,
+          "facts_in_context": [
+            false,
+            false
+          ],
+          "facts_in_result": null
+        }
+      ]
+    },
+    {
+      "arm": "genie_ontology",
+      "qid": "q6",
+      "tier": 3,
+      "sufficient": false,
+      "query_correct": false,
+      "interface": "SQL",
+      "query": null,
+      "sql": null,
+      "sql_error": null,
+      "sql_result": null,
+      "facts": [
+        {
+          "fact": "87 patients on 2026-10-30.",
+          "in_context": {
+            "ok": false,
+            "quote": "",
+            "rationale": "No text gives the specific count of 87 patients for this date; only methodology/query-history snippets are present."
+          },
+          "in_result": null
+        },
+        {
+          "fact": "68 had an active metformin order with a last eGFR below 30; 11 an active ACE-inhibitor order with a pregnancy active that day; 9 an active statin order with a pregnancy active that day.",
+          "in_context": {
+            "ok": false,
+            "quote": "",
+            "rationale": "Text only describes methodology/queries for computing contraindications, never states the actual counts 68/11/9 for the specified date."
+          },
+          "in_result": null
+        }
+      ],
+      "reason": "The agent declined to query, leaving only methodology Pages and snippets with no patient-level counts for 2026-10-30.",
+      "retrieved": "11 inferred snippets (11 about this demo); 4 Pages: Active condition, Care-protocol rules (drug classes, contraindications, thresholds), Inquiry Category, Medication Fill.",
+      "n_docs": 15,
+      "skipped_search": false,
+      "facts_in_context": [
+        false,
+        false
+      ],
+      "facts_in_result": null,
+      "context": "Inferred snippet (text) from [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev): Comorbidity counts, contraindications, and recommended therapy fall outside this agent\u2019s available data because the necessary clinical source tables are absent.\nThis agent has no diagnosis, medication-order, or protocol-rule tables. Comorbidity counts, contraindications, and recommended therapy questions are out of scope. Lab-result analysis is available by LOINC concept through eli_test_classic_catalog.care_protocol_semantic.lab_result_metrics, but the supplied portion defines no named lab measures.\n\nInferred snippet (join_hint) from Query history for eli_test_classic_catalog.care_protocol_terminology.protocol_edges and eli_test_classic_catalog.care_protocol_terminology.value_set_segment: Statin contraindication analysis connects a patient\u2019s statin medication and diagnosis through protocol rules and terminology closures.\nFor a patient-specific contraindication result, begin with statin medications from `eli_test_classic_catalog.care_protocol.care_order_med` and retain rows whose `rxnorm_code` is a descendant of `DRUGCLASS-STATIN` in `eli_test_classic_catalog.care_protocol_terminology.rxnorm_closure` (`rc.descendant_code = m.rxnorm_code AND rc.ancestor_code = 'DRUGCLASS-STATIN'`). Join those medications to `eli_test_classic_catalog.care_protocol_terminology.protocol_edges` restricted to `subject = 'DRUGCLASS-STATIN' AND predicate = 'contraindicatedWith'`; the edge\u2019s `object` is the contraindication rule. Then join `protocol_edges.object` to `eli_test_classic_catalog.care_protocol_terminology.value_set_segment.segment_id`, require `code_system = 'ICD10CM'`, join `value_set_segment.code` to `eli_test_classic_catalog.care_protocol_terminology.icd10_closure.ancestor_code`, and join `icd10_closure.descendant_code` to the patient diagnosis `eli_test_classic_catalog.care_protocol.silver_condition.icd10_code`. This complete path requires every hop; the medication-to-rule combination uses `JOIN ... ON TRUE`, so multiple patient statins and applicable contraindication edges can multiply rows and should be deduplicated when counting unique findings.\n\nInferred snippet (business_logic) from Query history for eli_test_classic_catalog.care_protocol.care_order_med and eli_test_classic_catalog.care_protocol.silver_condition: Care protocol analyses reduce diagnosis and medication evidence to patient-level facts before assessing regimen coverage or contraindication overlap.\nCare protocol analysis uses eli_test_classic_catalog.care_protocol.silver_condition for diagnosis evidence, eli_test_classic_catalog.care_protocol.care_order_med for medication-order evidence, and terminology tables in eli_test_classic_catalog.care_protocol_terminology to normalize diagnosis and drug codes. Reusable outputs in these patterns are patient-level flags, not order-level or diagnosis-row-level facts: medication and condition rows are reduced to one row per `patient_id` with `SELECT DISTINCT`, `GROUP BY patient_id`, or `MAX(CASE WHEN ... THEN 1 ELSE 0 END)`. This patient-level reduction is necessary before joining conditions to medications because both source tables can have multiple rows per patient and otherwise can fan out counts. The same sources support two recurring business questions: cardiorenal regimen coverage and patients on statins with contraindication diagnoses.\n\nInferred snippet (metric_definition) from Query history for eli_test_classic_catalog.care_protocol.bronze_order_med and eli_test_classic_catalog.care_protocol_terminology.value_set_segment: Drug-class contraindication reports count distinct affected patients for each contraindication segment and collect matching diagnosis codes.\nGeneral drug-class contraindication reports are grouped at the `(drug_class, segment_id)` grain and compute `count(DISTINCT meds.patient_id) AS patients` plus `collect_set(dx.icd10_code) AS codes`. Medication rows are first reduced to distinct `patient_id`, `ancestor_code AS drug_class`, and `rxnorm_code` from `eli_test_classic_catalog.care_protocol.bronze_order_med` joined to `eli_test_classic_catalog.care_protocol_terminology.rxnorm_closure`, with drug classes INCLUDED by `c.ancestor_code LIKE 'DRUGCLASS-%'`. Contraindication rules are INCLUDED by `eli_test_classic_catalog.care_protocol_terminology.protocol_edges.predicate = 'contraindicatedWith'`, and contraindication value-set segments are INCLUDED by `eli_test_classic_catalog.care_protocol_terminology.value_set_segment.segment_id LIKE 'CONTRA%'`. Diagnoses are deduplicated to distinct `patient_id, icd10_code` from `eli_test_classic_catalog.care_protocol.bronze_pat_enc_dx`, then matched with `dx.icd10_code LIKE concat(contra.code, '%')`; without the distinct CTEs, repeated medication orders or repeated diagnosis rows can inflate the patient counts.\n\nInferred snippet (join_hint) from Query history for eli_test_classic_catalog.care_protocol.bronze_order_med and eli_test_classic_catalog.care_protocol_terminology.value_set_segment: Contraindication analysis links medications to drug classes, class rules, coded value sets, and patient diagnoses.\nContraindication analysis uses a complete INNER JOIN path from medications to classes, class rules, value-set codes, and patient diagnoses. Start with `eli_test_classic_catalog.care_protocol.bronze_order_med m` JOIN `eli_test_classic_catalog.care_protocol_terminology.rxnorm_closure c` ON `m.rxnorm_code = c.descendant_code`, then JOIN contraindication rules from `eli_test_classic_catalog.care_protocol_terminology.protocol_edges r` ON `r.subject = c.ancestor_code` with `r.predicate = 'contraindicatedWith'`, then JOIN `eli_test_classic_catalog.care_protocol_terminology.value_set_segment v` ON `v.segment_id = r.object`, then JOIN `eli_test_classic_catalog.care_protocol.bronze_pat_enc_dx dx` ON `dx.patient_id = m.patient_id` and an ICD prefix condition such as `dx.icd10_code LIKE concat(v.code, '%')`. All joins are row-dropping INNER JOINs: orders witho",
+      "latency_s": 7.1,
+      "tier_runs": [
+        3
+      ],
+      "stable": true,
+      "harness_errors": 0,
+      "runs": [
+        {
+          "tier": 3,
+          "sql": "",
+          "sql_error": null,
+          "facts_in_context": [
+            false,
+            false
+          ],
+          "facts_in_result": null
+        }
+      ]
+    },
+    {
+      "arm": "genie_one",
+      "qid": "q7",
+      "tier": 3,
+      "sufficient": false,
+      "query_correct": false,
+      "interface": "its own answer (no follow-up query)",
+      "query": null,
+      "sql": null,
+      "sql_error": null,
+      "sql_result": null,
+      "facts": [
+        {
+          "fact": "The patient is coded E11.9, a form of type 2 diabetes (E11), so they are in the diabetes cohort.",
+          "in_context": {
+            "ok": true,
+            "quote": "active type 2 diabetes (E11.9, onset 2022-12-05, no stop date)",
+            "rationale": "Text explicitly states patient has E11.9 type 2 diabetes code, establishing diabetes cohort membership"
+          },
+          "in_result": null
+        },
+        {
+          "fact": "They are 61, inside SPD's 40-75 window.",
+          "in_context": {
+            "ok": true,
+            "quote": "age 61 at the end of MY2026 \u2014 inside the SPD age window of 40\u201375",
+            "rationale": "The text explicitly states the patient's age (61) and that it falls within SPD's 40-75 window."
+          },
+          "in_result": null
+        },
+        {
+          "fact": "No statin was dispensed between 2026-01-01 and 2026-10-30; their last statin (Simvastatin 20 MG) was dispensed on 2009-11-16.",
+          "in_context": {
+            "ok": false,
+            "quote": "",
+            "rationale": "The text says the simvastatin was 'ordered' on 2009-11-16, not that it was 'dispensed' on that date, and no single statement combines the no-dispense-in-2026 fact with the exact 2009-11-16 dispensing date."
+          },
+          "in_result": null
+        },
+        {
+          "fact": "The care protocol recommends a statin for SPD, so the patient is a statin care gap.",
+          "in_context": {
+            "ok": false,
+            "quote": "",
+            "rationale": "The text explains the numerator/denominator logic and lack of statin dispensed but never states that the care protocol itself recommends a statin for SPD."
+          },
+          "in_result": null
+        }
+      ],
+      "reason": "Retrieved diabetes and age facts correctly but mislabeled the 2009 simvastatin order as dispensed and never cited the SPD protocol's statin recommendation.",
+      "retrieved": "2 documents.",
+      "n_docs": 2,
+      "skipped_search": false,
+      "facts_in_context": [
+        true,
+        true,
+        false,
+        false
+      ],
+      "facts_in_result": null,
+      "context": "**The patient is in the MY2026 SPD gap because no statin was dispensed to them during the measurement year \u2014 their only statin order is a stale, open-ended simvastatin order from 2009 that was never renewed or filled in 2026.** This re-confirms, against current data, the same finding from our earlier analysis of this patient. [SPD gap analysis](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/dfd4673c5afc441eb3bcd1258b022053?o=7474653847172668)\n\n## Why they're in the gap\n\n**1. They're SPD-eligible (in the denominator).** The patient has active type 2 diabetes (E11.9, onset 2022-12-05, no stop date) and is age 61 at the end of MY2026 \u2014 inside the SPD age window of 40\u201375. Their row in the SPD adherence table shows `eligible_flag = true` with `evidence_datetime` NULL, which is exactly the care-gap definition: eligible with no statin dispensed in the measurement year. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/186ecd2e40ab4654a81273d61e4d3ebc?o=7474653847172668#embed-query_147231) :citation[knowledge_snippet.a627da6c-78d9-4e7e-a400-acb0695dfcd3] [SPD (Statin Therapy)](https://fevm-eli-test-classic.cloud.databricks.com/one/discover/pages/90137b0e-d1a0-4667-aea0-8aff1f754984?isDbOne=true&utm_source=one-chat&o=7474653847172668)\n\n**2. The numerator failed: no statin dispensed in MY2026.** SPD requires at least one statin dispensed during the measurement year; this patient has no statin evidence dated in 2026, so the assigned gap reason is \"No statin dispensed.\" [Knowledge snippet](#snippet-aad40a74-507b-472e-8b14-f6e33f7fd25b)\n\n**3. Root cause: a lapsed statin order, not an absence of therapy history.** The patient does have a statin on the books \u2014 Simvastatin 20 MG Oral Tablet, ordered 2009-11-16 with no stop date (open-ended) \u2014 alongside clopidogrel, metoprolol, and nitroglycerin, a coronary-disease regimen. But their entire MY2026 medication activity consists of modeled 30-day metformin ER fills (January through late September 2026, with refill gaps). No statin was ordered or dispensed in 2026, so the 2009 order doesn't count as SPD evidence. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/186ecd2e40ab4654a81273d61e4d3ebc?o=7474653847172668#embed-query_dc9aeb)\n\n**4. No contraindication explains it.** The patient has no pregnancy or hepatic/liver-disease conditions on record that would clinically justify avoiding statins \u2014 this looks like a genuine care gap (or a data-capture gap in the fills), not an excused one. Note the SPD measure table applies no contraindication exclusions regardless. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/186ecd2e40ab4654a81273d61e4d3ebc?o=7474653847172668#embed-query_929d0f)\n\n## Full medication history (MY2026 activity is metformin-only)\n\n<!-- begin-embedded:query_dc9aeb -->\n| start_ts | stop_ts | rxnorm_code | description |\n| --- | --- | --- | --- |\n| 2003-01-20T01:18:22.000Z | None | 2001499 | Vitamin B12 5 MG/ML Injectable Solution |\n| 2009-11-16T00:08:19.000Z | None | 309362 | Clopidogrel 75 MG Oral Tablet |\n| 2009-11-16T00:08:19.000Z | None | 312961 | Simvastatin 20 MG Oral Tablet |\n| 2009-11-16T00:08:19.000Z | None | 866412 | 24 HR metoprolol succinate 100 MG Extended Release Oral Tablet |\n| 2009-11-16T00:08:19.000Z | None | 705129 | Nitroglycerin 0.4 MG/ACTUAT Mucosal Spray |\n| 2014-03-20T11:08:19.000Z | None | 856987 | Acetaminophen 300 MG / Hydrocodone Bitartrate 5 MG Oral Tablet |\n| 2017-11-20T03:23:20.000Z | 2017-11-20T03:23:20.000Z | 1535362 | sodium fluoride 0.0272 MG/MG Oral Gel |\n| 2019-12-02T02:18:04.000Z | 2019-12-02T02:18:04.000Z | 1535362 | sodium fluoride 0.0272 MG/MG Oral Gel |\n| 2020-12-07T06:28:48.000Z | 2020-12-07T06:28:48.000Z | 1535362 | sodium fluoride 0.0272 MG/MG Oral Gel |\n| 2022-12-26T00:17:19.000Z | 2022-12-26T00:17:19.000Z | 313521 | tropicamide 5 MG/ML Ophthalmic Solution |\n| 2023-11-21T00:34:43.000Z | 2023-11-21T00:34:43.000Z | 313521 | tropicamide 5 MG/ML Ophthalmic Solution |\n| 2024-11-15T00:53:42.000Z | 2024-11-15T00:53:42.000Z | 313521 | tropicamide 5 MG/ML Ophthalmic Solution |\n| 2025-11-10T01:10:14.000Z | 2025-11-10T01:10:14.000Z | 313521 | tropicamide 5 MG/ML Ophthalmic Solution |\n| 2026-01-01T00:00:00.000Z | 2026-01-31T00:00:00.000Z | 860975 | 24 HR Metformin hydrochloride 500 MG Extended Release Oral Tablet |\n| 2026-01-05T03:17:49.000Z | 2026-01-05T03:17:49.000Z | 1535362 | sodium fluoride 0.0272 MG/MG Oral Gel |\n| 2026-01-31T00:00:00.000Z | 2026-03-02T00:00:00.000Z | 860975 | 24 HR Metformin hydrochloride 500 MG Extended Release Oral Tablet |\n| 2026-03-02T00:00:00.000Z | 2026-04-01T00:00:00.000Z | 860975 | 24 HR Metformin hydrochloride 500 MG Extended Release Oral Tablet |\n| 2026-04-01T00:00:00.000Z | 2026-05-01T00:00:00.000Z | 860975 | 24 HR Metformin hydrochloride 500 MG Extended Release Oral Tablet |\n| 2026-05-31T00:00:00.000Z | 2026-06-30T00:00:00.000Z | 860975 | 24 HR Metformin hydrochloride 500 MG Extended Release Oral Tablet |\n| 2026-08-29T00:00:00.000Z | 2026-09-28T00:00:00.000Z | 860975 | 24 HR Metformin hydrochloride 500 MG Extended Release Oral Tablet |\n<!-- end-embedded:query_dc9aeb -->\n\n**Clinical takeaway:** a 61-year-old type 2 diabetic with a coronary-disease medication history and an open simvastatin order from 2009, but no statin dispensed in MY2026 \u2014 a strong candidate for statin-therapy review or refill reconciliation at CLINIC-01 / PANEL-13. [Query Result](https://fevm-eli-test-classic.cloud.databricks.com/one/chat/threads/186ecd2e40ab4654a81273d61e4d3ebc?o=7474653847172668#embed-query_147231)\n\nCaveats: this is HEDIS-aligned synthetic demo data, not NCQA-certified, and the data runs only through 2026-10-30 \u2014 a statin fill after that date would not yet be visible. [hedis-diabetes-quality](https://fevm-eli-test-classic.cloud.databricks.com/one/tools/skills/%2FWorkspace%2FUsers%2Feli.swanson%40databricks.com%2F.assistant%2Fskills%2Fhedis-diabetes-quality?isDbOne=true&utm_",
+      "latency_s": 35.6,
+      "tier_runs": [
+        3
+      ],
+      "stable": true,
+      "harness_errors": 0,
+      "runs": [
+        {
+          "tier": 3,
+          "sql": "",
+          "sql_error": null,
+          "facts_in_context": [
+            true,
+            true,
+            false,
+            false
+          ],
+          "facts_in_result": null
+        }
+      ]
+    },
+    {
+      "arm": "genie_ontology",
+      "qid": "q7",
+      "tier": 3,
+      "sufficient": false,
+      "query_correct": false,
+      "interface": "SQL",
+      "query": {
+        "kind": "sql",
+        "sql": "SELECT\n  patient_id,\n  status,\n  gap_reason,\n  evidence_datetime,\n  measurement_year\nFROM eli_test_classic_catalog.care_protocol.gold_adherence_spd\nWHERE patient_id = '00040be9-7fcf-0ca1-0263-b4197b8f8d28'\n  AND measurement_year = 2026\n  AND status = 'NOT_MET'"
+      },
+      "sql": "SELECT\n  patient_id,\n  status,\n  gap_reason,\n  evidence_datetime,\n  measurement_year\nFROM eli_test_classic_catalog.care_protocol.gold_adherence_spd\nWHERE patient_id = '00040be9-7fcf-0ca1-0263-b4197b8f8d28'\n  AND measurement_year = 2026\n  AND status = 'NOT_MET'",
+      "sql_error": "RuntimeError: SQL FAILED: [UNRESOLVED_COLUMN.WITH_SUGGESTION] A column, variable, or function parameter with name `status` cannot be resolved. Did you mean one of the following? [`age`, `panel_id`, `measure_id`, `patient_id`, `clinic_id`]. SQLSTATE: 42703; line 10 pos 6",
+      "sql_result": null,
+      "facts": [
+        {
+          "fact": "The patient is coded E11.9, a form of type 2 diabetes (E11), so they are in the diabetes cohort.",
+          "in_context": {
+            "ok": false,
+            "quote": "",
+            "rationale": "The text explains SPD gap reasons and diabetes cohort general rules but never states that this specific patient is coded E11.9."
+          },
+          "in_result": null
+        },
+        {
+          "fact": "They are 61, inside SPD's 40-75 window.",
+          "in_context": {
+            "ok": false,
+            "quote": "",
+            "rationale": "No text states this specific patient's age (61) or confirms they fall within the 40-75 window; only general SPD age eligibility rules are given."
+          },
+          "in_result": null
+        },
+        {
+          "fact": "No statin was dispensed between 2026-01-01 and 2026-10-30; their last statin (Simvastatin 20 MG) was dispensed on 2009-11-16.",
+          "in_context": {
+            "ok": false,
+            "quote": "",
+            "rationale": "The text only gives general rule definitions and labels (e.g., 'No statin dispensed'), not the specific patient's last dispensing date or Simvastatin 20 MG fact."
+          },
+          "in_result": null
+        },
+        {
+          "fact": "The care protocol recommends a statin for SPD, so the patient is a statin care gap.",
+          "in_context": {
+            "ok": false,
+            "quote": "",
+            "rationale": "The text only gives general SPD/statin care-gap rules and never mentions this specific patient, so the patient-specific reason is not explicitly stated."
+          },
+          "in_result": null
+        }
+      ],
+      "reason": "The SQL query referenced a nonexistent `status` column and failed, so no patient-specific gap evidence was returned.",
+      "retrieved": "20 inferred snippets (20 about this demo); 4 Pages: SPD \u2014 Statin Therapy for Patients With Diabetes, SPD (Statin Therapy), SPD \u2014 Statin Therapy for Patients With Diabetes, Care Gap.",
+      "n_docs": 24,
+      "skipped_search": false,
+      "facts_in_context": [
+        false,
+        false,
+        false,
+        false
+      ],
+      "facts_in_result": null,
+      "context": "Inferred snippet (business_logic) from [dev eli_swanson] HEDIS Diabetes Quality \u2014 Care Protocol (dev).lvdash.json: SPD measures statin therapy, and every unmet patient is assigned the gap reason that no statin was dispensed.\nThe business term `SPD` means statin therapy. For `gold_adherence_spd` rows with `status = 'NOT_MET'`, assign the exact gap reason `'No statin dispensed'`. The SPD compliance rate is `AVG(CAST(numerator_flag AS INT))` across all eligible SPD rows; gap counts use only rows satisfying `status = 'NOT_MET'`.\n\nInferred snippet (metric_definition) from (Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev): Statin therapy compliance counts eligible diabetic adults with statin dispensing evidence during the measurement year among all eligible patients.\nSPD means Statin Therapy for diabetics aged 40-75 dispensed a statin in the measurement year. Patient-level clinic/panel compliance on eli_test_classic_catalog.care_protocol.gold_adherence_spd is COUNT_IF(evidence_datetime IS NOT NULL) / COUNT(*), with all patient rows in that breakdown as denominator. Care gaps INCLUDE evidence_datetime IS NULL.\n\nInferred snippet (metric_definition) from (Clone) [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev): Statin-dispensing care gaps are patients whose qualifying evidence timestamp is missing.\nCount SPD care gaps with `COUNT_IF(gold_adherence_spd.evidence_datetime IS NULL)` on `eli_test_classic_catalog.care_protocol.gold_adherence_spd`. For SPD gap lists or counts, INCLUDE only rows satisfying `gold_adherence_spd.evidence_datetime IS NULL`; the agent labels this as no statin dispensed. No additional medication-status filter is specified for this care-gap definition.\n\nInferred snippet (metric_definition) from eli_test_classic_catalog.care_protocol_semantic.spd_compliance_metrics: On-statin patients are eligible diabetes patients with statin evidence recorded during the measurement year.\nOn `eli_test_classic_catalog.care_protocol_semantic.spd_compliance_metrics`, the exposed measure `On Statin Patients` is the SPD numerator: eligible patients for whom a statin was dispensed in the measurement year. Query it as `MEASURE(`On Statin Patients`)`, such as `SELECT MEASURE(`On Statin Patients`) AS on_statin_patients FROM `eli_test_classic_catalog`.`care_protocol_semantic`.`spd_compliance_metrics` GROUP BY ALL`. Its definition-time expression over the source is `COUNT(1) FILTER (WHERE evidence_datetime IS NOT NULL)`. The `evidence_datetime IS NOT NULL` condition means recorded statin evidence qualifies the patient; this is an aggregated measure, not a row-level predicate to apply directly to the metrics view.\n\nInferred snippet (metric_definition) from [dev eli_swanson] Care Protocol \u2014 HEDIS Diabetes Quality (dev): The statin therapy view reports SPD eligibility and rates by age band using the most recent available measurement year.\nFor SPD statin-therapy rates by age band, use `eli_test_classic_catalog.care_protocol_semantic.spd_compliance_metrics`. The verified query selects ``Age Band``, `MEASURE(``Eligible Patients``) AS eligible_patients`, and `MEASURE(``SPD Compliance Rate``) AS spd_rate`, filters to the latest year with ``Measurement Year`` = `(SELECT MAX(measurement_year) FROM eli_test_classic_catalog.care_protocol.gold_adherence_spd)`, groups by ``Age Band``, and orders by ``Age Band``. This is the supplied pattern for questions such as the SPD rate for patients aged 65-75 and for the share of eligible diabetic patients on statin therapy.\n\nInferred snippet (business_logic) from eli_test_classic_catalog.care_protocol_semantic.spd_compliance_metrics: SPD measures statin therapy compliance for diabetes patients aged 40 through 75 during each HEDIS measurement year.\n`eli_test_classic_catalog.care_protocol_semantic.spd_compliance_metrics` is a non-materialized Unity Catalog metrics view for HEDIS SPD (Statin Therapy) compliance. It covers the diabetes population aged 40-75 and reports eligible patients, patients dispensed a statin, and the resulting compliance rate. The view is HEDIS-aligned for demonstration and is explicitly not NCQA-certified. Query its measures with `MEASURE()` rather than treating the view as an ordinary row-level table; dimensions may be used directly and measure queries should include `GROUP BY ALL`.\n\nInferred snippet (join_hint) from eli_test_classic_catalog.care_protocol_semantic.spd_compliance_metrics: The compliance view summarizes an adherence source containing one eligible patient row for each diabetes patient in the SPD denominator.\nThe metrics view source is `eli_test_classic_catalog.care_protocol.gold_adherence_spd` (an asset). The source represents the SPD adherence population and supplies `evidence_datetime`, `age`, `measure_id`, `clinic_id`, and `panel_id` used by the view's dimensions and measures. The source-level statement that there is one row per patient applies to the denominator definition; source-only columns and raw-row queries belong to `eli_test_classic_catalog.care_protocol.gold_adherence_spd`, not to the metrics view. Use the named measures from `eli_test_classic_catalog.care_protocol_semantic.spd_compliance_metrics` instead of bypassing the view to reconstruct these metrics.\n\nInferred snippet (metric_definition) from eli_test_classic_catalog.care_protocol_semantic.spd_compliance_metrics: SPD compliance rate is the share of eligible diabetes patients who received statin therapy in the measurement year.\nOn `eli_test_classic_catalog.care_protocol_semantic.spd_compliance_metrics`, the exposed measure `SPD Compliance Rate` represents the statin numerator divided by the eligible-patient denominator. Query it as `MEASURE(`SPD Compliance Rate`)`, for example `SELECT MEASURE(`SPD Compliance Rate`) AS spd_compliance_rate FROM `eli_test_classic_catalog`.`care_protocol_semantic`.`spd_compliance_metrics` GROUP BY ALL`. Its definition-time expression over the source is `MEASURE(`On Statin Patients`) / MEASURE(`Eligible Patients`",
+      "latency_s": 21.3,
+      "tier_runs": [
+        3
+      ],
+      "stable": true,
+      "harness_errors": 0,
+      "runs": [
+        {
+          "tier": 3,
+          "sql": "SELECT\n  patient_id,\n  status,\n  gap_reason,\n  evidence_datetime,\n  measurement_year\nFROM eli_test_classic_catalog.care_protocol.gold_adherence_spd\nWHERE patient_id = '00040be9-7fcf-0ca1-0263-b4197b8f8d28'\n  AND measurement_year = 2026\n  AND status = 'NOT_MET'",
+          "sql_error": "RuntimeError: SQL FAILED: [UNRESOLVED_COLUMN.WITH_SUGGESTION] A column, variable, or function parameter with name `status` cannot be resolved. Did you mean one of the following? [`age`, `panel_id`, `measure_id`, `patient_id`, `clinic_id`]. SQLSTATE: 42703; line 10 pos 6",
+          "facts_in_context": [
+            false,
+            false,
+            false,
+            false
+          ],
+          "facts_in_result": null
         }
       ]
     }

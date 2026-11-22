@@ -67,9 +67,9 @@ def main():
 
         def one(item):
             qid, q = item
-            if prev and old.get(qid, {}).get("queries"):
+            if args.retry_missing and old.get(qid, {}).get("queries"):
                 return qid, old[qid]                      # already has a real ontology search: keep it
-            attempts = 3 if prev else 1
+            attempts = 3 if args.retry_missing else 1
             for n in range(1, attempts + 1):
                 try:
                     t = parse(events(w, q))
@@ -82,7 +82,7 @@ def main():
                        "pages_read": t["pages_read"], "attempts": n,
                        # Genie One's own end-to-end answer -- kept ONLY for hand-verifying its separate column;
                        # never fed to any retrieval arm (genie_ontology_docs reads snippets + pages only).
-                       "genie_one_answer": (t.get("answer") or "")[:4000], "genie_one_sql": t.get("sql") or []}
+                       "genie_one_answer": t.get("answer") or "", "genie_one_sql": t.get("sql") or []}  # full: scored
                 if rec["queries"]:
                     return qid, rec
             rec["skipped_search"] = True                   # Genie One never ran its ontology search on any attempt

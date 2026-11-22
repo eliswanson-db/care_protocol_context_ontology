@@ -220,7 +220,9 @@ def main():
                   .where(F.col("rx_stop") > F.col("rx_start"))
                   .join(adh.select("patient_id", "a_p"), "patient_id"))
     cycles = (cohort_big
-              .withColumn("n_cyc", F.greatest(F.lit(1), (F.datediff("rx_stop", "rx_start") / 30).cast("int")))
+              # ceil, not floor: the last 30-day fill starts before rx_stop and runs its full 30 days, so a patient
+              # who fills in mid-October holds supply on the horizon date (floor ended every last fill before it).
+              .withColumn("n_cyc", F.greatest(F.lit(1), F.ceil(F.datediff("rx_stop", "rx_start") / 30).cast("int")))
               .withColumn("cyc", F.explode(F.expr("sequence(0, n_cyc - 1)")))
               .withColumn("cyc_start", F.expr("rx_start + make_interval(0,0,0, cyc*30, 0,0,0)"))
               .withColumn("keep", u("fill", "patient_id", F.col("cyc")) < F.col("a_p")))
