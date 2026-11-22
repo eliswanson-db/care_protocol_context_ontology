@@ -12,6 +12,9 @@ This does (b) + the SQL grants; (a) is a one-time CLI step done first:
     python3 -I scripts/lakebase_grant_app_reader.py --sp "$SP" --profile DMVM
 
 This keeps RLS fully ON — the SP is a normal authorized reader via a group (care_app_service), NOT a bypass.
+The app identity gets the population documents only (rag.documents.patient_id IS NULL), the same scope as a quality
+analyst. Patient-specific records (e.g. outside eye-exam letters, care-team only) stay invisible to it; a view that
+needs them runs as a care-team identity.
 Run as a Lakebase admin (the connecting profile identity). Idempotent. Reversible: REVOKE rag_reader + delete
 the group_membership / document_acl rows.
 """
@@ -43,8 +46,13 @@ def main():
             "INSERT INTO rag.group_membership (user_id, group_id) SELECT %s, %s "
             "WHERE NOT EXISTS (SELECT 1 FROM rag.group_membership WHERE user_id=%s AND group_id=%s)",
             (args.sp, args.group, args.sp, args.group))
-        cur.execute("SELECT document_id FROM rag.documents")
+        cur.execute("SELECT document_id FROM rag.documents WHERE patient_id IS NULL")
         docs = [r[0] for r in cur.fetchall()]
+        # Undo any earlier ALLOW for this group on patient-specific records (the script used to grant every doc).
+        cur.execute("DELETE FROM rag.document_acl WHERE principal_type = 'GROUP' AND principal_id = %s AND "
+                    "document_id IN (SELECT document_id FROM rag.documents WHERE patient_id IS NOT NULL)", (args.group,))
+        cur.execute("SELECT document_id FROM rag.documents WHERE patient_id IS NOT NULL")
+        patient_docs = [r[0] for r in cur.fetchall()]
         for d in docs:
             cur.execute(
                 "INSERT INTO rag.document_acl (document_id, principal_type, principal_id, effect, permission) "
@@ -53,11 +61,17 @@ def main():
                 "    AND principal_id=%s AND permission='READ' AND effect='ALLOW')",
                 (d, args.group, d, args.group))
         # Verify the RLS decision for the SP (we can't SET ROLE to it, but acl_allows is the policy itself).
-        allowed = 0
+        allowed = leaked = 0
         for d in docs:
             cur.execute("SELECT rag.acl_allows(%s, %s)", (d, args.sp))
             allowed += bool(cur.fetchone()[0])
-    print(f"{args.sp}: rag_reader + group {args.group!r} ALLOW READ on {len(docs)} docs; acl_allows true for {allowed}/{len(docs)}.")
+        for d in patient_docs:
+            cur.execute("SELECT rag.acl_allows(%s, %s)", (d, args.sp))
+            leaked += bool(cur.fetchone()[0])
+    print(f"{args.sp}: rag_reader + group {args.group!r} ALLOW READ on {len(docs)} population docs "
+          f"(acl_allows {allowed}/{len(docs)}); patient-specific docs visible: {leaked}/{len(patient_docs)}.")
+    if allowed != len(docs) or leaked:
+        raise SystemExit("access check failed")
 
 
 if __name__ == "__main__":

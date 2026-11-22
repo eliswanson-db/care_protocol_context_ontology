@@ -337,7 +337,9 @@ Plus `CAN_RUN` on the 4 HEDIS and 3 Clinical Study Genie spaces, and `CAN_VIEW` 
 SP's Postgres role `care-protocol-app` (`databricks postgres create-role projects/care-protocol/branches/production
 --role-id care-protocol-app --json '{"spec":{"identity_type":"SERVICE_PRINCIPAL","postgres_role":"<sp>",
 "auth_method":"LAKEBASE_OAUTH_V1"}}' --profile ECT`), then `scripts/lakebase_grant_app_reader.py --sp <sp> --profile ECT`
-(rag_reader + group `care_app_service` ALLOW READ on every document; RLS stays on, no bypass).
+(rag_reader + group `care_app_service` ALLOW READ on the population documents only, i.e. `patient_id IS NULL`, the
+quality-analyst scope; patient-specific letters stay care-team only. RLS stays on, no bypass; the script fails if the
+app can see any patient-specific document).
 Verify with the app's Readiness drawer: it evaluates every component as the SP.
 
 ## Pages via the Pages API (ADR-0026) — supersedes the Genie Code steps above
