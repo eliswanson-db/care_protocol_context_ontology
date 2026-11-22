@@ -38,14 +38,10 @@ function Section({
 
 export function TracerJourney() {
   const { simple } = useSettings();
-  const [allTracers, setTracers] = useState<Tracer[]>([]);
-  // Simple mode: one MET and one NOT_MET hero patient.
-  const tracers = useMemo(() => {
-    if (!simple) return allTracers;
-    const pick = [allTracers.find((t) => t.status === "MET"), allTracers.find((t) => t.status === "NOT_MET")];
-    return pick.filter(Boolean) as Tracer[];
-  }, [allTracers, simple]);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [tracers, setTracers] = useState<Tracer[]>([]);
+  const [selected, setSelected] = useState<string | null>(null);  // the trace key (a1c / dx / rule)
+  const picked = tracers.find((t) => t.trace === selected);
+  const pid = picked?.patient_id ?? null;
   const [journey, setJourney] = useState<Journey | null>(null);
   const [retrieval, setRetrieval] = useState<RetrievalResult | null>(null);
   const [loadingList, setLoadingList] = useState(true);
@@ -64,10 +60,10 @@ export function TracerJourney() {
   const [genieError, setGenieError] = useState<string | null>(null);
 
   const askGenie = () => {
-    if (!selected) return;
+    if (!pid) return;
     setGenieStatus("loading");
     setGenieError(null);
-    api.genie(selected)
+    api.genie(pid)
       .then((r) => {
         setGenieResult(r);
         setGenieStatus("done");
@@ -83,10 +79,10 @@ export function TracerJourney() {
   const [ragError, setRagError] = useState<string | null>(null);
 
   const askRag = () => {
-    if (!selected) return;
+    if (!pid) return;
     setRagStatus("loading");
     setRagError(null);
-    api.rag(selected)
+    api.rag(pid)
       .then((r) => {
         setRagResult(r);
         setRagStatus("done");
@@ -102,10 +98,10 @@ export function TracerJourney() {
   const [graphError, setGraphError] = useState<string | null>(null);
 
   const askGraph = () => {
-    if (!selected) return;
+    if (!pid) return;
     setGraphStatus("loading");
     setGraphError(null);
-    api.ontobricks(selected)
+    api.ontobricks(pid)
       .then((r) => {
         setGraphResult(r);
         setGraphStatus("done");
@@ -119,14 +115,14 @@ export function TracerJourney() {
   useEffect(() => {
     api.tracers()
       .then((r) => {
-        setTracers(r.tracers);
+        setTracers(r.traces);
       })
       .catch((e) => setError(String(e)))
       .finally(() => setLoadingList(false));
   }, []);
 
   useEffect(() => {
-    if (!selected) return;
+    if (!selected || !pid) return;
     setLoadingJourney(true);
     setError(null);
     setSelectedNode(null);
@@ -141,21 +137,20 @@ export function TracerJourney() {
     setGraphResult(null);
     setGraphError(null);
     setRetrieval(null);
-    api.journey(selected)
+    api.journey(pid, selected)
       .then(setJourney)
       .catch((e) => setError(String(e)))
       .finally(() => setLoadingJourney(false));
-    api.retrieval(selected)
-      .then(setRetrieval)
-      .catch(() => setRetrieval(null));
-  }, [selected]);
+    if (selected === "a1c")
+      api.retrieval(pid)
+        .then(setRetrieval)
+        .catch(() => setRetrieval(null));
+  }, [selected, pid]);
 
-  // Keep the selection inside the visible list (e.g. after switching simple mode on).
+  // Default to the first trace once the list loads.
   useEffect(() => {
-    if (tracers.length && !tracers.some((t) => t.patient_id === selected)) setSelected(tracers[0].patient_id);
+    if (tracers.length && !tracers.some((t) => t.trace === selected)) setSelected(tracers[0].trace);
   }, [tracers, selected]);
-
-  const picked = tracers.find((t) => t.patient_id === selected);
 
   const claim = useMemo(
     () => journey?.answer.claims.find((c) => c.id === activeClaim) ?? null,
@@ -180,38 +175,24 @@ export function TracerJourney() {
       <main className="min-w-0 flex-1 overflow-y-auto px-6 py-5">
         {picked && (
           <div className="mb-6">
-            <div className="text-[12px] font-bold uppercase tracking-wider text-primary">The question</div>
+            <div className="text-[12px] font-bold uppercase tracking-wider text-primary">{picked.title}</div>
             <h1 className="mt-1 text-[26px] font-bold leading-tight tracking-tight">
-              {journey?.answer.question ?? `Is patient ${picked.patient_id.slice(0, 8)} compliant with GSD, and why?`}
+              {journey?.answer.question ?? picked.question}
             </h1>
             <p className="mt-1.5 max-w-4xl text-[14.5px] text-muted">
-              GSD (Glycemic Status Assessment) is met when a diabetic patient aged 18–75 has at least one HbA1c
-              test in the measurement year. Follow this patient from the care-protocol PDF through every data layer
-              to the governed answer — then see how {simple ? "three" : "five"} retrieval approaches answer the same question.
+              {picked.summary} Follow it from the care-protocol document through every data layer into each
+              retrieval approach. Click a stage to see what that layer holds, retrieved live.
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-border bg-surface px-4 py-3">
               <span className="font-mono text-xl font-bold">{picked.patient_id.slice(0, 8)}</span>
-              <span className="rounded-md bg-primary/15 px-2.5 py-1 font-mono text-base font-semibold text-primary">
-                {picked.dx_code}
-              </span>
-              <span className="text-[15px] text-muted">{picked.dx_desc}</span>
-              <span className="text-[15px] font-medium text-muted">· {picked.clinic_id} · age {picked.age}</span>
-              <span
-                className={[
-                  "ml-auto rounded-full px-3.5 py-1.5 text-sm font-bold",
-                  picked.status === "NOT_MET"
-                    ? "bg-destructive/15 text-destructive"
-                    : "bg-success/15 text-success",
-                ].join(" ")}
-              >
-                GSD {picked.status}
-              </span>
+              {picked.chips.map((c, k) => (
+                <span key={c}
+                  className={k === 0 ? "rounded-md bg-primary/15 px-2.5 py-1 font-mono text-base font-semibold text-primary"
+                    : "text-[15px] text-muted"}>
+                  {c}
+                </span>
+              ))}
             </div>
-            {picked.gap_reason && (
-              <p className="mt-2 text-[14px] text-muted">
-                Care gap: <span className="font-medium text-fg">{picked.gap_reason}</span>
-              </p>
-            )}
           </div>
         )}
 
@@ -239,7 +220,7 @@ export function TracerJourney() {
               onToggle={() => toggle("build")}
             >
               <FlowDiagram
-                stages={simple ? journey.stages.filter((s) => s.key !== "closure_ret") : journey.stages}
+                stages={journey.stages}
                 activePath={activePath}
                 selectedKey={selectedNode}
                 onSelect={(k) => {
@@ -247,12 +228,13 @@ export function TracerJourney() {
                   setSelectedNode((cur) => (cur === k ? null : k));
                 }}
               />
-              {detailStage && selected && (
-                <NodeDetail key={`${selected}-${detailStage.key}`} stage={detailStage} patientId={selected}
-                  onClose={() => setSelectedNode(null)} />
+              {detailStage && selected && pid && (
+                <NodeDetail key={`${selected}-${detailStage.key}`} stage={detailStage} patientId={pid}
+                  trace={selected} onClose={() => setSelectedNode(null)} />
               )}
             </Section>
 
+            {selected === "a1c" && (
             <Section
               n="02"
               title={`Retrieval — the same question, ${simple ? "three" : "five"} ways`}
@@ -268,9 +250,10 @@ export function TracerJourney() {
                 graph={{ status: graphStatus, result: graphResult, error: graphError, onAsk: askGraph }}
               />
             </Section>
+            )}
 
             <Section
-              n="03"
+              n={selected === "a1c" ? "03" : "02"}
               title="The answer"
               hint="trace any claim back to its source"
               open={open.answer}
@@ -292,7 +275,7 @@ export function TracerJourney() {
 
         {!loadingJourney && !error && !journey && !loadingList && (
           <div className="rounded-md border border-border bg-surface px-4 py-8 text-center text-sm text-muted">
-            Select a patient to trace their journey.
+            Select a trace.
           </div>
         )}
       </main>

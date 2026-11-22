@@ -225,7 +225,7 @@ facts:
   - id: F24
     fact: "Patient-level facts: who is eligible for each measure, who has a gap, what they were prescribed."
     questions: [q2, q9, q10]
-    metric_view: {file: src/semantic/metric_views/spd_compliance.metric_view.sql, has: ["Gap Reason"]}
+    metric_view: {none: "metric views are aggregates with no patient dimension; per-patient rows come from gold"}
     closure: {none: "closures hold terminology; patient facts are in silver/gold"}
     rag: {none: "patient records aren't documents (one outside letter is, by design)"}
     genie_ontology: {none: "Genie Ontology retrieves context; patient rows come from querying gold"}
@@ -239,3 +239,12 @@ facts:
     rag: {none: "the documents don't describe this lab's feed"}
     genie_ontology: {file: docs/ontology/pages/egfr.md, has: ["2022-07-01"]}
     graph: {gap: "v3 predates the 2026-11-21 reflow, so its eGFR observations still use 33914-3 (ONTOBRICKS_REPUBLISH 2026-11-21 item 4)"}
+
+  - id: F26
+    fact: "Each lab result carries its value (e.g. A1c 11.0% on 2026-07-26; eGFR 19.4 on 2026-10-23)."
+    questions: [q2, q9]
+    metric_view: {none: "metric views are aggregates with no patient dimension"}
+    closure: {none: "patient results live in silver_observation, not the terminology tables"}
+    rag: {none: "patient records aren't documents"}
+    genie_ontology: {none: "Genie Ontology retrieves context; result values come from querying silver/gold"}
+    graph: {gap: "resultValue sits on Observation/{id}, but hasObservation points at obs/{id}, so traversal from a patient never reaches a value (ONTOBRICKS_REPUBLISH 2026-11-21 item 3b)"}

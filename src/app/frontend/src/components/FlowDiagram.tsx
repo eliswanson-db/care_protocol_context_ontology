@@ -127,10 +127,11 @@ export function FlowDiagram({
 }) {
   const hasPath = activePath.size > 0;
   const byKey = new Map(stages.map((s) => [s.key, s]));
+  const phases = PHASES.filter((ph) => ph.stages.some((k) => byKey.has(k)));  // a trace may skip a phase
 
   return (
     <div className="flex items-stretch gap-1">
-      {PHASES.map((ph, pi) => {
+      {phases.map((ph, pi) => {
         const c = ph.color;
         const phaseStages = ph.stages.map((k) => byKey.get(k)).filter(Boolean) as Stage[];
         return (
@@ -145,10 +146,10 @@ export function FlowDiagram({
                   const inPath = activePath.has(st.key);
                   const dim = hasPath && !inPath;
                   const selected = selectedKey === st.key;
-                  const val = summary(st);
+                  const val = st.summary || summary(st);
                   // Status-bearing chips (gold measure verdict) use reserved status color, not the tier accent.
                   const chipC =
-                    st.key === "metric" && /^(MET|NOT_MET)/.test(val) ? (val.startsWith("MET") ? "var(--success)" : "var(--destructive)") : c;
+                    st.key === "metric" && /^(GSD )?(MET|NOT_MET)/.test(val) ? (/^(GSD )?MET/.test(val) ? "var(--success)" : "var(--destructive)") : c;
                   return (
                     <button
                       key={st.key}
@@ -167,9 +168,9 @@ export function FlowDiagram({
                         >
                           <Icon className="h-4 w-4" />
                         </span>
-                        <span className="min-w-0 text-[13.5px] font-semibold leading-tight">{SHORT[st.key] ?? st.title}</span>
+                        <span className="min-w-0 text-[13.5px] font-semibold leading-tight">{st.short ?? SHORT[st.key] ?? st.title}</span>
                       </div>
-                      <div className="mt-1.5 text-[11px] leading-snug text-muted">{DETAIL[st.key] ?? st.semantic_concept}</div>
+                      <div className="mt-1.5 text-[11px] leading-snug text-muted">{st.detail ?? DETAIL[st.key] ?? st.semantic_concept}</div>
                       <div
                         className="mt-2 truncate rounded px-2 py-1 font-mono text-[12.5px] font-semibold"
                         style={{ background: `color-mix(in srgb, ${chipC} 14%, transparent)`, color: chipC }}
@@ -182,7 +183,7 @@ export function FlowDiagram({
                 })}
               </div>
             </div>
-            {pi < PHASES.length - 1 && (
+            {pi < phases.length - 1 && (
               <div className="flex items-center px-0.5 text-muted">
                 <ChevronRight className="h-5 w-5" />
               </div>

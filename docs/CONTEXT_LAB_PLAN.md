@@ -137,7 +137,10 @@ HEDIS first (most of it exists), then life sciences, with the same steps:
    verify_gold 20/20.
 2. ✅ (2026-11-21, HEDIS) Fact list + presence test: 25 facts, every pointer resolves (live too). Open: 6 graph
    gaps that need the Ontobricks project (listed by the test).
-3. The three traces.
+3. ✅ (2026-11-22, HEDIS) The three traces, in the Tracer Journey tab (`server/traces.py`; heroes picked from the data
+   by rule): an A1c result (11.0% → GSD poor control → missed Step 3), E11.22 (two parents → diabetes + CKD value
+   sets → SGLT2), metformin at eGFR < 30 (CP-GLY-2 → a patient on metformin at eGFR 19.4). Every stage is live. The
+   graph stops short where the republish list says (F22, F23, F26).
 4. Question set; verify each answer in the data.
 5. One harness + the simple agent; run it.
 6. Genie One run.

@@ -29,6 +29,10 @@ existing mappings use them), in priority order:
    LoincPart) and a relationship with source
    `SELECT subject AS thr, object AS part_code FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE predicate = 'appliesTo'`
    (7 edges, e.g. `Threshold/eGFR_LT_30 appliesTo part/LP-EGFR`).
+3b. **Observation IRI** (F26, found by the A1c trace). The project's Observation entity writes `rdf:type` and
+   `resultValue` on `Observation/{obs_id}`, but `hasObservation` and `ofTest` use `obs/{obs_id}`, so a traversal from
+   a patient never reaches a result value (it can't compare A1c 11.0 with 9, or eGFR 19.4 with 30). Change the
+   Observation entity's IRI template to `obs/{obs_id}` (the edges' IRI; keep `obs/`, the app uses it).
 4. **Republish** (F25). Picks up the reflowed observations (eGFR results since 2022-07-01 are `loinc/98979-8`).
 
 **Recommended (q8):**

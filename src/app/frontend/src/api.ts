@@ -11,14 +11,14 @@ export interface Meta {
   disclaimer: string;
 }
 
+// One of the three traces (server/traces.py): a piece of information + the hero patient it is followed through.
 export interface Tracer {
+  trace: string;
+  title: string;
+  summary: string;
   patient_id: string;
-  status: string;
-  gap_reason: string | null;
-  clinic_id: string;
-  age: string;
-  dx_code: string;
-  dx_desc: string;
+  chips: string[];
+  question: string;
 }
 
 export interface StageSection {
@@ -92,6 +92,9 @@ export interface Stage {
   status: "live" | "page" | "doc" | "wired_next";
   data: unknown;
   note: string;
+  short?: string;   // card label for this trace
+  detail?: string;  // one line on what this hop holds for this trace
+  summary?: string; // the patient's datum at this hop
 }
 
 export interface Claim {
@@ -111,6 +114,7 @@ export interface Answer {
 
 export interface Journey {
   patient_id: string;
+  trace: string;
   measurement_year: number;
   stages: Stage[];
   answer: Answer;
@@ -327,9 +331,10 @@ export interface OntologyGraph { nodes: OntNode[]; edges: OntEdge[]; predicates:
 
 export const api = {
   meta: () => get<Meta>("/api/meta"),
-  tracers: () => get<{ measurement_year: number; tracers: Tracer[] }>("/api/tracers"),
-  journey: (pid: string) => get<Journey>(`/api/patient/${pid}/journey`),
-  stage: (pid: string, key: string) => get<StageDetail>(`/api/patient/${pid}/stage/${key}`),
+  tracers: () => get<{ measurement_year: number; traces: Tracer[] }>("/api/tracers"),
+  journey: (pid: string, trace: string) => get<Journey>(`/api/patient/${pid}/journey?trace=${trace}`),
+  stage: (pid: string, key: string, trace: string) =>
+    get<StageDetail>(`/api/patient/${pid}/stage/${key}?trace=${trace}`),
   genie: (pid: string) => get<GenieResult>(`/api/patient/${pid}/genie`),
   rag: (pid: string) => get<RagResult>(`/api/patient/${pid}/rag`),
   retrieval: (pid: string) => get<RetrievalResult>(`/api/patient/${pid}/retrieval`),

@@ -46,6 +46,11 @@ def _retriever():
 
 @router.get("/patient/{patient_id}/rag")
 def rag(patient_id: str):
+    return {"patient_id": patient_id, **search(_RAG_QUESTION)}
+
+
+def search(question: str, k: int = 5) -> dict:
+    """Hybrid (or lexical, if nothing is embedded yet) retrieval over rag.chunks for one question."""
     global _embed_count
     try:
         r = _retriever()
@@ -54,7 +59,7 @@ def rag(patient_id: str):
             _embed_count = int(rows[0]["n"]) if rows else 0
         mode = "hybrid" if _embed_count > 0 else "lexical"
         t0 = time.time()
-        results = r.search_documents(_RAG_QUESTION, k=5, mode=mode, as_user=_AS_USER)
+        results = r.search_documents(question, k=k, mode=mode, as_user=_AS_USER)
         latency = round(time.time() - t0, 1)
     except Exception as e:  # noqa: BLE001 — surface the real failure to the UI
         hint = " (doc-level RLS denies unknown identities — set CARE_RAG_AS_USER to a seeded reader)" \
@@ -75,8 +80,7 @@ def rag(patient_id: str):
         for x in results
     ]
     return {
-        "patient_id": patient_id,
-        "question": _RAG_QUESTION,
+        "question": question,
         "mode": mode,
         "semantic_pending": _embed_count == 0,
         "search_ext": LAKEBASE_SEARCH_EXT,

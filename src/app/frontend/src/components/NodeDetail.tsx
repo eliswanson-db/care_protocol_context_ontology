@@ -101,13 +101,19 @@ function Section({ s, accent }: { s: StageSection; accent: string }) {
         <article className="max-h-[30rem] space-y-2.5 overflow-auto rounded-md border border-border bg-surface-2 px-5 py-4 text-[13.5px] leading-relaxed">
           {(s.blocks ?? []).map((b, i) => {
             if (b.type === "h") return <h4 key={i} className="pt-1 text-[15px] font-bold tracking-tight">{b.text}</h4>;
-            if (b.type === "p") return <p key={i} className="text-fg/85"><Bold text={b.text ?? ""} /></p>;
+            if (b.type === "p")
+              return (
+                <p key={i} className={b.highlight ? "rounded-md border-l-4 px-3 py-2 text-fg" : "text-fg/85"}
+                  style={b.highlight ? { borderColor: accent, background: `color-mix(in srgb, ${accent} 16%, transparent)` } : undefined}>
+                  <Bold text={b.text ?? ""} />
+                </p>
+              );
             if (b.type === "rule")
               return (
                 <div key={i} className="rounded-md border-l-4 px-3 py-2"
                   style={{ borderColor: accent, background: b.highlight ? `color-mix(in srgb, ${accent} 16%, transparent)` : undefined }}>
                   <Bold text={b.text ?? ""} />
-                  {b.highlight && <span className="ml-2 text-[11px] font-semibold uppercase tracking-wide" style={{ color: accent }}>← Step 3 trigger</span>}
+                  {b.highlight && <span className="ml-2 text-[11px] font-semibold uppercase tracking-wide" style={{ color: accent }}>← this trace</span>}
                 </div>
               );
             const [head, ...rows] = b.rows ?? [];
@@ -182,7 +188,9 @@ function Section({ s, accent }: { s: StageSection; accent: string }) {
   );
 }
 
-export function NodeDetail({ stage, patientId, onClose }: { stage: Stage; patientId: string; onClose: () => void }) {
+export function NodeDetail({ stage, patientId, trace, onClose }: {
+  stage: Stage; patientId: string; trace: string; onClose: () => void;
+}) {
   const [d, setD] = useState<StageDetail | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [showSql, setShowSql] = useState(false);
@@ -195,7 +203,7 @@ export function NodeDetail({ stage, patientId, onClose }: { stage: Stage; patien
     setD(null); setErr(null); setShowSql(false); setWaiting(null);
     const t0 = Date.now();
     const poll = () =>
-      api.stage(patientId, stage.key)
+      api.stage(patientId, stage.key, trace)
         .then((r) => {
           if (!live) return;
           if (r.pending) {  // long live run (Genie One): keep polling until the trace is ready
@@ -206,7 +214,7 @@ export function NodeDetail({ stage, patientId, onClose }: { stage: Stage; patien
         .catch((e) => live && setErr(String(e)));
     poll();
     return () => { live = false; if (timer) clearTimeout(timer); };
-  }, [patientId, stage.key]);
+  }, [patientId, stage.key, trace]);
 
   return (
     <div className="mt-3 rounded-xl border border-t-[3px] border-border bg-surface p-5" style={{ borderTopColor: accent }}>
