@@ -149,7 +149,7 @@ The gold SQL filters on the same dates explicitly (e.g. `result_ts <= '2026-10-3
 6. **Fixed dates** in every question and gold query (above).
 7. **Reword** `op_worst_clinic_annual`, `op_clinic_drift`, `op_drift_rootcause` to fixed dates.
 
-**Proposed set (7): real analyst questions; no approach is designed to win**
+**Proposed set (8): real analyst questions; no approach is designed to win**
 
 The story is honest: different approaches help in different situations, and sometimes the simplest is as good as
 the most complex. So questions are chosen because an analyst would ask them, not to make one approach win, and the
@@ -167,6 +167,22 @@ answer for what was built ahead of time, and fail on anything that wasn't.
 | 5 | Which measures use eGFR, which LOINC codes count in MY2026, and where is that defined? | partial (KED view) | codes yes, measures partial | codes yes (payer memo), location no | yes (Pages + value-set table) | partial (no measure value sets, F15) |
 | 6 | On 2026-10-30, which patients had an active order for a drug the protocol contraindicates for a condition active that day or their last lab result on or before it? | — | one hand-written join per rule shape | rule text only | context only | yes after republish (F22, F23, F26) |
 | 7 | Why was patient X in the SPD statin gap for MY2026 (through 2026-10-30)? | rule, not the patient | joins | rule text only | context only | yes (traversal) |
+
+| 8 | Patient X had an EED gap in MY2026 (through 2026-10-30). Is there any record of a diabetic eye exam outside our EHR? | sees only the EHR: reports the gap | EHR only | yes: the outside letter (care-team access; needs a patient filter, below) | doesn't hold per-patient correspondence | doesn't hold it |
+
+#8 is where RAG genuinely wins, organically: per-patient outside letters and notes arrive at a volume nobody curates
+into Pages or a graph, so they are indexed and retrieved on demand. 87 letters exist for a fixed ~3% sample of
+MY2026 EED-eligible patients (`scripts/gen_outside_letters.py`, independent of gap status; 55 of the 87 have an EHR
+gap, like the population). RAG's honest limit shows too: it can find one patient's letter, not count every gap a
+letter could close (that means reading all documents, not the top k).
+
+**Done 2026-11-22:** HEDIS GSD aligned (Blood Sugar Controlled = last A1c ≤ 9.0%; HEDIS < 8.0% and > 9.0% indicators
+over the eligible population, a missing test counting as > 9.0%): `kpi_gsd_rate` 0.7424 → 0.6344, gold 20/20.
+Conditions carry `stop_date`. Letters loaded (93 docs, RLS tests 4/4).
+
+**Found, for step 5:** by patient id alone, hybrid search ranks other letters above the right one (the 87 letters
+read alike, and a UUID isn't semantic). The RAG provider gets the standard clinical pattern: an optional
+`patient_id` pre-filter (`rag.documents.patient_id` already exists) when the question names a patient.
 
 Dropped: E11.22 routes (trace 2 shows it), Step-3 recheck timing (trace 1), KED definition (overlaps #5), and the
 GSD poor-control denominator question (it worked only because no document states the denominator: that would
