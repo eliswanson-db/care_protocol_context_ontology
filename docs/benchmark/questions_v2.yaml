@@ -10,6 +10,10 @@
 # tests/test_benchmark_v2.py checks: fixed dates only, every gold id exists and is holdout, every fact id exists, and
 # question 8's letter says what its gold says.
 
+# Cells checked by hand against gold (the judge is a first pass, not trusted alone). Grows as cells are verified.
+hand_verified:
+  genie_one: [q1, q2, q3, q4, q5, q6, q7, q8]
+
 questions:
   - id: q1
     question: "What was the GSD poor-control rate (last A1c of the year above 9%, or no A1c test) by clinic, for MY2026 through 2026-10-30?"

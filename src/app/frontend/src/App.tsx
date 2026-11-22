@@ -3,10 +3,9 @@ import { useEffect, useState, type ReactElement } from "react";
 import { api, type Meta } from "./api";
 import { Header } from "./components/Header";
 import { useDemo, type DemoId } from "./demo";
-import { BenchmarkScorecard } from "./tabs/BenchmarkScorecard";
+import { Benchmark } from "./tabs/Benchmark";
 import { DriftLab } from "./tabs/DriftLab";
 import { OntologyExplorer } from "./tabs/OntologyExplorer";
-import { RetrievalArena } from "./tabs/RetrievalArena";
 import { TracerJourney } from "./tabs/TracerJourney";
 import { AmendmentLab } from "./tabs/ls/AmendmentLab";
 import { LsArena } from "./tabs/ls/LsArena";
@@ -21,9 +20,10 @@ type Tab = { key: string; label: string; icon: typeof Route; render: () => React
 // Same navigation pattern for both demos, terminology adapted (prompt §14).
 const TABS: Record<DemoId, Tab[]> = {
   healthcare_hedis: [
-    { key: "tracer", label: "Tracer Journey", icon: Route, render: () => <TracerJourney /> },
-    { key: "arena", label: "Retrieval Arena", icon: GitCompare, render: () => <RetrievalArena /> },
-    { key: "scorecard", label: "Benchmark Scorecard", icon: BarChart3, render: () => <BenchmarkScorecard /> },
+    // Trace + Benchmark lead (docs/CONTEXT_LAB_PLAN.md step 7). The previous Retrieval Arena and Benchmark Scorecard
+    // (tabs/RetrievalArena.tsx, tabs/BenchmarkScorecard.tsx) showed the retired question set; kept, not in the nav.
+    { key: "tracer", label: "Trace", icon: Route, render: () => <TracerJourney /> },
+    { key: "benchmark", label: "Benchmark", icon: BarChart3, render: () => <Benchmark /> },
     { key: "drift", label: "Drift Lab", icon: TrendingDown, render: () => <DriftLab /> },
     { key: "ontology", label: "Ontology Explorer", icon: Network, render: () => <OntologyExplorer /> },
   ],

@@ -204,3 +204,57 @@ def a1_runs():
             "and read a1_on verdicts as pending that build + extraction + an inferred-only question."
         ),
     }
+
+
+# ------------------------------------------------------------------------------------------------ benchmark v2
+# The locked HEDIS benchmark (docs/benchmark/questions_v2.yaml) and its scored cells (benchmark_v2.json, from the
+# retrieval_eval harness), bundled in benchmark_data/. Five retrieval approaches with one simple agent, plus Genie One
+# as the reasoning engine. Cells are judge-scored; `hand_verified` lists the ones checked by hand against gold.
+V2_ARMS = [
+    {"id": "metric_view", "label": "Metric views", "kind": "retrieval"},
+    {"id": "closure_sql", "label": "Closure tables", "kind": "retrieval"},
+    {"id": "rag", "label": "RAG", "kind": "retrieval"},
+    {"id": "genie_ontology", "label": "Genie Ontology", "kind": "retrieval"},
+    {"id": "ontobricks", "label": "Ontobricks graph", "kind": "retrieval"},
+    {"id": "genie_one", "label": "Genie One", "kind": "end_to_end"},
+]
+_PRED_KEY = {"closure_sql": "closure", "ontobricks": "graph"}  # questions_v2 prediction keys
+
+
+@router.get("/benchmark/v2")
+def benchmark_v2():
+    import yaml
+    qpath, rpath = os.path.join(BENCH_DIR, "questions_v2.yaml"), os.path.join(BENCH_DIR, "benchmark_v2.json")
+    if not (os.path.isfile(qpath) and os.path.isfile(rpath)):
+        return {"available": False}
+    with open(qpath) as f:
+        spec = yaml.safe_load(f)
+    with open(rpath) as f:
+        run = json.load(f)
+    by = {(r["arm"], r["qid"]): r for r in run.get("rows", [])}
+    hv = spec.get("hand_verified") or {}
+    gpath = os.path.join(BENCH_DIR, "genie_ontology_retrieval_v2.json")  # Genie One's own answers (same recording)
+    g1 = {}
+    if os.path.isfile(gpath):
+        with open(gpath) as f:
+            g1 = (json.load(f).get("workspaces", {}).get("ect", {}) or {}).get("questions", {})
+    keep = ("tier", "tier_runs", "stable", "interface", "retrieved", "facts", "reason", "sql", "sql_result",
+            "sql_error", "n_docs")
+    questions = []
+    for q in spec["questions"]:
+        cells = {}
+        for a in V2_ARMS:
+            r = by.get((a["id"], q["id"]))
+            cells[a["id"]] = ({k: r.get(k) for k in keep} | {"hand_verified": q["id"] in (hv.get(a["id"]) or []),
+                                                               "prediction": q["predictions"].get(_PRED_KEY.get(a["id"], a["id"]))}
+                              if r else {"tier": None, "prediction": q["predictions"].get(_PRED_KEY.get(a["id"], a["id"]))})
+        if cells.get("genie_one", {}).get("tier") is not None and q["id"] in g1:
+            cells["genie_one"]["answer"] = g1[q["id"]].get("genie_one_answer")
+            cells["genie_one"]["genie_sql"] = g1[q["id"]].get("genie_one_sql") or []
+        questions.append({"id": q["id"], "question": q["question"], "answer_type": q["answer_type"],
+                          "expected_facts": q["expected_facts"], "hero_rule": q.get("hero_rule"),
+                          "run_as": q.get("run_as"), "cells": cells})
+    return {"available": True, "arms": V2_ARMS, "questions": questions,
+            "meta": {"agent": run.get("agent"), "judge": run.get("judge"), "repeats": run.get("repeats"),
+                     "mode": "final" if (run.get("repeats") or 1) >= 3 else "test",
+                     "data_horizon": "2026-10-30"}}

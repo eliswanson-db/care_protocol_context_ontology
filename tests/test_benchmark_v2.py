@@ -77,6 +77,13 @@ def test_q8_letter_matches_its_gold():
     assert "Northside Optometry Group" in text
 
 
+def test_app_bundles_the_current_results():
+    # The app serves benchmark_data/ copies (the repo isn't synced to the app); they must match docs/benchmark.
+    for name in ("questions_v2.yaml", "benchmark_v2.json", "genie_ontology_retrieval_v2.json"):
+        src, dst = ROOT / "docs/benchmark" / name, ROOT / "src/app/server/benchmark_data" / name
+        assert dst.read_bytes() == src.read_bytes(), f"copy docs/benchmark/{name} to src/app/server/benchmark_data/"
+
+
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):
         if name.startswith("test_"):
