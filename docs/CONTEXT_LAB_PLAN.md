@@ -134,23 +134,36 @@ The gold SQL filters on the same dates explicitly (e.g. `result_ts <= '2026-10-3
 | 9 | On 2026-10-30, which patients had an active order for a drug the protocol contraindicates for a condition active on that date, or for their last lab result on or before it? | patient set + reasons | new (replaces `graph_statin_contra_cohort`) | see decision 1 |
 | 10 | Why was patient X in the SPD statin gap for MY2026 (through 2026-10-30)? (the path) | path | new (per patient) | hero picked by rule |
 
-**Decisions needed**
+**Decided (2026-11-22)**
 
-1. **"Active on 2026-10-30" for q9 (and the existing statin-contraindication gold, 198).** Bronze diagnoses keep only
-   an onset date (epicize drops Synthea's condition `STOP`), so a pregnancy coded years ago still matches: 403
-   ACE-inhibitor patients with any pregnancy diagnosis vs 65 with one starting within 40 weeks of MY2026.
-   Recommendation: carry `STOP` into `bronze_pat_enc_dx` / `silver_condition`, so "condition active on 2026-10-30" =
-   onset on or before that date and no stop before it, and "drug active" = an order spanning that date. That moves
-   `graph_statin_contra_cohort` and `proto_statin_gap_safe`; both get re-verified.
-2. **q2 statin definition.** "Dispensed in MY2026" (the SPD rule, used above) or "an active order". Recommend the SPD
-   rule, so q2 composes with an existing governed definition.
-3. **Scoring by answer type.** Numbers and sets exact; stated facts = every required fact present (the existing
-   tier-1 judge), then hand-verified; routes/paths exact. 3 runs per cell (the harness default is actually 1; set 3).
-4. **Reword in `ground_truth.yaml` (fixed dates):** `op_worst_clinic_annual` ("this year" → MY2026 through
-   2026-10-30), `op_clinic_drift` ("recently" → a named 3-month window vs the prior months), `op_drift_rootcause`
-   ("this year" → MY2026). Their gold answers stay the same; the wording stops depending on when it is asked.
-5. **Retire from the benchmark (keep in the file):** the trick questions (`vintage_*` as worded, the undefined-class
-   refusal, `infer_defined_class`).
+1. **Showcase questions are fair; trick questions are not.** A question built to show one approach's specific value
+   (Genie Ontology's inferred snippets or the semantic value of its Pages; a graph multi-hop that needs a reasoning
+   engine a single-shot context doesn't have) belongs in the set. A trick is a question that fails an approach on a
+   wording or data artifact, e.g. "MY2026 eGFR = 0 patients" from a code the data never used, or a refusal test.
+2. **Few questions, the most useful.** Proposed set of 8 below.
+3. **Dates.** Conditions carry `stop_date` (Synthea `STOP`, in `bronze_pat_enc_dx` / `silver_condition` since
+   2026-11-22); orders already carry start/stop. "Active on 2026-10-30" = started on or before it and not stopped
+   before it. `graph_statin_contra_cohort` (198) and `proto_statin_gap_safe` are rewritten this way and re-verified.
+4. **Statin = the governed SPD definition:** dispensed in MY2026, resolved through `rxnorm_closure`.
+5. **Runs.** Test mode (default) = 1 run per cell; `--final` = 3, only for final demo testing.
+6. **Fixed dates** in every question and gold query (above).
+7. **Reword** `op_worst_clinic_annual`, `op_clinic_drift`, `op_drift_rootcause` to fixed dates.
+
+**Proposed set (8): two per approach where it matters, graph only where it really stands out**
+
+| # | Showcases | Question | Why this one |
+|---|---|---|---|
+| 1 | Metric views | q1 GSD poor-control rate by clinic, MY2026 through 2026-10-30 | the prebuilt, governed measure: exact and fast |
+| 2 | Metric views' limit | q2 diabetics 65–75 with A1c > 9% and no statin (SPD rule) | crosses two measures; no prebuilt view answers it |
+| 3 | Closure tables | q3 diabetes with a kidney complication | subtree rollup in one equality join |
+| 4 | RAG | q5 A1c target for an older adult with moderate comorbidity | stated only in a protocol document |
+| 5 | Genie Ontology | q8 which measures use eGFR, which codes count in MY2026, where defined | Page + value-set table + metric view together |
+| 6 | Genie Ontology | is the GSD poor-control rate over all eligible patients or only those tested? | semantic-layer knowledge (metric view comment, knowledge store) that no document states |
+| 7 | Graph | q9 patients on a drug contraindicated by a condition active on 2026-10-30 or their last lab | drug class × rule × lab or condition, with dates: needs a reasoning engine |
+| 8 | Graph | q10 why patient X was in the SPD statin gap (the path) | a per-patient explanation found by traversal |
+
+Dropped from the draft: q4 (E11.22 routes; trace 2 shows it), q6 (Step 3 recheck; trace 1 shows it, and it overlaps
+q5), q7 (KED definition; overlaps q8).
 
 **Dependencies (known, not blockers for locking)**
 - The graph can't answer q2, q9 or q10 fully until the republish (items 1, 3, 3b, 4). Until then its cell shows not
