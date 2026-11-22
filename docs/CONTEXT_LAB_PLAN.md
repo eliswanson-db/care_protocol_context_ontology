@@ -229,7 +229,9 @@ HEDIS first (most of it exists), then life sciences, with the same steps:
    per-approach predictions, no designed winners). Gold = holdout queries `bq1`-`bq8` in `gold_queries.sql` (never
    in a Genie space); `verify_gold` 28/28; `tests/test_benchmark_v2.py` guards the rules. Also: HEDIS GSD aligned,
    condition stop dates, outside letters, `op_clinic_drift` pinned to May-July 2026.
-5. One harness + the simple agent; run it.
+5. ✅ (2026-11-22, HEDIS, test mode) Harness on the locked set, five approaches, RAG = the app's hybrid retrieval with
+   the patient filter: `docs/benchmark/BENCHMARK_V2_RESULTS.md`. Before `--final`: re-record Genie Ontology after the
+   daily extraction, decide the stale dev assets, republish Ontobricks, hand-verify.
 6. Genie One run.
 7. App: Trace + Benchmark tabs.
 
