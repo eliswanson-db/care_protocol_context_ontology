@@ -17,18 +17,24 @@ DOCS = rag.load_docs(os.path.join(REPO, "docs/care_protocol/corpus"),
 BY_ID = {d["meta"]["doc_id"]: d for d in DOCS}
 
 
+LETTERS = [d for d in DOCS if d["meta"]["doc_id"].startswith("LETTER-EYE-")]
+
+
 def test_all_corpus_docs_loaded():
-    # 6 markdown corpus docs + 1 HTML lineage anchor
-    assert len(DOCS) >= 7, f"expected >=7 docs, got {len(DOCS)}"
-    for required in ("CP-DM-2025.1", "LETTER-EYE-TRC-0003", "PAYER-MEMO-MY2026", "CP-SSD-BH-2025.1"):
+    # protocol / memo markdown + the HTML lineage anchor + the generated outside-provider letters
+    for required in ("CP-DM-2025.1", "PAYER-MEMO-MY2026", "CP-SSD-BH-2025.1"):
         assert required in BY_ID, f"missing corpus doc {required}"
+    assert len(LETTERS) >= 50, f"expected the generated outside letters (scripts/gen_outside_letters.py), got {len(LETTERS)}"
 
 
-def test_patient_letter_is_care_team_restricted():
-    # The EED tracer letter must be visible to care_team ONLY (drives the +perm security tracer).
-    acl = BY_ID["LETTER-EYE-TRC-0003"]["meta"]["access"]
-    assert acl == ["care_team"], f"patient letter must be care_team-only, got {acl}"
-    assert BY_ID["LETTER-EYE-TRC-0003"]["meta"]["patient_id"] == "TRC-0003"
+def test_patient_letters_are_care_team_restricted_and_about_real_patients():
+    # Per-patient letters are visible to care_team ONLY (drives the +perm security tracer), each tied to a real
+    # demo patient (a Synthea UUID), dated inside MY2026 on or before the extract horizon.
+    for d in LETTERS:
+        m = d["meta"]
+        assert m["access"] == ["care_team"], f"{m['doc_id']} must be care_team-only, got {m['access']}"
+        assert len(m["patient_id"]) == 36 and m["patient_id"].count("-") == 4, m["patient_id"]
+        assert "2026-01-01" <= m["effective_date"] <= "2026-10-30", m["effective_date"]
 
 
 def test_population_docs_visible_to_both_scopes():

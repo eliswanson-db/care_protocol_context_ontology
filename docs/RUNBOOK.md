@@ -196,8 +196,12 @@ confirm-writes). All steps re-run on a fresh workspace.
   TOKEN=$(databricks postgres generate-database-credential $EP --profile ECT -o json | python3 -c "import json,sys;print(json.load(sys.stdin)['token'])")
   PGPASSWORD="$TOKEN" psql "host=<host> user=<you> dbname=databricks_postgres sslmode=require" -f src/retrieval/lakebase/schema.sql
   ```
+- 🤖 **Outside-provider letters** (per-patient, care-team only): `.venv/bin/python -I scripts/gen_outside_letters.py`
+  writes `docs/care_protocol/corpus/letters/` from the data (a fixed ~3% sample of MY2026 EED-eligible patients). Re-run
+  after a data regeneration, commit, then reload.
 - 🤖 **Build + load the corpus** (deterministic; `--emit_demo_roles` seeds the two demo identities so the RLS
-  test can `SET ROLE`):
+  test can `SET ROLE`). The load replaces group membership and per-document ACLs and removes documents no longer
+  in the corpus, so **re-run `scripts/lakebase_grant_app_reader.py` after every load** or the app loses read access:
   ```
   python3 -I scripts/lakebase_rag_corpus.py --emit_demo_roles | \
     PGPASSWORD="$TOKEN" psql "host=<host> user=<you> dbname=databricks_postgres sslmode=require"
