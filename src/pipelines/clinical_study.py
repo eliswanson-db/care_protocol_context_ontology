@@ -221,9 +221,3 @@ def gold_provenance_edge():
     )  # noqa: F821
 
 
-@dp.materialized_view(
-    comment=f"Named tracer participants (the 20 endpoint edge cases + 9 eligibility cases). {SYN}",
-    table_properties=PROPS,
-)
-def gold_tracer_registry():
-    return gold.tracer_registry(spark).withColumn("execution_run_id", F.lit(RUN_ID))  # noqa: F821

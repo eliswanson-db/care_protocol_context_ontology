@@ -36,7 +36,7 @@ spark = (SparkSession.builder.master("local[4]").config("spark.ui.enabled", "fal
          .config("spark.sql.session.timeZone", "UTC").getOrCreate())
 spark.sparkContext.setLogLevel("ERROR")
 from clinical_study.generate import generate
-generate(spark, sys.argv[1], "small", 2026)
+generate(spark, sys.argv[1], "small", 2026, fixtures=True)  # the test also checks the fixtures land verbatim
 """
 
 _CACHE: dict[str, str] = {}
@@ -151,7 +151,7 @@ def test_coherence_story_and_fixtures():
     results = collections.defaultdict(dict)
     for u, p in P.items():
         dm = p["dm"]
-        if dm["named_fixture"] == "Y":
+        if "-FX-" in u:  # hand-authored test inputs, not part of the generated population
             continue
         sv = el.screening_vitals(p["vs"], p["height"])
         a = el.assess(
@@ -202,7 +202,7 @@ def test_coherence_story_and_fixtures():
                 results[u][rv] = r
     assert not unexpected, unexpected[:10]
     n_rand = sum(
-        1 for p in P.values() if p["dm"]["screen_outcome"] == "RANDOMIZED" and p["dm"]["named_fixture"] == "N"
+        1 for u, p in P.items() if p["dm"]["screen_outcome"] == "RANDOMIZED" and "-FX-" not in u
     )
     assert 0 < mismatch["enrolled_in_error"] <= max(3, 0.02 * n_rand), mismatch
     print("  eligibility reconciliation:", dict(mismatch), "randomized:", n_rand)
@@ -226,6 +226,7 @@ def test_coherence_story_and_fixtures():
 
     # --- story: treatment effect direction (descriptive only)
     arm = {u: P[u]["dm"]["armcd"] for u in results}
+    effect = {}
     for study, rv in (("CSL-A", "R2"), ("CSL-B", "R1")):
         means = {}
         for a_ in ("CSL101", "PBO"):
@@ -239,6 +240,9 @@ def test_coherence_story_and_fixtures():
             means[a_] = sum(v) / len(v) if v else None
         print(f"  {study} {rv} mean % change: {means}")
         assert means["CSL101"] < means["PBO"] - 4, means
+        effect[study] = means["CSL101"] - means["PBO"]
+    # T2D (CSL-B) responds less to the same drug class than a non-diabetic population (CSL-A)
+    assert effect["CSL-B"] > effect["CSL-A"] + 2, effect
 
     # --- story: on-treatment GLP-1 deviations concentrate in placebo at US sites
     dev = collections.Counter()
@@ -251,7 +255,7 @@ def test_coherence_story_and_fixtures():
     print("  on-treatment GLP-1 deviations (arm, US):", dict(dev))
     assert dev[("PBO", True)] >= max(dev.values()) and sum(dev.values()) > 0, dev
 
-    # --- named fixtures landed verbatim
+    # --- named fixtures (test inputs) landed verbatim when asked for
     from clinical_study.standardize import load_named
 
     for n in load_named():
@@ -260,6 +264,17 @@ def test_coherence_story_and_fixtures():
         got = sorted((w["vsseq"], w["vsdtc"], w["vsorres"], w["vsorresu"]) for w in P[u]["vs"])
         want = sorted((w["vsseq"], w["vsdtc"], w["vsorres"], w["vsorresu"]) for w in n["observations"])
         assert got == want, u
+
+
+def test_demo_population_has_no_hand_authored_participants():
+    # The deployed generator (scripts/ls_generate.py) uses the default: generated participants only.
+    import inspect
+
+    from clinical_study.generate import generate
+
+    assert inspect.signature(generate).parameters["fixtures"].default is False
+    src = (ROOT / "scripts/ls_generate.py").read_text()
+    assert "fixtures=True" not in src
 
 
 if __name__ == "__main__":

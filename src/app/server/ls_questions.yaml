@@ -5,7 +5,6 @@ questions:
      metric_view: "SELECT `Arm`, MEASURE(`Participants In FAS`) AS fas, MEASURE(`Participants With Derived Endpoint`) AS derived, ROUND(MEASURE(`Mean Percent Change`), 2) AS mean_pct_change FROM {catalog}.clinical_study_semantic.endpoint_result_metrics WHERE `Rule Version` = 'EP-A-WT24.R1' GROUP BY ALL ORDER BY `Arm`"}
   - {qid: ls_q2, category: participant_level, question: "Which participants have no valid baseline in Study B?",
      metric_view: "SELECT `Exclusion Reason`, MEASURE(`Participants Evaluated`) AS n FROM {catalog}.clinical_study_semantic.endpoint_result_metrics WHERE `Rule Version` = 'EP-B-WT24.R1' AND `Result Status` = 'NO_VALID_BASELINE' GROUP BY ALL ORDER BY n DESC"}
-  - {qid: ls_q3, category: participant_level, question: "Why was CSL-A-FX-05's Week 24 observation excluded under R1?"}
   - {qid: ls_q4, category: amendment_impact, question: "What changed after amendment 1?",
      metric_view: "SELECT MEASURE(`Participants Compared`) AS compared, MEASURE(`Participants Became Derivable`) AS became_derivable, MEASURE(`Participants With Changed Selected Observation`) AS changed_selection FROM {catalog}.clinical_study_semantic.amendment_impact_metrics"}
   - {qid: ls_q5, category: standards_mapping, question: "Where is this measurement represented in the standardized dataset?"}

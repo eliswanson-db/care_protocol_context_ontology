@@ -19,6 +19,7 @@ from fastapi import APIRouter, HTTPException
 from ..config import CATALOG
 from ..ls_a6 import clinical_study_supervisor as sup
 from ..ls_a6.clinical_study_tools import RULE_VERSIONS, InputError, make_tools
+from ..ls_heroes import HEROES
 from ..readiness import component
 from ..warehouse import run_sql
 
@@ -119,17 +120,23 @@ def overview():
 
 
 # --------------------------------------------------------------------------------------------- participants
+def _heroes() -> list[dict]:
+    """Hero participants picked from the data by stated rules (server/ls_heroes.py), with their flags."""
+    picks = parallel(**{h["id"]: (lambda h=h: _q(h["sql"])) for h in HEROES})
+    out = []
+    for h in HEROES:
+        u = (picks[h["id"]] or [{}])[0].get("u")
+        if not u:
+            continue  # no qualifying participant in the current data: leave the hero out rather than fake one
+        p = _q(f"SELECT STUDYID AS study_id, FASFL AS fas, PPSFL AS pps, rule_eligible FROM "
+               f"{CS}.gold_participant_population WHERE USUBJID = '{u}'")
+        out.append({"usubjid": u, "tracer_id": h["id"], "title": h["title"], "rule": h["rule"], **(p[0] if p else {})})
+    return out
+
+
 @router.get("/tracers")
 def tracers():
-    rows = cached(
-        ("tracers",),
-        lambda: _q(
-            f"SELECT t.USUBJID AS usubjid, t.STUDYID AS study_id, t.tracer_id, t.title, p.FASFL AS fas, p.PPSFL AS pps, "
-            f"p.rule_eligible FROM {CS}.gold_tracer_registry t LEFT JOIN {CS}.gold_participant_population p USING "
-            f"(USUBJID) ORDER BY t.tracer_id"
-        ),
-    )
-    return _stamp({"tracers": rows})
+    return _stamp({"tracers": cached(("tracers",), _heroes)})
 
 
 @router.get("/participants")
@@ -148,7 +155,7 @@ def search_participants(q: str = "", limit: int = 25):
 @router.get("/participant/{usubjid}")
 def participant(usubjid: str, rule_version: str | None = None):
     def build():
-        if not re.match(r"^CSL-[AB]-(?:\d{3}-\d{4}|FX-\d{2})$", usubjid):
+        if not re.match(r"^CSL-[AB]-\d{3}-\d{4}$", usubjid):
             raise HTTPException(400, f"invalid participant id {usubjid!r}")
         study = usubjid.split("-")[1]
         versions = sorted(v for v in RULE_VERSIONS if v.startswith(f"EP-{study}-"))
@@ -182,12 +189,11 @@ def participant(usubjid: str, rule_version: str | None = None):
                 f"CPL_SCREEN_OUTCOME FROM {CS}.silver_dm WHERE USUBJID = :u",
                 {"u": usubjid},
             ),
-            tr=lambda: run_sql(
-                f"SELECT tracer_id, title FROM {CS}.gold_tracer_registry WHERE USUBJID = :u", {"u": usubjid}
-            ),
         )
         traces = {v: r[f"trace:{v}"] for v in versions}
-        t, el, rule, raw, prov, dm, tr = traces[rv], r["el"], r["rule"], r["raw"], r["prov"], r["dm"], r["tr"]
+        t, el, rule, raw, prov, dm = traces[rv], r["el"], r["rule"], r["raw"], r["prov"], r["dm"]
+        tr = [{"tracer_id": h["tracer_id"], "title": h["title"]}
+              for h in cached(("tracers",), _heroes) if h["usubjid"] == usubjid]
         return {
             "usubjid": usubjid,
             "rule_version": rv,

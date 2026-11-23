@@ -10,7 +10,7 @@ related_assets:
 **CSL-A and CSL-B Week 24 weight change are not equivalent.** Both measure Body Weight (C81328) with the same
 formula, but baseline method (last vs mean), baseline window (−28…−1 + day 1 vs −14…−1), target (day 169 vs day
 168), window (±7/±14 vs ±10) and tie-breaker (later vs earlier) differ. The same participant data can give a
-different value: named participant CSL-B-FX-18 is −5.94% under CSL-B's rule and would be −5.53% under CSL-A's.
+different value under each study's rule, because a different baseline or follow-up record is selected.
 
 **Never pool** the two studies, and never compare a number from one with the other without stating both
 definitions. Summaries are always grouped by study **and** rule version.

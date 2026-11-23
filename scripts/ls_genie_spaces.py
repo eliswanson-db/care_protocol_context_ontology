@@ -94,9 +94,10 @@ SPACES = {
                 f"AS randomized FROM {SEM}.participant_population_metrics GROUP BY ALL ORDER BY `Study`",
             ),
             (
-                "Why was CSL-A-FX-05's Week 24 result different under R1 and R2?",
-                f"SELECT rule_version, obs_id, visit, vsdtc, days_from_target, decision, reason FROM "
-                f"{CS}.gold_endpoint_candidate WHERE USUBJID = 'CSL-A-FX-05' AND role = 'FOLLOWUP' ORDER BY rule_version, vsseq",
+                "Why were Week 24 follow-up candidates excluded, by rule version and reason?",
+                f"SELECT rule_version, reason, COUNT(*) AS candidates, COUNT(DISTINCT USUBJID) AS participants FROM "
+                f"{CS}.gold_endpoint_candidate WHERE role = 'FOLLOWUP' AND decision = 'EXCLUDED' GROUP BY ALL "
+                f"ORDER BY rule_version, candidates DESC",
             ),
         ],
     },
@@ -216,9 +217,10 @@ SPACES = {
                 f"ORDER BY artifact_id",
             ),
             (
-                "Why was CSL-A-FX-25 excluded?",
-                f"SELECT criterion_id, outcome, detail, path_labels FROM {CS}.gold_eligibility_criterion WHERE USUBJID = "
-                f"'CSL-A-FX-25' AND outcome IN ('TRIGGERED', 'NOT_MET')",
+                "Which eligibility criteria fail most often at screening, by study?",
+                f"SELECT STUDYID, criterion_id, outcome, COUNT(DISTINCT USUBJID) AS participants FROM "
+                f"{CS}.gold_eligibility_criterion WHERE outcome IN ('TRIGGERED', 'NOT_MET') GROUP BY ALL "
+                f"ORDER BY STUDYID, participants DESC",
             ),
         ],
     },

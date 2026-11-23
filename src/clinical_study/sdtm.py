@@ -32,7 +32,6 @@ RAW_COLUMNS = {
         "armcd",
         "edc_eligible",
         "protocol_version_recorded",
-        "named_fixture",
     ],
     "vs": [
         "record_id",
@@ -142,7 +141,6 @@ def dm(subjects: DataFrame, ex: DataFrame) -> DataFrame:
         blank_to_null("screen_fail_reason").alias("CPL_SCREEN_FAIL_REASON"),
         blank_to_null("rand_date").alias("CPL_RANDDT"),
         F.col("edc_eligible").alias("CPL_EDC_ELIGIBLE"),
-        F.col("named_fixture").alias("CPL_NAMED_FIXTURE"),
         F.col("record_id").alias("CPL_SOURCE_RECORD_ID"),
         F.col("_source_file").alias("CPL_SOURCE_FILE"),
     )

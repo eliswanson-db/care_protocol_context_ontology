@@ -29,7 +29,7 @@
    {
     "id": "00000000000000000000000000000005",
     "question": [
-     "Why was CSL-A-FX-25 excluded?"
+     "Which eligibility criteria fail most often at screening, by study?"
     ]
    }
   ]
@@ -236,10 +236,10 @@
    {
     "id": "00000000000000000000000000000005",
     "question": [
-     "Why was CSL-A-FX-25 excluded?"
+     "Which eligibility criteria fail most often at screening, by study?"
     ],
     "sql": [
-     "SELECT criterion_id, outcome, detail, path_labels FROM eli_test_classic_catalog.clinical_study.gold_eligibility_criterion WHERE USUBJID = 'CSL-A-FX-25' AND outcome IN ('TRIGGERED', 'NOT_MET')"
+     "SELECT STUDYID, criterion_id, outcome, COUNT(DISTINCT USUBJID) AS participants FROM eli_test_classic_catalog.clinical_study.gold_eligibility_criterion WHERE outcome IN ('TRIGGERED', 'NOT_MET') GROUP BY ALL ORDER BY STUDYID, participants DESC"
     ]
    }
   ],
@@ -449,23 +449,6 @@
  "benchmarks": {
   "questions": [
    {
-    "id": "0a29baf8fd8c753a43eb16a5c68a0d4e",
-    "question": [
-     "Which criterion excluded CSL-A-FX-25?"
-    ],
-    "answer": [
-     {
-      "format": "SQL",
-      "content": [
-       "SELECT criterion_id FROM eli_test_classic_catalog.clinical_study.gold_eligibility_criterion WHERE USUBJID = 'CSL-A-FX-25' AND outcome = 'TRIGGERED'"
-      ]
-     }
-    ],
-    "evaluation_note": [
-     "Diabetic ketoacidosis: MED-RT CI_with on a GLP-1 RA (expected_eligibility.yaml)."
-    ]
-   },
-   {
     "id": "33a531c78ec1350a9351fb7bd79e2735",
     "question": [
      "Is obstructive sleep apnea (MONDO:0007147) a WRC-V1 member?"
@@ -496,7 +479,7 @@
      }
     ],
     "evaluation_note": [
-     "Expected from expected_eligibility.yaml (FX-21)."
+     "MONDO hierarchy under the WRC-V1 roots (rule registry)."
     ]
    }
   ]

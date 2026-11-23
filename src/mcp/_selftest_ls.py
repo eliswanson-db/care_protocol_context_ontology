@@ -1,6 +1,6 @@
 """Live self-test of the Clinical Study A6 tools against ECT, checked against INDEPENDENT answers:
-hand-authored oracle fixtures, direct SQL counts, and the Python ontology walk (a second implementation of the
-contraindication logic). Also checks supervisor routing, abstention and demo isolation.
+the gold tables read directly (for participants picked by rule from the generated data), direct SQL counts, and
+the Python ontology walk (a second implementation of the contraindication logic). Also checks supervisor routing, abstention and demo isolation.
 
     python src/mcp/_selftest_ls.py --profile ECT [--catalog eli_test_classic_catalog]
 """
@@ -14,7 +14,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path[:0] = [str(ROOT / "src" / "mcp"), str(ROOT / "src")]
 
-import yaml  # noqa: E402
 from databricks.sdk import WorkspaceClient  # noqa: E402
 
 import clinical_study_supervisor as sup  # noqa: E402
@@ -40,7 +39,24 @@ def main() -> int:
 
     T = make_tools(a.catalog)
     cs = f"{a.catalog}.clinical_study"
-    oracle = yaml.safe_load(open(ROOT / "tests/fixtures/life_sciences/expected_endpoints.yaml"))["expected"]
+
+    def pick(sql: str) -> str:
+        """The lowest USUBJID matching a rule (participants are picked from the data, never by hand)."""
+        u = query(sql)[0]["u"]
+        if not u:
+            raise SystemExit(f"no participant matches: {sql}")
+        return u
+
+    recovered = pick(f"SELECT min(a.USUBJID) u FROM {cs}.gold_endpoint_result a JOIN {cs}.gold_endpoint_result b "
+                     f"ON a.USUBJID = b.USUBJID WHERE a.endpoint_version = 'EP-A-WT24.R1' AND b.endpoint_version = "
+                     f"'EP-A-WT24.R2' AND a.result_status <> 'DERIVED' AND b.result_status = 'DERIVED'")
+    derived_b = pick(f"SELECT min(USUBJID) u FROM {cs}.gold_endpoint_result WHERE endpoint_version = 'EP-B-WT24.R1' "
+                     f"AND result_status = 'DERIVED'")
+    tie = pick(f"SELECT min(USUBJID) u FROM {cs}.gold_endpoint_candidate WHERE reason = 'FOLLOWUP_TIE_LOST' "
+               f"AND rule_version = 'R1' AND endpoint_id = 'EP-A-WT24'")
+    ci_only = pick(f"SELECT min(USUBJID) u FROM (SELECT USUBJID FROM {cs}.gold_eligibility_criterion GROUP BY USUBJID "
+                   f"HAVING count_if(outcome = 'TRIGGERED') = 1 AND count_if(outcome = 'TRIGGERED' AND criterion_id = "
+                   f"'EXC-CI') = 1 AND count_if(outcome = 'NOT_MET') = 0)")
     fails: list[str] = []
 
     def check(name: str, cond: bool, detail="") -> None:
@@ -69,35 +85,34 @@ def main() -> int:
         s["citation"],
     )
 
-    # 2. participant_trace vs oracle
-    for u, rv in (("CSL-A-FX-05", "R1"), ("CSL-A-FX-05", "R2"), ("CSL-A-FX-07", "R1"), ("CSL-B-FX-18", "R1")):
-        ep = "EP-B-WT24" if u.startswith("CSL-B") else "EP-A-WT24"
-        t = T["participant_trace"](query, u, f"{ep}.{rv}")
-        e = oracle[u][rv]
-        ok = t["result_status"] == e["status"] and (
-            "value" not in e or abs(float(t["pct_change"]) - e["value"]) < 1e-9
+    # 2. participant_trace vs the gold row, for rule-picked participants
+    for u, ev in ((recovered, "EP-A-WT24.R1"), (recovered, "EP-A-WT24.R2"), (derived_b, "EP-B-WT24.R1")):
+        t = T["participant_trace"](query, u, ev)
+        g = query(f"SELECT result_status, PCHG FROM {cs}.gold_endpoint_result WHERE USUBJID = '{u}' AND "
+                  f"endpoint_version = '{ev}'")[0]
+        ok = t["result_status"] == g["result_status"] and (
+            g["PCHG"] is None or abs(float(t["pct_change"]) - float(g["PCHG"])) < 1e-9
         )
-        check(f"participant_trace {u} {rv} == oracle", ok, (t["result_status"], t["pct_change"], e))
-    t = T["participant_trace"](query, "CSL-A-FX-07", "EP-A-WT24.R1")
+        check(f"participant_trace {u} {ev} == gold", ok, (t["result_status"], t["pct_change"], g))
+    t = T["participant_trace"](query, tie, "EP-A-WT24.R1")
     check(
         "trace keeps every candidate with a reason",
         all(c["reason"] for c in t["candidates"])
         and any(c["reason"] == "FOLLOWUP_TIE_LOST" for c in t["candidates"]),
     )
 
-    # 3. amendment_impact vs direct gold counts and oracle lists
+    # 3. amendment_impact vs direct gold counts and lists
     am = T["amendment_impact"](query, limit=200)
     became = int(
         query(f"SELECT count_if(endpoint_became_derivable) n FROM {cs}.gold_amendment_impact")[0]["n"]
     )
     check("amendment became_derivable == direct", am["counts"]["became"] == became, (am["counts"], became))
-    fx = T["amendment_impact"](query, site_id="SITE-104", limit=200)
-    ids = {r["USUBJID"] for r in fx["affected"]}
-    check(
-        "amendment affected includes FX-05 and FX-20 (candidates changed)",
-        {"CSL-A-FX-05", "CSL-A-FX-20", "CSL-A-FX-04"} <= ids,
-        sorted(ids)[:10],
-    )
+    site = T["amendment_impact"](query, site_id="SITE-118", limit=200)
+    ids = {r["USUBJID"] for r in site["affected"]}
+    want = {r["USUBJID"] for r in query(f"SELECT a.USUBJID FROM {cs}.gold_amendment_impact a JOIN {cs}.silver_dm d "
+                                        f"USING (USUBJID) WHERE d.SITEID = 'SITE-118' AND a.endpoint_became_derivable")}
+    check("amendment_impact SITE-118 lists every participant Amendment 1 made derivable", want <= ids,
+          (len(want), len(ids)))
 
     # 4. rules
     rs = T["rule_status"](query, "CSL-A")
@@ -127,7 +142,7 @@ def main() -> int:
         "rule_definition returns the section text", rd["section_text"] and "±14" in rd["section_text"]["text"]
     )
 
-    # 5. semantics: membership via closure vs expectations from the hand oracle / gate doc
+    # 5. semantics: membership via closure vs the rule registry's class definitions (ONTOLOGY_RICHNESS_GATE.md)
     for cls, cid, want in (
         ("WRC-V1", "MONDO:0005439", True),
         ("WRC-V1", "MONDO:0008585", False),
@@ -170,9 +185,9 @@ def main() -> int:
         and unit["physical_column"],
         unit,
     )
-    el = T["eligibility_explain"](query, "CSL-A-FX-25")
+    el = T["eligibility_explain"](query, ci_only)
     check(
-        "eligibility_explain FX-25 excluded by EXC-CI only",
+        f"eligibility_explain {ci_only} excluded by EXC-CI only",
         [c["criterion_id"] for c in el["criteria"] if c["outcome"] == "TRIGGERED"] == ["EXC-CI"],
         el["criteria"],
     )
@@ -193,7 +208,7 @@ def main() -> int:
     cases = [
         ("What is the Week 24 endpoint summary for Study A under rule version 1?", "endpoint_summary"),
         ("What is the mean percent change at Week 24?", "clarify"),
-        ("Why was CSL-A-FX-05's observation excluded under R1?", "participant_trace"),
+        (f"Why was {recovered}'s observation excluded under R1?", "participant_trace"),
         ("What changed after amendment 1?", "amendment_impact"),
         ("Do Studies A and B use equivalent baseline definitions?", "compare_endpoints"),
         ("The latest document mentions a wider window. Has that rule been approved?", "rule_status"),

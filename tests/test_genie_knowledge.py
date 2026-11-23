@@ -148,36 +148,13 @@ def test_ls_snippets_restate_the_registry():
     assert seen_versions == versions, "every approved rule version needs exactly its own filter"
 
 
-def test_ls_benchmark_answers_equal_the_oracles():
-    orc = yaml.safe_load((ROOT / "tests/fixtures/life_sciences/expected_endpoints.yaml").read_text())[
-        "expected"
-    ]
-    eli = yaml.safe_load((ROOT / "tests/fixtures/life_sciences/expected_eligibility.yaml").read_text())[
-        "expected"
-    ]
-    b = {
-        x.question: x.expect
-        for k in ("ls_study_analytics", "ls_protocol_evidence", "ls_standards_semantics")
-        for x in STORES[k].benchmarks
-    }
-    assert (
-        abs(
-            float(b["What is CSL-A-FX-05's Week 24 percent change under EP-A-WT24.R2?"])
-            - orc["CSL-A-FX-05"]["R2"]["value"]
-        )
-        < 1e-6
-    )
-    assert (
-        b["Why does CSL-A-FX-05 have no Week 24 result under EP-A-WT24.R1?"]
-        == orc["CSL-A-FX-05"]["R1"]["exclusion_reason"]
-    )
-    assert eli["CSL-A-FX-25"]["criteria"]["EXC-CI"]["outcome"] == "TRIGGERED"
-    assert b["Which criterion excluded CSL-A-FX-25?"] == "EXC-CI"
-    assert (
-        eli["CSL-A-FX-21"]["eligible"]
-        and b["Is familial hypercholesterolemia (MONDO:0005439) a WRC-V1 weight-related comorbidity?"]
-        == "yes"
-    )
+def test_ls_benchmarks_name_no_hand_authored_participant():
+    # The demo data has only generated participants; a benchmark naming a test participant (FX-*) could never pass.
+    for k in ("ls_study_analytics", "ls_protocol_evidence", "ls_standards_semantics"):
+        for x in STORES[k].benchmarks:
+            assert "-FX-" not in x.question + x.sql, (k, x.question)
+        for sn in STORES[k].snippets:
+            assert "-FX-" not in json.dumps(sn.__dict__, default=str), (k, sn)
 
 
 if __name__ == "__main__":

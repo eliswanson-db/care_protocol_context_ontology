@@ -71,7 +71,6 @@ def build(spark, landing: str) -> dict:
     out["amendment"] = gold.amendment_impact(res, cand)
     out["summary"] = gold.study_summary(res, pop)
     out["provenance"] = gold.provenance_edges(res, cand, reg, spark)
-    out["tracers"] = gold.tracer_registry(spark)
     return out
 
 
@@ -98,9 +97,11 @@ def main(landing: str | None = None) -> int:
         from clinical_study.generate import generate
 
         landing = tempfile.mkdtemp(prefix="ls_pipe_") + "/raw"
-        generate(spark, landing, "small", 2026)
+        generate(spark, landing, "small", 2026, fixtures=True)  # the oracle check needs the test participants
     t = build(spark, landing)
-    errs = check_named(t)
+    from clinical_study.verify import check_invariants
+
+    errs = check_named(t) + check_invariants(t["results"], t["population"], t["vs"])
     for e in errs:
         print("FAIL", e)
     r = (

@@ -52,9 +52,13 @@ function Picker({ onPick, current }: { onPick: (u: string) => void; current: str
   const [tracers, setTracers] = useState<Row[]>([]);
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<Row[] | null>(null);
-  useEffect(() => { ls.tracers().then((r) => setTracers(r.tracers)).catch(() => void 0); }, []);
+  useEffect(() => {
+    ls.tracers().then((r) => {
+      setTracers(r.tracers);
+      if (!current && r.tracers.length) onPick(r.tracers[0].usubjid);  // first hero, picked by rule server-side
+    }).catch(() => void 0);
+  }, []);
   const search = () => q.length >= 3 && ls.search(q).then((r) => setHits(r.participants)).catch(() => setHits([]));
-  const groups = [["EDGE", "Endpoint edge cases"], ["ELIG", "Eligibility cases"]] as const;
   return (
     <aside className="w-72 shrink-0 overflow-y-auto border-r border-border bg-surface p-3">
       <div className="mb-2 flex gap-1">
@@ -72,18 +76,16 @@ function Picker({ onPick, current }: { onPick: (u: string) => void; current: str
           ))}
         </div>
       )}
-      {groups.map(([prefix, label]) => (
-        <div key={prefix} className="mb-3">
-          <div className="mb-1 text-[11px] font-semibold uppercase text-muted">{label}</div>
-          {tracers.filter((t) => t.tracer_id.startsWith(prefix)).map((t) => (
-            <button key={t.usubjid} onClick={() => onPick(t.usubjid)}
-              className={`mb-0.5 block w-full rounded px-1.5 py-1 text-left hover:bg-surface-2 ${current === t.usubjid ? "bg-primary/10" : ""}`}>
-              <div className="font-mono text-[11.5px] font-semibold">{t.usubjid} <span className="font-normal text-muted">{t.tracer_id}</span></div>
-              <div className="text-[11.5px] leading-snug text-muted">{t.title}</div>
-            </button>
-          ))}
-        </div>
-      ))}
+      <div className="mb-3">
+        <div className="mb-1 text-[11px] font-semibold uppercase text-muted">Participants (picked by rule)</div>
+        {tracers.map((t) => (
+          <button key={t.tracer_id} onClick={() => onPick(t.usubjid)} title={t.rule}
+            className={`mb-0.5 block w-full rounded px-1.5 py-1 text-left hover:bg-surface-2 ${current === t.usubjid ? "bg-primary/10" : ""}`}>
+            <div className="text-[12px] font-semibold leading-snug">{t.title}</div>
+            <div className="font-mono text-[11.5px] text-muted">{t.usubjid}</div>
+          </button>
+        ))}
+      </div>
     </aside>
   );
 }
@@ -182,7 +184,7 @@ function EligibilityCard({ p }: { p: Participant }) {
 
 export function ParticipantEvidence() {
   const { ruleVersion, setRuleVersion, focus, study, setStudy } = useLs();
-  const [usubjid, setUsubjid] = useState<string | null>(focus?.usubjid ?? "CSL-A-FX-05");
+  const [usubjid, setUsubjid] = useState<string | null>(focus?.usubjid ?? null);
   const [p, setP] = useState<Participant | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => { if (focus?.usubjid) setUsubjid(focus.usubjid); }, [focus]);

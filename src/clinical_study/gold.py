@@ -165,7 +165,6 @@ def subject_bundles(dm: DataFrame, vs: DataFrame, ex: DataFrame, mh: DataFrame, 
             "COUNTRY",
             "CPL_SCREEN_OUTCOME",
             "CPL_EDC_ELIGIBLE",
-            "CPL_NAMED_FIXTURE",
         )
         .join(w, "USUBJID", "left")
         .join(h, "USUBJID", "left")
@@ -561,16 +560,3 @@ def provenance_edges(
     return e1.unionByName(e2).unionByName(e3).unionByName(e4).unionByName(e5)
 
 
-def tracer_registry(spark: SparkSession) -> DataFrame:
-    from clinical_study.standardize import load_named
-
-    rows = [
-        (
-            n["participant"]["usubjid"],
-            n["participant"]["study_id"],
-            f"EDGE-{n['edge_case']:02d}" if n["edge_case"] else f"ELIG-{n['eligibility_case']}",
-            n["title"],
-        )
-        for n in load_named()
-    ]
-    return spark.createDataFrame(rows, "USUBJID string, STUDYID string, tracer_id string, title string")

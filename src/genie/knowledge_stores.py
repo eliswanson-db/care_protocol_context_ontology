@@ -320,12 +320,8 @@ def _registry() -> dict:
     return yaml.safe_load((ROOT / "src/clinical_study/rules/registry.yaml").read_text())
 
 
-def _oracle() -> dict:
-    return yaml.safe_load((ROOT / "tests/fixtures/life_sciences/expected_endpoints.yaml").read_text())["expected"]
-
-
 def _ls_analytics() -> Store:
-    reg, orc = _registry(), _oracle()
+    reg = _registry()
     r, p, a, c = (f"{CS}.gold_endpoint_result", f"{CS}.gold_participant_population", f"{CS}.gold_amendment_impact",
                   f"{CS}.gold_endpoint_candidate")
     st = Store("resources/ls_study_analytics.geniespace.json", "life_sciences_clinical")
@@ -346,7 +342,6 @@ def _ls_analytics() -> Store:
         M("PPS participants", "n_pps", "COUNT_IF(gold_participant_population.PPSFL = 'Y')", "per protocol set"),
         F("Derived results only", "gold_endpoint_result.result_status = 'DERIVED'", "evaluable"),
         F("Full analysis set (endpoint rows)", "gold_endpoint_result.analysis_population_status = 'IN_FAS'", "FAS"),
-        F("Named fixture participants", "gold_endpoint_result.USUBJID LIKE '%-FX-%'", "edge cases", "tracers"),
         F("Excluded observations", "gold_endpoint_candidate.decision = 'EXCLUDED'", "excluded"),
         F("Follow-up candidates", "gold_endpoint_candidate.role = 'FOLLOWUP'", "week 24 candidates"),
         F("Amendment 1 changed the selected record",
@@ -391,15 +386,13 @@ def _ls_analytics() -> Store:
         a: {"STUDYID": cat("study")},
     }
     st.benchmarks = [
-        Bench("What is CSL-A-FX-05's Week 24 percent change under EP-A-WT24.R2?",
-              f"SELECT ROUND(PCHG, 6) FROM {r} WHERE USUBJID = 'CSL-A-FX-05' AND endpoint_version = 'EP-A-WT24.R2'",
-              str(round(orc["CSL-A-FX-05"]["R2"]["value"], 6)), "Oracle fixture (hand-authored)."),
-        Bench("Why does CSL-A-FX-05 have no Week 24 result under EP-A-WT24.R1?",
-              f"SELECT exclusion_reason FROM {r} WHERE USUBJID = 'CSL-A-FX-05' AND endpoint_version = 'EP-A-WT24.R1'",
-              orc["CSL-A-FX-05"]["R1"]["exclusion_reason"], "Oracle fixture (hand-authored)."),
-        Bench("What is CSL-B-FX-18's Week 24 percent change under EP-B-WT24.R1?",
-              f"SELECT ROUND(PCHG, 6) FROM {r} WHERE USUBJID = 'CSL-B-FX-18' AND endpoint_version = 'EP-B-WT24.R1'",
-              str(round(orc["CSL-B-FX-18"]["R1"]["value"], 6)), "Oracle fixture (hand-authored)."),
+        Bench("Do any derived Week 24 results disagree with (follow-up - baseline) / baseline * 100?",
+              f"SELECT COUNT_IF(ABS(PCHG - (AVAL_FU - BASE) / BASE * 100) > 1e-6) FROM {r} WHERE result_status = 'DERIVED'",
+              "0", "Engine invariant (clinical_study.verify.check_invariants)."),
+        Bench("Did any CSL-A participant lose a derived Week 24 result when Amendment 1 widened the window?",
+              f"SELECT COUNT(*) FROM (SELECT USUBJID FROM {r} WHERE endpoint_version = 'EP-A-WT24.R1' AND "
+              f"result_status = 'DERIVED' EXCEPT SELECT USUBJID FROM {r} WHERE endpoint_version = 'EP-A-WT24.R2' AND "
+              f"result_status = 'DERIVED')", "0", "Engine invariant: a wider window only adds derivations."),
         Bench("How many CSL-A participants became derivable under Amendment 1 (R1 -> R2)?",
               f"SELECT COUNT_IF(endpoint_became_derivable) FROM {a}", None,
               "Computed from gold; compare with the Amendment Lab."),
@@ -508,13 +501,10 @@ def _ls_standards() -> Store:
     st.benchmarks = [
         Bench("Is familial hypercholesterolemia (MONDO:0005439) a WRC-V1 weight-related comorbidity?",
               f"SELECT CASE WHEN COUNT(*) > 0 THEN 'yes' ELSE 'no' END FROM {mc} WHERE descendant_code = 'MONDO:0005439' "
-              f"AND {member('WRC-V1')}", "yes", "Expected from expected_eligibility.yaml (FX-21)."),
+              f"AND {member('WRC-V1')}", "yes", "MONDO hierarchy under the WRC-V1 roots (rule registry)."),
         Bench("Is obstructive sleep apnea (MONDO:0007147) a WRC-V1 member?",
               f"SELECT CASE WHEN COUNT(*) > 0 THEN 'yes' ELSE 'no' END FROM {mc} WHERE descendant_code = 'MONDO:0007147' "
               f"AND {member('WRC-V1')}", "no", "Added only by Amendment 2 (WRC-V2)."),
-        Bench("Which criterion excluded CSL-A-FX-25?",
-              f"SELECT criterion_id FROM {gc} WHERE USUBJID = 'CSL-A-FX-25' AND outcome = 'TRIGGERED'", "EXC-CI",
-              "Diabetic ketoacidosis: MED-RT CI_with on a GLP-1 RA (expected_eligibility.yaml)."),
     ]
     return st
 

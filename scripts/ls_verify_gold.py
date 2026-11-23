@@ -1,4 +1,9 @@
-"""Bundle task: verify deployed gold tables against the hand-authored oracles; record the outcome.
+"""Bundle task: verify the deployed gold tables (clinical_study.verify.check_invariants); record the outcome.
+
+The demo data holds only the generated population, so the deployed gate checks properties every correct run has
+(one result per FAS participant and rule version, derived values are the arithmetic of their observations, follow-ups
+fall inside their window, Amendment 1 only adds derivations, unit lineage). The hand-authored test participants and
+their oracles are checked locally (tests/test_ls_pipeline_local.py).
 
 Fails the job (non-zero exit) on any mismatch so a broken refresh is visible, never silently "ready".
 Writes one row per run to clinical_study.gold_verification_run (read by the readiness view).
@@ -7,7 +12,6 @@ Writes one row per run to clinical_study.gold_verification_run (read by the read
 import argparse
 import sys
 from datetime import datetime, timezone
-from pathlib import Path
 
 from pyspark.sql import SparkSession
 
@@ -19,17 +23,14 @@ def main() -> None:
     ap.add_argument("--src_dir", required=True)
     a = ap.parse_args()
     sys.path.insert(0, a.src_dir)
-    from clinical_study.verify import check_named
+    from clinical_study.verify import check_invariants
 
     spark = SparkSession.builder.getOrCreate()
     t = f"{a.catalog}.{a.schema}"
-    fixtures = Path(a.src_dir).parent / "tests" / "fixtures" / "life_sciences"
-    errs = check_named(
+    errs = check_invariants(
         spark.table(f"{t}.gold_endpoint_result"),
-        spark.table(f"{t}.gold_endpoint_candidate"),
         spark.table(f"{t}.gold_participant_population"),
         spark.table(f"{t}.silver_vs"),
-        fixtures,
     )
     run_id = spark.table(f"{t}.gold_endpoint_result").select("execution_run_id").limit(1).collect()[0][0]
     row = [
@@ -51,8 +52,8 @@ def main() -> None:
     for e in errs:
         print("FAIL", e)
     if errs:
-        raise SystemExit(f"gold oracle check FAILED: {len(errs)} mismatch(es) for {run_id}")
-    print(f"gold oracle check PASS for {run_id}")
+        raise SystemExit(f"gold invariant check FAILED: {len(errs)} problem(s) for {run_id}")
+    print(f"gold invariant check PASS for {run_id}")
 
 
 if __name__ == "__main__":

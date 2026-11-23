@@ -1,8 +1,9 @@
 """Synthetic EDC export generator — Clinical Study Context & Evidence Lab (SYNTHETIC; ADR-0024).
 
 Writes raw, EDC-shaped CSV exports (strings exactly as a site would key them: 'lb', partial dates, blanks) for
-studies CSL-A and CSL-B, plus the hand-authored named fixtures, to a landing directory (a UC volume in a job,
-a local dir in tests). The Lakeflow pipeline ingests these into bronze.
+studies CSL-A and CSL-B to a landing directory (a UC volume in a job, a local dir in tests). The Lakeflow pipeline
+ingests these into bronze. The demo population is generated only: the hand-authored named participants
+(fixtures/named_participants.yaml) are engine TEST inputs, injected only when a test asks (fixtures=True).
 
 Determinism: every random draw is a hash of (seed, salt, subject key[, slot]) via xxhash64, so the output does
 not depend on Spark partitioning or execution order. dbldatagen builds the subject master with
@@ -333,9 +334,13 @@ def subjects(spark: SparkSession, seed: int, scale: str) -> DataFrame:
         ),
     )
     # individual response (% change at plateau) and on-treatment GLP-1 start (intercurrent event)
-    resp = F.when(F.col("armcd") == "CSL101", -13.5 + 6.0 * N(seed, "resp", k)).otherwise(
-        -2.2 + 3.5 * N(seed, "resp", k)
-    )
+    # Expected % weight change at plateau. People with type 2 diabetes lose markedly less on the same incretin class
+    # (published GLP-1 RA programmes: roughly two-thirds of the non-diabetic response, with slightly more placebo
+    # loss), so CSL-B (T2D) has its own response, not CSL-A's.
+    t2d = F.col("study_id") == "CSL-B"
+    resp = F.when(F.col("armcd") == "CSL101",
+                  F.when(t2d, -9.0 + 5.0 * N(seed, "resp", k)).otherwise(-13.5 + 6.0 * N(seed, "resp", k))
+                  ).otherwise(F.when(t2d, -2.8 + 3.5 * N(seed, "resp", k)).otherwise(-2.2 + 3.5 * N(seed, "resp", k)))
     glp_p = (
         F.when((F.col("armcd") == "PBO") & (F.col("country") == "US"), 0.07)
         .when(F.col("dosed"), 0.008)
@@ -864,7 +869,6 @@ def named_rows() -> dict[str, list[dict]]:
                 "armcd": d["arm"] if d["randomized"] else "",
                 "edc_eligible": d["edc_eligible"],
                 "protocol_version_recorded": "",
-                "named_fixture": "Y",
             }
         )
         for w in d["weights"]:
@@ -958,7 +962,7 @@ def to_strings(df: DataFrame) -> DataFrame:
     return df.select([F.coalesce(F.col(c).cast("string"), F.lit("")).alias(c) for c in df.columns])
 
 
-def generate(spark: SparkSession, out: str, scale: str = "demo", seed: int = 2026) -> dict:
+def generate(spark: SparkSession, out: str, scale: str = "demo", seed: int = 2026, fixtures: bool = False) -> dict:
     reg = load_registry()
     terms = load_terms()
     subj = subjects(spark, seed, scale)
@@ -979,7 +983,6 @@ def generate(spark: SparkSession, out: str, scale: str = "demo", seed: int = 202
             "armcd",
             "edc_eligible",
             "protocol_version_recorded",
-            F.lit("N").alias("named_fixture"),
         ),
         "vs": vitals(subj, sv, seed),
         "ex": exposure(subj, sv),
@@ -995,7 +998,7 @@ def generate(spark: SparkSession, out: str, scale: str = "demo", seed: int = 202
         ),
     }
     tables["cm"] = con_meds(spark, subj, tables["mh"], terms, seed)
-    named = named_rows()
+    named = named_rows() if fixtures else {}
     counts = {}
     for name, df in tables.items():
         df = to_strings(df)
@@ -1015,6 +1018,7 @@ def generate(spark: SparkSession, out: str, scale: str = "demo", seed: int = 202
         "scale": scale,
         "data_cutoff": DATA_CUTOFF,
         "registry_version": reg["registry_version"],
+        "named_fixtures": fixtures,
         "row_counts": counts,
         "synthetic": True,
         "note": "SYNTHETIC educational data. Not derived from any real trial or product.",

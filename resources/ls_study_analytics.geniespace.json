@@ -41,7 +41,7 @@
    {
     "id": "00000000000000000000000000000007",
     "question": [
-     "Why was CSL-A-FX-05's Week 24 result different under R1 and R2?"
+     "Why were Week 24 follow-up candidates excluded, by rule version and reason?"
     ]
    }
   ]
@@ -328,10 +328,10 @@
    {
     "id": "00000000000000000000000000000007",
     "question": [
-     "Why was CSL-A-FX-05's Week 24 result different under R1 and R2?"
+     "Why were Week 24 follow-up candidates excluded, by rule version and reason?"
     ],
     "sql": [
-     "SELECT rule_version, obs_id, visit, vsdtc, days_from_target, decision, reason FROM eli_test_classic_catalog.clinical_study.gold_endpoint_candidate WHERE USUBJID = 'CSL-A-FX-05' AND role = 'FOLLOWUP' ORDER BY rule_version, vsseq"
+     "SELECT rule_version, reason, COUNT(*) AS candidates, COUNT(DISTINCT USUBJID) AS participants FROM eli_test_classic_catalog.clinical_study.gold_endpoint_candidate WHERE role = 'FOLLOWUP' AND decision = 'EXCLUDED' GROUP BY ALL ORDER BY rule_version, candidates DESC"
     ]
    }
   ],
@@ -472,17 +472,6 @@
      ],
      "synonyms": [
       "week 24 candidates"
-     ]
-    },
-    {
-     "id": "55890ab3e3cf5040d2ba3eac8bf3fa67",
-     "display_name": "Named fixture participants",
-     "sql": [
-      "gold_endpoint_result.USUBJID LIKE '%-FX-%'"
-     ],
-     "synonyms": [
-      "edge cases",
-      "tracers"
      ]
     },
     {
@@ -645,20 +634,37 @@
  "benchmarks": {
   "questions": [
    {
-    "id": "02c00788d65cd506f4f86e55b2d37c61",
+    "id": "55150450fcc7a5bbab1004be2a6d757f",
     "question": [
-     "What is CSL-A-FX-05's Week 24 percent change under EP-A-WT24.R2?"
+     "Do any derived Week 24 results disagree with (follow-up - baseline) / baseline * 100?"
     ],
     "answer": [
      {
       "format": "SQL",
       "content": [
-       "SELECT ROUND(PCHG, 6) FROM eli_test_classic_catalog.clinical_study.gold_endpoint_result WHERE USUBJID = 'CSL-A-FX-05' AND endpoint_version = 'EP-A-WT24.R2'"
+       "SELECT COUNT_IF(ABS(PCHG - (AVAL_FU - BASE) / BASE * 100) > 1e-6) FROM eli_test_classic_catalog.clinical_study.gold_endpoint_result WHERE result_status = 'DERIVED'"
       ]
      }
     ],
     "evaluation_note": [
-     "Oracle fixture (hand-authored)."
+     "Engine invariant (clinical_study.verify.check_invariants)."
+    ]
+   },
+   {
+    "id": "8c7389896bbd65a69aef5b670e4db495",
+    "question": [
+     "Did any CSL-A participant lose a derived Week 24 result when Amendment 1 widened the window?"
+    ],
+    "answer": [
+     {
+      "format": "SQL",
+      "content": [
+       "SELECT COUNT(*) FROM (SELECT USUBJID FROM eli_test_classic_catalog.clinical_study.gold_endpoint_result WHERE endpoint_version = 'EP-A-WT24.R1' AND result_status = 'DERIVED' EXCEPT SELECT USUBJID FROM eli_test_classic_catalog.clinical_study.gold_endpoint_result WHERE endpoint_version = 'EP-A-WT24.R2' AND result_status = 'DERIVED')"
+      ]
+     }
+    ],
+    "evaluation_note": [
+     "Engine invariant: a wider window only adds derivations."
     ]
    },
    {
@@ -676,40 +682,6 @@
     ],
     "evaluation_note": [
      "Computed from gold; compare with the Amendment Lab."
-    ]
-   },
-   {
-    "id": "a3957e11e5e0f815082653eb26c368dd",
-    "question": [
-     "Why does CSL-A-FX-05 have no Week 24 result under EP-A-WT24.R1?"
-    ],
-    "answer": [
-     {
-      "format": "SQL",
-      "content": [
-       "SELECT exclusion_reason FROM eli_test_classic_catalog.clinical_study.gold_endpoint_result WHERE USUBJID = 'CSL-A-FX-05' AND endpoint_version = 'EP-A-WT24.R1'"
-      ]
-     }
-    ],
-    "evaluation_note": [
-     "Oracle fixture (hand-authored)."
-    ]
-   },
-   {
-    "id": "a9ba5845084be9100ba2d1f9a0c5bd14",
-    "question": [
-     "What is CSL-B-FX-18's Week 24 percent change under EP-B-WT24.R1?"
-    ],
-    "answer": [
-     {
-      "format": "SQL",
-      "content": [
-       "SELECT ROUND(PCHG, 6) FROM eli_test_classic_catalog.clinical_study.gold_endpoint_result WHERE USUBJID = 'CSL-B-FX-18' AND endpoint_version = 'EP-B-WT24.R1'"
-      ]
-     }
-    ],
-    "evaluation_note": [
-     "Oracle fixture (hand-authored)."
     ]
    }
   ]
