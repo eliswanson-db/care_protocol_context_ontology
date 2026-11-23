@@ -13,7 +13,7 @@ components:
   - {id: standards, label: Terminology, check: tables, tables: [care_protocol_terminology.value_set_segment, care_protocol_terminology.rxnorm_hier]}
   - {id: ontology, label: Ontology (Ontobricks), check: ontobricks, table_prefix: triplestore_clinicaldomain_v}
   - {id: documents, label: Documents, check: volume_files, path: care_protocol/documents, min_files: 1}
-  - {id: search, label: Search index (Lakebase RAG), check: lakebase}
+  - {id: search, label: Search index (Lakebase RAG), check: lakebase, corpus: care_protocol}
   - {id: metric_views, label: Metric views, check: tables, certified_expected: true,
      tables: [care_protocol_semantic.gsd_compliance_metrics, care_protocol_semantic.ked_compliance_metrics,
               care_protocol_semantic.protocol_adherence_metrics]}

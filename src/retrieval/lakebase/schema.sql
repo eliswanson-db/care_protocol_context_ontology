@@ -38,8 +38,10 @@ CREATE TABLE IF NOT EXISTS rag.documents (
   patient_id        TEXT,                         -- NULL for population docs; set for patient-specific records
   source_uri        TEXT,                         -- UC Volume path when staged (ai_parse path)
   content_hash      TEXT        NOT NULL,         -- idempotent reload key
-  active            BOOLEAN     NOT NULL DEFAULT TRUE
+  active            BOOLEAN     NOT NULL DEFAULT TRUE,
+  corpus            TEXT                           -- which demo's corpus: care_protocol | clinical_study
 );
+ALTER TABLE rag.documents ADD COLUMN IF NOT EXISTS corpus TEXT;   -- existing deployments (added 2026-11-23)
 
 CREATE TABLE IF NOT EXISTS rag.chunks (
   chunk_id          TEXT PRIMARY KEY,

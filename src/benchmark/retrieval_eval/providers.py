@@ -155,7 +155,8 @@ def rag(question: str, qid: str) -> list[dict]:
     # question's identity (e.g. a care-team role for care-team-only letters); RLS applies either way.
     as_user = meta.get("run_as") or os.environ.get("CARE_RAG_AS_USER") or None
     try:
-        hits = r.search_documents(question, k=5, mode="hybrid", as_user=as_user, patient_id=meta.get("patient"))
+        hits = r.search_documents(question, k=5, mode="hybrid", as_user=as_user, patient_id=meta.get("patient"),
+                                  corpus=meta.get("corpus", "care_protocol"))
     except Exception as e:  # noqa: BLE001
         return [_doc(f"[RAG query failed: {type(e).__name__}: {str(e)[:160]}]", source="rag_error")]
     docs = []

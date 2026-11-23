@@ -1,12 +1,11 @@
-"""Synthetic study documents -> sections, HTML, candidate rule assertions, and the RAG reference corpus.
+"""Synthetic study documents -> sections, HTML, candidate rule assertions, and RAG chunks.
 
 Governed rule flow (prompt §9): document -> parsed section -> candidate assertion -> review state -> approved rule.
 The extractor is deterministic (regex over prose), so it is testable. Review decisions live in
 src/clinical_study/rules/assertion_reviews.yaml. Only the registry's approved rule versions ever execute; an
 assertion, whatever its state, is explanation and evidence, never calculation input.
 
-The reference corpus (ADR-0025) states every KB fact in sentences: one entry per concept, its direct edges in both
-directions, and each entry lists the kb_edge ids it expresses. No transitive facts are written.
+RAG holds the documents only (loaded into Lakebase by scripts/lakebase_rag_corpus.py), as for HEDIS.
 """
 
 from __future__ import annotations
@@ -20,9 +19,9 @@ from pathlib import Path
 import yaml
 
 HERE = Path(__file__).resolve().parent
+STD = HERE.parent / "standards" / "life_sciences"
 REPO = HERE.parents[1]
 CORPUS = REPO / "docs" / "life_sciences" / "documents" / "corpus"
-STD = HERE.parent / "standards" / "life_sciences"
 EXTRACTOR_VERSION = "1.0.0"
 INVERSE_CAP = 25
 
@@ -280,207 +279,13 @@ def registry_value(registry: dict, rule_ref: str, assertion_type: str) -> str | 
     }.get(assertion_type)
 
 
-# --------------------------------------------------------------------------------------------- reference corpus
-PRED_PHRASE = {
-    "rdfs:subClassOf": ("is a", "has subtype"),
-    "skos:exactMatch": ("is an exact match for", "is an exact match for"),
-    "oboInOwl:hasDbXref": ("has a database cross-reference to", "is cross-referenced from"),
-    "cpl:curatedEquivalent": (
-        "is curated as equivalent (demo extension) to",
-        "is curated as equivalent (demo extension) to",
-    ),
-    "mesh:broaderDescriptor": ("has broader MeSH descriptor", "has narrower MeSH descriptor"),
-    "mesh:headingMappedTo": ("is indexed under MeSH descriptor", "has supplementary concept record"),
-    "mesh:conceptOf": ("is a concept of MeSH record", "has MeSH concept"),
-    "medrt:memberOf": ("is a member of drug class", "has member drug"),
-    "medrt:has_MoA": ("has mechanism of action", "is the mechanism of action of"),
-    "medrt:has_PE": ("has physiologic effect", "is a physiologic effect of"),
-    "medrt:has_TC": ("has therapeutic category", "is the therapeutic category of"),
-    "medrt:CI_with": ("is contraindicated with condition", "is a contraindication for"),
-    "medrt:CI_MoA": ("is contraindicated with mechanism", "is a contraindicated mechanism for"),
-    "medrt:CI_PE": ("is contraindicated with physiologic effect", "is a contraindicated effect for"),
-    "medrt:may_treat": ("may treat", "may be treated by"),
-    "medrt:may_prevent": ("may prevent", "may be prevented by"),
-    "cdisc:inCodelist": ("is a term in codelist", "has term"),
-    "cdisc:nciConcept": ("has NCIt concept", "is the NCIt concept of CDISC term"),
-    "cosmos:specializes": ("is a dataset specialization of biomedical concept", "has dataset specialization"),
-    "cosmos:hasVariableBinding": ("has variable binding", "is a variable binding of"),
-    "cosmos:constrains": ("constrains SDTM variable", "is constrained by"),
-    "cosmos:usesCodelist": ("uses codelist", "is used by variable binding"),
-    "cosmos:allowedValue": ("allows value", "is an allowed value of"),
-    "cosmos:assignedValue": ("assigns value", "is the assigned value of"),
-    "cosmos:inDomain": ("is in SDTM domain", "contains variable"),
-    "cosmos:ncitCode": ("has NCIt code", "is the NCIt code of biomedical concept"),
-    "cosmos:parentBC": ("has parent biomedical concept", "has child biomedical concept"),
-}
-TYPE_NAME = {
-    "MONDO": "Disease (MONDO)",
-    "RXNORM": "Drug ingredient (RxNorm)",
-    "MEDRT": "Drug class (MED-RT)",
-    "MESH": "MeSH record",
-    "MESH_SCR": "MeSH supplementary concept record",
-    "NCIT": "NCIt concept",
-    "ICD10CM": "ICD-10-CM code",
-    "CDISC_CT": "CDISC controlled terminology",
-    "COSMOS_BC": "CDISC biomedical concept",
-    "COSMOS_DSS": "CDISC SDTM dataset specialization",
-    "SDTM_VAR": "SDTM",
-}
-
-
 def load_kb(std: Path = STD) -> tuple[list[dict], list[dict]]:
+    """The vendored knowledge base (kb_concept.csv, kb_edge.csv)."""
     with open(std / "kb_concept.csv", encoding="utf-8") as f:
         concepts = list(csv.DictReader(f))
     with open(std / "kb_edge.csv", encoding="utf-8") as f:
         edges = list(csv.DictReader(f))
     return concepts, edges
-
-
-def reference_entries(concepts: list[dict], edges: list[dict]) -> list[dict]:
-    by = {c["concept_id"]: c for c in concepts}
-    out_e: dict[str, list[dict]] = {}
-    in_e: dict[str, list[dict]] = {}
-    for e in edges:
-        out_e.setdefault(e["subject"], []).append(e)
-        in_e.setdefault(e["object"], []).append(e)
-
-    def name(cid: str) -> str:
-        c = by[cid]
-        return f"{c['label'] or c['code']} ({cid})"
-
-    rows = []
-    for cid in sorted(by):
-        c = by[cid]
-        lines = [f"{TYPE_NAME.get(c['scheme'], c['scheme'])}: {name(cid)}. Source release: {c['release']}."]
-        if c["notation"]:
-            lines.append(f"Notation / submission value: {c['notation']}.")
-        if c["definition"]:
-            lines.append(f"Definition: {c['definition']}")
-        ids = []
-        for e in sorted(out_e.get(cid, []), key=lambda x: (x["predicate"], x["object"])):
-            fwd = PRED_PHRASE[e["predicate"]][0]
-            extra = f" [authority: {e['authority']}]" if e["authority"] else ""
-            lines.append(f"{name(cid)} {fwd} {name(e['object'])}{extra}.")
-            ids.append(e["edge_id"])
-        inv = sorted(in_e.get(cid, []), key=lambda x: (x["predicate"], x["subject"]))
-        for e in inv[:INVERSE_CAP]:
-            lines.append(f"{name(cid)} {PRED_PHRASE[e['predicate']][1]} {name(e['subject'])}.")
-        if len(inv) > INVERSE_CAP:
-            lines.append(
-                f"({len(inv) - INVERSE_CAP} more incoming relations are stated in their own entries.)"
-            )
-        rows.append(
-            {
-                "entry_id": f"KB::{cid}",
-                "concept_id": cid,
-                "scheme": c["scheme"],
-                "title": name(cid),
-                "text": "\n".join(lines),
-                "edge_ids": ids,
-                "inverse_edge_ids": [e["edge_id"] for e in inv[:INVERSE_CAP]],
-                "source": "kb",
-                "access": "all",
-            }
-        )
-    return rows
-
-
-def registry_entries(registry: dict, concepts: list[dict]) -> list[dict]:
-    """Rules and classes as reference entries (the same facts the graph and Genie read from the registry tables)."""
-    by = {c["concept_id"]: c for c in concepts}
-    lab = lambda x: f"{by[x]['label']} ({x})" if x in by else x  # noqa: E731
-    rows = []
-    for cid, c in registry["concept_classes"].items():
-        t = [f"Concept class {cid}: {c['label']} (registry {registry['registry_version']})."]
-        if c.get("extends"):
-            t.append(f"{cid} extends {c['extends']} and inherits its roots.")
-        for r in c.get("roots", []) + c.get("add_roots", []):
-            t.append(
-                f"{cid} has root {lab(r)}; the root and every concept under it (is a, any depth) are members."
-            )
-        for r in c.get("exclude_roots", []):
-            t.append(f"{cid} excludes root {lab(r['id'])}: {r['reason']}. Exclusion wins over membership.")
-        for r in c.get("excluded_ci_targets", []):
-            t.append(
-                f"{cid} ignores contraindication target {lab(r['target'])}: {' '.join(r['reason'].split())}"
-            )
-        for r in c.get("member_of_classes", []):
-            t.append(f"{cid} includes every drug that is a member of drug class {lab(r)}.")
-        for r in c.get("has_physiologic_effect", []):
-            t.append(f"{cid} includes every drug with physiologic effect {r}.")
-        if c.get("drug_class"):
-            t.append(
-                f"{cid} is defined over drug class {lab(c['drug_class'])}; policy: {c.get('class_policy')}."
-            )
-        if c.get("cpl_derivation"):
-            t.append(" ".join(c["cpl_derivation"].split()))
-        if c.get("lookback_days_before_screening"):
-            t.append(f"Lookback: {c['lookback_days_before_screening']} days before screening.")
-        rows.append(
-            {
-                "entry_id": f"REG::class::{cid}",
-                "concept_id": cid,
-                "scheme": "REGISTRY",
-                "title": c["label"],
-                "text": "\n".join(t),
-                "edge_ids": [],
-                "inverse_edge_ids": [],
-                "source": "registry",
-                "access": "all",
-            }
-        )
-    for ep_id, ep in registry["endpoints"].items():
-        for rv, r in ep["rule_versions"].items():
-            b, f = r["baseline"], r["followup"]
-            t = [
-                f"Endpoint rule {ep_id}.{rv} ({ep['label']}), study {ep['study']}, protocol {r['protocol_version']}, "
-                f"SAP {r['sap_version']}, review state {r['review_state']} (approved_by {r.get('approved_by')}).",
-                f"Baseline: {b['method']} valid weight, study days {b['window_days'][0]} to {b['window_days'][1]}; "
-                f"same-day pre-dose policy {b['same_day_predose']}.",
-                f"Follow-up target: reference date + {f['target_offset_days']} days; window ±"
-                f"{f['window_half_width_days']} days inclusive; select {f['select']}; tie-breaker "
-                f"{', '.join(f['tie_breaker'])}.",
-                f"Formula: {ep['formula']}. Population: {ep['population']}. Source: {r['source_section']['document']} "
-                f"section {r['source_section']['section']}.",
-            ]
-            if r.get("amends"):
-                t.append(f"{ep_id}.{rv} amends {ep_id}.{r['amends']}.")
-            rows.append(
-                {
-                    "entry_id": f"REG::rule::{ep_id}.{rv}",
-                    "concept_id": f"{ep_id}.{rv}",
-                    "scheme": "REGISTRY",
-                    "title": f"{ep_id} {rv}",
-                    "text": "\n".join(t),
-                    "edge_ids": [],
-                    "inverse_edge_ids": [],
-                    "source": "registry",
-                    "access": f"study:{ep['study']}",
-                }
-            )
-    for rid, r in registry["eligibility"].items():
-        t = [
-            f"Eligibility rule {rid}, study {r['study']}, protocol versions {', '.join(r['applies_to_protocol_versions'])}, "
-            f"review state {r['review_state']}. Source: {r['source_section']['document']} section "
-            f"{r['source_section']['section']}."
-        ]
-        for c in r["criteria"]:
-            cls = c.get("class") or c.get("comorbidity_class")
-            t.append(f"{c['type']} {c['id']}: {c['text']}" + (f" (concept class {cls})" if cls else "") + ".")
-        rows.append(
-            {
-                "entry_id": f"REG::elig::{rid}",
-                "concept_id": rid,
-                "scheme": "REGISTRY",
-                "title": rid,
-                "text": "\n".join(t),
-                "edge_ids": [],
-                "inverse_edge_ids": [],
-                "source": "registry",
-                "access": f"study:{r['study']}",
-            }
-        )
-    return rows
 
 
 def document_chunks(docs: list[Document]) -> list[dict]:

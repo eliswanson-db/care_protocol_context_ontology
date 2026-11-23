@@ -49,7 +49,7 @@ def rag(patient_id: str):
     return {"patient_id": patient_id, **search(_RAG_QUESTION)}
 
 
-def search(question: str, k: int = 5) -> dict:
+def search(question: str, k: int = 5, corpus: str = "care_protocol") -> dict:
     """Hybrid (or lexical, if nothing is embedded yet) retrieval over rag.chunks for one question."""
     global _embed_count
     try:
@@ -59,7 +59,7 @@ def search(question: str, k: int = 5) -> dict:
             _embed_count = int(rows[0]["n"]) if rows else 0
         mode = "hybrid" if _embed_count > 0 else "lexical"
         t0 = time.time()
-        results = r.search_documents(question, k=k, mode=mode, as_user=_AS_USER)
+        results = r.search_documents(question, k=k, mode=mode, as_user=_AS_USER, corpus=corpus)
         latency = round(time.time() - t0, 1)
     except Exception as e:  # noqa: BLE001 — surface the real failure to the UI
         hint = " (doc-level RLS denies unknown identities — set CARE_RAG_AS_USER to a seeded reader)" \

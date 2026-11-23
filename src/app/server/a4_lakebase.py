@@ -91,6 +91,13 @@ _CITE = ("c.chunk_id, c.document_id, d.title, c.section_path, c.page_start, "
          "d.source, d.measurement_year, c.content")
 
 
+def _doc_filter(lead: str, patient_id: str | None, corpus: str | None) -> tuple[str, tuple]:
+    """SQL fragment + params restricting rag.documents d to one patient and/or one corpus."""
+    pairs = [(c, v) for c, v in (("d.patient_id = %s", patient_id), ("d.corpus = %s", corpus)) if v]
+    conds, params = [c for c, _ in pairs], [v for _, v in pairs]
+    return (f"{lead} {' AND '.join(conds)} ", tuple(params)) if conds else ("", ())
+
+
 class A4RagRetriever(A4Retriever):
     """A4 document-RAG over the care-protocol corpus in rag.chunks (ADR-0014).
 
@@ -121,19 +128,22 @@ class A4RagRetriever(A4Retriever):
             return self._rows(cur)
 
     def search_documents(self, question: str, k: int = 5, mode: str = "hybrid",
-                         as_user: str | None = None, patient_id: str | None = None) -> list[dict]:
-        """Retrieve authorized care-protocol passages. mode = lexical | semantic | hybrid. `patient_id` restricts
-        the search to that patient's records (rag.documents.patient_id): the standard clinical-RAG pre-filter when
-        a question is about one patient. RLS still applies on top."""
+                         as_user: str | None = None, patient_id: str | None = None,
+                         corpus: str | None = None) -> list[dict]:
+        """Retrieve authorized passages. mode = lexical | semantic | hybrid. `patient_id` restricts the search to
+        that patient's records (rag.documents.patient_id): the standard clinical-RAG pre-filter when a question is
+        about one patient. `corpus` keeps a demo's search in its own documents (care_protocol | clinical_study).
+        RLS still applies on top."""
+        f = {"patient_id": patient_id, "corpus": corpus}
         if mode == "lexical":
-            return self.search_doc_lexical(question, k, as_user, patient_id)
+            return self.search_doc_lexical(question, k, as_user, **f)
         if mode == "semantic":
-            return self.search_doc_semantic(question, k, as_user, patient_id)
-        return self.search_doc_hybrid(question, k, as_user=as_user, patient_id=patient_id)
+            return self.search_doc_semantic(question, k, as_user, **f)
+        return self.search_doc_hybrid(question, k, as_user=as_user, **f)
 
     def search_doc_lexical(self, question: str, k: int = 5, as_user: str | None = None,
-                           patient_id: str | None = None) -> list[dict]:
-        pf, pp = ("AND d.patient_id = %s ", (patient_id,)) if patient_id else ("", ())
+                           patient_id: str | None = None, corpus: str | None = None) -> list[dict]:
+        pf, pp = _doc_filter("AND", patient_id, corpus)
         if self.search_ext:  # Lakebase Search BM25
             sql = (f"SELECT {_CITE}, (c.body_tsv <@> to_bm25query(to_tsvector('english', %s), "
                    "'rag.chunks_body_bm25')) AS score FROM rag.chunks c JOIN rag.documents d "
@@ -146,8 +156,8 @@ class A4RagRetriever(A4Retriever):
         return self._run(sql, (tsq, tsq, *pp, k), as_user)
 
     def search_doc_semantic(self, question: str, k: int = 5, as_user: str | None = None,
-                            patient_id: str | None = None) -> list[dict]:
-        pf, pp = ("AND d.patient_id = %s ", (patient_id,)) if patient_id else ("", ())
+                            patient_id: str | None = None, corpus: str | None = None) -> list[dict]:
+        pf, pp = _doc_filter("AND", patient_id, corpus)
         qvec = self._embed(question)
         sql = (f"SELECT {_CITE}, round((1 - (c.embedding <=> %s::vector))::numeric,4) AS score "
                "FROM rag.chunks c JOIN rag.documents d USING (document_id) "
@@ -155,8 +165,9 @@ class A4RagRetriever(A4Retriever):
         return self._run(sql, (qvec, *pp, qvec, k), as_user, prefilter=True)
 
     def search_doc_hybrid(self, question: str, k: int = 5, rrf_k: int = 60,
-                          as_user: str | None = None, patient_id: str | None = None) -> list[dict]:
-        pf, pp = ("WHERE d.patient_id = %s ", (patient_id,)) if patient_id else ("", ())
+                          as_user: str | None = None, patient_id: str | None = None,
+                          corpus: str | None = None) -> list[dict]:
+        pf, pp = _doc_filter("WHERE", patient_id, corpus)
         tsq, qvec = _tsquery(question), self._embed(question)
         sql = (
             "WITH lex AS (SELECT chunk_id, row_number() OVER (ORDER BY ts_rank(body_tsv, "

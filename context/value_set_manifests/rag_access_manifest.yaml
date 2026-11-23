@@ -18,6 +18,8 @@
 groups:
   quality_analytics:
     description: "Population quality analysts. May read protocol, measure-spec, and payer-policy documents; may NOT read patient-specific clinical records."
+  study_team:
+    description: "Clinical study team (Clinical Study lab). May read the study's protocols, amendments, SAPs and specifications."
   care_team:
     description: "Clinical care team. May read everything quality_analytics reads, plus patient-specific clinical correspondence (e.g. outside consult letters)."
 

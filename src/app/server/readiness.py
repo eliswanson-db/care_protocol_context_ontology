@@ -237,11 +237,15 @@ def _check(demo_id: str, c: dict) -> dict:
     if kind == "volume_files":
         return _volume(c)
     if kind == "lakebase":
-        get_lakebase_host()
-        return _r("ready", "Lakebase endpoint resolves (corpus contents not re-verified here)")
-    if kind == "lakebase_ls":
-        n = int(run_sql(f"SELECT count(*) AS n FROM {CATALOG}.{c['corpus_table']}")[0]["n"])
-        return _r("planned", f"{c['planned']} ({n:,} corpus entries ready)")
+        from .routes.rag import _AS_USER, _retriever  # the app's own identity, RLS on
+        corpus = c.get("corpus", "care_protocol")
+        rows = _retriever()._run("SELECT count(*) AS docs, (SELECT count(*) FROM rag.chunks ch JOIN rag.documents dd "
+                                 "USING (document_id) WHERE dd.corpus = %s AND ch.embedding IS NOT NULL) AS embedded "
+                                 "FROM rag.documents WHERE corpus = %s", (corpus, corpus), _AS_USER)
+        docs, emb = int(rows[0]["docs"]), int(rows[0]["embedded"])
+        if not docs:
+            return _r("pending_sync", f"no {corpus} documents visible to the app in rag.documents")
+        return _r("ready", f"{docs} {corpus} documents, {emb} embedded chunks (as the app identity)")
     if kind == "pages_api":
         return _pages(demo_id, c)
     if kind == "manual":

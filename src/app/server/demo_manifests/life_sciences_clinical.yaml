@@ -19,8 +19,7 @@ components:
      tables: [clinical_study_graph.e_disease, clinical_study_graph.r_contraindicated_with__drug__mesh_concept,
               clinical_study_graph.e_endpoint_result]}
   - {id: documents, label: Documents, check: tables, min_rows: 10, tables: [clinical_study.doc_document]}
-  - {id: search, label: Search index (Lakebase RAG), check: lakebase_ls, corpus_table: clinical_study.rag_corpus,
-     planned: "Corpus built in UC (clinical_study.rag_corpus); loading into the shared Lakebase project is pending approval."}
+  - {id: search, label: Search index (Lakebase RAG), check: lakebase, corpus: clinical_study}
   - {id: metric_views, label: Metric views, check: tables, certified_expected: false,
      tables: [clinical_study_semantic.endpoint_result_metrics, clinical_study_semantic.endpoint_candidate_metrics,
               clinical_study_semantic.amendment_impact_metrics, clinical_study_semantic.participant_population_metrics]}

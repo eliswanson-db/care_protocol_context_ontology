@@ -50,7 +50,7 @@ def search_care_protocol(query: str, k: int = 5) -> dict:
     retrieval over the governed document corpus. Returns passages with document/section/page citation and
     document-level RLS enforced. Use for definitions, thresholds, eligibility rules, and contraindications
     that live in the care-protocol text rather than in the structured measures."""
-    hits = _get().search_documents(query, k=k, as_user=_AS_USER)
+    hits = _get().search_documents(query, k=k, as_user=_AS_USER, corpus="care_protocol")
     passages = [
         {
             "title": h.get("title"),

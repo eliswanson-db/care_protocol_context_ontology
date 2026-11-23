@@ -68,6 +68,17 @@ def test_membership_manifest_parses():
     assert set(m.get("clinician@example.org", [])) == {"quality_analytics", "care_team"}
 
 
+def test_study_documents_load_as_their_own_corpus():
+    # The Clinical Study lab's documents share the Lakebase tables but not the corpus: each demo searches its own.
+    ls = rag.load_ls_docs(os.path.join(REPO, "docs/life_sciences/documents/corpus"))
+    assert len(ls) == 10, len(ls)
+    assert {d["meta"]["corpus"] for d in ls} == {"clinical_study"}
+    assert all(d["meta"]["patient_id"] is None and d["meta"]["access"] == ["study_team"] for d in ls)
+    assert all(d["sections"] for d in ls), "every study document has sections"
+    assert "care_protocol" == DOCS[0]["meta"].get("corpus", "care_protocol")
+    assert not {d["meta"]["doc_id"] for d in ls} & set(BY_ID), "document ids collide across demos"
+
+
 if __name__ == "__main__":
     passed = 0
     for name, fn in sorted(globals().items()):

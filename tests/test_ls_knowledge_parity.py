@@ -46,22 +46,8 @@ def test_every_kb_fact_reaches_the_graph():
     }
 
 
-def test_every_kb_fact_reaches_the_rag_corpus_exactly_once():
-    entries = docs_mod.reference_entries(CONCEPTS, EDGES)
-    seen = collections.Counter(i for e in entries for i in e["edge_ids"])
-    ids = {e["edge_id"] for e in EDGES}
-    assert set(seen) == ids, len(ids - set(seen))
-    assert max(seen.values()) == 1
-    assert len(entries) == len(CONCEPTS)
-    for e in entries:  # one forward sentence per stated edge (no derived or transitive statements)
-        assert e["text"].count("\n") + 1 >= len(e["edge_ids"])
-
-
-def test_registry_rules_and_classes_reach_rag_and_graph():
-    entries = docs_mod.registry_entries(REG, CONCEPTS)
-    kinds = collections.Counter(e["entry_id"].split("::")[1] for e in entries)
-    n_rules = sum(len(ep["rule_versions"]) for ep in REG["endpoints"].values())
-    assert kinds == {"class": len(REG["concept_classes"]), "rule": n_rules, "elig": len(REG["eligibility"])}
+def test_registry_rules_and_classes_reach_the_graph():
+    # RAG holds the study documents only (as for HEDIS); the registry's rules and classes reach the graph.
     graph_rel_props = {r.prop for r in graph_spec.DATA_RELS}
     assert {
         "hasRoot",

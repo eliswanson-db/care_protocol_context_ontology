@@ -1,10 +1,11 @@
-"""Bundle task: load the synthetic study documents and the RAG corpus; render HTML/PDF; stage Pages.
+"""Bundle task: load the synthetic study documents; render HTML/PDF; stage Pages.
 
 Writes (overwrite, reference data only):
   clinical_study.doc_document, doc_section     parsed corpus (frontmatter + numbered sections)
   clinical_study.rule_assertion                extracted rule assertions + review state (never executed)
-  clinical_study.rag_corpus                    document sections + KB reference entries + registry entries,
-                                               one row per retrievable unit, with access scope and fact ids
+RAG: the documents themselves are loaded into the shared Lakebase corpus (scripts/lakebase_rag_corpus.py, corpus
+clinical_study), as for HEDIS. The former clinical_study.rag_corpus table (documents + one generated entry per KB
+concept) is no longer built.
 Files:
   /Volumes/<cat>/clinical_study/documents/{md,html,pdf}/<document_id>.*
   /Volumes/<cat>/clinical_study/ontology_pages/*.md
@@ -27,13 +28,10 @@ def main() -> None:
     repo = Path(a.repo_dir)
     sys.path.insert(0, str(repo / "src"))
     from clinical_study import documents as dm
-    from clinical_study.standardize import load_registry
 
     spark = SparkSession.builder.getOrCreate()
     t = f"{a.catalog}.clinical_study"
     docs = dm.load_corpus(repo / "docs/life_sciences/documents/corpus")
-    reg = load_registry()
-    concepts, edges = dm.load_kb(repo / "src/standards/life_sciences")
     asserts = dm.apply_reviews(dm.extract(docs), repo / "src/clinical_study/rules/assertion_reviews.yaml")
 
     def write(name, rows, schema, comment):
@@ -95,36 +93,6 @@ def main() -> None:
         "Rule assertions extracted deterministically from documents, with review state (approved / "
         "superseded / "
         "rejected / candidate). Reviews are demo fixtures. Only rule_version (approved) ever executes.",
-    )
-    rag = (
-        dm.document_chunks(docs) + dm.reference_entries(concepts, edges) + dm.registry_entries(reg, concepts)
-    )
-    write(
-        "rag_corpus",
-        [
-            {
-                "entry_id": r["entry_id"],
-                "source": r["source"],
-                "title": r["title"],
-                "text": r["text"],
-                "concept_id": r.get("concept_id"),
-                "scheme": r.get("scheme"),
-                "document_id": r.get("document_id"),
-                "document_status": r.get("document_status"),
-                "access": r["access"],
-                "edge_ids": r["edge_ids"],
-                "inverse_edge_ids": r["inverse_edge_ids"],
-                "demo_id": "life_sciences_clinical",
-            }
-            for r in rag
-        ],
-        "entry_id string, source string, title string, text string, concept_id string, scheme string, "
-        "document_id string, document_status string, access string, edge_ids array<string>, "
-        "inverse_edge_ids array<string>, demo_id string",
-        "Clinical Study RAG corpus: document sections + one reference entry per KB concept (direct facts, "
-        "both "
-        "directions; edge_ids = the kb_edge facts stated) + registry rules/classes. Same facts as the graph "
-        "(ADR-0025). access = study scope for document-level RLS.",
     )
 
     vol = Path(f"/Volumes/{a.catalog}/clinical_study/documents")
