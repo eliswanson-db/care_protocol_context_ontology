@@ -192,7 +192,7 @@ endpoints:
         protocol_version: "1.0"
         sap_version: "1.0"
         source_section: {document: CSL-A-SAP-v1.0, section: "9.4.1"}
-        reference_date: first_dose_date              # date part of earliest EX.EXSTDTC with dose > 0
+        reference_date: first_dose_date              # date part of earliest EX.EXSTDTC (placebo doses are EXDOSE 0)
         baseline:
           method: last                               # last valid observation in the window
           window_days: [-28, -1]                     # study days, inclusive

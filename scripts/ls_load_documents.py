@@ -4,7 +4,7 @@ Writes (overwrite, reference data only):
   clinical_study.doc_document, doc_section     parsed corpus (frontmatter + numbered sections)
   clinical_study.rule_assertion                extracted rule assertions + review state (never executed)
 RAG: the documents themselves are loaded into the shared Lakebase corpus (scripts/lakebase_rag_corpus.py, corpus
-clinical_study), as for HEDIS. The former clinical_study.rag_corpus table (documents + one generated entry per KB
+clinical_study), as for HEDIS. The former rag_corpus table in clinical_study (documents + one generated entry per KB
 concept) is no longer built.
 Files:
   /Volumes/<cat>/clinical_study/documents/{md,html,pdf}/<document_id>.*
