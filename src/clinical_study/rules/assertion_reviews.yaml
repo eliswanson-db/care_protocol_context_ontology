@@ -63,4 +63,3 @@ reviews:
   - {match: {document: CSL-EIN-v1.0, section: "2", type: WINDOW_MENTION, value: "28"},
      state: rejected, reviewer: demo-fixture, reviewed_on: "2025-03-01",
      note: "background statement about other programs; not a rule for either study"}
-  # CSL-A-AMD3-DRAFT §1 (±21 days) is intentionally NOT reviewed: it stays a candidate and never executes.

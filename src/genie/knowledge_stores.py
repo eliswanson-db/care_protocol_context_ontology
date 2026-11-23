@@ -439,9 +439,6 @@ def _ls_protocol() -> Store:
                                          "criterion_type": cat("inclusion or exclusion")},
     }
     st.benchmarks = [
-        Bench("What is the review state of the proposed ±21-day Week 24 window?",
-              f"SELECT review_state FROM {ra} WHERE assertion_type = 'FOLLOWUP_WINDOW_HALF_WIDTH' AND value = '21'",
-              "candidate", "Draft Amendment 3 memo; never executed."),
         Bench("What Week 24 window half-width does EP-A-WT24.R2 use?",
               f"SELECT window_half_width_days FROM {rv} WHERE endpoint_version = 'EP-A-WT24.R2'",
               str(reg["endpoints"]["EP-A-WT24"]["rule_versions"]["R2"]["followup"]["window_half_width_days"]),
@@ -504,7 +501,7 @@ def _ls_standards() -> Store:
               f"AND {member('WRC-V1')}", "yes", "MONDO hierarchy under the WRC-V1 roots (rule registry)."),
         Bench("Is obstructive sleep apnea (MONDO:0007147) a WRC-V1 member?",
               f"SELECT CASE WHEN COUNT(*) > 0 THEN 'yes' ELSE 'no' END FROM {mc} WHERE descendant_code = 'MONDO:0007147' "
-              f"AND {member('WRC-V1')}", "no", "Added only by Amendment 2 (WRC-V2)."),
+              f"AND {member('WRC-V1')}", "no", "Added by Amendment 1 for screening from 2025-10-27 (WRC-V2)."),
     ]
     return st
 

@@ -19,7 +19,7 @@ disease (MONDO:0005386), MASLD (MONDO:0013209).
 **Carve-outs (exclusion wins):** pulmonary hypertension (MONDO:0005149), pregnancy-induced hypertension
 (MONDO:0024664), congenital coronary artery malformation (MONDO:0015203).
 
-**WRC-V2 (Amendment 2)** = WRC-V1 + obstructive sleep apnea syndrome (MONDO:0007147). Central sleep apnea is not
+**WRC-V2 (Amendment 1, protocol 2.0)** = WRC-V1 + obstructive sleep apnea syndrome (MONDO:0007147). Central sleep apnea is not
 added.
 
 **Membership** is the root and everything under it by is_a, at any depth, minus anything under a carve-out. MONDO

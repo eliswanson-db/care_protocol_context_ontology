@@ -19,7 +19,7 @@ mondo_subtrees:
   - {id: "MONDO:0005098", role: comorbidity, note: stroke disorder}
   - {id: "MONDO:0005386", role: comorbidity, note: peripheral arterial disease}
   - {id: "MONDO:0013209", role: comorbidity, note: MASLD}
-  - {id: "MONDO:0005296", role: comorbidity_amendment_2, note: sleep apnea syndrome (added by Amendment 2)}
+  - {id: "MONDO:0005296", role: comorbidity_amendment_1, note: sleep apnea syndrome (OSA added by Amendment 1)}
   # Exclusion / contraindication (G2)
   - {id: "MONDO:0015277", role: exclusion, note: medullary thyroid gland carcinoma}
   - {id: "MONDO:0019003", role: exclusion, note: multiple endocrine neoplasia type 2}

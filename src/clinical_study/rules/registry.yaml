@@ -7,7 +7,7 @@
 # EligibilityCriterion). Keys prefixed cpl_ are demo-extension semantics, not official CDISC (ADR-0022).
 # Every rule here is also emitted as kb_edge rows with cpl: predicates (ADR-0025 parity).
 
-registry_version: "2026-11-13.2"
+registry_version: "2026-11-23.1"
 demo_fixture_approval_note: >-
   All approvals below are SEEDED DEMO FIXTURES (approved_by: demo-fixture). They represent no real human review.
 
@@ -45,10 +45,9 @@ studies:
       - {protocol_version: "1.0", sap_version: "1.0", effective_date: "2025-01-15", documents: [CSL-A-PROT-v1.0, CSL-A-SAP-v1.0]}
       - {protocol_version: "2.0", sap_version: "2.0", effective_date: "2025-10-27", amendment: 1,
          documents: [CSL-A-PROT-AMD1, CSL-A-SAP-v2.0],
-         change_summary: "Week 24 follow-up analysis window widened from +/-7 to +/-14 days around the target date."}
-      - {protocol_version: "3.0", sap_version: "2.0", effective_date: "2025-11-01", amendment: 2,
-         documents: [CSL-A-PROT-AMD2],
-         change_summary: "Obstructive sleep apnea added to the weight-related comorbidity class for new enrollment."}
+         change_summary: "Week 24 follow-up analysis window widened from +/-7 to +/-14 days around the target
+           date; obstructive sleep apnea added to the weight-related comorbidity class for participants screened
+           from this date."}
 
   CSL-B:
     title: >-
@@ -86,7 +85,7 @@ concept_classes:
     known_gaps:
       - "MONDO 2026-11-03 does not place hypertensive heart disease (MONDO:0001302) under hypertensive disorder; it is NOT a member by is_a*. Shown as an ontology gap, not patched."
   WRC-V2:
-    label: "Weight-related comorbidity (v2, Amendment 2)"
+    label: "Weight-related comorbidity (v2, Amendment 1)"
     scheme: MONDO
     extends: WRC-V1
     add_roots: ["MONDO:0007147"]          # obstructive sleep apnea syndrome (central sleep apnea is not weight-related)
@@ -119,7 +118,7 @@ concept_classes:
 eligibility:
   ELIG-A-V1:
     study: CSL-A
-    applies_to_protocol_versions: ["1.0", "2.0"]
+    applies_to_protocol_versions: ["1.0"]
     criteria:
       - {id: INC-AGE, type: inclusion, text: "Age 18 to 75 years at screening", min_age: 18, max_age: 75}
       - {id: INC-BMI, type: inclusion, text: "BMI >= 30 kg/m2, or BMI >= 27 kg/m2 with >= 1 weight-related comorbidity",
@@ -134,7 +133,7 @@ eligibility:
     source_section: {document: CSL-A-PROT-v1.0, section: "5"}
   ELIG-A-V2:
     study: CSL-A
-    applies_to_protocol_versions: ["3.0"]
+    applies_to_protocol_versions: ["2.0"]
     supersedes: ELIG-A-V1
     criteria:
       - {id: INC-AGE, type: inclusion, text: "Age 18 to 75 years at screening", min_age: 18, max_age: 75}
@@ -147,7 +146,7 @@ eligibility:
     review_state: approved
     approved_by: demo-fixture
     approved_on: "2025-10-20"
-    source_section: {document: CSL-A-PROT-AMD2, section: "5.1"}
+    source_section: {document: CSL-A-PROT-AMD1, section: "5.1"}
   ELIG-B-V1:
     study: CSL-B
     applies_to_protocol_versions: ["1.0"]
@@ -156,7 +155,7 @@ eligibility:
       - {id: INC-T2D, type: inclusion, text: "Diagnosis of type 2 diabetes mellitus", required_class_roots: ["MONDO:0005148"]}
       - {id: INC-BMI, type: inclusion, text: "BMI >= 27 kg/m2", bmi_alone: 27}
       - {id: EXC-MH, type: exclusion, text: "History of an exclusionary condition", class: EXCL-MH-V1,
-         except_roots: ["MONDO:0005266"]}   # B allows non-proliferative diabetic retinopathy history
+         except_roots: ["MONDO:0005266"]}   # CSL-B: a diabetic retinopathy history is not exclusionary (protocol 5.2)
       - {id: EXC-CI, type: exclusion, text: "Any condition contraindicated for the study drug class", class: CI-STUDY-DRUG-CLASS}
       - {id: EXC-CM, type: exclusion, text: "Prohibited medication within 90 days before screening", class: PROHIB-CM-V1}
     review_state: approved
@@ -217,7 +216,7 @@ endpoints:
         validity: {units_from_dss: true, min_kg_exclusive: 0}
         review_state: approved
         approved_by: demo-fixture
-        approved_on: "2025-08-25"
+        approved_on: "2025-10-20"
 
   EP-B-WT24:
     study: CSL-B

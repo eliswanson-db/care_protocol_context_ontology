@@ -137,24 +137,25 @@ def test_documents_agree_with_approved_rules():
             assert got == need, (ep_id, rv, need - got)
 
 
-def test_all_review_states_present_and_the_draft_stays_a_candidate():
+def test_every_extracted_assertion_is_reviewed():
+    """Every rule statement extracted from an approved document carries a review decision (approved / superseded /
+    rejected). Nothing is left a candidate, and no executable window exists without an approved assertion."""
     states = collections.Counter(a.review_state for a in ASSERTIONS)
-    assert set(states) == {"approved", "superseded", "rejected", "candidate"}, states
-    cand = [a for a in ASSERTIONS if a.review_state == "candidate"]
-    assert [(a.document_id, a.assertion_type, a.value) for a in cand] == [
-        ("CSL-A-AMD3-DRAFT", "FOLLOWUP_WINDOW_HALF_WIDTH", "21")
-    ]
+    assert set(states) <= {"approved", "superseded", "rejected"}, states
+    assert states["approved"] and states["superseded"] and states["rejected"], states
     windows = {
         r["followup"]["window_half_width_days"]
         for ep in REG["endpoints"].values()
         for r in ep["rule_versions"].values()
     }
-    assert 21 not in windows  # the candidate is not in the executable registry
+    approved = {int(a.value) for a in ASSERTIONS
+                if a.review_state == "approved" and a.assertion_type == "FOLLOWUP_WINDOW_HALF_WIDTH"}
+    assert windows <= approved, (windows, approved)
 
 
 def test_candidate_assertion_cannot_change_a_calculation():
-    """FX-19 (+19 days) would qualify only under the draft ±21 window. The production result is unchanged; a
-    rule built from the candidate refuses to execute."""
+    """An unreviewed rule never executes: FX-19 (+19 days) would qualify only under a hypothetical, unreviewed
+    ±21-day window. The production result is unchanged, and a rule in review_state candidate refuses to run."""
     n = next(x for x in load_named() if x["participant"]["usubjid"] == "CSL-A-FX-19")
     ep = copy.deepcopy(REG["endpoints"]["EP-A-WT24"])
     res = engine.derive(

@@ -67,7 +67,7 @@ Status vocabulary (kept strictly separate): **implemented** · **tested** · **d
 - **Study A (`CSL-A`):** 72-week metabolic study. Reference date = first exposure (`EX.EXSTDTC`, date precision). Target day 168. Baseline window: day −28 to day −1, **plus same-day records with a pre-dose time**. Baseline = last valid observation. A same-day record without a time is ambiguous and excluded with a reason.
   - **Rule v1:** follow-up window 168 ±7 days, inclusive. Pick the closest valid observation. Tie-breaker: the later date, then the lower `VSSEQ`.
   - **Rule v2 (Amendment 1):** window 168 ±14 days. Nothing else changes.
-  - **Amendment 2:** adds sleep apnea to the weight-related-comorbidity class (G4).
+  - **Amendment 1 (second change):** adds sleep apnea to the weight-related-comorbidity class (G4).
 - **Study B (`CSL-B`):** target day 182 ±10 days. Baseline = **mean of all valid pre-treatment values in the window**. Same Biomedical Concept, different definition, so the two studies can't be pooled automatically.
 - **Endpoint:** `100 × (fu_kg − bl_kg) / bl_kg`, stored unrounded and rounded only for display. Units: LB/g/kg per the COSMoS DSS. Anything else is `unsupported_unit`.
 - **Analysis population:** randomized ∧ ≥1 dose ∧ eligible (BMI ≥30, or BMI ≥27 + a comorbidity class member) ∧ no contraindicating MH (G2).

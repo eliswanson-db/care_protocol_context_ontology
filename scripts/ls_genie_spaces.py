@@ -120,13 +120,13 @@ SPACES = {
             "version and section number for every rule you state (e.g. CSL-A-SAP-v2.0 §9.4.1).",
             "Executable rules live in rule_version (endpoint rules) and eligibility_criterion; only review_state = "
             "'approved' rules are executed. rule_assertion lists rule statements extracted from documents with "
-            "review_state approved / superseded / rejected / candidate. A candidate (e.g. the DRAFT Amendment 3 memo "
-            "proposing ±21 days) is NOT approved and changes no result. Say so explicitly when asked about it.",
+            "review_state approved / superseded / rejected / candidate. Only approved assertions back an executed rule; "
+            "a candidate has not been reviewed and changes no result.",
             "Protocol scheduling windows (visit booking) are not endpoint analysis windows; those assertions are "
             "rejected as rules.",
-            "Amendments: protocol 2.0 (Amendment 1, effective 2025-10-27) widened the Week 24 analysis window to ±14 "
-            "days; protocol 3.0 (Amendment 2, 2025-11-01) added obstructive sleep apnea to the weight-related "
-            "comorbidity class for screening on/after that date.",
+            "Amendment 1 (protocol 2.0, effective 2025-10-27) made two changes: it widened the Week 24 analysis window "
+            "to ±14 days (SAP 2.0), and it added obstructive sleep apnea to the weight-related comorbidity class for "
+            "participants screened on or after that date.",
             "All approvals are seeded demo fixtures (approved_by = demo-fixture), not real human review.",
         ],
         "examples": [
@@ -153,7 +153,7 @@ SPACES = {
                 f"d.document_id = s.document_id AND d.section_number = s.section ORDER BY v.endpoint_version",
             ),
             (
-                "What are the CSL-A eligibility criteria under protocol 3.0?",
+                "What are the CSL-A eligibility criteria under protocol 2.0?",
                 f"SELECT criterion_id, criterion_type, text, class_id FROM {STD}.eligibility_criterion WHERE "
                 f"eligibility_rule_id = 'ELIG-A-V2' ORDER BY criterion_type DESC, criterion_id",
             ),

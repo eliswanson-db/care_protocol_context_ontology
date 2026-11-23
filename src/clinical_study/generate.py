@@ -14,7 +14,7 @@ The story planted in the data (all synthetic):
     window those participants have no evaluable endpoint; Amendment 1 (+/-14) recovers them.
   * Placebo participants at US sites start commercial GLP-1 RAs during treatment (an intercurrent event),
     which makes them major protocol deviations, excluded from the per-protocol set.
-  * Obstructive-sleep-apnea-only participants (BMI 27-30) screen-fail until Amendment 2 (2025-11-01).
+  * Obstructive-sleep-apnea-only participants (BMI 27-30) screen-fail until Amendment 1 adds OSA (2025-10-27).
   * A few participants are enrolled in error (exclusionary history recorded, EDC says eligible).
 
     python -m clinical_study.generate --out /Volumes/<cat>/clinical_study/raw_edc --scale demo --seed 2026
@@ -100,8 +100,9 @@ COUNTRIES = [
     ("JP", 6),
     ("AU", 6),
 ]
-AMENDMENT_1 = "2025-10-27"  # Week 24 analysis window; after site monitoring found the late scheduling
-AMENDMENT_2 = "2025-11-01"
+# Protocol 2.0: the Week 24 analysis window (site monitoring found the late scheduling) and OSA as a
+# weight-related comorbidity for participants screened from this date (one amendment, two changes)
+AMENDMENT_1 = "2025-10-27"
 
 
 # -------------------------------------------------------------------------------------- deterministic draws
@@ -274,7 +275,7 @@ def subjects(spark: SparkSession, seed: int, scale: str) -> DataFrame:
     )
     # eligibility by construction (the pipeline re-derives it independently from the ontology)
     elig = F.col("profile").isin("BMI30", "BMI27_WRC", "DRUG_ALLERGY", "ELIG_T2D") | (
-        (F.col("profile") == "OSA_ONLY") & (F.col("screening_date") >= F.lit(AMENDMENT_2))
+        (F.col("profile") == "OSA_ONLY") & (F.col("screening_date") >= F.lit(AMENDMENT_1))
     )
     randomized = (elig & (F.col("profile") != "OTHER_FAIL")) | (F.col("profile") == "ERROR_ENROLLED")
     fail_reason = (
@@ -311,7 +312,6 @@ def subjects(spark: SparkSession, seed: int, scale: str) -> DataFrame:
         .withColumn(
             "protocol_version_recorded",
             F.when(F.col("study_id") == "CSL-B", "1.0")
-            .when(F.col("screening_date") >= F.lit(AMENDMENT_2), "3.0")
             .when(F.col("screening_date") >= F.lit(AMENDMENT_1), "2.0")
             .otherwise("1.0"),
         )

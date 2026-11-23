@@ -106,7 +106,7 @@ def test_class_semantics_carve_outs_and_known_gap():
     assert not member("MONDO:0008585", r1, x1)  # HELLP syndrome (pregnancy carve-out)
     assert not member("MONDO:0019944", r1, x1)  # Eisenmenger (pulmonary hypertension carve-out)
     assert not member("MONDO:0001999", r1, x1)  # IPAH: reaches HF too, but exclusion wins
-    assert not member("MONDO:0007147", r1, x1) and member("MONDO:0007147", r2, x2)  # OSA: Amendment 2
+    assert not member("MONDO:0007147", r1, x1) and member("MONDO:0007147", r2, x2)  # OSA: Amendment 1
     assert not member("MONDO:0024356", r2, x2)  # central sleep apnea is not added
     assert not member("MONDO:0001302", r1, x1)  # hypertensive heart disease: documented MONDO gap
 

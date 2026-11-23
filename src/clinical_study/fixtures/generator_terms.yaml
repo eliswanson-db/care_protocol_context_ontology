@@ -18,7 +18,7 @@ conditions:
     - {mondo: "MONDO:0005252", verbatim: ["heart failure"], weight: 1}
     - {mondo: "MONDO:0005098", verbatim: ["stroke", "CVA"], weight: 1}
     - {mondo: "MONDO:0005386", verbatim: ["peripheral arterial disease", "PAD"], weight: 1}
-  osa:             # NOT in WRC-V1; added by WRC-V2 (Amendment 2)
+  osa:             # NOT in WRC-V1; added by WRC-V2 (Amendment 1)
     - {mondo: "MONDO:0007147", verbatim: ["obstructive sleep apnoea", "OSA", "OSA on CPAP"], weight: 1}
   non_member_lookalike:   # look weight-related but are NOT class members (carve-outs / MONDO gap)
     - {mondo: "MONDO:0001302", verbatim: ["hypertensive heart disease"], weight: 3}

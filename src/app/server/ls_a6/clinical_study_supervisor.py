@@ -46,7 +46,7 @@ def route(question: str) -> dict:
     if concept and re.search(r"contraindicat|exclud.*class|glp", q):
         return {"tool": "contraindication_check", "kwargs": {"concept_id": concept.group(1).upper()}}
     if concept and re.search(r"comorbid|member|wrc|class", q):
-        cls = "WRC-V2" if re.search(r"amendment 2|wrc-v2|protocol 3", q) else "WRC-V1"
+        cls = "WRC-V2" if re.search(r"amendment 1|wrc-v2|protocol 2|sleep apnea", q) else "WRC-V1"
         return {
             "tool": "class_membership",
             "kwargs": {"class_id": cls, "concept_id": concept.group(1).upper()},

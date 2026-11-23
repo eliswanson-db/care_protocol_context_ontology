@@ -239,7 +239,7 @@ participants:
 
   - usubjid: CSL-A-FX-23
     eligibility_case: E3
-    title: "Same profile screened after Amendment 2 (protocol 3.0): eligible only because of the amendment"
+    title: "Same profile screened after Amendment 1 (protocol 2.0): eligible only because of the amendment"
     screening_date: "2025-11-10"
     exposures: [{exstdtc: "2025-12-01T09:00", exdose: 10, exdosu: mg}]
     mh: [{mhseq: 1, term: "OSA on CPAP", mondo_id: "MONDO:0007147", mhstdtc: "2020"}]

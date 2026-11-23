@@ -141,7 +141,7 @@
     "MONDO:0005296": {
       "descendants": 7,
       "note": "sleep apnea syndrome (added by Amendment 2)",
-      "role": "comorbidity_amendment_2"
+      "role": "comorbidity_amendment_1"
     },
     "MONDO:0005300": {
       "descendants": 7,

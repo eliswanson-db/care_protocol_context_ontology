@@ -1,12 +1,12 @@
 """Independent check of the eligibility engine: re-derive each criterion in plain SQL from the protocol text and the
 vendored closures, and compare it with gold_eligibility_criterion participant by participant. Read-only.
 
-Written from the protocols (CSL-A v1.0 section 5 + Amendment 2, CSL-B v1.0 section 5) and the class roots in the
+Written from the protocols (CSL-A v1.0 section 5 + Amendment 1, CSL-B v1.0 section 5) and the class roots in the
 rule registry, not from src/clinical_study/eligibility.py:
   * INC-AGE: AGE at screening in [18, 75] (CSL-A) or [18, 80] (CSL-B).
   * INC-T2D (CSL-B): a medical-history term at or below type 2 diabetes mellitus (MONDO:0005148).
   * INC-BMI: BMI from the screening weight (kg; if none is valid, the earliest valid pre-dose weight) and height; CSL-A >= 30, or >= 27 with a weight-related
-    comorbidity (WRC-V1; WRC-V2 adds obstructive sleep apnea for participants screened on or after the Amendment 2
+    comorbidity (WRC-V1; WRC-V2 adds obstructive sleep apnea for participants screened on or after the Amendment 1
     date), a term at or below a class root and not at or below an excluded root; CSL-B >= 27.
   * EXC-MH: a history term at or below an EXCL-MH-V1 root; CSL-B does not exclude diabetic retinopathy.
   * EXC-CM: a medication that is a GLP-1 RA class member or has the physiologic effect appetite suppression,
@@ -27,7 +27,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 C = "eli_test_classic_catalog.clinical_study"
 S = "eli_test_classic_catalog.clinical_study_standards"
-AMD2 = "2025-11-01"
+AMD1 = "2025-10-27"
 
 
 def _q():
@@ -96,8 +96,8 @@ mine AS (
   UNION ALL SELECT dm.USUBJID, 'INC-BMI',
     CASE WHEN dm.STUDYID = 'CSL-B' THEN bmi >= 27
          ELSE bmi >= 30 OR (bmi >= 27 AND (
-           (dm.scr < DATE'{AMD2}' AND exists(SELECT 1 FROM mh JOIN wrc1 USING (code) WHERE mh.USUBJID = dm.USUBJID))
-        OR (dm.scr >= DATE'{AMD2}' AND exists(SELECT 1 FROM mh JOIN wrc2 USING (code) WHERE mh.USUBJID = dm.USUBJID))))
+           (dm.scr < DATE'{AMD1}' AND exists(SELECT 1 FROM mh JOIN wrc1 USING (code) WHERE mh.USUBJID = dm.USUBJID))
+        OR (dm.scr >= DATE'{AMD1}' AND exists(SELECT 1 FROM mh JOIN wrc2 USING (code) WHERE mh.USUBJID = dm.USUBJID))))
     END
     FROM dm LEFT JOIN (SELECT USUBJID, kg / power(cm / 100, 2) AS bmi FROM scr_vs) b USING (USUBJID)
   UNION ALL SELECT USUBJID, 'EXC-MH', exists(
