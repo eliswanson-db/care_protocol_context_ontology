@@ -342,6 +342,19 @@ quality-analyst scope; patient-specific letters stay care-team only. RLS stays o
 app can see any patient-specific document).
 Verify with the app's Readiness drawer: it evaluates every component as the SP.
 
+## Genie context: saved queries, certification, usage (2026-11-22)
+Genie One mines inferred snippets from saved queries, dashboards, query history and Genie spaces
+(`docs/ontology/GENIE_SPACES_FLAGGED.md` has the measured sources). All three steps below are committed scripts:
+- 🤖 **Saved queries**: `src/semantic/saved_queries/*.sql` (commented analyst queries restating governed rules,
+  deliberately off the benchmark's topics, `tests/test_saved_queries.py`). Publish:
+  `.venv/bin/python -I scripts/sync_saved_queries.py --profile ECT --apply`. It only touches queries tagged
+  `care-protocol-managed`; others are never edited or deleted.
+- 🤖 **Certify the managed Genie spaces**: `.venv/bin/python -I scripts/certify_managed_genie_spaces.py --profile ECT --apply`
+  (`system.certification_status = certified`, only the bundle's spaces). Applied 2026-11-22 to all seven.
+- 🤖 **Usage**: `.venv/bin/python -I scripts/exercise_genie_spaces.py --profile ECT` asks each managed space its own
+  sample questions (never a benchmark question).
+- ⏳ Snippet extraction runs about daily; re-record Genie One (`scripts/record_genie_ontology.py`) the day after.
+
 ## Pages via the Pages API (ADR-0026) — supersedes the Genie Code steps above
 - 🤖 `databricks bundle run sync_pages -t ect --profile ECT` publishes both demos' Page sources (idempotent).
   Locally: `.venv/bin/python -I scripts/sync_pages.py --profile ECT --demo <healthcare_hedis|life_sciences_clinical> [--dry-run]`.
