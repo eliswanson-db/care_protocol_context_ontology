@@ -4,7 +4,7 @@ Source scope: **`eli_test_classic_catalog.clinical_study_graph` only**. It holds
 
 IRI base: `https://clinical-study-lab.example/ontology`. Class `https://clinical-study-lab.example/ontology#<Class>`, property `https://clinical-study-lab.example/ontology/<name>`, instance `https://clinical-study-lab.example/ontology/<Class>/<ID>`. This is the convention Ontobricks compiles, so the R2RML needs no prefix edits.
 
-Counts: 31 classes with data, 72 relationship views, 61 object properties.
+Counts: 32 classes with data, 75 relationship views, 61 object properties.
 
 ## Steps
 
@@ -46,6 +46,7 @@ Counts: 31 classes with data, 72 relationship views, 61 object properties.
 | `MedicalHistoryRecord` | `e_medical_history_record` | `medical_history_record_id` | startDate←start_date |
 | `ConMedRecord` | `e_con_med_record` | `con_med_record_id` | startDate←start_date, endDate←end_date |
 | `WeightObservation` | `e_weight_observation` | `weight_observation_id` | visit←visit, dateTime←vsdtc, studyDay←study_day, originalResult←orres, originalUnit←orresu, rawUnit←raw_unit, standardValueKg←stresn_kg, status←vsstat, sequence←vsseq |
+| `HeightObservation` | `e_height_observation` | `height_observation_id` | visit←visit, dateTime←vsdtc, originalResult←orres, originalUnit←orresu, standardValueCm←stresn_cm |
 | `SourceRecord` | `e_source_record` | `source_record_id` | sourceFile←source_file |
 | `EndpointResult` | `e_endpoint_result` | `endpoint_result_id` | resultStatus←result_status, percentChange←pchg, percentChangeDisplay←pchg_display, baselineKg←base, followupKg←aval_fu, exclusionReason←exclusion_reason, referenceDate←reference_date, targetDate←followup_target_date, analysisPopulationStatus←analysis_population_status |
 | `ExecutionRun` | `e_execution_run` | `execution_run_id` | engineVersion←engine_version |
@@ -96,6 +97,9 @@ Counts: 31 classes with data, 72 relationship views, 61 object properties.
 | `hasConMed` | Participant → ConMedRecord | `r_has_con_med__participant__con_med_record` | `participant_id` → `con_med_record_id` |
 | `codedAs` | ConMedRecord → Drug | `r_coded_as__con_med_record__drug` | `con_med_record_id` → `drug_id` |
 | `hasObservation` | Participant → WeightObservation | `r_has_observation__participant__weight_observation` | `participant_id` → `weight_observation_id` |
+| `hasObservation` | Participant → HeightObservation | `r_has_observation__participant__height_observation` | `participant_id` → `height_observation_id` |
+| `measures` | HeightObservation → BiomedicalConcept | `r_measures__height_observation__biomedical_concept` | `height_observation_id` → `biomedical_concept_id` |
+| `conformsTo` | HeightObservation → DatasetSpecialization | `r_conforms_to__height_observation__dataset_specialization` | `height_observation_id` → `dataset_specialization_id` |
 | `originatesFrom` | WeightObservation → SourceRecord | `r_originates_from__weight_observation__source_record` | `weight_observation_id` → `source_record_id` |
 | `measures` | WeightObservation → BiomedicalConcept | `r_measures__weight_observation__biomedical_concept` | `weight_observation_id` → `biomedical_concept_id` |
 | `conformsTo` | WeightObservation → DatasetSpecialization | `r_conforms_to__weight_observation__dataset_specialization` | `weight_observation_id` → `dataset_specialization_id` |

@@ -269,6 +269,16 @@ map:e_weight_observation a rr:TriplesMap ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/status> ; rr:objectMap [ rr:column "vsstat" ; rr:datatype xsd:string ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/sequence> ; rr:objectMap [ rr:column "vsseq" ; rr:datatype xsd:integer ] ] .
 
+map:e_height_observation a rr:TriplesMap ;
+    rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.e_height_observation" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/HeightObservation/{height_observation_id}" ; rr:class <https://clinical-study-lab.example/ontology#HeightObservation> ] ;
+    rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "Label" ] ] ;
+    rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/visit> ; rr:objectMap [ rr:column "visit" ; rr:datatype xsd:string ] ] ;
+    rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/dateTime> ; rr:objectMap [ rr:column "vsdtc" ; rr:datatype xsd:string ] ] ;
+    rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/originalResult> ; rr:objectMap [ rr:column "orres" ; rr:datatype xsd:string ] ] ;
+    rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/originalUnit> ; rr:objectMap [ rr:column "orresu" ; rr:datatype xsd:string ] ] ;
+    rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/standardValueCm> ; rr:objectMap [ rr:column "stresn_cm" ; rr:datatype xsd:double ] ] .
+
 map:e_source_record a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.e_source_record" ] ;
     rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/SourceRecord/{source_record_id}" ; rr:class <https://clinical-study-lab.example/ontology#SourceRecord> ] ;
@@ -546,6 +556,24 @@ map:r_has_observation__participant__weight_observation a rr:TriplesMap ;
     rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Participant/{participant_id}" ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/hasObservation> ;
         rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/WeightObservation/{weight_observation_id}" ] ] .
+
+map:r_has_observation__participant__height_observation a rr:TriplesMap ;
+    rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_has_observation__participant__height_observation" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Participant/{participant_id}" ] ;
+    rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/hasObservation> ;
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/HeightObservation/{height_observation_id}" ] ] .
+
+map:r_measures__height_observation__biomedical_concept a rr:TriplesMap ;
+    rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_measures__height_observation__biomedical_concept" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/HeightObservation/{height_observation_id}" ] ;
+    rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/measures> ;
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/BiomedicalConcept/{biomedical_concept_id}" ] ] .
+
+map:r_conforms_to__height_observation__dataset_specialization a rr:TriplesMap ;
+    rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_conforms_to__height_observation__dataset_specialization" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/HeightObservation/{height_observation_id}" ] ;
+    rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/conformsTo> ;
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/DatasetSpecialization/{dataset_specialization_id}" ] ] .
 
 map:r_originates_from__weight_observation__source_record a rr:TriplesMap ;
     rr:logicalTable [ rr:tableName "eli_test_classic_catalog.clinical_study_graph.r_originates_from__weight_observation__source_record" ] ;

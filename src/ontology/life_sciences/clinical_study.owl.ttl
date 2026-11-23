@@ -14,48 +14,30 @@ cpl:mirrorsPredicate a owl:AnnotationProperty .
 cpl:source a owl:AnnotationProperty .
 cpl:usdmAlignment a owl:AnnotationProperty .
 
-<https://clinical-study-lab.example/ontology#KnowledgeConcept> a owl:Class ; rdfs:label "Knowledge concept" ;
-    rdfs:comment "Abstract parent of every vendored standards concept." .
 <https://clinical-study-lab.example/ontology#Disease> a owl:Class ; rdfs:label "Disease (MONDO)" ;
-    rdfs:comment "MONDO disease concept." ;
-    rdfs:subClassOf <https://clinical-study-lab.example/ontology#KnowledgeConcept> .
-<https://clinical-study-lab.example/ontology#DrugConcept> a owl:Class ; rdfs:label "Drug concept" ;
-    rdfs:comment "Abstract parent of drugs and drug classes." ;
-    rdfs:subClassOf <https://clinical-study-lab.example/ontology#KnowledgeConcept> .
+    rdfs:comment "MONDO disease concept." .
 <https://clinical-study-lab.example/ontology#Drug> a owl:Class ; rdfs:label "Drug ingredient (RxNorm)" ;
-    rdfs:comment "RxNorm ingredient." ;
-    rdfs:subClassOf <https://clinical-study-lab.example/ontology#DrugConcept> .
+    rdfs:comment "RxNorm ingredient." .
 <https://clinical-study-lab.example/ontology#DrugClass> a owl:Class ; rdfs:label "Drug class (MED-RT)" ;
-    rdfs:comment "MED-RT class; classType = EPC, MoA, PE, APC, TC, HC or PK." ;
-    rdfs:subClassOf <https://clinical-study-lab.example/ontology#DrugConcept> .
+    rdfs:comment "MED-RT class; classType = EPC, MoA, PE, APC, TC, HC or PK." .
 <https://clinical-study-lab.example/ontology#MeshRecord> a owl:Class ; rdfs:label "MeSH record" ;
-    rdfs:comment "MeSH descriptor (D...) or supplementary concept record (C...)." ;
-    rdfs:subClassOf <https://clinical-study-lab.example/ontology#KnowledgeConcept> .
+    rdfs:comment "MeSH descriptor (D...) or supplementary concept record (C...)." .
 <https://clinical-study-lab.example/ontology#MeshConcept> a owl:Class ; rdfs:label "MeSH concept" ;
-    rdfs:comment "MeSH concept (M...), the unit MED-RT relations point to." ;
-    rdfs:subClassOf <https://clinical-study-lab.example/ontology#KnowledgeConcept> .
+    rdfs:comment "MeSH concept (M...), the unit MED-RT relations point to." .
 <https://clinical-study-lab.example/ontology#ReferenceConcept> a owl:Class ; rdfs:label "Reference concept" ;
-    rdfs:comment "NCIt or ICD-10-CM concept referenced by a mapping." ;
-    rdfs:subClassOf <https://clinical-study-lab.example/ontology#KnowledgeConcept> .
+    rdfs:comment "NCIt or ICD-10-CM concept referenced by a mapping." .
 <https://clinical-study-lab.example/ontology#Codelist> a owl:Class ; rdfs:label "CDISC codelist" ;
-    rdfs:comment "CDISC Controlled Terminology codelist." ;
-    rdfs:subClassOf <https://clinical-study-lab.example/ontology#KnowledgeConcept> .
+    rdfs:comment "CDISC Controlled Terminology codelist." .
 <https://clinical-study-lab.example/ontology#CodelistTerm> a owl:Class ; rdfs:label "CDISC codelist term" ;
-    rdfs:comment "CDISC CT term (submissionValue = what goes in the dataset)." ;
-    rdfs:subClassOf <https://clinical-study-lab.example/ontology#KnowledgeConcept> .
+    rdfs:comment "CDISC CT term (submissionValue = what goes in the dataset)." .
 <https://clinical-study-lab.example/ontology#BiomedicalConcept> a owl:Class ; rdfs:label "Biomedical concept (COSMoS)" ;
-    rdfs:comment "CDISC biomedical concept." ;
-    rdfs:subClassOf <https://clinical-study-lab.example/ontology#KnowledgeConcept> .
-<https://clinical-study-lab.example/ontology#DatasetSpecialization> a owl:Class ; rdfs:label "SDTM dataset specialization (COSMoS)" ;
-    rdfs:subClassOf <https://clinical-study-lab.example/ontology#KnowledgeConcept> .
+    rdfs:comment "CDISC biomedical concept." .
+<https://clinical-study-lab.example/ontology#DatasetSpecialization> a owl:Class ; rdfs:label "SDTM dataset specialization (COSMoS)" .
 <https://clinical-study-lab.example/ontology#DSSVariableBinding> a owl:Class ; rdfs:label "Dataset-specialization variable binding" ;
-    rdfs:comment "One variable of one specialization, with its value constraints." ;
-    rdfs:subClassOf <https://clinical-study-lab.example/ontology#KnowledgeConcept> .
+    rdfs:comment "One variable of one specialization, with its value constraints." .
 <https://clinical-study-lab.example/ontology#DatasetVariable> a owl:Class ; rdfs:label "SDTM dataset variable" ;
-    rdfs:comment "Name and role only (SDTMIG text not vendored)." ;
-    rdfs:subClassOf <https://clinical-study-lab.example/ontology#KnowledgeConcept> .
-<https://clinical-study-lab.example/ontology#SDTMDomain> a owl:Class ; rdfs:label "SDTM domain" ;
-    rdfs:subClassOf <https://clinical-study-lab.example/ontology#KnowledgeConcept> .
+    rdfs:comment "Name and role only (SDTMIG text not vendored)." .
+<https://clinical-study-lab.example/ontology#SDTMDomain> a owl:Class ; rdfs:label "SDTM domain" .
 <https://clinical-study-lab.example/ontology#Study> a owl:Class ; rdfs:label "Study" ;
     rdfs:comment "Synthetic study." ;
     cpl:usdmAlignment "Study" .
@@ -86,6 +68,8 @@ cpl:usdmAlignment a owl:AnnotationProperty .
 <https://clinical-study-lab.example/ontology#ConMedRecord> a owl:Class ; rdfs:label "Concomitant medication record" .
 <https://clinical-study-lab.example/ontology#WeightObservation> a owl:Class ; rdfs:label "Body weight observation" ;
     rdfs:comment "SDTM-shaped VS record, VSTESTCD = WEIGHT." .
+<https://clinical-study-lab.example/ontology#HeightObservation> a owl:Class ; rdfs:label "Body height observation" ;
+    rdfs:comment "SDTM-shaped VS record, VSTESTCD = HEIGHT (screening only). BMI = weight (kg) / height (m) squared is calculated, not collected." .
 <https://clinical-study-lab.example/ontology#SourceRecord> a owl:Class ; rdfs:label "EDC source record" ;
     rdfs:comment "Raw export row (bronze), by record id." .
 <https://clinical-study-lab.example/ontology#EndpointResult> a owl:Class ; rdfs:label "Endpoint result" ;
@@ -132,7 +116,7 @@ cpl:usdmAlignment a owl:AnnotationProperty .
     cpl:source "MeSH ConceptList" .
 <https://clinical-study-lab.example/ontology/conformsTo> a owl:ObjectProperty ; rdfs:label "conforms to" ;
     rdfs:comment "Observation -> the dataset specialization it is shaped by." ;
-    rdfs:domain <https://clinical-study-lab.example/ontology#WeightObservation> ;
+    rdfs:domain [ a owl:Class ; owl:unionOf ( <https://clinical-study-lab.example/ontology#HeightObservation> <https://clinical-study-lab.example/ontology#WeightObservation> ) ] ;
     rdfs:range <https://clinical-study-lab.example/ontology#DatasetSpecialization> ;
     cpl:source "COSMoS DSS" .
 <https://clinical-study-lab.example/ontology/constrains> a owl:ObjectProperty ; rdfs:label "constrains" ;
@@ -232,7 +216,7 @@ cpl:usdmAlignment a owl:AnnotationProperty .
     cpl:source "SDTM-shaped MH" .
 <https://clinical-study-lab.example/ontology/hasObservation> a owl:ObjectProperty ; rdfs:label "has observation" ;
     rdfs:domain <https://clinical-study-lab.example/ontology#Participant> ;
-    rdfs:range <https://clinical-study-lab.example/ontology#WeightObservation> ;
+    rdfs:range [ a owl:Class ; owl:unionOf ( <https://clinical-study-lab.example/ontology#HeightObservation> <https://clinical-study-lab.example/ontology#WeightObservation> ) ] ;
     cpl:source "SDTM-shaped VS" .
 <https://clinical-study-lab.example/ontology/hasPhysiologicEffect> a owl:ObjectProperty ; rdfs:label "has physiologic effect" ;
     rdfs:domain [ a owl:Class ; owl:unionOf ( <https://clinical-study-lab.example/ontology#Drug> <https://clinical-study-lab.example/ontology#DrugClass> ) ] ;
@@ -283,7 +267,7 @@ cpl:usdmAlignment a owl:AnnotationProperty .
     cpl:source "MED-RT may_treat" .
 <https://clinical-study-lab.example/ontology/measures> a owl:ObjectProperty ; rdfs:label "measures" ;
     rdfs:comment "Observation or endpoint -> the biomedical concept measured." ;
-    rdfs:domain [ a owl:Class ; owl:unionOf ( <https://clinical-study-lab.example/ontology#EndpointDefinition> <https://clinical-study-lab.example/ontology#WeightObservation> ) ] ;
+    rdfs:domain [ a owl:Class ; owl:unionOf ( <https://clinical-study-lab.example/ontology#EndpointDefinition> <https://clinical-study-lab.example/ontology#HeightObservation> <https://clinical-study-lab.example/ontology#WeightObservation> ) ] ;
     rdfs:range <https://clinical-study-lab.example/ontology#BiomedicalConcept> ;
     cpl:source "COSMoS BC" .
 <https://clinical-study-lab.example/ontology/memberOfClass> a owl:ObjectProperty ; rdfs:label "member of class" ;
@@ -383,7 +367,7 @@ cpl:usdmAlignment a owl:AnnotationProperty .
 <https://clinical-study-lab.example/ontology/code> a owl:DatatypeProperty ; rdfs:domain [ a owl:Class ; owl:unionOf ( <https://clinical-study-lab.example/ontology#BiomedicalConcept> <https://clinical-study-lab.example/ontology#Codelist> <https://clinical-study-lab.example/ontology#CodelistTerm> <https://clinical-study-lab.example/ontology#DSSVariableBinding> <https://clinical-study-lab.example/ontology#DatasetSpecialization> <https://clinical-study-lab.example/ontology#DatasetVariable> <https://clinical-study-lab.example/ontology#Disease> <https://clinical-study-lab.example/ontology#Drug> <https://clinical-study-lab.example/ontology#DrugClass> <https://clinical-study-lab.example/ontology#MeshConcept> <https://clinical-study-lab.example/ontology#MeshRecord> <https://clinical-study-lab.example/ontology#ReferenceConcept> <https://clinical-study-lab.example/ontology#SDTMDomain> ) ] ; rdfs:range xsd:string .
 <https://clinical-study-lab.example/ontology/country> a owl:DatatypeProperty ; rdfs:domain <https://clinical-study-lab.example/ontology#Site> ; rdfs:range xsd:string .
 <https://clinical-study-lab.example/ontology/criterionType> a owl:DatatypeProperty ; rdfs:domain <https://clinical-study-lab.example/ontology#EligibilityCriterion> ; rdfs:range xsd:string .
-<https://clinical-study-lab.example/ontology/dateTime> a owl:DatatypeProperty ; rdfs:domain <https://clinical-study-lab.example/ontology#WeightObservation> ; rdfs:range xsd:string .
+<https://clinical-study-lab.example/ontology/dateTime> a owl:DatatypeProperty ; rdfs:domain [ a owl:Class ; owl:unionOf ( <https://clinical-study-lab.example/ontology#HeightObservation> <https://clinical-study-lab.example/ontology#WeightObservation> ) ] ; rdfs:range xsd:string .
 <https://clinical-study-lab.example/ontology/definition> a owl:DatatypeProperty ; rdfs:domain [ a owl:Class ; owl:unionOf ( <https://clinical-study-lab.example/ontology#BiomedicalConcept> <https://clinical-study-lab.example/ontology#Codelist> <https://clinical-study-lab.example/ontology#CodelistTerm> <https://clinical-study-lab.example/ontology#DSSVariableBinding> <https://clinical-study-lab.example/ontology#DatasetSpecialization> <https://clinical-study-lab.example/ontology#DatasetVariable> <https://clinical-study-lab.example/ontology#Disease> <https://clinical-study-lab.example/ontology#Drug> <https://clinical-study-lab.example/ontology#DrugClass> <https://clinical-study-lab.example/ontology#MeshConcept> <https://clinical-study-lab.example/ontology#MeshRecord> <https://clinical-study-lab.example/ontology#ReferenceConcept> <https://clinical-study-lab.example/ontology#SDTMDomain> ) ] ; rdfs:range xsd:string .
 <https://clinical-study-lab.example/ontology/documentStatus> a owl:DatatypeProperty ; rdfs:domain <https://clinical-study-lab.example/ontology#Document> ; rdfs:range xsd:string .
 <https://clinical-study-lab.example/ontology/documentType> a owl:DatatypeProperty ; rdfs:domain <https://clinical-study-lab.example/ontology#Document> ; rdfs:range xsd:string .
@@ -400,8 +384,8 @@ cpl:usdmAlignment a owl:AnnotationProperty .
 <https://clinical-study-lab.example/ontology/formula> a owl:DatatypeProperty ; rdfs:domain <https://clinical-study-lab.example/ontology#EndpointDefinition> ; rdfs:range xsd:string .
 <https://clinical-study-lab.example/ontology/mandatory> a owl:DatatypeProperty ; rdfs:domain <https://clinical-study-lab.example/ontology#DSSVariableBinding> ; rdfs:range xsd:string .
 <https://clinical-study-lab.example/ontology/officialIri> a owl:DatatypeProperty ; rdfs:domain [ a owl:Class ; owl:unionOf ( <https://clinical-study-lab.example/ontology#BiomedicalConcept> <https://clinical-study-lab.example/ontology#Codelist> <https://clinical-study-lab.example/ontology#CodelistTerm> <https://clinical-study-lab.example/ontology#DSSVariableBinding> <https://clinical-study-lab.example/ontology#DatasetSpecialization> <https://clinical-study-lab.example/ontology#DatasetVariable> <https://clinical-study-lab.example/ontology#Disease> <https://clinical-study-lab.example/ontology#Drug> <https://clinical-study-lab.example/ontology#DrugClass> <https://clinical-study-lab.example/ontology#MeshConcept> <https://clinical-study-lab.example/ontology#MeshRecord> <https://clinical-study-lab.example/ontology#ReferenceConcept> <https://clinical-study-lab.example/ontology#SDTMDomain> ) ] ; rdfs:range xsd:anyURI .
-<https://clinical-study-lab.example/ontology/originalResult> a owl:DatatypeProperty ; rdfs:domain <https://clinical-study-lab.example/ontology#WeightObservation> ; rdfs:range xsd:string .
-<https://clinical-study-lab.example/ontology/originalUnit> a owl:DatatypeProperty ; rdfs:domain <https://clinical-study-lab.example/ontology#WeightObservation> ; rdfs:range xsd:string .
+<https://clinical-study-lab.example/ontology/originalResult> a owl:DatatypeProperty ; rdfs:domain [ a owl:Class ; owl:unionOf ( <https://clinical-study-lab.example/ontology#HeightObservation> <https://clinical-study-lab.example/ontology#WeightObservation> ) ] ; rdfs:range xsd:string .
+<https://clinical-study-lab.example/ontology/originalUnit> a owl:DatatypeProperty ; rdfs:domain [ a owl:Class ; owl:unionOf ( <https://clinical-study-lab.example/ontology#HeightObservation> <https://clinical-study-lab.example/ontology#WeightObservation> ) ] ; rdfs:range xsd:string .
 <https://clinical-study-lab.example/ontology/parameters> a owl:DatatypeProperty ; rdfs:domain <https://clinical-study-lab.example/ontology#EligibilityCriterion> ; rdfs:range xsd:string .
 <https://clinical-study-lab.example/ontology/percentChange> a owl:DatatypeProperty ; rdfs:domain <https://clinical-study-lab.example/ontology#EndpointResult> ; rdfs:range xsd:double .
 <https://clinical-study-lab.example/ontology/percentChangeDisplay> a owl:DatatypeProperty ; rdfs:domain <https://clinical-study-lab.example/ontology#EndpointResult> ; rdfs:range xsd:double .
@@ -428,6 +412,7 @@ cpl:usdmAlignment a owl:AnnotationProperty .
 <https://clinical-study-lab.example/ontology/sequence> a owl:DatatypeProperty ; rdfs:domain <https://clinical-study-lab.example/ontology#WeightObservation> ; rdfs:range xsd:integer .
 <https://clinical-study-lab.example/ontology/sex> a owl:DatatypeProperty ; rdfs:domain <https://clinical-study-lab.example/ontology#Participant> ; rdfs:range xsd:string .
 <https://clinical-study-lab.example/ontology/sourceFile> a owl:DatatypeProperty ; rdfs:domain <https://clinical-study-lab.example/ontology#SourceRecord> ; rdfs:range xsd:string .
+<https://clinical-study-lab.example/ontology/standardValueCm> a owl:DatatypeProperty ; rdfs:domain <https://clinical-study-lab.example/ontology#HeightObservation> ; rdfs:range xsd:double .
 <https://clinical-study-lab.example/ontology/standardValueKg> a owl:DatatypeProperty ; rdfs:domain <https://clinical-study-lab.example/ontology#WeightObservation> ; rdfs:range xsd:double .
 <https://clinical-study-lab.example/ontology/startDate> a owl:DatatypeProperty ; rdfs:domain [ a owl:Class ; owl:unionOf ( <https://clinical-study-lab.example/ontology#ConMedRecord> <https://clinical-study-lab.example/ontology#MedicalHistoryRecord> ) ] ; rdfs:range xsd:string .
 <https://clinical-study-lab.example/ontology/status> a owl:DatatypeProperty ; rdfs:domain <https://clinical-study-lab.example/ontology#WeightObservation> ; rdfs:range xsd:string .
@@ -436,5 +421,5 @@ cpl:usdmAlignment a owl:AnnotationProperty .
 <https://clinical-study-lab.example/ontology/targetDate> a owl:DatatypeProperty ; rdfs:domain <https://clinical-study-lab.example/ontology#EndpointResult> ; rdfs:range xsd:date .
 <https://clinical-study-lab.example/ontology/targetOffsetDays> a owl:DatatypeProperty ; rdfs:domain <https://clinical-study-lab.example/ontology#EndpointRuleVersion> ; rdfs:range xsd:integer .
 <https://clinical-study-lab.example/ontology/tieBreaker> a owl:DatatypeProperty ; rdfs:domain <https://clinical-study-lab.example/ontology#EndpointRuleVersion> ; rdfs:range xsd:string .
-<https://clinical-study-lab.example/ontology/visit> a owl:DatatypeProperty ; rdfs:domain <https://clinical-study-lab.example/ontology#WeightObservation> ; rdfs:range xsd:string .
+<https://clinical-study-lab.example/ontology/visit> a owl:DatatypeProperty ; rdfs:domain [ a owl:Class ; owl:unionOf ( <https://clinical-study-lab.example/ontology#HeightObservation> <https://clinical-study-lab.example/ontology#WeightObservation> ) ] ; rdfs:range xsd:string .
 <https://clinical-study-lab.example/ontology/windowHalfWidthDays> a owl:DatatypeProperty ; rdfs:domain <https://clinical-study-lab.example/ontology#EndpointRuleVersion> ; rdfs:range xsd:integer .

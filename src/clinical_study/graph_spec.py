@@ -299,81 +299,69 @@ CS, STD = f"{C}.clinical_study", f"{C}.clinical_study_standards"
 
 CLASSES: list[Cls] = [
     # ---- knowledge (KB)
-    Cls("KnowledgeConcept", "Knowledge concept", "Abstract parent of every vendored standards concept."),
-    Cls("Disease", "Disease (MONDO)", "MONDO disease concept.", "KnowledgeConcept", attrs=KB_ATTRS),
-    Cls("DrugConcept", "Drug concept", "Abstract parent of drugs and drug classes.", "KnowledgeConcept"),
-    Cls("Drug", "Drug ingredient (RxNorm)", "RxNorm ingredient.", "DrugConcept", attrs=KB_ATTRS),
+    Cls("Disease", "Disease (MONDO)", "MONDO disease concept.", attrs=KB_ATTRS),
+    Cls("Drug", "Drug ingredient (RxNorm)", "RxNorm ingredient.", attrs=KB_ATTRS),
     Cls(
         "DrugClass",
         "Drug class (MED-RT)",
         "MED-RT class; classType = EPC, MoA, PE, APC, TC, HC or PK.",
-        "DrugConcept",
         attrs=[*KB_ATTRS, Attr("classType", "class_type")],
     ),
     Cls(
         "MeshRecord",
         "MeSH record",
         "MeSH descriptor (D...) or supplementary concept record (C...).",
-        "KnowledgeConcept",
         attrs=[*KB_ATTRS, Attr("recordType", "record_type")],
     ),
     Cls(
         "MeshConcept",
         "MeSH concept",
         "MeSH concept (M...), the unit MED-RT relations point to.",
-        "KnowledgeConcept",
         attrs=KB_ATTRS,
     ),
     Cls(
         "ReferenceConcept",
         "Reference concept",
         "NCIt or ICD-10-CM concept referenced by a mapping.",
-        "KnowledgeConcept",
         attrs=KB_ATTRS,
     ),
     Cls(
         "Codelist",
         "CDISC codelist",
         "CDISC Controlled Terminology codelist.",
-        "KnowledgeConcept",
         attrs=[*KB_ATTRS, Attr("submissionValue", "notation")],
     ),
     Cls(
         "CodelistTerm",
         "CDISC codelist term",
         "CDISC CT term (submissionValue = what goes in the dataset).",
-        "KnowledgeConcept",
         attrs=[*KB_ATTRS, Attr("submissionValue", "notation")],
     ),
     Cls(
         "BiomedicalConcept",
         "Biomedical concept (COSMoS)",
         "CDISC biomedical concept.",
-        "KnowledgeConcept",
         attrs=KB_ATTRS,
     ),
     Cls(
         "DatasetSpecialization",
         "SDTM dataset specialization (COSMoS)",
         "",
-        "KnowledgeConcept",
         attrs=[*KB_ATTRS, Attr("sdtmigRange", "notation")],
     ),
     Cls(
         "DSSVariableBinding",
         "Dataset-specialization variable binding",
         "One variable of one specialization, with its value constraints.",
-        "KnowledgeConcept",
         attrs=[*KB_ATTRS, Attr("mandatory", "notation")],
     ),
     Cls(
         "DatasetVariable",
         "SDTM dataset variable",
         "Name and role only (SDTMIG text not vendored).",
-        "KnowledgeConcept",
         attrs=[*KB_ATTRS, Attr("role", "notation")],
     ),
-    Cls("SDTMDomain", "SDTM domain", "", "KnowledgeConcept", attrs=KB_ATTRS),
+    Cls("SDTMDomain", "SDTM domain", "", attrs=KB_ATTRS),
     # ---- study design (USDM-aligned)
     Cls(
         "Study",
@@ -549,6 +537,20 @@ CLASSES: list[Cls] = [
         ],
     ),
     Cls(
+        "HeightObservation",
+        "Body height observation",
+        "SDTM-shaped VS record, VSTESTCD = HEIGHT (screening only). BMI = weight (kg) / height (m) squared is calculated, not collected.",
+        sql=f"SELECT CPL_OBS_ID AS ID, concat(USUBJID, ' ', VISIT, ' height') AS Label, VISIT AS visit, VSDTC AS vsdtc, "
+        f"VSORRES AS orres, VSORRESU AS orresu, VSSTRESN AS stresn_cm FROM {CS}.silver_vs WHERE VSTESTCD = 'HEIGHT'",
+        attrs=[
+            Attr("visit", "visit"),
+            Attr("dateTime", "vsdtc"),
+            Attr("originalResult", "orres"),
+            Attr("originalUnit", "orresu"),
+            Attr("standardValueCm", "stresn_cm", "double"),
+        ],
+    ),
+    Cls(
         "SourceRecord",
         "EDC source record",
         "Raw export row (bronze), by record id.",
@@ -647,6 +649,25 @@ DATA_RELS: list[Rel] = [
         "Participant",
         "WeightObservation",
         f"SELECT USUBJID AS source_id, CPL_OBS_ID AS target_id FROM {CS}.silver_vs WHERE VSTESTCD = 'WEIGHT'",
+    ),
+    Rel(
+        "hasObservation",
+        "Participant",
+        "HeightObservation",
+        f"SELECT USUBJID AS source_id, CPL_OBS_ID AS target_id FROM {CS}.silver_vs WHERE VSTESTCD = 'HEIGHT'",
+    ),
+    Rel(
+        "measures",
+        "HeightObservation",
+        "BiomedicalConcept",
+        f"SELECT CPL_OBS_ID AS source_id, 'COSMOS_BC:C164634' AS target_id FROM {CS}.silver_vs WHERE VSTESTCD = 'HEIGHT'",
+    ),
+    Rel(
+        "conformsTo",
+        "HeightObservation",
+        "DatasetSpecialization",
+        f"SELECT CPL_OBS_ID AS source_id, 'COSMOS_DSS:HEIGHT' AS target_id FROM {CS}.silver_vs "
+        f"WHERE VSTESTCD = 'HEIGHT'",
     ),
     Rel(
         "originatesFrom",

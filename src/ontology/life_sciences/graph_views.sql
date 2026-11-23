@@ -149,6 +149,11 @@ SELECT ID AS weight_observation_id, * EXCEPT (ID) FROM (
 SELECT CPL_OBS_ID AS ID, concat(USUBJID, ' ', VISIT, ' ', coalesce(VSDTC, '')) AS Label, VISIT AS visit, VSDTC AS vsdtc, VSDY AS study_day, VSORRES AS orres, VSORRESU AS orresu, CPL_RAW_UNIT AS raw_unit, VSSTRESN AS stresn_kg, VSSTAT AS vsstat, VSSEQ AS vsseq FROM ${catalog}.clinical_study.silver_vs WHERE VSTESTCD = 'WEIGHT'
 );
 
+CREATE OR REPLACE VIEW ${catalog}.clinical_study_graph.e_height_observation COMMENT "Entity source for HeightObservation" AS
+SELECT ID AS height_observation_id, * EXCEPT (ID) FROM (
+SELECT CPL_OBS_ID AS ID, concat(USUBJID, ' ', VISIT, ' height') AS Label, VISIT AS visit, VSDTC AS vsdtc, VSORRES AS orres, VSORRESU AS orresu, VSSTRESN AS stresn_cm FROM ${catalog}.clinical_study.silver_vs WHERE VSTESTCD = 'HEIGHT'
+);
+
 CREATE OR REPLACE VIEW ${catalog}.clinical_study_graph.e_source_record COMMENT "Entity source for SourceRecord" AS
 SELECT ID AS source_record_id, * EXCEPT (ID) FROM (
 SELECT CPL_SOURCE_RECORD_ID AS ID, CPL_SOURCE_RECORD_ID AS Label, CPL_SOURCE_FILE AS source_file FROM ${catalog}.clinical_study.silver_vs WHERE VSTESTCD = 'WEIGHT'
@@ -440,6 +445,21 @@ SELECT CPL_SOURCE_RECORD_ID AS source_id, CPL_RXNORM_ID AS target_id FROM ${cata
 CREATE OR REPLACE VIEW ${catalog}.clinical_study_graph.r_has_observation__participant__weight_observation COMMENT "Participant hasObservation WeightObservation" AS
 SELECT source_id AS participant_id, target_id AS weight_observation_id, * EXCEPT (source_id, target_id) FROM (
 SELECT USUBJID AS source_id, CPL_OBS_ID AS target_id FROM ${catalog}.clinical_study.silver_vs WHERE VSTESTCD = 'WEIGHT'
+);
+
+CREATE OR REPLACE VIEW ${catalog}.clinical_study_graph.r_has_observation__participant__height_observation COMMENT "Participant hasObservation HeightObservation" AS
+SELECT source_id AS participant_id, target_id AS height_observation_id, * EXCEPT (source_id, target_id) FROM (
+SELECT USUBJID AS source_id, CPL_OBS_ID AS target_id FROM ${catalog}.clinical_study.silver_vs WHERE VSTESTCD = 'HEIGHT'
+);
+
+CREATE OR REPLACE VIEW ${catalog}.clinical_study_graph.r_measures__height_observation__biomedical_concept COMMENT "HeightObservation measures BiomedicalConcept" AS
+SELECT source_id AS height_observation_id, target_id AS biomedical_concept_id, * EXCEPT (source_id, target_id) FROM (
+SELECT CPL_OBS_ID AS source_id, 'COSMOS_BC:C164634' AS target_id FROM ${catalog}.clinical_study.silver_vs WHERE VSTESTCD = 'HEIGHT'
+);
+
+CREATE OR REPLACE VIEW ${catalog}.clinical_study_graph.r_conforms_to__height_observation__dataset_specialization COMMENT "HeightObservation conformsTo DatasetSpecialization" AS
+SELECT source_id AS height_observation_id, target_id AS dataset_specialization_id, * EXCEPT (source_id, target_id) FROM (
+SELECT CPL_OBS_ID AS source_id, 'COSMOS_DSS:HEIGHT' AS target_id FROM ${catalog}.clinical_study.silver_vs WHERE VSTESTCD = 'HEIGHT'
 );
 
 CREATE OR REPLACE VIEW ${catalog}.clinical_study_graph.r_originates_from__weight_observation__source_record COMMENT "WeightObservation originatesFrom SourceRecord" AS

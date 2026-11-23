@@ -10,8 +10,8 @@
 #
 # Sources per approach: metric_view = src/semantic/ls/metric_views; closure = the standards closure / edge / class
 # tables; rag = the Lakebase corpus (docs/life_sciences/documents/{corpus,monitoring}); genie_ontology = LS Pages and
-# column comments; graph = the ClinicalStudyLab Ontobricks graph. Graph entries are gaps until the HEDIS-style mapping
-# (plan step 0b) is imported and published; then they become triple pointers checked live.
+# column comments; graph = the ClinicalStudyLab Ontobricks graph. Graph entries stay gaps until Eli imports and publishes
+# the reviewed mapping (scripts/ls_graph_check.py: every map resolves); then they become triple pointers checked live.
 # Check: python3 -I tests/test_ls_facts.py   (CARE_LIVE=1 adds the table checks against ECT)
 
 facts:
@@ -22,7 +22,7 @@ facts:
     closure: {none: "an endpoint formula is a rule, not terminology"}
     rag: {file: docs/life_sciences/documents/corpus/CSL-A-SAP-v1.0.md, has: ["Percent change = 100 × (follow-up weight − baseline weight) / baseline weight"]}
     genie_ontology: {file: docs/life_sciences/pages/endpoint-definitions.md, has: ["100 × (follow-up kg − baseline kg) / baseline kg"]}
-    graph: {gap: "endpoint and rule-version individuals: mapping rewrite (0b)"}
+    graph: {gap: "endpoint and rule-version individuals: in the mapping; checked once ClinicalStudyLab is published"}
 
   - id: LF02
     fact: "CSL-A baseline is the last valid weight on study days −28 to −1, or on day 1 if timed before the first dose."
@@ -31,7 +31,7 @@ facts:
     closure: {table: clinical_study_standards.rule_version, where: "endpoint_version = 'EP-A-WT24.R2' AND baseline_method = 'last'"}
     rag: {file: docs/life_sciences/documents/corpus/CSL-A-SAP-v2.0.md, has: ["last valid body weight from study day -28 to study day -1"]}
     genie_ontology: {file: docs/life_sciences/pages/endpoint-definitions.md, has: ["last valid, day −28 to −1 (+ day 1 if timed pre-dose)"]}
-    graph: {gap: "rule-version attributes: mapping rewrite (0b)"}
+    graph: {gap: "rule-version attributes: in the mapping; checked once ClinicalStudyLab is published"}
 
   - id: LF03
     fact: "The CSL-A Week 24 target is the reference date + 168 days (study day 169); the closest weight within ±7 days (R1) or ±14 days (R2) is used, ties to the later date."
@@ -40,7 +40,7 @@ facts:
     closure: {table: clinical_study_standards.rule_version, where: "endpoint_version = 'EP-A-WT24.R2' AND window_half_width_days = 14"}
     rag: {file: docs/life_sciences/documents/corpus/CSL-A-SAP-v2.0.md, has: ["within ±14 days of the target date", "study day 169"]}
     genie_ontology: {file: docs/life_sciences/pages/endpoint-definitions.md, has: ["reference + 168 d", "**±14 d**"]}
-    graph: {gap: "rule-version attributes: mapping rewrite (0b)"}
+    graph: {gap: "rule-version attributes: in the mapping; checked once ClinicalStudyLab is published"}
 
   - id: LF04
     fact: "Amendment 1 (CSL-A protocol 2.0, effective 2025-10-27) widened the Week 24 analysis window from ±7 to ±14 days (SAP 2.0) and added obstructive sleep apnea to the weight-related comorbidities for participants screened from that date."
@@ -49,7 +49,7 @@ facts:
     closure: {table: clinical_study_standards.study_version, where: "study_id = 'CSL-A' AND protocol_version = '2.0' AND effective_date = '2025-10-27'"}
     rag: {file: docs/life_sciences/documents/corpus/CSL-A-PROT-AMD1.md, has: ["±14 days", "Obstructive sleep apnea added", "2025-10-27"]}
     genie_ontology: {file: docs/life_sciences/pages/protocol-amendments.md, has: ["2025-10-27", "**±14 days**", "**obstructive sleep apnea**"]}
-    graph: {gap: "study-version / amendment individuals: mapping rewrite (0b)"}
+    graph: {gap: "study-version / amendment individuals: in the mapping; checked once ClinicalStudyLab is published"}
 
   - id: LF05
     fact: "The full analysis set (FAS) is every randomized participant who received at least one dose; the per-protocol set (PPS) is the FAS minus participants with a major protocol deviation."
@@ -58,7 +58,7 @@ facts:
     closure: {none: "population definitions are rules, not terminology"}
     rag: {file: docs/life_sciences/documents/corpus/CSL-A-SAP-v1.0.md, has: ["all randomized participants who received at least one dose", "major protocol deviation"]}
     genie_ontology: {file: docs/life_sciences/pages/study-glossary.md, has: ["**FAS** (full analysis set): randomized and dosed", "FAS minus major deviations"]}
-    graph: {gap: "participant population flags: mapping rewrite (0b)"}
+    graph: {gap: "participant population flags: in the mapping; checked once ClinicalStudyLab is published"}
 
   - id: LF06
     fact: "Body weight is silver_vs with VSTESTCD = 'WEIGHT'; VSSTRESN is kg (LB × 0.45359237); the raw site unit is kept in CPL_RAW_UNIT."
@@ -67,7 +67,7 @@ facts:
     closure: {none: "a table layout is not terminology"}
     rag: {file: docs/life_sciences/documents/corpus/CSL-DMS-v1.0.md, has: ["VSTESTCD = WEIGHT", "VSSTRESN holds the weight in kg", "0.45359237"]}
     genie_ontology: {file: docs/life_sciences/pages/unit-normalization.md, has: ["`VSSTRESN` is kg (LB × 0.45359237", "`CPL_RAW_UNIT`"]}
-    graph: {gap: "observation individuals with unit and value: mapping rewrite (0b)"}
+    graph: {gap: "observation individuals with unit and value: in the mapping; checked once ClinicalStudyLab is published"}
 
   - id: LF07
     fact: "Height is recorded once, at screening, in silver_vs (VSTESTCD = 'HEIGHT', cm); BMI is weight (kg) / height (m)², calculated, not collected."
@@ -76,7 +76,7 @@ facts:
     closure: {none: "not terminology"}
     rag: {file: docs/life_sciences/documents/corpus/CSL-A-PROT-v1.0.md, has: ["BMI is calculated from the screening weight and height"]}
     genie_ontology: {file: docs/life_sciences/pages/dataset-domain-guide.md, has: ["`VSTESTCD = 'HEIGHT'`", "BMI is not\ncollected"]}
-    graph: {gap: "height observations: mapping rewrite (0b)"}
+    graph: {gap: "height observations: in the mapping; checked once ClinicalStudyLab is published"}
 
   - id: LF08
     fact: "The CSL-A weight-related comorbidities (WRC-V1) are ten MONDO roots including any more specific form, minus three carve-outs (pulmonary hypertension, pregnancy-induced hypertension, congenital coronary malformation)."
@@ -85,7 +85,7 @@ facts:
     closure: {table: clinical_study_standards.class_root, where: "class_id = 'WRC-V1' AND concept_id = 'MONDO:0005149' AND kind = 'exclude_root'"}
     rag: {file: docs/life_sciences/documents/corpus/CSL-A-PROT-v1.0.md, has: ["Weight-related comorbidities are", "Pulmonary hypertension, pregnancy-induced hypertension"]}
     genie_ontology: {file: docs/life_sciences/pages/weight-related-comorbidity-class.md, has: ["**Roots (WRC-V1):**", "**Carve-outs (exclusion wins):**"]}
-    graph: {gap: "class and root individuals: mapping rewrite (0b)"}
+    graph: {gap: "class and root individuals: in the mapping; checked once ClinicalStudyLab is published"}
 
   - id: LF09
     fact: "Class membership is the MONDO subtree: a term is a member if it is at or below a root by is_a, at any depth."
@@ -94,7 +94,7 @@ facts:
     closure: {table: clinical_study_standards.mondo_closure, where: "ancestor_code = 'MONDO:0005044' AND depth >= 2"}
     rag: {none: "the documents name the classes, not the MONDO hierarchy"}
     genie_ontology: {file: docs/life_sciences/pages/weight-related-comorbidity-class.md, has: ["everything under it by is_a, at any depth"]}
-    graph: {gap: "MONDO subClassOf: mapping rewrite (0b)"}
+    graph: {gap: "MONDO subClassOf: in the mapping; checked once ClinicalStudyLab is published"}
 
   - id: LF10
     fact: "Prohibited medications are GLP-1 receptor agonist class members (MED-RT N0000178480) or drugs whose physiologic effect is appetite suppression; one started during treatment is a major protocol deviation."
@@ -103,7 +103,7 @@ facts:
     closure: {table: clinical_study_standards.class_root, where: "class_id = 'PROHIB-CM-V1' AND kind = 'physiologic_effect'"}
     rag: {file: docs/life_sciences/documents/corpus/CSL-A-PROT-v1.0.md, has: ["any GLP-1 receptor agonist", "physiologic effect is appetite", "is a major protocol\ndeviation"]}
     genie_ontology: {file: docs/life_sciences/pages/prohibited-medications.md, has: ["(N0000178480)", "Appetite Suppression [PE]", "**during treatment** → major protocol deviation"]}
-    graph: {gap: "drug memberOf / has_PE edges: mapping rewrite (0b)"}
+    graph: {gap: "drug memberOf / has_PE edges: in the mapping; checked once ClinicalStudyLab is published"}
 
   - id: LF11
     fact: "A drug's class and physiologic effect come from MED-RT: RxNorm ingredient → memberOf an EPC class / has_PE an effect."
@@ -112,7 +112,7 @@ facts:
     closure: {table: clinical_study_standards.kb_edge, where: "predicate = 'medrt:memberOf' AND object = 'MEDRT:N0000178480'"}
     rag: {none: "the documents name the classes, not which products belong to them"}
     genie_ontology: {file: docs/life_sciences/pages/prohibited-medications.md, has: ["**member of** the MED-RT class", "MED-RT **physiologic effect**"]}
-    graph: {gap: "drug class edges: mapping rewrite (0b)"}
+    graph: {gap: "drug class edges: in the mapping; checked once ClinicalStudyLab is published"}
 
   - id: LF12
     fact: "The exclusionary history (EXCL-MH-V1) is seven MONDO roots: medullary thyroid carcinoma, MEN2, pancreatitis, type 1 diabetes, diabetic retinopathy (CSL-A only), bipolar disorder, schizophrenia."
@@ -121,7 +121,7 @@ facts:
     closure: {table: clinical_study_standards.class_root, where: "class_id = 'EXCL-MH-V1' AND concept_id = 'MONDO:0005266'"}
     rag: {file: docs/life_sciences/documents/corpus/CSL-A-PROT-v1.0.md, has: ["History of medullary thyroid carcinoma", "Diabetic retinopathy", "Bipolar disorder or schizophrenia"]}
     genie_ontology: {file: docs/life_sciences/pages/exclusionary-history-and-contraindications.md, has: ["**EXCL-MH-V1 roots:**", "not exclusionary in CSL-B"]}
-    graph: {gap: "class and root individuals: mapping rewrite (0b)"}
+    graph: {gap: "class and root individuals: in the mapping; checked once ClinicalStudyLab is published"}
 
   - id: LF13
     fact: "Eligibility is assessed at screening under the protocol version in force on the screening date."
@@ -130,7 +130,7 @@ facts:
     closure: {table: clinical_study_standards.study_version, where: "study_id = 'CSL-A' AND protocol_version = '1.0'"}
     rag: {file: docs/life_sciences/documents/corpus/CSL-A-PROT-AMD1.md, has: ["assessed under the criterion in force at their screening date"]}
     genie_ontology: {file: docs/life_sciences/pages/protocol-amendments.md, has: ["**Eligibility is decided at screening.**"]}
-    graph: {gap: "protocol version per participant: mapping rewrite (0b)"}
+    graph: {gap: "protocol version per participant: in the mapping; checked once ClinicalStudyLab is published"}
 
   - id: LF14
     fact: "WRC-V2 adds obstructive sleep apnea syndrome (MONDO:0007147); central sleep apnea is not added."
@@ -139,7 +139,7 @@ facts:
     closure: {table: clinical_study_standards.class_root, where: "class_id = 'WRC-V2' AND concept_id = 'MONDO:0007147'"}
     rag: {file: docs/life_sciences/documents/corpus/CSL-A-PROT-AMD1.md, has: ["obstructive\nsleep apnea", "Central sleep apnea is not added"]}
     genie_ontology: {file: docs/life_sciences/pages/weight-related-comorbidity-class.md, has: ["obstructive sleep apnea syndrome (MONDO:0007147)", "Central sleep apnea is not"]}
-    graph: {gap: "class and root individuals: mapping rewrite (0b)"}
+    graph: {gap: "class and root individuals: in the mapping; checked once ClinicalStudyLab is published"}
 
   - id: LF15
     fact: "Monitoring found SITE-118's Week 24 visits systematically late (report of 2025-09-18): the site's visit calculator put Week 24 at 25 weeks after first dose, then booked the next free clinic slot."
