@@ -194,6 +194,27 @@ have been designed to make RAG fail).
 - The Genie Ontology provider replays recorded Genie One retrievals, so the new questions need one scripted
   recording run (`scripts/record_genie_ontology.py`).
 
+### 4b. Life sciences: the same steps (planned 2026-11-22)
+
+Each LS step copies its HEDIS counterpart (memory: mirror HEDIS, don't invent). What exists already stays: the
+generator and its planted story (SITE-118's late Week-24 visits rescued by Amendment 1, placebo participants
+starting commercial GLP-1s, OSA-only screen-fails until Amendment 2, enrolment errors, low-rate data-quality noise),
+the pipeline and endpoint engine, the KB and closures, the 10 documents, Pages, the 3 Genie spaces (certified
+2026-11-22) and the metric views.
+
+| LS step | HEDIS counterpart | Work |
+|---|---|---|
+| 0a Population | Synthea + care_behavior; heroes picked by rule (`server/traces.py`) | Stop injecting the 29 named participants (FX-01..29) into the demo data. They stay as **engine unit-test inputs** (tests/fixtures), which is what fixtures are for. Demo heroes are picked from the generated data by stated rules. |
+| 0b Ontobricks | `care_protocol.r2rml.ttl`: entities and relations mapped onto real tables, inline `rr:sqlQuery` only over generic edge tables | Rewrite `clinical_study.r2rml.ttl` HEDIS-style over `clinical_study` / `clinical_study_standards`, sized to the locked questions (HEDIS: ~13 entities, ~20 relations; today's LS spec: 31 / 72). Retire the generated `clinical_study_graph` views (flagged first) and the graph-spec generator. |
+| 1 Correctness | value sets by year, Step 3 > 9%, HEDIS GSD | Audit the endpoint and eligibility rules against the protocol/SAP documents and fix what disagrees. |
+| 2 Fact list | `hedis_facts.yaml` + `test_hedis_facts.py` | `ls_facts.yaml` + presence test; replaces the per-KB-fact parity machinery. |
+| 3 Traces | 3 traces in the Tracer tab | e.g. a raw EDC weight (lb) → SDTM VS (kg) → Week-24 endpoint; Amendment 1's window change → rule registry → recovered participants; an MH term → MONDO → closure → eligibility. |
+| 4 Questions | `questions_v2.yaml`, holdout gold, fixed dates | ~8 analyst questions, LS data cutoff (2026-10-31) as the fixed anchor. |
+| 5–6 Benchmark + Genie One | harness, test mode, hand verification | same harness and app tab, `--demo` scoped. |
+| 7 App | Trace + Benchmark lead | LS tabs get the same two leading tabs. |
+
+Order: 0a, then 1–4 (the questions decide what the graph must hold), then 0b and Eli's Ontobricks import, then 5–7.
+
 ## 5. What changes (HEDIS: small; nothing deleted)
 
 - **App:** lead with **Trace** and **Benchmark**. The other tabs (drift lab, ontology explorer) stay, behind them.
