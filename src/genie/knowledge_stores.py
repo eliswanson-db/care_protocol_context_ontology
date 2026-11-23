@@ -173,6 +173,18 @@ def _hedis_quality() -> Store:
           f"CASE WHEN {bp_ok} THEN 'Met' WHEN gold_adherence_bpd.bp_datetime IS NULL THEN 'No BP reading in measurement "
           "year' ELSE 'BP not controlled (>=140/90)' END"),
         E("Statin ingredient", "statin_ingredient", "INITCAP(SPLIT(gold_adherence_spd.evidence_drug, ' ')[0])"),
+        E("GSD gap reason (matches the GSD metric view)", "gsd_gap_reason",
+          "CASE WHEN gold_adherence_gsd.evidence_value <= 9.0 THEN 'Met' WHEN gold_adherence_gsd.evidence_datetime IS NULL "
+          "THEN 'No A1c test in measurement year' ELSE 'Last A1c above 9%' END"),
+        M("GSD care-gap count (last A1c > 9% or no test)", "gsd_gap_count",
+          "COUNT_IF(gold_adherence_gsd.evidence_datetime IS NULL OR gold_adherence_gsd.evidence_value > 9.0)", "GSD gaps"),
+        M("KED care-gap count (missing eGFR or uACR)", "ked_gap_count", f"COUNT_IF(NOT ({ked_ok}))", "KED gaps"),
+        M("BPD care-gap count (uncontrolled or no reading)", "bpd_gap_count", f"COUNT_IF(NOT coalesce({bp_ok}, false))",
+          "BPD gaps"),
+        M("SPD care-gap count (no statin dispensed)", "spd_gap_count",
+          "COUNT_IF(gold_adherence_spd.evidence_datetime IS NULL)", "statin gaps"),
+        M("EED care-gap count (no diabetic eye exam)", "eed_gap_count",
+          "COUNT_IF(gold_adherence_eed.evidence_datetime IS NULL)", "eye exam gaps"),
     ]
     for t in ("ked", "bpd", "spd", "eed"):
         st.joins.append(Join(f"{CP}.gold_adherence_{t}", g,

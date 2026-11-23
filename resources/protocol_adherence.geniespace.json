@@ -586,15 +586,15 @@
     ]
    },
    {
-    "id": "c9e44ec9825fd2b3b6f1000af71c22af",
+    "id": "ca8a0c604808e8d4419f3373d357f05a",
     "question": [
-     "Each clinic's trailing-3-month adherence (ending the latest closed month) vs its OWN year-to-date baseline."
+     "Each clinic's Step-3 adherence for triggers in May-July 2026 vs its own MY2026 baseline (all triggers through 2026-07-31; July 2026 is the last month whose 90-day windows have all closed by the 2026-10-30 horizon)."
     ],
     "answer": [
      {
       "format": "SQL",
       "content": [
-       "WITH c AS (\n  SELECT clinic_id, date_trunc('MONTH', trigger_ts) AS m, CAST(followup_within_90d AS INT) AS f\n  FROM eli_test_classic_catalog.care_protocol.gold_protocol_adherence WHERE measurement_year = 2026 AND window_closed),\nlast AS (SELECT max(m) AS lm FROM c)\nSELECT clinic_id,\n       ROUND(AVG(CASE WHEN m > add_months(lm, -3) THEN f END), 3) AS trailing_3mo,\n       ROUND(AVG(f), 3) AS own_baseline,\n       ROUND(AVG(CASE WHEN m > add_months(lm, -3) THEN f END) - AVG(f), 3) AS drift\nFROM c CROSS JOIN last GROUP BY clinic_id ORDER BY drift"
+       "WITH c AS (\n  SELECT clinic_id, date_trunc('MONTH', trigger_ts) AS m, CAST(followup_within_90d AS INT) AS f\n  FROM eli_test_classic_catalog.care_protocol.gold_protocol_adherence\n  WHERE measurement_year = 2026 AND window_closed AND trigger_ts <= TIMESTAMP'2026-07-31 23:59:59')\nSELECT clinic_id,\n       ROUND(AVG(CASE WHEN m >= DATE'2026-05-01' THEN f END), 3) AS may_jul_2026,\n       ROUND(AVG(f), 3) AS own_baseline,\n       ROUND(AVG(CASE WHEN m >= DATE'2026-05-01' THEN f END) - AVG(f), 3) AS drift\nFROM c GROUP BY clinic_id ORDER BY drift"
       ]
      }
     ],

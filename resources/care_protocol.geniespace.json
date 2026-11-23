@@ -518,6 +518,33 @@
     "sql": [
      "SELECT 'GSD' AS measure, MEASURE(`GSD Compliance Rate`) AS rate FROM eli_test_classic_catalog.care_protocol_semantic.gsd_compliance_metrics UNION ALL SELECT 'KED', MEASURE(`KED Compliance Rate`) FROM eli_test_classic_catalog.care_protocol_semantic.ked_compliance_metrics UNION ALL SELECT 'BPD', MEASURE(`BPD Compliance Rate`) FROM eli_test_classic_catalog.care_protocol_semantic.bpd_compliance_metrics UNION ALL SELECT 'SPD', MEASURE(`SPD Compliance Rate`) FROM eli_test_classic_catalog.care_protocol_semantic.spd_compliance_metrics UNION ALL SELECT 'EED', MEASURE(`EED Compliance Rate`) FROM eli_test_classic_catalog.care_protocol_semantic.eed_compliance_metrics UNION ALL SELECT 'SSD', MEASURE(`SSD Compliance Rate`) FROM eli_test_classic_catalog.care_protocol_semantic.ssd_compliance_metrics ORDER BY measure"
     ]
+   },
+   {
+    "id": "00000000000000000000000000000014",
+    "question": [
+     "List GSD care-gap patients at CLINIC-08 for MY2026 with their last A1c, highest first."
+    ],
+    "sql": [
+     "SELECT patient_id, age, evidence_value AS last_a1c, evidence_datetime FROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd WHERE measurement_year = 2026 AND clinic_id = 'CLINIC-08' AND (evidence_datetime IS NULL OR evidence_value > 9.0) ORDER BY evidence_value DESC NULLS FIRST"
+    ]
+   },
+   {
+    "id": "00000000000000000000000000000015",
+    "question": [
+     "List KED care-gap patients at CLINIC-08 for MY2026, lowest eGFR first."
+    ],
+    "sql": [
+     "SELECT patient_id, age, egfr_value, egfr_datetime, uacr_datetime FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked WHERE measurement_year = 2026 AND clinic_id = 'CLINIC-08' AND (egfr_datetime IS NULL OR uacr_datetime IS NULL) ORDER BY egfr_value ASC NULLS FIRST"
+    ]
+   },
+   {
+    "id": "00000000000000000000000000000016",
+    "question": [
+     "How many patients had more than one open care gap across GSD, KED, BPD, SPD and EED in MY2026?"
+    ],
+    "sql": [
+     "WITH gaps AS (SELECT patient_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd WHERE measurement_year = 2026 AND (evidence_datetime IS NULL OR evidence_value > 9.0) UNION ALL SELECT patient_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked WHERE measurement_year = 2026 AND (egfr_datetime IS NULL OR uacr_datetime IS NULL) UNION ALL SELECT patient_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_bpd WHERE measurement_year = 2026 AND NOT coalesce(systolic < 140 AND diastolic < 90, false) UNION ALL SELECT patient_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_spd WHERE measurement_year = 2026 AND evidence_datetime IS NULL UNION ALL SELECT patient_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_eed WHERE measurement_year = 2026 AND evidence_datetime IS NULL) SELECT COUNT(*) AS patients_with_2_or_more_gaps FROM (SELECT patient_id FROM gaps GROUP BY patient_id HAVING COUNT(*) > 1)"
+    ]
    }
   ],
   "text_instructions": [
@@ -527,7 +554,7 @@
      "This agent answers questions about six HEDIS diabetes quality measures (HEDIS-aligned demo, not NCQA-certified): GSD, KED, BPD, SPD, EED, and SSD.",
      "For measure RATES, query the matching metric view (gsd/ked/bpd/spd/eed/ssd_compliance_metrics) using MEASURE(`<measure name>`), e.g. MEASURE(`GSD Compliance Rate`). Never SUM or AVG a rate column.",
      "Every compliance metric view has dimensions Measurement Year, Compliance Status, Clinic, Panel, Gap Reason, Age Band, Measure. To break a rate down by site, GROUP BY `Clinic`; to explain care gaps, GROUP BY `Gap Reason` (it shows 'Met' for compliant patients).",
-     "GSD = Glycemic Status Assessment: diabetics aged 18-75 with an A1c test in the measurement year. Also exposes Poor Control Rate (A1c > 9).",
+     "GSD = Glycemic Status Assessment: diabetics aged 18-75; compliant (Blood Sugar Controlled) when their last A1c of the measurement year is 9.0% or below, so a missing test is not compliant. The HEDIS indicators, both over all eligible patients: Good Control Rate (last A1c < 8.0%) and Poor Control Rate (last A1c > 9.0% or no test).",
      "KED = Kidney Health Evaluation: diabetics aged 18-85 with BOTH an eGFR and a uACR test; uACR is usually the limiting component (see Gap Reason).",
      "BPD = Blood Pressure control: diabetics aged 18-75 whose most recent BP reading is <140/90. Gap Reason distinguishes 'no reading' from 'not controlled'.",
      "SPD = Statin Therapy: diabetics aged 40-75 dispensed a statin in the measurement year.",
@@ -552,6 +579,39 @@
      ]
     },
     {
+     "id": "3d9999d57ed0e254ea36c5e45fd6b28c",
+     "display_name": "SPD care-gap count (no statin dispensed)",
+     "sql": [
+      "COUNT_IF(gold_adherence_spd.evidence_datetime IS NULL)"
+     ],
+     "alias": "spd_gap_count",
+     "synonyms": [
+      "statin gaps"
+     ]
+    },
+    {
+     "id": "43dfd291ceb3b62cfe6bad721d02a0d6",
+     "display_name": "EED care-gap count (no diabetic eye exam)",
+     "sql": [
+      "COUNT_IF(gold_adherence_eed.evidence_datetime IS NULL)"
+     ],
+     "alias": "eed_gap_count",
+     "synonyms": [
+      "eye exam gaps"
+     ]
+    },
+    {
+     "id": "5d82f37364d7a538bfd6973a09246546",
+     "display_name": "KED care-gap count (missing eGFR or uACR)",
+     "sql": [
+      "COUNT_IF(NOT (gold_adherence_ked.egfr_datetime IS NOT NULL AND gold_adherence_ked.uacr_datetime IS NOT NULL))"
+     ],
+     "alias": "ked_gap_count",
+     "synonyms": [
+      "KED gaps"
+     ]
+    },
+    {
      "id": "706c8a08bfbf5bfb9d8cf2f06f080da6",
      "display_name": "GSD good control rate (last A1c < 8%, of eligible)",
      "sql": [
@@ -561,6 +621,17 @@
      "synonyms": [
       "good glycemic control",
       "controlled diabetes"
+     ]
+    },
+    {
+     "id": "96ced26db92f2827c28d6e306662c50a",
+     "display_name": "GSD care-gap count (last A1c > 9% or no test)",
+     "sql": [
+      "COUNT_IF(gold_adherence_gsd.evidence_datetime IS NULL OR gold_adherence_gsd.evidence_value > 9.0)"
+     ],
+     "alias": "gsd_gap_count",
+     "synonyms": [
+      "GSD gaps"
      ]
     },
     {
@@ -606,6 +677,17 @@
      "synonyms": [
       "GSD rate",
       "blood sugar controlled rate"
+     ]
+    },
+    {
+     "id": "c901fef1bf7fe7bc70f451a63a4d3fbd",
+     "display_name": "BPD care-gap count (uncontrolled or no reading)",
+     "sql": [
+      "COUNT_IF(NOT coalesce(gold_adherence_bpd.systolic < 140 AND gold_adherence_bpd.diastolic < 90, false))"
+     ],
+     "alias": "bpd_gap_count",
+     "synonyms": [
+      "BPD gaps"
      ]
     },
     {
@@ -788,6 +870,14 @@
       "CASE WHEN gold_adherence_bpd.systolic < 140 AND gold_adherence_bpd.diastolic < 90 THEN 'Met' WHEN gold_adherence_bpd.bp_datetime IS NULL THEN 'No BP reading in measurement year' ELSE 'BP not controlled (>=140/90)' END"
      ],
      "alias": "bpd_gap_reason"
+    },
+    {
+     "id": "2bc27ded85af5de32e38a90f32308db3",
+     "display_name": "GSD gap reason (matches the GSD metric view)",
+     "sql": [
+      "CASE WHEN gold_adherence_gsd.evidence_value <= 9.0 THEN 'Met' WHEN gold_adherence_gsd.evidence_datetime IS NULL THEN 'No A1c test in measurement year' ELSE 'Last A1c above 9%' END"
+     ],
+     "alias": "gsd_gap_reason"
     },
     {
      "id": "86ee9cd6ae4568c5512915423f510923",

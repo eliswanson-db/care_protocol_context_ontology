@@ -30,10 +30,11 @@ QUERIES = [
     "SELECT MEASURE(`Poor Control Patients`) AS poorly_controlled FROM {cat}.{sch_sem}.gsd_compliance_metrics",
     # --- how many patients are eligible / compliant / in a care gap ---
     "SELECT COUNT(*) AS gsd_eligible FROM {cat}.{sch}.gold_adherence_gsd",
-    "SELECT COUNT(*) AS gsd_care_gaps FROM {cat}.{sch}.gold_adherence_gsd WHERE evidence_datetime IS NULL",
+    # GSD care gap (HEDIS): last A1c of the year above 9.0% or no A1c test (the gsd_compliance_metrics rule)
+    "SELECT COUNT(*) AS gsd_care_gaps FROM {cat}.{sch}.gold_adherence_gsd WHERE evidence_datetime IS NULL OR evidence_value > 9.0",
     "SELECT COUNT(*) AS ked_care_gaps FROM {cat}.{sch}.gold_adherence_ked WHERE egfr_datetime IS NULL OR uacr_datetime IS NULL",
     "SELECT COUNT(*) AS bpd_care_gaps FROM {cat}.{sch}.gold_adherence_bpd WHERE systolic IS NULL OR systolic >= 140 OR diastolic >= 90",
-    "SELECT measure_id, CASE WHEN evidence_datetime IS NOT NULL THEN 'MET' ELSE 'NOT_MET' END AS status, COUNT(*) AS n FROM {cat}.{sch}.gold_adherence_gsd GROUP BY measure_id, CASE WHEN evidence_datetime IS NOT NULL THEN 'MET' ELSE 'NOT_MET' END",
+    "SELECT `Compliance Status`, `Gap Reason`, MEASURE(`Eligible Patients`) AS patients FROM {cat}.{sch_sem}.gsd_compliance_metrics GROUP BY ALL",
     "SELECT COUNT(DISTINCT patient_id) AS diabetes_patients FROM {cat}.{sch}.silver_diabetes_cohort",
     # --- which patients have a kidney-evaluation care gap and why ---
     "SELECT patient_id, age, (egfr_datetime IS NOT NULL) AS egfr_tested, (uacr_datetime IS NOT NULL) AS uacr_tested FROM {cat}.{sch}.gold_adherence_ked WHERE egfr_datetime IS NULL OR uacr_datetime IS NULL ORDER BY age DESC",

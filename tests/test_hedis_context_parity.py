@@ -68,6 +68,30 @@ def test_pages_quote_no_data_derived_percentages():
     assert not bad, bad
 
 
+def test_dashboards_and_seeded_queries_use_current_rules():
+    # Dashboards and seeded query history are mined into Genie Ontology's inferred snippets, so a stale rule there
+    # becomes stale context (the q7 `status` miss). Gold has no verdict columns; GSD's gap is "> 9% or no test".
+    import json
+
+    removed = re.compile(r"\b(numerator_flag|egfr_flag|uacr_flag|a1c_lt8|a1c_gt9)\b|\bstatus\s*=|GROUP BY status\b")
+    texts = {}
+    for p in sorted((ROOT / "resources").glob("*.lvdash.json")):
+        for ds in json.loads(p.read_text())["datasets"]:
+            texts[f"{p.name}:{ds['name']}"] = " ".join(ds.get("queryLines") or [ds.get("query", "")])
+    texts["seed_query_history.py"] = (ROOT / "src/semantic/seed_query_history.py").read_text()
+    for name, t in texts.items():
+        assert not removed.search(t), (name, removed.search(t).group(0))
+        assert not re.search(r"gold_adherence_gsd WHERE evidence_datetime IS NULL[\"']", t), (name, "old GSD gap rule")
+    # The dashboard worklist applies each metric view's own rules (it needs patient rows the views don't expose).
+    gaps = next(v for k, v in texts.items() if k.endswith("hedis_quality.lvdash.json:ds_gaps"))
+    import yaml
+    for m in ("gsd", "ked", "bpd", "spd", "eed"):
+        txt = (ROOT / f"src/semantic/metric_views/{m}_compliance.metric_view.sql").read_text()
+        body = txt[txt.index("$$") + 2: txt.rindex("$$")].replace("{catalog}", "c").replace("{schema}", "s")
+        dims = {d["name"]: d["expr"] for d in yaml.safe_load(body)["dimensions"]}
+        assert dims["Gap Reason"] in gaps and dims["Compliance Status"] in gaps, f"{m}: worklist drifted from the view"
+
+
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):
         if name.startswith("test_"):
