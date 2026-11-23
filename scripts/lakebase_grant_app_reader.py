@@ -46,31 +46,26 @@ def main():
             "INSERT INTO rag.group_membership (user_id, group_id) SELECT %s, %s "
             "WHERE NOT EXISTS (SELECT 1 FROM rag.group_membership WHERE user_id=%s AND group_id=%s)",
             (args.sp, args.group, args.sp, args.group))
-        cur.execute("SELECT document_id FROM rag.documents WHERE patient_id IS NULL")
-        docs = [r[0] for r in cur.fetchall()]
         # Undo any earlier ALLOW for this group on patient-specific records (the script used to grant every doc).
         cur.execute("DELETE FROM rag.document_acl WHERE principal_type = 'GROUP' AND principal_id = %s AND "
                     "document_id IN (SELECT document_id FROM rag.documents WHERE patient_id IS NOT NULL)", (args.group,))
-        cur.execute("SELECT document_id FROM rag.documents WHERE patient_id IS NOT NULL")
-        patient_docs = [r[0] for r in cur.fetchall()]
-        for d in docs:
-            cur.execute(
-                "INSERT INTO rag.document_acl (document_id, principal_type, principal_id, effect, permission) "
-                "SELECT %s, 'GROUP', %s, 'ALLOW', 'READ' WHERE NOT EXISTS ("
-                "  SELECT 1 FROM rag.document_acl WHERE document_id=%s AND principal_type='GROUP' "
-                "    AND principal_id=%s AND permission='READ' AND effect='ALLOW')",
-                (d, args.group, d, args.group))
+        # One set-based statement each (per-document round trips took minutes once the corpus passed ~900 docs).
+        cur.execute(
+            "INSERT INTO rag.document_acl (document_id, principal_type, principal_id, effect, permission) "
+            "SELECT d.document_id, 'GROUP', %s, 'ALLOW', 'READ' FROM rag.documents d WHERE d.patient_id IS NULL "
+            "AND NOT EXISTS (SELECT 1 FROM rag.document_acl a WHERE a.document_id = d.document_id "
+            "  AND a.principal_type = 'GROUP' AND a.principal_id = %s AND a.permission = 'READ' AND a.effect = 'ALLOW')",
+            (args.group, args.group))
         # Verify the RLS decision for the SP (we can't SET ROLE to it, but acl_allows is the policy itself).
-        allowed = leaked = 0
-        for d in docs:
-            cur.execute("SELECT rag.acl_allows(%s, %s)", (d, args.sp))
-            allowed += bool(cur.fetchone()[0])
-        for d in patient_docs:
-            cur.execute("SELECT rag.acl_allows(%s, %s)", (d, args.sp))
-            leaked += bool(cur.fetchone()[0])
-    print(f"{args.sp}: rag_reader + group {args.group!r} ALLOW READ on {len(docs)} population docs "
-          f"(acl_allows {allowed}/{len(docs)}); patient-specific docs visible: {leaked}/{len(patient_docs)}.")
-    if allowed != len(docs) or leaked:
+        cur.execute("SELECT count(*) FILTER (WHERE patient_id IS NULL), "
+                    "count(*) FILTER (WHERE patient_id IS NULL AND rag.acl_allows(document_id, %s)), "
+                    "count(*) FILTER (WHERE patient_id IS NOT NULL), "
+                    "count(*) FILTER (WHERE patient_id IS NOT NULL AND rag.acl_allows(document_id, %s)) "
+                    "FROM rag.documents", (args.sp, args.sp))
+        n_docs, allowed, n_patient, leaked = cur.fetchone()
+    print(f"{args.sp}: rag_reader + group {args.group!r} ALLOW READ on {n_docs} population docs "
+          f"(acl_allows {allowed}/{n_docs}); patient-specific docs visible: {leaked}/{n_patient}.")
+    if allowed != n_docs or leaked:
         raise SystemExit("access check failed")
 
 

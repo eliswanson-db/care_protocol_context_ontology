@@ -31,9 +31,18 @@ ANN_INDEX = "rag.chunks_embedding_ann"
 BM25_INDEX = "rag.chunks_body_bm25"  # corpus stats are fixed at build time, so rebuild after a reload
 
 
+BATCH = 64  # texts per embedding request (one call per chunk made a 7k-chunk load take ~50 minutes)
+
+
 def embed(w, text):
-    r = w.serving_endpoints.query(name=EMBED_ENDPOINT, input=[text])
-    return r.data[0].embedding if getattr(r, "data", None) else r.predictions[0]
+    return embed_batch(w, [text])[0]
+
+
+def embed_batch(w, texts):
+    r = w.serving_endpoints.query(name=EMBED_ENDPOINT, input=list(texts))
+    if getattr(r, "data", None):
+        return [d.embedding for d in sorted(r.data, key=lambda d: d.index)]
+    return list(r.predictions)
 
 
 def main():
@@ -60,13 +69,15 @@ def main():
     print(f"[{args.profile or 'app'}] chunks to embed: {len(rows)}")
 
     t0, dim = time.time(), None
-    for chunk_id, content in rows:
-        vec = embed(w, content or "")
-        dim = dim or len(vec)
-        lit = "[" + ",".join(f"{x:.6f}" for x in vec) + "]"
+    for i in range(0, len(rows), BATCH):
+        batch = rows[i:i + BATCH]
+        vecs = embed_batch(w, [c or "" for _, c in batch])
+        assert len(vecs) == len(batch), (len(vecs), len(batch))
+        dim = dim or len(vecs[0])
+        params = [("[" + ",".join(f"{x:.6f}" for x in v) + "]", cid) for (cid, _), v in zip(batch, vecs)]
         if not args.dry_run:
             with conn.cursor() as cur:
-                cur.execute("UPDATE rag.chunks SET embedding = %s::vector WHERE chunk_id = %s", (lit, chunk_id))
+                cur.executemany("UPDATE rag.chunks SET embedding = %s::vector WHERE chunk_id = %s", params)
 
     if args.dry_run:
         conn.rollback()
