@@ -206,7 +206,7 @@
      "Answer from the protocols, amendments and SAPs (doc_document, doc_section) and cite the document id, version and section number for every rule you state (e.g. CSL-A-SAP-v2.0 §9.4.1).",
      "Executable rules live in rule_version (endpoint rules) and eligibility_criterion; only review_state = 'approved' rules are executed. rule_assertion lists rule statements extracted from documents with review_state approved / superseded / rejected / candidate. A candidate (e.g. the DRAFT Amendment 3 memo proposing ±21 days) is NOT approved and changes no result. Say so explicitly when asked about it.",
      "Protocol scheduling windows (visit booking) are not endpoint analysis windows; those assertions are rejected as rules.",
-     "Amendments: protocol 2.0 (Amendment 1, effective 2025-09-01) widened the Week 24 analysis window to ±14 days; protocol 3.0 (Amendment 2, 2025-11-01) added obstructive sleep apnea to the weight-related comorbidity class for screening on/after that date.",
+     "Amendments: protocol 2.0 (Amendment 1, effective 2025-10-27) widened the Week 24 analysis window to ±14 days; protocol 3.0 (Amendment 2, 2025-11-01) added obstructive sleep apnea to the weight-related comorbidity class for screening on/after that date.",
      "All approvals are seeded demo fixtures (approved_by = demo-fixture), not real human review."
     ]
    }

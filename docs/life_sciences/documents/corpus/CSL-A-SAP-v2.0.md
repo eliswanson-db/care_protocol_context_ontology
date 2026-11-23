@@ -5,7 +5,7 @@ study_id: CSL-A
 doc_type: SAP
 version: "2.0"
 status: APPROVED
-effective_date: "2025-09-01"
+effective_date: "2025-10-27"
 approval: "demo-fixture (seeded; no real human approval)"
 access: "study:CSL-A"
 ---

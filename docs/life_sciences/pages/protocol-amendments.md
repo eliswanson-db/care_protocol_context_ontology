@@ -12,7 +12,7 @@ related_assets:
 | Protocol | Effective | Change | Executable rule |
 |---|---|---|---|
 | 1.0 | 2025-01-15 | original | EP-A-WT24.R1, ELIG-A-V1 |
-| 2.0 (Amendment 1) | 2025-09-01 | Week 24 analysis window ±7 → **±14 days**; nothing else | EP-A-WT24.R2 |
+| 2.0 (Amendment 1) | 2025-10-27 | Week 24 analysis window ±7 → **±14 days**; nothing else | EP-A-WT24.R2 |
 | 3.0 (Amendment 2) | 2025-11-01 | **obstructive sleep apnea** added to weight-related comorbidities for screening on/after the effective date (central sleep apnea not added) | ELIG-A-V2 |
 | Amendment 3 | none | **DRAFT memo** proposing ±21 days. **Not approved. Never executed.** | none |
 

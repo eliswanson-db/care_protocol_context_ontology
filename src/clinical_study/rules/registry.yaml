@@ -43,7 +43,7 @@ studies:
       - {visit: WEEK 72, visitnum: 11, target_day: 505, window: [498, 512]}
     study_versions:
       - {protocol_version: "1.0", sap_version: "1.0", effective_date: "2025-01-15", documents: [CSL-A-PROT-v1.0, CSL-A-SAP-v1.0]}
-      - {protocol_version: "2.0", sap_version: "2.0", effective_date: "2025-09-01", amendment: 1,
+      - {protocol_version: "2.0", sap_version: "2.0", effective_date: "2025-10-27", amendment: 1,
          documents: [CSL-A-PROT-AMD1, CSL-A-SAP-v2.0],
          change_summary: "Week 24 follow-up analysis window widened from +/-7 to +/-14 days around the target date."}
       - {protocol_version: "3.0", sap_version: "2.0", effective_date: "2025-11-01", amendment: 2,

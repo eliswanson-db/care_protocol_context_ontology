@@ -5,7 +5,7 @@ study_id: CSL-A
 doc_type: AMENDMENT
 version: "2.0"
 status: APPROVED
-effective_date: "2025-09-01"
+effective_date: "2025-10-27"
 approval: "demo-fixture (seeded; no real human approval)"
 access: "study:CSL-A"
 ---
@@ -17,7 +17,7 @@ SYNTHETIC DOCUMENT. Illustrative only; not a real trial.
 
 | Section | Version 1.0 | Version 2.0 | Rationale |
 |---|---|---|---|
-| 9.1 / SAP 9.4.1 | Week 24 analysis window ±7 days around the target date | Week 24 analysis window ±14 days around the target date | Week 24 visits at a high-enrolling site were often scheduled 8 to 13 days late, leaving otherwise complete participants without an evaluable endpoint |
+| 9.1 / SAP 9.4.1 | Week 24 analysis window ±7 days around the target date | Week 24 analysis window ±14 days around the target date | Week 24 visits at a high-enrolling site were often scheduled 8 to 13 days late (identified during routine site monitoring in September 2025), leaving otherwise complete participants without an evaluable endpoint |
 
 No other endpoint rule changes. Baseline definition, target date, record selection (closest to target) and the
 tie-breaker are unchanged.
@@ -31,4 +31,4 @@ under protocol version 1.0, so both versions can be compared.
 
 ### 2.2 Effective date
 
-Protocol version 2.0 is effective 2025-09-01.
+Protocol version 2.0 is effective 2025-10-27.

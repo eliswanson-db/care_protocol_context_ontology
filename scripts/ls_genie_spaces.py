@@ -124,7 +124,7 @@ SPACES = {
             "proposing ±21 days) is NOT approved and changes no result. Say so explicitly when asked about it.",
             "Protocol scheduling windows (visit booking) are not endpoint analysis windows; those assertions are "
             "rejected as rules.",
-            "Amendments: protocol 2.0 (Amendment 1, effective 2025-09-01) widened the Week 24 analysis window to ±14 "
+            "Amendments: protocol 2.0 (Amendment 1, effective 2025-10-27) widened the Week 24 analysis window to ±14 "
             "days; protocol 3.0 (Amendment 2, 2025-11-01) added obstructive sleep apnea to the weight-related "
             "comorbidity class for screening on/after that date.",
             "All approvals are seeded demo fixtures (approved_by = demo-fixture), not real human review.",

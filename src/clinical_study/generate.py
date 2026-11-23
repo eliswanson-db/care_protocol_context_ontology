@@ -100,6 +100,7 @@ COUNTRIES = [
     ("JP", 6),
     ("AU", 6),
 ]
+AMENDMENT_1 = "2025-10-27"  # Week 24 analysis window; after site monitoring found the late scheduling
 AMENDMENT_2 = "2025-11-01"
 
 
@@ -311,7 +312,7 @@ def subjects(spark: SparkSession, seed: int, scale: str) -> DataFrame:
             "protocol_version_recorded",
             F.when(F.col("study_id") == "CSL-B", "1.0")
             .when(F.col("screening_date") >= F.lit(AMENDMENT_2), "3.0")
-            .when(F.col("screening_date") >= F.lit("2025-09-01"), "2.0")
+            .when(F.col("screening_date") >= F.lit(AMENDMENT_1), "2.0")
             .otherwise("1.0"),
         )
     )
