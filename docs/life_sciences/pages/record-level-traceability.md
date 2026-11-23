@@ -6,7 +6,6 @@ owner: eli.swanson@databricks.com
 related_assets:
   - eli_test_classic_catalog.clinical_study.gold_provenance_edge
   - eli_test_classic_catalog.clinical_study.gold_endpoint_candidate
-  - eli_test_classic_catalog.clinical_study.gold_tracer_registry
 ---
 
 Every endpoint result can be walked back: **result** → baseline and follow-up **observations**
@@ -17,6 +16,7 @@ Every endpoint result can be walked back: **result** → baseline and follow-up 
 To explain an exclusion, read `gold_endpoint_candidate` for the participant and rule version: every observation has
 a role (BASELINE/FOLLOWUP), decision (SELECTED / ELIGIBLE_NOT_SELECTED / EXCLUDED), reason and days from target.
 
-`gold_tracer_registry` lists 29 named participants: 20 endpoint edge cases (EDGE-01 … EDGE-20) and 9 eligibility
-cases (ELIG-E1 … E9). Their expected outcomes were worked out by hand and are checked after every run
-(`gold_verification_run`).
+After every run, `gold_verification_run` records the checks every correct run must pass: one result per
+full-analysis-set participant and rule version, each derived value equals (follow-up − baseline) / baseline × 100,
+each selected follow-up lies inside its rule version's window, and widening the window (Amendment 1) only adds
+derivations.
