@@ -28,7 +28,7 @@ conditions:
     - {mondo: "MONDO:0007958", verbatim: ["familial MTC"], weight: 1}
     - {mondo: "MONDO:0008234", verbatim: ["MEN 2A", "MEN2A (RET carrier)"], weight: 1}
     - {mondo: "MONDO:0005003", verbatim: ["chronic pancreatitis"], weight: 3}
-    - {mondo: "MONDO:0006515", verbatim: ["acute pancreatitis 2019", "gallstone pancreatitis"], weight: 4}
+    - {mondo: "MONDO:0006515", verbatim: ["acute pancreatitis", "gallstone pancreatitis"], weight: 4}
     - {mondo: "MONDO:0005147", verbatim: ["type 1 diabetes", "T1DM"], weight: 4}
     - {mondo: "MONDO:0005266", verbatim: ["diabetic retinopathy"], weight: 2}
     - {mondo: "MONDO:0004985", verbatim: ["bipolar disorder"], weight: 3}

@@ -199,7 +199,7 @@ have been designed to make RAG fail).
 Each LS step copies its HEDIS counterpart (memory: mirror HEDIS, don't invent). What exists already stays: the
 generator and its planted story (SITE-118's late Week-24 visits rescued by Amendment 1, placebo participants
 starting commercial GLP-1s, OSA-only screen-fails until Amendment 1 adds OSA, enrolment errors, low-rate data-quality noise),
-the pipeline and endpoint engine, the KB and closures, the 10 documents, Pages, the 3 Genie spaces (certified
+the pipeline and endpoint engine, the KB and closures, the 8 study documents, Pages, the 3 Genie spaces (certified
 2026-11-22) and the metric views.
 
 | LS step | HEDIS counterpart | Work |

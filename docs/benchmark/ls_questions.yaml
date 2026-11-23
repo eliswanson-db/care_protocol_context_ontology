@@ -1,0 +1,136 @@
+# Life-sciences benchmark: the question set (docs/CONTEXT_LAB_PLAN.md §4b step 4; the HEDIS counterpart is
+# questions_v2.yaml). Drafted 2026-11-12, reviewed with Eli (decision 5, plus question 9 from the monitoring reports);
+# question 8 replaced on 2026-11-23 when the Amendment 3 draft was retired.
+#
+# Real analyst questions; no approach is designed to win. `predictions` are what we expect each approach to do,
+# checked by the runs (step 5), not targets. Every question names the data cutoff, 2026-10-31. Gold answers are
+# holdout queries in src/benchmark/ls_gold_queries.sql (verify_gold.py --gold ... gate), or a document passage for
+# the document questions. Participants are picked by a stated rule, never by hand. `facts` = ls_facts.yaml ids.
+#
+# tests/test_ls_benchmark.py checks: the cutoff named and no relative dates, every gold id exists and is holdout,
+# every fact id exists, the holdouts never reach a Genie space, and the document golds say what they claim.
+
+hand_verified: {}
+hand_overrides: {}
+
+questions:
+  - id: lq1
+    question: "In CSL-A, what was the mean percent change in body weight from baseline to Week 24, by arm, under the protocol 2.0 rule (SAP v2.0), for data through 2026-10-31?"
+    answer_type: set of (arm, mean)
+    gold: lq1_wt24_by_arm
+    expected_facts: [PENDING]
+    facts: [LF01, LF02, LF03, LF05]
+    predictions:
+      metric_view: "exact: Mean Percent Change by Arm and Rule Version is a prebuilt governed measure"
+      closure: "no: closures hold terminology, not results"
+      rag: "no: documents hold no participant data"
+      genie_ontology: "context points to the governed view and the rule version; the mean needs one query"
+      graph: "possible if results and arms are mapped (0b), with aggregation"
+
+  - id: lq2
+    question: "Among CSL-A full-analysis-set participants with a baseline BMI of 35 or more, what was the mean percent change in body weight from baseline to Week 24, by arm, under the protocol 2.0 rule, for data through 2026-10-31?"
+    answer_type: set of (arm, mean)
+    gold: lq2_wt24_bmi35_by_arm
+    expected_facts: [PENDING]
+    facts: [LF01, LF05, LF07]
+    predictions:
+      metric_view: "no: BMI is not a dimension of any view"
+      closure: "no: closures hold terminology"
+      rag: "no: documents hold no participant data"
+      genie_ontology: "context says where height is and that BMI is calculated; needs a query joining results to height"
+      graph: "possible if baseline weight and height observations are mapped (0b), with arithmetic"
+
+  - id: lq3
+    question: "How many randomized CSL-A participants (through 2026-10-31) have at least one weight-related comorbidity, as protocol 1.0 section 5.1 defines them, in their medical history?"
+    answer_type: count
+    gold: lq3_wrc_v1_randomized
+    expected_facts: [PENDING]
+    facts: [LF08, LF09]
+    predictions:
+      metric_view: "no: no comorbidity dimension"
+      closure: "exact: mondo_closure under the WRC-V1 roots minus the carve-outs, joined to medical history"
+      rag: "no: documents hold no participant data"
+      genie_ontology: "context explains the class and the closure table; the count needs a query"
+      graph: "yes if MH terms and the MONDO subClassOf hierarchy are mapped (0b)"
+
+  - id: lq4
+    question: "What did CSL-A Amendment 1 change, and from what date?"
+    answer_type: stated fact
+    gold: "doc: CSL-A-PROT-AMD1, section 1 Summary of changes"
+    expected_facts:
+      - "Amendment 1 (protocol version 2.0) is effective 2025-10-27 and makes two changes: the Week 24 analysis window widens from ±7 to ±14 days around the target date (SAP version 2.0, section 9.4.1), and obstructive sleep apnea is added to the weight-related comorbidities for participants screened on or after the effective date."
+    facts: [LF03, LF04]
+    predictions:
+      metric_view: "no: an amendment is a document, not a measure"
+      closure: "partial: study_version holds the effective date and change summary"
+      rag: "exact: the amendment document states both changes and the date"
+      genie_ontology: "exact: the Protocol amendments Page"
+      graph: "partial if study versions are mapped (0b)"
+
+  - id: lq5
+    question: "In the CSL-A standardized data, where is body weight stored, in what unit is the analysis value, and which endpoint rule version governs Week 24 results for data through 2026-10-31?"
+    answer_type: stated fact
+    gold: "doc: CSL-DMS-v1.0 section 2.1-2.2 + CSL-A-SAP-v2.0 section 9.4.1"
+    expected_facts:
+      - "Body weight is in the SDTM VS domain (silver_vs) with VSTESTCD = WEIGHT; VSSTRESN holds the analysis value in kg (LB × 0.45359237, g × 0.001) and the raw site unit is kept for lineage. Week 24 results through 2026-10-31 are governed by EP-A-WT24.R2 (protocol 2.0 / SAP 2.0, effective 2025-10-27); R1 (SAP 1.0) remains derivable for comparison."
+    facts: [LF04, LF06]
+    predictions:
+      metric_view: "partial: Rule Version is a dimension; storage and units are not"
+      closure: "partial: rule_version and study_version tables"
+      rag: "yes: the data management specification and the SAP"
+      genie_ontology: "exact: the dataset guide, unit normalization and endpoint Pages"
+      graph: "partial if observations and rule versions are mapped (0b)"
+
+  - id: lq6
+    question: "How many CSL-A participants started a medication the protocol prohibits (a GLP-1 receptor agonist or an appetite suppressant) on or after their first dose, through 2026-10-31, by arm?"
+    answer_type: set of (arm, count)
+    gold: lq6_prohibited_on_treatment_by_arm
+    expected_facts: [PENDING]
+    facts: [LF10, LF11]
+    predictions:
+      metric_view: "partial: Participants With Major Deviation by Arm counts all major deviations, not only medications"
+      closure: "exact: MED-RT memberOf / has_PE over coded concomitant medications, with dates"
+      rag: "no: documents hold no participant data"
+      genie_ontology: "context names the classes and tables; the count needs a query"
+      graph: "yes if medications, their MED-RT classes and dates are mapped (0b): drug → class multi-hop"
+
+  - id: lq7
+    question: "Why was participant PENDING excluded from the CSL-A per-protocol set?"
+    answer_type: explanation with a path
+    participant_rule: "the lowest CSL-A USUBJID in the FAS but not the PPS whose only major deviation is an eligibility violation, through an exclusionary-history term reached through the MONDO hierarchy (not the root itself)"
+    gold: "data: gold_eligibility_criterion path for the participant (checked against silver_mh + mondo_closure)"
+    expected_facts: [PENDING]
+    facts: [LF05, LF09, LF12, LF13]
+    predictions:
+      metric_view: "no: the views count, they don't explain one participant"
+      closure: "yes: the MH term's MONDO ancestors reach an EXCL-MH-V1 root"
+      rag: "partial: the protocol names the exclusion; not the participant's history"
+      genie_ontology: "context explains the classes and the deviation rule; the path needs queries"
+      graph: "yes if MH terms and the MONDO hierarchy are mapped (0b): the path is the answer"
+
+  - id: lq8
+    question: "How many CSL-A participants screened from 2025-10-27 through 2026-10-31 had a BMI of 27 to under 30 and met the BMI inclusion criterion only because Amendment 1 added obstructive sleep apnea as a weight-related comorbidity?"
+    answer_type: count
+    gold: lq8_osa_only_qualified
+    expected_facts: [PENDING]
+    facts: [LF04, LF07, LF08, LF13, LF14]
+    predictions:
+      metric_view: "no: no comorbidity dimension"
+      closure: "exact: the difference of the WRC-V2 and WRC-V1 subtrees, with screening dates and BMI"
+      rag: "no: documents hold no participant data"
+      genie_ontology: "context states the amendment and the class; the count needs a query"
+      graph: "yes if MH terms, the hierarchy and screening data are mapped (0b)"
+
+  - id: lq9
+    question: "Why were SITE-118's Week 24 visits late, according to the monitoring visit reports through 2026-10-31?"
+    answer_type: explanation
+    gold: "doc: PENDING (the monitoring visit report that records the root cause)"
+    expected_facts:
+      - "The site's visit-calculator spreadsheet computed the Week 24 visit as 25 weeks after first dose (study day 176) instead of study day 169, and visits were then booked into the next free research-clinic slot; recorded at the monitoring visit of 2025-09-18 (PENDING), with the site to book from the IRT visit calendar."
+    facts: [LF15]
+    predictions:
+      metric_view: "no: an explanation is not in any table"
+      closure: "no"
+      rag: "yes if the report that records the cause ranks in the top k; later follow-up reports only point back to it"
+      genie_ontology: "no: monitoring reports are not curated context"
+      graph: "no: free-text reports are not mapped"

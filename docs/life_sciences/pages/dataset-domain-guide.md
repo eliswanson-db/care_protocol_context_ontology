@@ -18,5 +18,7 @@ related_assets:
 
 Body weight is `silver_vs` where `VSTESTCD = 'WEIGHT'`: `VSORRES`/`VSORRESU` as collected (unit mapped
 to CT), `VSSTRESN` in kg, `VSDY` study day. Columns prefixed `CPL_` are demo extensions (raw unit, unit
-mapping status, MONDO/RxNorm codes, source record id). `gold_endpoint_candidate` keeps **every** weight
+mapping status, MONDO/RxNorm codes, source record id). Height is `silver_vs` where `VSTESTCD = 'HEIGHT'`, recorded once at screening, `VSSTRESN` in cm. BMI is not
+collected: it is calculated as weight (kg) / height (m)², from the screening weight (protocol 5.1).
+`gold_endpoint_candidate` keeps **every** weight
 observation per participant and rule version with its decision and reason, not just the winners.

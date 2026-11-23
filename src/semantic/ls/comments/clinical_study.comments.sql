@@ -55,10 +55,10 @@ COMMENT ON COLUMN {catalog}.clinical_study.gold_amendment_impact.endpoint_value_
 COMMENT ON COLUMN {catalog}.clinical_study.gold_amendment_impact.eligible_candidates_changed IS 'True if R2 admits additional eligible follow-up candidates.';
 COMMENT ON COLUMN {catalog}.clinical_study.gold_amendment_impact.explanation IS 'Plain-language reason for the change for this participant.';
 -- silver_vs
-COMMENT ON COLUMN {catalog}.clinical_study.silver_vs.VSTESTCD IS 'CDISC CT vital-signs test code (WEIGHT, HEIGHT, BMI, WSTCIR, SYSBP, DIABP, PULSE).';
+COMMENT ON COLUMN {catalog}.clinical_study.silver_vs.VSTESTCD IS 'CDISC CT vital-signs test code (WEIGHT, HEIGHT, WSTCIR, SYSBP, DIABP, PULSE). HEIGHT is recorded once, at screening. BMI is not collected; it is calculated as weight (kg) / height (m) squared.';
 COMMENT ON COLUMN {catalog}.clinical_study.silver_vs.VSORRES IS 'Result as collected.';
 COMMENT ON COLUMN {catalog}.clinical_study.silver_vs.VSORRESU IS 'Unit as collected, mapped to a CDISC CT VSRESU submission value (kg, LB, g, cm, in, mmHg, beats/min); unmapped raw units are kept as recorded.';
-COMMENT ON COLUMN {catalog}.clinical_study.silver_vs.VSSTRESN IS 'Numeric result in the standard unit (weight in kg: LB x 0.45359237, g x 0.001).';
+COMMENT ON COLUMN {catalog}.clinical_study.silver_vs.VSSTRESN IS 'Numeric result in the standard unit (weight in kg: LB x 0.45359237, g x 0.001; height and waist circumference in cm: in x 2.54).';
 COMMENT ON COLUMN {catalog}.clinical_study.silver_vs.VSDY IS 'Study day (no day 0).';
 COMMENT ON COLUMN {catalog}.clinical_study.silver_vs.CPL_OBS_ID IS 'Demo-extension observation id (USUBJID.VSTESTCD.VSSEQ).';
 COMMENT ON COLUMN {catalog}.clinical_study.silver_vs.CPL_RAW_UNIT IS 'Demo extension: the unit string exactly as keyed at the site.';

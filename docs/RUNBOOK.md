@@ -199,7 +199,7 @@ confirm-writes). All steps re-run on a fresh workspace.
 - 🤖 **Outside-provider letters** (per-patient, care-team only): `.venv/bin/python -I scripts/gen_outside_letters.py`
   writes `docs/care_protocol/corpus/letters/` from the data (a fixed ~3% sample of MY2026 EED-eligible patients). Re-run
   after a data regeneration, commit, then reload.
-- 🤖 **Clinical Study documents** (same tables, corpus `clinical_study`, access `study_team`): the 10 study
+- 🤖 **Clinical Study documents** (same tables, corpus `clinical_study`, access `study_team`): the 8 study
   documents in `docs/life_sciences/documents/corpus/` and the monitoring visit reports, written from the data by
   `.venv/bin/python -I scripts/gen_monitoring_reports.py` (one per site per visit: SIV, interim every 8 weeks,
   triggered visits from the late-Week-24 risk indicator). Re-run after an `ls_bootstrap` regeneration, commit, reload.

@@ -71,7 +71,7 @@ def test_membership_manifest_parses():
 def test_study_documents_load_as_their_own_corpus():
     # The Clinical Study lab's documents share the Lakebase tables but not the corpus: each demo searches its own.
     ls = rag.load_ls_docs(os.path.join(REPO, "docs/life_sciences/documents/corpus"))
-    assert len(ls) == 10, len(ls)
+    assert len(ls) == 8, len(ls)  # protocols, SAPs, Amendment 1, data spec, interpretation note
     assert {d["meta"]["corpus"] for d in ls} == {"clinical_study"}
     assert all(d["meta"]["patient_id"] is None and d["meta"]["access"] == ["study_team"] for d in ls)
     assert all(d["sections"] for d in ls), "every study document has sections"
