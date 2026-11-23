@@ -1,6 +1,6 @@
-# Life-sciences benchmark: the question set (docs/CONTEXT_LAB_PLAN.md §4b step 4; the HEDIS counterpart is
-# questions_v2.yaml). Drafted 2026-11-12, reviewed with Eli (decision 5, plus question 9 from the monitoring reports);
-# question 8 replaced on 2026-11-23 when the Amendment 3 draft was retired.
+# Life-sciences benchmark: the LOCKED question set (docs/CONTEXT_LAB_PLAN.md §4b step 4; the HEDIS counterpart is
+# questions_v2.yaml), locked 2026-11-23 by Eli. Drafted 2026-11-12, reviewed with Eli (decision 5, plus question 9
+# from the monitoring reports); question 8 replaced on 2026-11-23 when the Amendment 3 draft was retired.
 #
 # Real analyst questions; no approach is designed to win. `predictions` are what we expect each approach to do,
 # checked by the runs (step 5), not targets. Every question names the data cutoff, 2026-10-31. Gold answers are
