@@ -18,7 +18,8 @@ questions:
     question: "In CSL-A, what was the mean percent change in body weight from baseline to Week 24, by arm, under the protocol 2.0 rule (SAP v2.0), for data through 2026-10-31?"
     answer_type: set of (arm, mean)
     gold: lq1_wt24_by_arm
-    expected_facts: [PENDING]
+    expected_facts:
+      - "CSL-A, EP-A-WT24.R2 (SAP v2.0), full analysis set, data through 2026-10-31: CSL-101 10 mg −12.66% (2,410 participants with a derived result), placebo −2.30% (1,115)."
     facts: [LF01, LF02, LF03, LF05]
     predictions:
       metric_view: "exact: Mean Percent Change by Arm and Rule Version is a prebuilt governed measure"
@@ -31,7 +32,8 @@ questions:
     question: "Among CSL-A full-analysis-set participants with a baseline BMI of 35 or more, what was the mean percent change in body weight from baseline to Week 24, by arm, under the protocol 2.0 rule, for data through 2026-10-31?"
     answer_type: set of (arm, mean)
     gold: lq2_wt24_bmi35_by_arm
-    expected_facts: [PENDING]
+    expected_facts:
+      - "Baseline BMI ≥ 35 (893 CSL-101 and 405 placebo participants with a derived result): CSL-101 −12.74%, placebo −2.30%; baseline weight over screening height squared, EP-A-WT24.R2."
     facts: [LF01, LF05, LF07]
     predictions:
       metric_view: "no: BMI is not a dimension of any view"
@@ -44,7 +46,8 @@ questions:
     question: "How many randomized CSL-A participants (through 2026-10-31) have at least one weight-related comorbidity, as protocol 1.0 section 5.1 defines them, in their medical history?"
     answer_type: count
     gold: lq3_wrc_v1_randomized
-    expected_facts: [PENDING]
+    expected_facts:
+      - "3,123 of the 4,055 randomized CSL-A participants have at least one weight-related comorbidity under the protocol 1.0 definition (WRC-V1 roots and their subtrees, minus the three carve-outs)."
     facts: [LF08, LF09]
     predictions:
       metric_view: "no: no comorbidity dimension"
@@ -85,7 +88,8 @@ questions:
     question: "How many CSL-A participants started a medication the protocol prohibits (a GLP-1 receptor agonist or an appetite suppressant) on or after their first dose, through 2026-10-31, by arm?"
     answer_type: set of (arm, count)
     gold: lq6_prohibited_on_treatment_by_arm
-    expected_facts: [PENDING]
+    expected_facts:
+      - "Participants who started a prohibited medication on or after their first dose, through 2026-10-31: CSL-101 20, placebo 40."
     facts: [LF10, LF11]
     predictions:
       metric_view: "partial: Participants With Major Deviation by Arm counts all major deviations, not only medications"
@@ -95,11 +99,12 @@ questions:
       graph: "yes if medications, their MED-RT classes and dates are mapped (0b): drug → class multi-hop"
 
   - id: lq7
-    question: "Why was participant PENDING excluded from the CSL-A per-protocol set?"
+    question: "Why was participant CSL-A-103-0137 excluded from the CSL-A per-protocol set (data through 2026-10-31)?"
     answer_type: explanation with a path
     participant_rule: "the lowest CSL-A USUBJID in the FAS but not the PPS whose only major deviation is an eligibility violation, through an exclusionary-history term reached through the MONDO hierarchy (not the root itself)"
     gold: "data: gold_eligibility_criterion path for the participant (checked against silver_mh + mondo_closure)"
-    expected_facts: [PENDING]
+    expected_facts:
+      - "CSL-A-103-0137 (CSL-101, SITE-103) is in the full analysis set but not the per-protocol set because of a major eligibility violation: their medical history records acute pancreatitis (MONDO:0006515, 2016-02), which is_a pancreatitis (MONDO:0004982), a root of the exclusionary history (EXC-MH). The EDC marked them eligible, so they were randomized in error."
     facts: [LF05, LF09, LF12, LF13]
     predictions:
       metric_view: "no: the views count, they don't explain one participant"
@@ -112,7 +117,8 @@ questions:
     question: "How many CSL-A participants screened from 2025-10-27 through 2026-10-31 had a BMI of 27 to under 30 and met the BMI inclusion criterion only because Amendment 1 added obstructive sleep apnea as a weight-related comorbidity?"
     answer_type: count
     gold: lq8_osa_only_qualified
-    expected_facts: [PENDING]
+    expected_facts:
+      - "60 CSL-A participants screened from 2025-10-27 had a screening BMI of 27 to under 30, obstructive sleep apnea in their history and no weight-related comorbidity from the protocol 1.0 list: they met the BMI criterion only because of Amendment 1."
     facts: [LF04, LF07, LF08, LF13, LF14]
     predictions:
       metric_view: "no: no comorbidity dimension"
@@ -124,9 +130,9 @@ questions:
   - id: lq9
     question: "Why were SITE-118's Week 24 visits late, according to the monitoring visit reports through 2026-10-31?"
     answer_type: explanation
-    gold: "doc: PENDING (the monitoring visit report that records the root cause)"
+    gold: "doc: MVR-SITE-118-06 (triggered monitoring visit, 2025-09-18), section 6"
     expected_facts:
-      - "The site's visit-calculator spreadsheet computed the Week 24 visit as 25 weeks after first dose (study day 176) instead of study day 169, and visits were then booked into the next free research-clinic slot; recorded at the monitoring visit of 2025-09-18 (PENDING), with the site to book from the IRT visit calendar."
+      - "The site's visit-calculator spreadsheet computed the Week 24 visit as 25 weeks after first dose (study day 176) instead of study day 169, and visits were then booked into the next free research-clinic slot; recorded at the triggered monitoring visit of 2025-09-18, with the site to book from the IRT visit calendar."
     facts: [LF15]
     predictions:
       metric_view: "no: an explanation is not in any table"

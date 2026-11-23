@@ -20,7 +20,7 @@ SYNTHETIC DOCUMENT generated from the study data (scripts/gen_monitoring_reports
 
 ## 2 Enrolment status at the visit date
 
-- Screened: 284; screen failed: 71; randomized: 213
+- Screened: 284; screen failed: 70; randomized: 214
 - Completed treatment: 0; discontinued: 32 (adverse event 11, lost to follow-up 7, other 5, withdrawal by subject 9)
 
 ## 3 Visits since the previous monitoring visit

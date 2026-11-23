@@ -20,12 +20,12 @@ SYNTHETIC DOCUMENT generated from the study data (scripts/gen_monitoring_reports
 
 ## 2 Enrolment status at the visit date
 
-- Screened: 180; screen failed: 58; randomized: 122
+- Screened: 180; screen failed: 57; randomized: 123
 - Completed treatment: 0; discontinued: 16 (adverse event 5, lost to follow-up 6, other 1, withdrawal by subject 4)
 
 ## 3 Visits since the previous monitoring visit
 
-- Protocol visits conducted: 136; outside the protocol scheduling window: 10
+- Protocol visits conducted: 139; outside the protocol scheduling window: 10
   - CSL-A-128-0105 WEEK 20 on 2026-02-27: study day 145 (1 day after the window)
   - CSL-A-128-0169 WEEK 8 on 2026-02-28: study day 61 (1 day after the window)
   - CSL-A-128-0117 WEEK 20 on 2026-03-01: study day 136 (2 days before the window)

@@ -8,7 +8,7 @@
 -- independently against the SAP.
 
 -- @id: lq1_wt24_by_arm
--- class: ls_bench  min_approach: metric_view  expect: CSL101:-12.66,PBO:-2.31
+-- class: ls_bench  min_approach: metric_view  expect: CSL101:-12.66,PBO:-2.30
 -- holdout: LS benchmark question 1
 -- Mean percent change in body weight, baseline to Week 24, CSL-A full analysis set, rule EP-A-WT24.R2 (SAP v2.0),
 -- by arm, Week 24 weights dated on or before 2026-10-31.
@@ -22,7 +22,7 @@ FROM (SELECT p.ARMCD, avg(r.PCHG) AS m
       GROUP BY p.ARMCD);
 
 -- @id: lq2_wt24_bmi35_by_arm
--- class: ls_bench  min_approach: closure_sql  expect: CSL101:-12.66,PBO:-2.31
+-- class: ls_bench  min_approach: closure_sql  expect: CSL101:-12.74,PBO:-2.30
 -- holdout: LS benchmark question 2
 -- Same endpoint (EP-A-WT24.R2, CSL-A FAS) for participants whose baseline BMI is 35 or more: the endpoint's baseline
 -- weight (kg) over the screening height (m) squared. BMI is not a column anywhere; it has to be computed.
@@ -38,7 +38,7 @@ FROM (SELECT p.ARMCD, avg(r.PCHG) AS m
       GROUP BY p.ARMCD);
 
 -- @id: lq3_wrc_v1_randomized
--- class: ls_bench  min_approach: closure_sql  expect: 0
+-- class: ls_bench  min_approach: closure_sql  expect: 3123
 -- holdout: LS benchmark question 3
 -- Randomized CSL-A participants with at least one weight-related comorbidity as protocol 1.0 section 5.1 defines it
 -- (any MH term at or below a WRC-V1 root and not at or below a carve-out root; MONDO closure includes the root).
@@ -55,7 +55,7 @@ JOIN wrc ON wrc.code = mh.CPL_MONDO_ID
 WHERE dm.STUDYID = 'CSL-A' AND dm.CPL_RANDDT IS NOT NULL AND to_date(dm.CPL_RANDDT) <= DATE'2026-10-31';
 
 -- @id: lq6_prohibited_on_treatment_by_arm
--- class: ls_bench  min_approach: closure_sql  expect: CSL101:0,PBO:0
+-- class: ls_bench  min_approach: closure_sql  expect: CSL101:20,PBO:40
 -- holdout: LS benchmark question 6
 -- CSL-A dosed participants who started a prohibited medication on treatment (protocol section 6: a GLP-1 receptor
 -- agonist class member, or a drug whose MED-RT physiologic effect is Appetite Suppression), started on or after the
@@ -76,7 +76,7 @@ FROM (SELECT dm.ARMCD, count(DISTINCT hit.USUBJID) AS n FROM {catalog}.clinical_
       JOIN first_dose USING (USUBJID) LEFT JOIN hit USING (USUBJID) WHERE dm.STUDYID = 'CSL-A' GROUP BY dm.ARMCD);
 
 -- @id: lq8_osa_only_qualified
--- class: ls_bench  min_approach: closure_sql  expect: 0
+-- class: ls_bench  min_approach: closure_sql  expect: 60
 -- holdout: LS benchmark question 8
 -- CSL-A participants screened from 2025-10-27 (Amendment 1) who met the BMI inclusion criterion only because
 -- obstructive sleep apnea was added: BMI 27 to < 30 at screening, an MH term at or below OSA (MONDO:0007147), and no term in

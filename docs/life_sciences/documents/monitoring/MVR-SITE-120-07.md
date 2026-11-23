@@ -20,7 +20,7 @@ SYNTHETIC DOCUMENT generated from the study data (scripts/gen_monitoring_reports
 
 ## 2 Enrolment status at the visit date
 
-- Screened: 278; screen failed: 70; randomized: 181
+- Screened: 278; screen failed: 69; randomized: 182
 - Completed treatment: 0; discontinued: 12 (adverse event 3, lost to follow-up 2, other 2, withdrawal by subject 5)
 
 ## 3 Visits since the previous monitoring visit
@@ -51,7 +51,7 @@ SYNTHETIC DOCUMENT generated from the study data (scripts/gen_monitoring_reports
 
 ## 5 Source data verification
 
-- Eligibility and primary-endpoint (body weight) source data verified for 75 participants (randomized or with a Week 24 visit in the period).
+- Eligibility and primary-endpoint (body weight) source data verified for 76 participants (randomized or with a Week 24 visit in the period).
 
 ## 6 Findings and actions
 

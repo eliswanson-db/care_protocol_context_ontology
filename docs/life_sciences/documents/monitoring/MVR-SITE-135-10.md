@@ -20,12 +20,12 @@ SYNTHETIC DOCUMENT generated from the study data (scripts/gen_monitoring_reports
 
 ## 2 Enrolment status at the visit date
 
-- Screened: 276; screen failed: 85; randomized: 191
+- Screened: 276; screen failed: 84; randomized: 192
 - Completed treatment: 0; discontinued: 31 (adverse event 8, lost to follow-up 7, other 3, withdrawal by subject 13)
 
 ## 3 Visits since the previous monitoring visit
 
-- Protocol visits conducted: 125; outside the protocol scheduling window: 6
+- Protocol visits conducted: 127; outside the protocol scheduling window: 6
   - CSL-A-135-0229 WEEK 20 on 2026-04-09: study day 137 (1 day before the window)
   - CSL-A-135-0241 WEEK 20 on 2026-04-15: study day 145 (1 day after the window)
   - CSL-A-135-0270 WEEK 16 on 2026-04-20: study day 117 (1 day after the window)
@@ -39,11 +39,11 @@ SYNTHETIC DOCUMENT generated from the study data (scripts/gen_monitoring_reports
 
 ## 5 Source data verification
 
-- Eligibility and primary-endpoint (body weight) source data verified for 44 participants (randomized or with a Week 24 visit in the period).
+- Eligibility and primary-endpoint (body weight) source data verified for 45 participants (randomized or with a Week 24 visit in the period).
 
 ## 6 Findings and actions
 
-- 2 of 44 Week 24 visits outside the scheduling window; reviewed with the site, rescheduled individually (participant availability). No common cause.
+- 2 of 45 Week 24 visits outside the scheduling window; reviewed with the site, rescheduled individually (participant availability). No common cause.
 - 4 other visits outside the scheduling window; reminded the site of the visit windows.
 
 ## 7 Next visit

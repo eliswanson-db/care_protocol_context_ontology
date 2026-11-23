@@ -20,12 +20,12 @@ SYNTHETIC DOCUMENT generated from the study data (scripts/gen_monitoring_reports
 
 ## 2 Enrolment status at the visit date
 
-- Screened: 276; screen failed: 85; randomized: 191
+- Screened: 276; screen failed: 84; randomized: 192
 - Completed treatment: 20; discontinued: 37 (adverse event 12, lost to follow-up 7, other 5, withdrawal by subject 13)
 
 ## 3 Visits since the previous monitoring visit
 
-- Protocol visits conducted: 70; outside the protocol scheduling window: 0
+- Protocol visits conducted: 71; outside the protocol scheduling window: 0
 
 ## 4 Protocol deviations identified
 

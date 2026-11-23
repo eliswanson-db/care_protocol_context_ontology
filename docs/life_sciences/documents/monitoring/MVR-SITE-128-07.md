@@ -20,17 +20,18 @@ SYNTHETIC DOCUMENT generated from the study data (scripts/gen_monitoring_reports
 
 ## 2 Enrolment status at the visit date
 
-- Screened: 177; screen failed: 57; randomized: 103
+- Screened: 177; screen failed: 56; randomized: 104
 - Completed treatment: 0; discontinued: 10 (adverse event 3, lost to follow-up 3, withdrawal by subject 4)
 
 ## 3 Visits since the previous monitoring visit
 
-- Protocol visits conducted: 115; outside the protocol scheduling window: 5
+- Protocol visits conducted: 116; outside the protocol scheduling window: 6
   - CSL-A-128-0050 WEEK 20 on 2025-11-04: study day 145 (1 day after the window)
   - CSL-A-128-0095 WEEK 8 on 2025-11-08: study day 61 (1 day after the window)
   - CSL-A-128-0069 WEEK 16 on 2025-11-09: study day 117 (1 day after the window)
   - CSL-A-128-0075 WEEK 16 on 2025-11-23: study day 117 (1 day after the window)
   - CSL-A-128-0079 WEEK 16 on 2025-12-02: study day 117 (1 day after the window)
+  - CSL-A-128-0142 WEEK 4 on 2025-12-09: study day 24 (2 days before the window)
 
 ## 4 Protocol deviations identified
 
@@ -38,11 +39,11 @@ SYNTHETIC DOCUMENT generated from the study data (scripts/gen_monitoring_reports
 
 ## 5 Source data verification
 
-- Eligibility and primary-endpoint (body weight) source data verified for 45 participants (randomized or with a Week 24 visit in the period).
+- Eligibility and primary-endpoint (body weight) source data verified for 46 participants (randomized or with a Week 24 visit in the period).
 
 ## 6 Findings and actions
 
-- 5 other visits outside the scheduling window; reminded the site of the visit windows.
+- 6 other visits outside the scheduling window; reminded the site of the visit windows.
 
 ## 7 Next visit
 
