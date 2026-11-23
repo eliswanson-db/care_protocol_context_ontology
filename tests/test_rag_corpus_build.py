@@ -79,6 +79,25 @@ def test_study_documents_load_as_their_own_corpus():
     assert not {d["meta"]["doc_id"] for d in ls} & set(BY_ID), "document ids collide across demos"
 
 
+def test_monitoring_reports_are_consistent_with_the_study_timeline():
+    import datetime as dt
+    import re
+
+    mon = rag.load_ls_docs(os.path.join(REPO, "docs/life_sciences/documents/monitoring"))
+    assert len(mon) >= 500, len(mon)  # one per site per visit (scripts/gen_monitoring_reports.py)
+    assert {d["meta"]["corpus"] for d in mon} == {"clinical_study"}
+    assert all(d["meta"]["access"] == ["study_team"] for d in mon)
+    text = {d["meta"]["doc_id"]: open(d["path"], encoding="utf-8").read() for d in mon}
+    causes = sorted(k for k, t in text.items() if "Root cause (site interview)" in t)
+    # The systematic cause is recorded once, at the one site whose Week 24 visits are systematically late, and before
+    # Amendment 1 (which cites it) takes effect.
+    assert len(causes) == 1 and causes[0].startswith("MVR-SITE-118-"), causes
+    visit = re.search(r"^- Visit: .*, (\d{4}-\d{2}-\d{2})$", text[causes[0]], re.M).group(1)
+    amd1 = re.search(r'^effective_date: "([\d-]+)"', open(os.path.join(
+        REPO, "docs/life_sciences/documents/corpus/CSL-A-PROT-AMD1.md"), encoding="utf-8").read(), re.M).group(1)
+    assert dt.date.fromisoformat(visit) < dt.date.fromisoformat(amd1), (visit, amd1)
+
+
 if __name__ == "__main__":
     passed = 0
     for name, fn in sorted(globals().items()):
