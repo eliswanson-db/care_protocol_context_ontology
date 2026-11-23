@@ -1,7 +1,7 @@
 """ADR-0025 knowledge parity + governed documents (no workspace).
 
-- Every KB fact reaches the graph (a relationship view) AND the RAG reference corpus (an entry stating it).
-- Generated graph artifacts (TBox, R2RML, views, checklist) are up to date with graph_spec.py.
+- The Ontobricks mapping (hand-maintained OWL + R2RML) reads the real tables, maps every OWL class and every KB
+  predicate, and keeps Ontobricks' endpoint-by-column-name rule.
 - Documents agree with the executable rules; every review state is present; candidates never execute.
 
     python3 -I tests/test_ls_knowledge_parity.py   (or pytest)
@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import collections
 import copy
-import importlib.util
+import re
 import sys
 from pathlib import Path
 
@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from clinical_study import documents as docs_mod  # noqa: E402
-from clinical_study import engine, graph_spec  # noqa: E402
+from clinical_study import engine  # noqa: E402
 from clinical_study.standardize import load_named, load_registry  # noqa: E402
 
 CONCEPTS, EDGES = docs_mod.load_kb()
@@ -30,67 +30,79 @@ ASSERTIONS = docs_mod.apply_reviews(
 )
 
 
-def _gen():
-    spec = importlib.util.spec_from_file_location("ls_graph_build", ROOT / "scripts/ls_graph_build.py")
-    m = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(m)
-    return m
+OWL = ROOT / "src/ontology/life_sciences/clinical_study.owl.ttl"
+R2RML = ROOT / "src/ontology/life_sciences/clinical_study.r2rml.ttl"
+TPL = re.compile(r"/ontology/(\w+)/\{(\w+)\}$")
 
 
-def test_every_kb_fact_reaches_the_graph():
-    groups = graph_spec.kb_rel_groups(CONCEPTS, EDGES)
-    assert None not in {c for k in groups for c in k[1:]}, "a KB concept has no graph class"
-    assert set(groups) == set(graph_spec.KB_RELS), {
-        "missing_in_spec": set(groups) - set(graph_spec.KB_RELS),
-        "unused_in_spec": set(graph_spec.KB_RELS) - set(groups),
-    }
+def _maps() -> list[dict]:
+    """Every TriplesMap in the hand-maintained R2RML: subject class + id column, objects, logical-table SQL."""
+    import rdflib
+    from rdflib.namespace import RDF
+
+    rr = rdflib.Namespace("http://www.w3.org/ns/r2rml#")
+    g = rdflib.Graph().parse(R2RML)
+    out = []
+    for tm in g.subjects(RDF.type, rr.TriplesMap):
+        sm, lt = g.value(tm, rr.subjectMap), g.value(tm, rr.logicalTable)
+        cls, col = TPL.search(str(g.value(sm, rr.template))).groups()
+        objs = []
+        for pom in g.objects(tm, rr.predicateObjectMap):
+            t = g.value(g.value(pom, rr.objectMap), rr.template)
+            if t is not None:
+                objs.append(TPL.search(str(t)).groups())
+        out.append({"cls": cls, "col": col, "entity": g.value(sm, rr["class"]) is not None, "objs": objs,
+                    "table": g.value(lt, rr.tableName), "sql": str(g.value(lt, rr.sqlQuery) or "")})
+    return out
 
 
-def test_registry_rules_and_classes_reach_the_graph():
-    # RAG holds the study documents only (as for HEDIS); the registry's rules and classes reach the graph.
-    graph_rel_props = {r.prop for r in graph_spec.DATA_RELS}
-    assert {
-        "hasRoot",
-        "excludesRoot",
-        "hasCriterion",
-        "usesClass",
-        "derivedUnder",
-        "supportedBy",
-    } <= graph_rel_props
+def test_mapping_reads_the_real_tables_only():
+    """The HEDIS pattern: inline SQL over clinical_study / clinical_study_standards; no staging views, no metric
+    views (they abort the Ontobricks scan)."""
+    for m in _maps():
+        assert m["table"] is None and m["sql"], m["cls"]
+        schemas = set(re.findall(r"eli_test_classic_catalog\.(\w+)\.", m["sql"]))
+        assert schemas and schemas <= {"clinical_study", "clinical_study_standards"}, (m["cls"], schemas)
 
 
-def test_generated_graph_artifacts_are_current():
-    g = _gen()
-    out = ROOT / "src/ontology/life_sciences"
-    assert (out / "graph_views.sql").read_text() == g.views_sql(), "rerun scripts/ls_graph_build.py"
-    assert (out / "clinical_study.owl.ttl").read_text() == g.tbox(), "rerun scripts/ls_graph_build.py"
-    assert (out / "clinical_study.r2rml.ttl").read_text() == g.r2rml("eli_test_classic_catalog")
-    assert (ROOT / "docs/life_sciences/ONTOBRICKS_IMPORT.md").read_text() == g.checklist(
-        "eli_test_classic_catalog"
-    )
+def test_every_owl_class_has_an_entity_map():
+    import rdflib
+    from rdflib.namespace import OWL as O
+    from rdflib.namespace import RDF
+
+    classes = {str(c).rsplit("#", 1)[-1] for c in rdflib.Graph().parse(OWL).subjects(RDF.type, O.Class)
+               if isinstance(c, rdflib.URIRef)}
+    mapped = {m["cls"] for m in _maps() if m["entity"]}
+    assert classes == mapped, {"unmapped": classes - mapped, "not_in_owl": mapped - classes}
 
 
 def test_relationship_endpoints_resolve_by_column_name():
     """Ontobricks binds a relationship endpoint to the entity whose id column has the same NAME (HEDIS rev 2; the
-    first ClinicalStudyLab import failed all 72 relationships on generic source_id/target_id). So: every entity
-    has its own id column, and every relationship template uses its classes' id columns."""
-    import re
-
-    g = _gen()
-    ttl = g.r2rml("eli_test_classic_catalog")
-    ents = [c.name for c in graph_spec.CLASSES if c.sql is not None or c.attrs]
-    ids = {c: g.id_col(c) for c in ents}
+    first ClinicalStudyLab import failed all 72 relationships on generic source_id/target_id)."""
+    ms = _maps()
+    ids = {m["cls"]: m["col"] for m in ms if m["entity"]}
     assert len(set(ids.values())) == len(ids), "two entities share an id column"
-    for c, col in ids.items():
-        assert f'/{c}/{{{col}}}" ; rr:class' in ttl, c
-    attr_cols = {a.column for c in graph_spec.CLASSES for a in c.attrs}
-    assert not attr_cols & set(ids.values()), "an attribute column shadows an entity id column"
-    rel_maps = re.findall(r'ontology/(\w+)/\{(\w+)\}" \] ;\n.*?ontology/(\w+)/\{(\w+)\}" \] \] \.', ttl, re.DOTALL)
-    assert len(rel_maps) == len(g.all_rels())
-    for s, sc, o, oc in rel_maps:
-        assert sc == ids[s], (s, sc)
-        assert oc == (ids[o] if o != s else f"{g.snake(o)}_target_id"), (s, o, oc)
-    assert "source_id" not in ttl and "target_id}" not in ttl.replace("_target_id}", "")
+    for m in ms:
+        if m["entity"]:
+            continue
+        assert m["col"] == ids[m["cls"]], (m["cls"], m["col"])
+        for o, oc in m["objs"]:
+            want = ids[o] if o != m["cls"] else ids[o].removesuffix("_id") + "_target_id"
+            assert oc == want, (m["cls"], o, oc)
+
+
+def test_every_kb_fact_reaches_the_graph():
+    """Every knowledge-base predicate (MONDO, MED-RT, MeSH, CDISC CT, COSMoS edges) has a relationship map."""
+    sql = " ".join(m["sql"] for m in _maps())
+    used = {e["predicate"] if isinstance(e, dict) else e.predicate for e in EDGES}
+    missing = {p for p in used if f"e.predicate = '{p}'" not in sql}
+    assert not missing, missing
+
+
+def test_registry_rules_and_classes_reach_the_graph():
+    text = R2RML.read_text()
+    for prop in ("hasRoot", "excludesRoot", "hasCriterion", "usesClass", "derivedUnder", "supportedBy"):
+        assert f"/ontology/{prop}>" in text, prop
 
 
 def test_every_rule_cites_a_real_section_and_every_version_a_real_document():

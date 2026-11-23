@@ -23,8 +23,6 @@ line-length = 110
 [tool.ruff.lint.per-file-ignores]
 # Spec/template modules: long embedded SQL, Turtle templates and prose literals (generated output is what matters,
 # and it is checked by tests/test_ls_knowledge_parity.py). Code lines in these files are still formatted.
-"src/clinical_study/graph_spec.py" = ["E501"]
-"scripts/ls_graph_build.py" = ["E501"]
 "src/clinical_study/documents.py" = ["E501"]
 # Fixed, reviewed SQL statements (A6 tools, app routes) and generated Genie bodies: long SQL literals.
 "src/mcp/clinical_study_tools.py" = ["E501"]

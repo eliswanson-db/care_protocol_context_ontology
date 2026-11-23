@@ -309,12 +309,14 @@ answers fast and grounded, and leaves a lineage record Genie One can reason over
 
 Automated (bundle, ECT only): `ls_bootstrap` (generate data + everything) and `ls_context` (no data regeneration):
 standards + rule registry → closures → pipeline → gold oracle check → documents / RAG corpus / Pages staging →
-graph views (`clinical_study_graph`) + semantic validation (`clinical_study.dq_semantic_validation_summary`).
+semantic validation (`clinical_study.dq_semantic_validation_summary`). The Ontobricks mapping reads `clinical_study` and
+`clinical_study_standards` directly; check it live with `.venv/bin/python -I scripts/ls_graph_check.py`.
 
 1. ⚙ **Ontobricks (Eli, ADR-0005).** Follow `docs/life_sciences/ONTOBRICKS_IMPORT.md`:
-   - create a **new** project (not `clinicaldomain`);
+   - use the `ClinicalStudyLab` project (not `clinicaldomain`);
    - import `src/ontology/life_sciences/clinical_study.owl.ttl`, then `clinical_study.r2rml.ttl`;
-   - set source scope to `eli_test_classic_catalog.clinical_study_graph` only;
+   - set source scope to `eli_test_classic_catalog.clinical_study` + `eli_test_classic_catalog.clinical_study_standards`
+     (not `clinical_study_semantic`: metric views abort the scan);
    - publish, then send Claude the triplestore table name for verification.
    ⏳ Publishing builds the triplestore; check that it completed before verifying.
 2. 🤖 **Pages (ADR-0026).** Published by the Pages API: `databricks bundle run sync_pages -t ect --profile ECT`
@@ -331,7 +333,7 @@ read-only, to the app's own identity). Scripted: `.venv/bin/python -I scripts/gr
 ```
 GRANT USE CATALOG ON CATALOG eli_test_classic_catalog TO `<sp>`;
 GRANT USE SCHEMA, SELECT ON SCHEMA eli_test_classic_catalog.{care_protocol,care_protocol_semantic,care_protocol_terminology} TO `<sp>`;
-GRANT USE SCHEMA, SELECT ON SCHEMA eli_test_classic_catalog.{clinical_study,clinical_study_semantic,clinical_study_standards,clinical_study_graph} TO `<sp>`;
+GRANT USE SCHEMA, SELECT ON SCHEMA eli_test_classic_catalog.{clinical_study,clinical_study_semantic,clinical_study_standards} TO `<sp>`;
 GRANT READ VOLUME ON VOLUME eli_test_classic_catalog.care_protocol.documents TO `<sp>`;
 GRANT USE CATALOG ON CATALOG eswanson_demo TO `<sp>`;  GRANT USE SCHEMA, SELECT ON SCHEMA eswanson_demo.ontobricks TO `<sp>`;
 # (applied by scripts/grant_app_uc_reader.py; re-run it whenever eswanson_demo is recreated)

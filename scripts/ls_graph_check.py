@@ -1,8 +1,8 @@
-"""Check the life-sciences Ontobricks mapping against the live views before an import. Read-only.
+"""Check the life-sciences Ontobricks mapping against the live tables before an import. Read-only.
 
 Parses src/ontology/life_sciences/clinical_study.r2rml.ttl and, for every TriplesMap:
-  * entity maps:       the view exists, has rows, and its id column is unique;
-  * relationship maps: the view has rows, and every subject / object id resolves to an instance of the class its
+  * entity maps:       the map's SQL runs, returns rows, and its id column is unique;
+  * relationship maps: the SQL returns rows, and every subject / object id resolves to an instance of the class its
                        IRI template names (no dangling edge, which Ontobricks reports as "entity not found");
 and checks that every OWL class has an entity map (an unmapped class auto-binds to a leftover table: HEDIS rev 3/5).
 
@@ -45,7 +45,8 @@ def maps(g: rdflib.Graph) -> list[dict]:
             if t is not None:
                 ocls, ocol = TPL.search(str(t)).groups()
                 objs.append((str(g.value(pom, RR.predicate)).rsplit("/", 1)[-1], ocls, ocol))
-        out.append({"name": str(tm).rsplit("#", 1)[-1], "table": str(g.value(lt, RR.tableName)), "cls": cls,
+        out.append({"name": str(tm).rsplit("#", 1)[-1], "table": (str(g.value(lt, RR.tableName)) if g.value(lt, RR.tableName) is not None
+                              else f"({g.value(lt, RR.sqlQuery)})"), "cls": cls,
                     "col": scol, "entity": g.value(sm, RR["class"]) is not None, "objs": objs})
     return out
 

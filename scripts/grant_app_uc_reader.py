@@ -25,7 +25,7 @@ GRANTS: list[tuple[str, str, list[Privilege]]] = [
     ("catalog", LAB, [Privilege.USE_CATALOG]),
     *[("schema", f"{LAB}.{s}", READ) for s in (
         "care_protocol", "care_protocol_semantic", "care_protocol_terminology",
-        "clinical_study", "clinical_study_semantic", "clinical_study_standards", "clinical_study_graph",
+        "clinical_study", "clinical_study_semantic", "clinical_study_standards",
     )],
     ("volume", f"{LAB}.care_protocol.documents", [Privilege.READ_VOLUME]),
     ("catalog", ONTOBRICKS, [Privilege.USE_CATALOG]),

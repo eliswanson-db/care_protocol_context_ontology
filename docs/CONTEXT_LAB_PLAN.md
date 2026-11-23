@@ -50,7 +50,7 @@ None has to win. Each one's value and limits should be visible.
   25k patient rows). One test checks presence.
 - HEDIS: this is mostly a write-up of what the consistency audit already checks. Close the gaps it found that
   the questions need. In life sciences it replaces the heavy parity machinery:
-  - the graph-spec generator and the ~100 `clinical_study_graph` views;
+  - the graph-spec generator and the ~100 `clinical_study_graph` views (retired 2026-11-23, see step 0b);
   - the per-concept RAG reference entries.
 
 ## 3. Traces (3 per demo)
@@ -205,7 +205,7 @@ the pipeline and endpoint engine, the KB and closures, the 8 study documents, Pa
 | LS step | HEDIS counterpart | Work |
 |---|---|---|
 | 0a Population | Synthea + care_behavior; heroes picked by rule (`server/traces.py`) | Stop injecting the 29 named participants (FX-01..29) into the demo data. They stay as **engine unit-test inputs** (tests/fixtures), which is what fixtures are for. Demo heroes are picked from the generated data by stated rules. |
-| 0b Ontobricks | `care_protocol.r2rml.ttl` | **Reviewed and fixed, not rewritten (2026-11-23, Eli):** the existing OWL + R2RML (generated from `graph_spec.py` over the `clinical_study_graph` views) stay. Fixes: the two abstract classes without data are removed (HEDIS rev 3/5 auto-bind risk) and height observations are mapped (the protocol's BMI). `scripts/ls_graph_check.py` checks every map live: 32 entities, 75 relationships, no dangling edge. Then Eli imports and publishes. |
+| 0b Ontobricks | `care_protocol.r2rml.ttl`: maps over the real tables with inline `rr:sqlQuery` | **Done 2026-11-23:** the R2RML reads `clinical_study` + `clinical_study_standards` directly (inline SQL, as HEDIS). The generator (`graph_spec.py`, `ls_graph_build.py`) and the ~108 `clinical_study_graph` staging views are retired; the OWL and R2RML are hand-maintained. Fixes kept: abstract classes without data removed, height observations mapped. `scripts/ls_graph_check.py`: 32 entities, 75 relationships, no dangling edge. Then Eli imports and publishes. |
 | 1 Correctness | value sets by year, Step 3 > 9%, HEDIS GSD | Audit the endpoint and eligibility rules against the protocol/SAP documents and fix what disagrees. |
 | 2 Fact list | `hedis_facts.yaml` + `test_hedis_facts.py` | `ls_facts.yaml` + presence test; replaces the per-KB-fact parity machinery. |
 | 3 Traces | 3 traces in the Tracer tab | e.g. a raw EDC weight (lb) → SDTM VS (kg) → Week-24 endpoint; Amendment 1's window change → rule registry → recovered participants; an MH term → MONDO → closure → eligibility. |
@@ -225,7 +225,7 @@ Order: 0a, then 1–4 (the questions decide what the graph must hold), then 0b a
 - **Questions:** drop the trick ones (undefined-class refusal, vintage trick) from the benchmark.
 - **Life sciences:**
   - Replace the named edge-case fixtures (FX-01..29) with a realistic generated population.
-  - Map Ontobricks onto the real tables; flag the `clinical_study_graph` views and drop them only if you agree.
+  - Map Ontobricks onto the real tables (done 2026-11-23); the `clinical_study_graph` schema is retired and kept until you agree to drop it.
 
 ## 6. Manual steps (target)
 

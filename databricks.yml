@@ -97,9 +97,8 @@ targets:
           catalog_name: ${var.catalog}
           name: clinical_study_graph
           comment: >-
-            Ontobricks source scope for the Clinical Study lab: one view per graph class (e_*) and per relationship
-            (r_*), generated from src/clinical_study/graph_spec.py. Inputs and derived results only; eligibility and
-            population answers are deliberately absent so the graph has to derive them (ADR-0025). SYNTHETIC.
+            RETIRED 2026-11-23: held generated staging views for Ontobricks. The mapping now reads clinical_study and
+            clinical_study_standards directly (HEDIS pattern); nothing writes here. Kept until Eli decides to drop it.
         clinical_study_standards:
           catalog_name: ${var.catalog}
           name: clinical_study_standards
@@ -272,12 +271,11 @@ targets:
                 python_file: scripts/sync_pages.py
                 parameters: ["--demo", "life_sciences_clinical", "--catalog", "${var.catalog}", "--repo_dir", "${workspace.file_path}"]
               environment_key: ls
-            - task_key: graph_and_validation
+            - task_key: semantic_validation
               depends_on: [{task_key: verify_gold}, {task_key: load_documents}]
               spark_python_task:
                 python_file: scripts/ls_apply_sql.py
                 parameters: ["--catalog", "${var.catalog}",
-                             "--file", "${workspace.file_path}/src/ontology/life_sciences/graph_views.sql",
                              "--file", "${workspace.file_path}/src/clinical_study/sql/semantic_validation.sql"]
               environment_key: ls
           environments:
@@ -344,12 +342,11 @@ targets:
                 python_file: scripts/sync_pages.py
                 parameters: ["--demo", "life_sciences_clinical", "--catalog", "${var.catalog}", "--repo_dir", "${workspace.file_path}"]
               environment_key: ls
-            - task_key: graph_and_validation
+            - task_key: semantic_validation
               depends_on: [{task_key: verify_gold}, {task_key: load_documents}]
               spark_python_task:
                 python_file: scripts/ls_apply_sql.py
                 parameters: ["--catalog", "${var.catalog}",
-                             "--file", "${workspace.file_path}/src/ontology/life_sciences/graph_views.sql",
                              "--file", "${workspace.file_path}/src/clinical_study/sql/semantic_validation.sql"]
               environment_key: ls
           environments:
