@@ -21,6 +21,9 @@
 #     docs/graph but intentionally unmapped; wire them when value-set / rule data is generated.
 # =====================================================================================
 
+# rev 9 (2026-11-24): cp:subClassOf declared for the ICD-10 is-a; the unused cp:status / cp:measurementYear removed (the
+# measure maps they served are now eligibleFor / hasCareGap). Checked with scripts/ontobricks_dry_run.py.
+
 <https://care-protocol.example/ontology> a owl:Ontology ;
     rdfs:label "Care Protocol Ontology" ;
     rdfs:comment "HEDIS diabetes measures + clinical terminology + care-protocol knowledge. Synthetic/demo." .
@@ -84,6 +87,7 @@ cp:monitoredBy        a owl:ObjectProperty ; rdfs:domain cp:Measure ;   rdfs:ran
 cp:contains           a owl:ObjectProperty ; rdfs:domain cp:ValueSet .                              # range: Condition / LabTest / Medication (coded members)
 cp:definedBy          a owl:ObjectProperty ; rdfs:domain cp:ValueSet ;  rdfs:range cp:Threshold .   # e.g. ALBUMINURIA definedBy uACR>=30
 cp:hasThreshold       a owl:ObjectProperty ; rdfs:domain cp:Measure ;   rdfs:range cp:Threshold .   # e.g. GSD a1c<8 good / >9 poor; BPD <140/90
+cp:subClassOf         a owl:ObjectProperty ; rdfs:domain cp:Condition ; rdfs:range cp:Condition .  # ICD-10 is-a (icd10_hier)
 cp:appliesTo          a owl:ObjectProperty ; rdfs:domain cp:Threshold ; rdfs:range cp:LoincPart .  # e.g. eGFR_LT_30 appliesTo LP-EGFR (compare with that lab)
 
 # `inDrugClass` is transitive-friendly: Medication -hasIngredient-> Ingredient -inDrugClass-> DrugClass.
@@ -94,13 +98,12 @@ cp:icd10Code        a owl:DatatypeProperty ; rdfs:domain cp:Condition ;   rdfs:r
 cp:loincCode        a owl:DatatypeProperty ; rdfs:domain cp:LabTest ;     rdfs:range xsd:string .
 cp:rxnormCode       a owl:DatatypeProperty ; rdfs:domain cp:Medication ;  rdfs:range xsd:string .
 cp:resultValue      a owl:DatatypeProperty ; rdfs:domain cp:Observation ; rdfs:range xsd:double .
-cp:status           a owl:DatatypeProperty ; rdfs:range xsd:string .   # MET / NOT_MET (measure result)
 cp:ageAtPeriodEnd   a owl:DatatypeProperty ; rdfs:domain cp:Patient ;     rdfs:range xsd:integer .
-cp:measurementYear  a owl:DatatypeProperty ; rdfs:range xsd:integer .
 cp:thresholdValue   a owl:DatatypeProperty ; rdfs:domain cp:Threshold ;   rdfs:range xsd:double .   # numeric cutoff (30, 140, 8, ...)
 cp:valueSetId       a owl:DatatypeProperty ; rdfs:domain cp:ValueSet ;    rdfs:range xsd:string .   # the value-set / cohort id (segment_id)
 
-# ICD-10 is-a lives on rdfs:subClassOf among Condition concepts (mapped from icd10_hier).
+# ICD-10 is-a is cp:subClassOf among Condition concepts (mapped from icd10_hier). rev 9: not rdfs:subClassOf, which is
+# not an ontology property, so Ontobricks warns on it; the published predicate is .../ontology/subClassOf either way.
 # NOTE: the closure (icd10_closure) is the SQL materialization of subClassOf*; here a reasoner derives it.
 # Edge qualifiers (protocol_edges.value, e.g. a monitoring threshold) are NOT modeled: they need edge
 # reification, which R2RML can't emit cleanly. They stay in the relational/closure layer for now.

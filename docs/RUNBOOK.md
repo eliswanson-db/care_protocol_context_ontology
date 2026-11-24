@@ -317,6 +317,7 @@ semantic validation (`clinical_study.dq_semantic_validation_summary`). The Ontob
    - import `src/ontology/life_sciences/clinical_study.owl.ttl`, then `clinical_study.r2rml.ttl`;
    - set source scope to `eli_test_classic_catalog.clinical_study` + `eli_test_classic_catalog.clinical_study_standards`
      (not `clinical_study_semantic`: metric views abort the scan);
+   - before importing, Claude runs `scripts/ontobricks_dry_run.py` (Ontobricks' own diagnostics on the files; must be clean);
    - publish, then send Claude the triplestore table name for verification.
    ⏳ Publishing builds the triplestore; check that it completed before verifying.
 2. 🤖 **Pages (ADR-0026).** Published by the Pages API: `databricks bundle run sync_pages -t ect --profile ECT`

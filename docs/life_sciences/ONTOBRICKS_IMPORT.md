@@ -24,7 +24,10 @@ name. A same-class edge (Disease subClassOf Disease) uses `<class>_target_id` fo
 
 ## Before importing
 
-`.venv/bin/python -I scripts/ls_graph_check.py` runs every map's SQL on ECT. It checks that each map returns rows,
+`.venv/bin/python -I scripts/ontobricks_dry_run.py --owl src/ontology/life_sciences/clinical_study.owl.ttl --r2rml
+src/ontology/life_sciences/clinical_study.r2rml.ttl` checks the pair with Ontobricks itself: its own parse and
+Mapping -> Diagnostics in a temporary session (nothing saved, no domain opened), plus each parsed query's row count on
+ECT. 2026-11-24: 124/124 OK. `.venv/bin/python -I scripts/ls_graph_check.py` also runs every map's SQL on ECT. It checks that each map returns rows,
 that entity ids are unique, and that every relationship endpoint resolves (no dangling edge). Last run on
 2026-11-23: 0 problems.
 
@@ -52,5 +55,5 @@ If the importer rejects or rewrites a map, send Claude the error. The map ids sa
 **Open: the domain still holds the previous ontology** (it has `KnowledgeConcept`, `DrugConcept` and the union
 domains/ranges, and no `HeightObservation`). That is the source of the 26 diagnostics warnings and of the 3,257 extra
 `rdf:type` triples on those two abstract classes. The data is right; only the TBox is stale. To replace it, use the
-plain ontology **Import** (not merge: a merge skips duplicates and keeps removed classes). If the UI only merges, use
-**Reset ontology**, import the OWL, then re-import the R2RML (a reset also clears the mappings). Rebuild and publish.
+ontology **Import** in **Replace** mode (Append merges: it skips duplicates and keeps removed classes). Then rebuild and
+publish; Mapping -> Diagnostics should read 124/124 (the dry run's result).

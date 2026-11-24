@@ -3,329 +3,251 @@
 @prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
-# 2026-11-06 rev 7 -- names + typed drug relationships (after the closure review):
-#   * rdfs:label on every Condition (ICD name), Medication (hierarchy name or order description), Ingredient,
-#     DrugClass and ValueSet, so "metformin" / "kidney complications" resolve to graph nodes by name;
-#   * rxnorm_hier.relationship splits the drug edges: class_member -> cp:inDrugClass for EVERY class (was statins
-#     only, via rxnorm_statin), ingredient_of -> cp:hasIngredient (class->ingredient rows were mis-mapped as
-#     hasIngredient);
-#   * icd10_hier is a DAG now (E11.22 has two parents), which IcdSubClassMap emits as two subClassOf edges.
-# Republish the Ontobricks graph to pick these up (manual; ADR-0005).
 # =====================================================================================
-# R2RML mappings: Unity Catalog tables -> Care Protocol Ontology (care_protocol.owl.ttl).
-# Logical tables name UC tables as catalog.schema.table — adjust connector/quoting to what
-# your Ontobricks deployment expects (standard R2RML rr:tableName/rr:sqlQuery).
+# R2RML mappings: Unity Catalog tables -> Care Protocol Ontology (care_protocol.owl.ttl). This file IS the HEDIS graph:
+# Eli imports it into the Ontobricks project `clinicaldomain` (replacing the project mapping) and publishes.
 #
-# 2026-10-30 rev 2 — fixes the SECOND Ontobricks pass (18 pass / 13 err). The validator
-# resolves a relationship endpoint to an entity by its ID COLUMN NAME, which must map to
-# exactly ONE entity (and one IRI prefix). The three that resolved first time each owned a
-# unique, prefix-matched column (patient_id, loinc_code, drug_class). The failures collided:
-#   - `code`        used by both Condition (icd/{code}) AND Medication (rx/{code})  -> ambiguous
-#   - `parent_code` used by both the ICD is-a edge (icd/) AND RxNorm (rx/)           -> ambiguous
-#   - the `rx/` prefix hosted TWO entities (Medication + Ingredient)                 -> ambiguous
-# This rev enforces TWO invariants so every entity looks like the three that worked:
-#   (A) ONE entity per IRI prefix        -> Ingredient moves to its own prefix `ing/`.
-#   (B) ONE unique id column per entity  -> every subject/endpoint column is aliased to a
-#       prefix-qualified name used identically everywhere:
-#         patient_id · icd_code · icd_parent · loinc_code · part_code · rx_code · ing_code
-#         · drug_class · measure_id · obs_id
-#       so each column name maps to exactly one entity/prefix (no collisions).
-#
-# IRI scheme (prefix -> entity -> id column):
-#   patient/{patient_id}=Patient   icd/{icd_code}=Condition   loinc/{loinc_code}=LabTest
-#   part/{part_code}=LoincPart     rx/{rx_code}=Medication    ing/{ing_code}=Ingredient
-#   drugclass/{drug_class}=DrugClass   measure/{measure_id}=Measure   obs/{obs_id}=Observation
+# rev 9 (2026-11-24): rewritten so it imports cleanly, the life-sciences pattern (clinical_study.r2rml.ttl):
+#   * IRIs are https://care-protocol.example/ontology/<Class>/{id}, the form Ontobricks publishes. A relationship
+#     endpoint resolves to an entity only when its IRI segment is the class name, so the old segments (icd/, obs/,
+#     loinc/, part/, rx/, ing/) are now Condition/, Observation/, LabTest/, LoincPart/, Medication/, Ingredient/.
+#     Before, unresolved edges kept the old segment while the entity's own facts sat on the class-named IRI, so
+#     the graph was split (e.g. resultValue on Observation/..., hasObservation pointing at obs/...).
+#   * one id column per class (patient_id, icd_code, loinc_code, part_code, rx_code, ing_code, drug_class, vs_id,
+#     thr, measure_id, obs_id; the Condition subclasses dm_code, ckd_code, hf_code, preg_code, hep_code), reused
+#     verbatim at every relationship endpoint; a same-class edge's target is icd_parent;
+#   * every column a map uses is named in its SELECT (Ontobricks reads the SQL text and doesn't expand *);
+#   * one map per (source class, property, target class): Ontobricks keeps one relationship per signature, so the
+#     earlier five per-measure maps collapsed into one that read GSD only;
+#   * ICD-10 is-a uses cp:subClassOf (rdfs:subClassOf is not an ontology property, so Ontobricks warns on it);
+#   * the Condition subclasses are entities over icd10_closure, so nothing in the OWL is left for Ontobricks to
+#     auto-bind (v5 bound Pregnancy to encounter rows).
+# Source scope: care_protocol + care_protocol_terminology. NOT care_protocol_semantic (metric views abort the scan).
+# Check before every import: .venv/bin/python -I scripts/ontobricks_dry_run.py --owl src/ontology/care_protocol.owl.ttl
+#   --r2rml src/ontology/care_protocol.r2rml.ttl   (Ontobricks' own parse + diagnostics, plus row counts on ECT)
 # =====================================================================================
-
-# =====================================================================================
-# ENTITY MAPS (subjectMap + rr:class) — one per node type, each with a unique id column.
-# =====================================================================================
-
-# ---- Patient ----
+# ---- Entities: one per class, each with its own id column ----
 <#PatientEntity> a rr:TriplesMap ;
-  rr:logicalTable [ rr:tableName "eli_test_classic_catalog.care_protocol.bronze_patient" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/patient/{patient_id}" ; rr:class cp:Patient ] .
+  rr:logicalTable [ rr:sqlQuery "SELECT p.patient_id, p.patient_id AS patient_label, r.age FROM eli_test_classic_catalog.care_protocol.bronze_patient p LEFT JOIN eli_test_classic_catalog.care_protocol.panel_roster r ON r.patient_id = p.patient_id" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/Patient/{patient_id}" ; rr:class cp:Patient ] ;
+  rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "patient_label" ] ] ;
+  rr:predicateObjectMap [ rr:predicate cp:ageAtPeriodEnd ; rr:objectMap [ rr:column "age" ] ] .
 
-# ---- Condition (ICD-10 concept) — icd/{icd_code}, carries icd10Code ----
 <#ConditionEntity> a rr:TriplesMap ;
   rr:logicalTable [ rr:sqlQuery "SELECT code AS icd_code, MAX(name) AS icd_name FROM eli_test_classic_catalog.care_protocol_terminology.icd10_hier WHERE code IS NOT NULL GROUP BY code" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/icd/{icd_code}" ; rr:class cp:Condition ] ;
-  rr:predicateObjectMap [ rr:predicate cp:icd10Code ; rr:objectMap [ rr:column "icd_code" ] ] ;
-  rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "icd_name" ] ] .
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/Condition/{icd_code}" ; rr:class cp:Condition ] ;
+  rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "icd_name" ] ] ;
+  rr:predicateObjectMap [ rr:predicate cp:icd10Code ; rr:objectMap [ rr:column "icd_code" ] ] .
 
-# ---- LabTest (LOINC term) — loinc/{loinc_code}, carries loincCode ----
+<#DiabetesDiagnosisEntity> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT descendant_code AS dm_code, MAX(descendant_name) AS dm_code_name FROM eli_test_classic_catalog.care_protocol_terminology.icd10_closure WHERE ancestor_code IN ('E10','E11','E13') GROUP BY descendant_code" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/DiabetesDiagnosis/{dm_code}" ; rr:class cp:DiabetesDiagnosis ] ;
+  rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "dm_code_name" ] ] ;
+  rr:predicateObjectMap [ rr:predicate cp:icd10Code ; rr:objectMap [ rr:column "dm_code" ] ] .
+
+<#ChronicKidneyDiseaseEntity> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT descendant_code AS ckd_code, MAX(descendant_name) AS ckd_code_name FROM eli_test_classic_catalog.care_protocol_terminology.icd10_closure WHERE ancestor_code = 'N18' GROUP BY descendant_code" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/ChronicKidneyDisease/{ckd_code}" ; rr:class cp:ChronicKidneyDisease ] ;
+  rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "ckd_code_name" ] ] ;
+  rr:predicateObjectMap [ rr:predicate cp:icd10Code ; rr:objectMap [ rr:column "ckd_code" ] ] .
+
+<#HeartFailureEntity> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT descendant_code AS hf_code, MAX(descendant_name) AS hf_code_name FROM eli_test_classic_catalog.care_protocol_terminology.icd10_closure WHERE ancestor_code = 'I50' GROUP BY descendant_code" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/HeartFailure/{hf_code}" ; rr:class cp:HeartFailure ] ;
+  rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "hf_code_name" ] ] ;
+  rr:predicateObjectMap [ rr:predicate cp:icd10Code ; rr:objectMap [ rr:column "hf_code" ] ] .
+
+<#PregnancyEntity> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT descendant_code AS preg_code, MAX(descendant_name) AS preg_code_name FROM eli_test_classic_catalog.care_protocol_terminology.icd10_closure WHERE ancestor_code IN ('Z34','O26','O15','O00') GROUP BY descendant_code" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/Pregnancy/{preg_code}" ; rr:class cp:Pregnancy ] ;
+  rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "preg_code_name" ] ] ;
+  rr:predicateObjectMap [ rr:predicate cp:icd10Code ; rr:objectMap [ rr:column "preg_code" ] ] .
+
+<#HepaticDiseaseEntity> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT descendant_code AS hep_code, MAX(descendant_name) AS hep_code_name FROM eli_test_classic_catalog.care_protocol_terminology.icd10_closure WHERE ancestor_code IN ('K70','K74') GROUP BY descendant_code" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/HepaticDisease/{hep_code}" ; rr:class cp:HepaticDisease ] ;
+  rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "hep_code_name" ] ] ;
+  rr:predicateObjectMap [ rr:predicate cp:icd10Code ; rr:objectMap [ rr:column "hep_code" ] ] .
+
 <#LabTestEntity> a rr:TriplesMap ;
-  rr:logicalTable [ rr:tableName "eli_test_classic_catalog.care_protocol_terminology.loinc" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/loinc/{loinc_code}" ; rr:class cp:LabTest ] ;
+  rr:logicalTable [ rr:sqlQuery "SELECT loinc_code, long_common_name AS loinc_name FROM eli_test_classic_catalog.care_protocol_terminology.loinc WHERE loinc_code IS NOT NULL" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/LabTest/{loinc_code}" ; rr:class cp:LabTest ] ;
+  rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "loinc_name" ] ] ;
   rr:predicateObjectMap [ rr:predicate cp:loincCode ; rr:objectMap [ rr:column "loinc_code" ] ] .
 
-# ---- LoincPart — part/{part_code}. Distinct Part values across all axes get typed here. ----
 <#LoincPartEntity> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT DISTINCT part AS part_code FROM eli_test_classic_catalog.care_protocol_terminology.loinc_parts WHERE part IS NOT NULL" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/part/{part_code}" ; rr:class cp:LoincPart ] .
+  rr:logicalTable [ rr:sqlQuery "SELECT part AS part_code, MAX(part_name) AS part_name FROM eli_test_classic_catalog.care_protocol_terminology.loinc_parts WHERE part IS NOT NULL GROUP BY part" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/LoincPart/{part_code}" ; rr:class cp:LoincPart ] ;
+  rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "part_name" ] ] .
 
-# ---- Medication (RxNorm clinical drug) — rx/{rx_code}. Descendants in rxnorm_hier are drugs. ----
 <#MedicationEntity> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT rx_code, MAX(rx_name) AS rx_name FROM (SELECT code AS rx_code, name AS rx_name FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE relationship = 'ingredient_of' UNION ALL SELECT rxnorm_code, description FROM eli_test_classic_catalog.care_protocol.bronze_order_med WHERE rxnorm_code IS NOT NULL) m GROUP BY rx_code" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/rx/{rx_code}" ; rr:class cp:Medication ] ;
-  rr:predicateObjectMap [ rr:predicate cp:rxnormCode ; rr:objectMap [ rr:column "rx_code" ] ] ;
-  rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "rx_name" ] ] .
+  rr:logicalTable [ rr:sqlQuery "SELECT rx_code, MAX(rx_name) AS rx_name FROM (SELECT code AS rx_code, name AS rx_name FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE relationship = 'ingredient_of' UNION ALL SELECT rxnorm_code AS rx_code, description AS rx_name FROM eli_test_classic_catalog.care_protocol.bronze_order_med WHERE rxnorm_code IS NOT NULL) m GROUP BY rx_code" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/Medication/{rx_code}" ; rr:class cp:Medication ] ;
+  rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "rx_name" ] ] ;
+  rr:predicateObjectMap [ rr:predicate cp:rxnormCode ; rr:objectMap [ rr:column "rx_code" ] ] .
 
-# ---- Ingredient (RxNorm ingredient) — ing/{ing_code}, its OWN prefix (not rx/). ----
-# Parents in rxnorm_hier are ingredients; keeping them on a separate prefix stops the
-# Medication/Ingredient prefix collision that failed every rx/ endpoint last pass.
 <#IngredientEntity> a rr:TriplesMap ;
   rr:logicalTable [ rr:sqlQuery "SELECT code AS ing_code, MAX(name) AS ing_name FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE relationship = 'class_member' GROUP BY code" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/ing/{ing_code}" ; rr:class cp:Ingredient ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/Ingredient/{ing_code}" ; rr:class cp:Ingredient ] ;
   rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "ing_name" ] ] .
 
-# ---- DrugClass — drugclass/{drug_class}. Every DRUGCLASS-* node in protocol_edges (rev 6: robust
-#      prefix match; the old UNION missed classes that only appear in firstLineFor/contraindicatedWhen). ----
 <#DrugClassEntity> a rr:TriplesMap ;
   rr:logicalTable [ rr:sqlQuery "SELECT code AS drug_class, MAX(name) AS drug_class_name FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE code LIKE 'DRUGCLASS-%' GROUP BY code" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/drugclass/{drug_class}" ; rr:class cp:DrugClass ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/DrugClass/{drug_class}" ; rr:class cp:DrugClass ] ;
   rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "drug_class_name" ] ] .
 
-# ---- ValueSet — valueset/{vs_id}. rev 6 (ADR-0014): the population a guideline targets. Unifies
-#      (a) curated value sets in value_set_segment (COMORBID_CKD, CONTRA_PREGNANCY, ...) and
-#      (b) protocol cohort ids used as recommendedFor/contraindicatedWith/firstLineFor objects or
-#      defined via protocol_edges.definedBy (ALBUMINURIA, GLYCEMIC). SPD is NOT a ValueSet (it is a
-#      Measure) so it is excluded here and handled by RecommendedForSpdMap -> measure/. ----
 <#ValueSetEntity> a rr:TriplesMap ;
   rr:logicalTable [ rr:sqlQuery "SELECT v.vs_id, COALESCE(MAX(s.segment_name), v.vs_id) AS vs_name FROM (SELECT segment_id AS vs_id FROM eli_test_classic_catalog.care_protocol_terminology.value_set_segment UNION SELECT object AS vs_id FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE predicate IN ('recommendedFor','contraindicatedWith','firstLineFor') UNION SELECT subject AS vs_id FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE predicate = 'definedBy') v LEFT JOIN eli_test_classic_catalog.care_protocol_terminology.value_set_segment s ON s.segment_id = v.vs_id WHERE v.vs_id <> 'SPD' GROUP BY v.vs_id" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/valueset/{vs_id}" ; rr:class cp:ValueSet ] ;
-  rr:predicateObjectMap [ rr:predicate cp:valueSetId ; rr:objectMap [ rr:column "vs_id" ] ] ;
-  rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "vs_name" ] ] .
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/ValueSet/{vs_id}" ; rr:class cp:ValueSet ] ;
+  rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "vs_name" ] ] ;
+  rr:predicateObjectMap [ rr:predicate cp:valueSetId ; rr:objectMap [ rr:column "vs_id" ] ] .
 
-# ---- Threshold — threshold/{thr}. rev 6 (ADR-0014): the clinical decision cutoffs that carry the
-#      renal-dosing / glycemic-band knowledge (contraindicatedWhen, definedBy, hasThreshold objects),
-#      with the numeric value as cp:thresholdValue. ----
 <#ThresholdEntity> a rr:TriplesMap ;
   rr:logicalTable [ rr:sqlQuery "SELECT object AS thr, MAX(value) AS thr_value FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE predicate IN ('contraindicatedWhen','definedBy','hasThreshold') GROUP BY object" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/threshold/{thr}" ; rr:class cp:Threshold ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/Threshold/{thr}" ; rr:class cp:Threshold ] ;
   rr:predicateObjectMap [ rr:predicate cp:thresholdValue ; rr:objectMap [ rr:column "thr_value" ] ] .
 
-# ---- Measure (HEDIS measure) — measure/{measure_id}. The six measures with patient results in the graph. ----
 <#MeasureEntity> a rr:TriplesMap ;
   rr:logicalTable [ rr:sqlQuery "SELECT 'GSD' AS measure_id UNION SELECT 'BPD' UNION SELECT 'KED' UNION SELECT 'EED' UNION SELECT 'SPD' UNION SELECT 'MAD'" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/measure/{measure_id}" ; rr:class cp:Measure ] .
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/Measure/{measure_id}" ; rr:class cp:Measure ] .
 
-# ---- Observation — obs/{obs_id}. Surrogate key includes loinc_code so a multi-analyte panel
-#      at one timestamp stays unique (patient_id + loinc_code + result_ts). ----
 <#ObservationEntity> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT patient_id, loinc_code, value_num, CONCAT_WS('_', patient_id, loinc_code, CAST(result_ts AS STRING)) AS obs_id FROM eli_test_classic_catalog.care_protocol.silver_observation WHERE loinc_code IS NOT NULL" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/obs/{obs_id}" ; rr:class cp:Observation ] ;
-  rr:predicateObjectMap [ rr:predicate cp:ofTest ;      rr:objectMap [ rr:template "https://care-protocol.example/loinc/{loinc_code}" ] ] ;
+  rr:logicalTable [ rr:sqlQuery "SELECT CONCAT_WS('_', patient_id, loinc_code, CAST(result_ts AS STRING)) AS obs_id, value_num FROM eli_test_classic_catalog.care_protocol.silver_observation WHERE loinc_code IS NOT NULL" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/Observation/{obs_id}" ; rr:class cp:Observation ] ;
   rr:predicateObjectMap [ rr:predicate cp:resultValue ; rr:objectMap [ rr:column "value_num" ] ] .
 
-# =====================================================================================
-# CLASS MEMBERSHIP (OWL subclass typing) — 2026-11-02 rev 5.
-# The five Condition subclasses (DiabetesDiagnosis/ChronicKidneyDisease/HeartFailure/
-# Pregnancy/HepaticDisease) were declared in the OWL (rdfs:subClassOf cp:Condition) but had
-# NO mapping, so Ontobricks auto-bound them to discovered tables — and the leftover tables were
-# the *_compliance_metrics METRIC VIEWS, whose plain SELECT throws METRIC_VIEW_MISSING_MEASURE_
-# FUNCTION and ABORTS the entity scan. With only the first entity (Patient) registered, every
-# later relationship endpoint (icd/loinc/obs/...) then reported "entity not found". (Same root
-# cause rev 3 fixed for ValueSet/ProtocolRule; these five were missed.)
-#
-# Fix: type the EXISTING icd/{icd_code} IRIs into each subclass via an explicit rdf:type triple,
-# with member codes drawn from icd10_closure (transitive, so E11 -> E11.21 etc. are included).
-# These are NOT entity maps — NO rr:class / NO new prefix / NO new id column — so they do not
-# reintroduce the rev-2 collision on the icd_code endpoint (Condition stays the sole entity on
-# icd/). Because each class now appears in a TriplesMap bound to a real table, Ontobricks should
-# no longer auto-bind it to a metric view. Roots match the repo's own value sets (COMORBID_CKD=N18,
-# COMORBID_HF=I50, CONTRA_PREGNANCY=Z34/O26/O15/O00, CONTRA_HEPATIC=K70/K74, diabetes=E10/E11/E13).
-# These memberships are also what the class-8 benchmark golds reason over (ground_truth.yaml:201,211).
-# =====================================================================================
-
-<#DiabetesDiagnosisType> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT DISTINCT descendant_code AS icd_code FROM eli_test_classic_catalog.care_protocol_terminology.icd10_closure WHERE ancestor_code IN ('E10','E11','E13')" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/icd/{icd_code}" ] ;
-  rr:predicateObjectMap [ rr:predicate rdf:type ; rr:objectMap [ rr:constant cp:DiabetesDiagnosis ] ] .
-
-<#ChronicKidneyDiseaseType> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT DISTINCT descendant_code AS icd_code FROM eli_test_classic_catalog.care_protocol_terminology.icd10_closure WHERE ancestor_code = 'N18'" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/icd/{icd_code}" ] ;
-  rr:predicateObjectMap [ rr:predicate rdf:type ; rr:objectMap [ rr:constant cp:ChronicKidneyDisease ] ] .
-
-<#HeartFailureType> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT DISTINCT descendant_code AS icd_code FROM eli_test_classic_catalog.care_protocol_terminology.icd10_closure WHERE ancestor_code = 'I50'" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/icd/{icd_code}" ] ;
-  rr:predicateObjectMap [ rr:predicate rdf:type ; rr:objectMap [ rr:constant cp:HeartFailure ] ] .
-
-<#PregnancyType> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT DISTINCT descendant_code AS icd_code FROM eli_test_classic_catalog.care_protocol_terminology.icd10_closure WHERE ancestor_code IN ('Z34','O26','O15','O00')" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/icd/{icd_code}" ] ;
-  rr:predicateObjectMap [ rr:predicate rdf:type ; rr:objectMap [ rr:constant cp:Pregnancy ] ] .
-
-<#HepaticDiseaseType> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT DISTINCT descendant_code AS icd_code FROM eli_test_classic_catalog.care_protocol_terminology.icd10_closure WHERE ancestor_code IN ('K70','K74')" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/icd/{icd_code}" ] ;
-  rr:predicateObjectMap [ rr:predicate rdf:type ; rr:objectMap [ rr:constant cp:HepaticDisease ] ] .
-
-# =====================================================================================
-# RELATIONSHIP MAPS — every endpoint column is the entity's unique id column above.
-# =====================================================================================
-
-# ---- Patient -hasDiagnosis-> Condition  (icd10_code -> icd_code => icd/{icd_code}) ----
-<#DiagnosisMap> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT patient_id, icd10_code AS icd_code FROM eli_test_classic_catalog.care_protocol.silver_condition WHERE icd10_code IS NOT NULL" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/patient/{patient_id}" ] ;
+# ---- Patient records ----
+<#HasDiagnosisMap> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT DISTINCT patient_id, icd10_code AS icd_code FROM eli_test_classic_catalog.care_protocol.silver_condition WHERE icd10_code IS NOT NULL" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/Patient/{patient_id}" ] ;
   rr:predicateObjectMap [ rr:predicate cp:hasDiagnosis ;
-     rr:objectMap [ rr:template "https://care-protocol.example/icd/{icd_code}" ] ] .
+     rr:objectMap [ rr:template "https://care-protocol.example/ontology/Condition/{icd_code}" ] ] .
 
-# ---- Patient -hasObservation-> Observation (same surrogate key as ObservationEntity) ----
 <#HasObservationMap> a rr:TriplesMap ;
   rr:logicalTable [ rr:sqlQuery "SELECT patient_id, CONCAT_WS('_', patient_id, loinc_code, CAST(result_ts AS STRING)) AS obs_id FROM eli_test_classic_catalog.care_protocol.silver_observation WHERE loinc_code IS NOT NULL" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/patient/{patient_id}" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/Patient/{patient_id}" ] ;
   rr:predicateObjectMap [ rr:predicate cp:hasObservation ;
-     rr:objectMap [ rr:template "https://care-protocol.example/obs/{obs_id}" ] ] .
+     rr:objectMap [ rr:template "https://care-protocol.example/ontology/Observation/{obs_id}" ] ] .
 
-# ---- ICD-10 is-a: icd_code rdfs:subClassOf icd_parent (what icd10_closure materializes). ----
-# EXPECTED residual: rdfs:subClassOf is an RDFS built-in, so Ontobricks flags "property not in
-# ontology"; and the parent endpoint uses column icd_parent (not the Condition key icd_code), so
-# it may flag the target endpoint too. Both are benign — the triple still links two Condition IRIs,
-# both typed by ConditionEntity, and the reasoner/closure derive subClassOf*. Drop this map if you
-# prefer is-a to live only in icd10_closure + the reasoner.
-<#IcdSubClassMap> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT code AS icd_code, parent_code AS icd_parent FROM eli_test_classic_catalog.care_protocol_terminology.icd10_hier WHERE parent_code IS NOT NULL" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/icd/{icd_code}" ] ;
-  rr:predicateObjectMap [ rr:predicate rdfs:subClassOf ;
-     rr:objectMap [ rr:template "https://care-protocol.example/icd/{icd_parent}" ] ] .
+<#OfTestMap> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT CONCAT_WS('_', patient_id, loinc_code, CAST(result_ts AS STRING)) AS obs_id, loinc_code FROM eli_test_classic_catalog.care_protocol.silver_observation WHERE loinc_code IS NOT NULL" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/Observation/{obs_id}" ] ;
+  rr:predicateObjectMap [ rr:predicate cp:ofTest ;
+     rr:objectMap [ rr:template "https://care-protocol.example/ontology/LabTest/{loinc_code}" ] ] .
 
-# ---- LOINC multiaxial: one map per axis; part -> part_code => part/{part_code}. ----
-<#LoincComponentMap> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT loinc_code, part AS part_code FROM eli_test_classic_catalog.care_protocol_terminology.loinc_parts WHERE predicate = 'has_component'" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/loinc/{loinc_code}" ] ;
-  rr:predicateObjectMap [ rr:predicate cp:hasComponent ;
-     rr:objectMap [ rr:template "https://care-protocol.example/part/{part_code}" ] ] .
-
-<#LoincSystemMap> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT loinc_code, part AS part_code FROM eli_test_classic_catalog.care_protocol_terminology.loinc_parts WHERE predicate = 'has_system'" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/loinc/{loinc_code}" ] ;
-  rr:predicateObjectMap [ rr:predicate cp:hasSystem ;
-     rr:objectMap [ rr:template "https://care-protocol.example/part/{part_code}" ] ] .
-
-<#LoincMethodMap> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT loinc_code, part AS part_code FROM eli_test_classic_catalog.care_protocol_terminology.loinc_parts WHERE predicate = 'has_method'" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/loinc/{loinc_code}" ] ;
-  rr:predicateObjectMap [ rr:predicate cp:hasMethod ;
-     rr:objectMap [ rr:template "https://care-protocol.example/part/{part_code}" ] ] .
-
-# ---- Patient -prescribed-> Medication  (rxnorm_code -> rx_code => rx/{rx_code}) ----
-<#MedicationMap> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT patient_id, rxnorm_code AS rx_code FROM eli_test_classic_catalog.care_protocol.bronze_order_med WHERE rxnorm_code IS NOT NULL" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/patient/{patient_id}" ] ;
+<#PrescribedMap> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT DISTINCT patient_id, rxnorm_code AS rx_code FROM eli_test_classic_catalog.care_protocol.bronze_order_med WHERE rxnorm_code IS NOT NULL" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/Patient/{patient_id}" ] ;
   rr:predicateObjectMap [ rr:predicate cp:prescribed ;
-     rr:objectMap [ rr:template "https://care-protocol.example/rx/{rx_code}" ] ] .
+     rr:objectMap [ rr:template "https://care-protocol.example/ontology/Medication/{rx_code}" ] ] .
 
-# ---- Medication -hasIngredient-> Ingredient  (rxnorm_hier: drug rx_code -> ingredient ing_code) ----
-<#RxnormHierMap> a rr:TriplesMap ;
+# ---- Terminology ----
+<#ConditionSubClassOfMap> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT code AS icd_code, parent_code AS icd_parent FROM eli_test_classic_catalog.care_protocol_terminology.icd10_hier WHERE parent_code IS NOT NULL" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/Condition/{icd_code}" ] ;
+  rr:predicateObjectMap [ rr:predicate cp:subClassOf ;
+     rr:objectMap [ rr:template "https://care-protocol.example/ontology/Condition/{icd_parent}" ] ] .
+
+<#HasComponentMap> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT loinc_code, part AS part_code FROM eli_test_classic_catalog.care_protocol_terminology.loinc_parts WHERE predicate = 'has_component'" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/LabTest/{loinc_code}" ] ;
+  rr:predicateObjectMap [ rr:predicate cp:hasComponent ;
+     rr:objectMap [ rr:template "https://care-protocol.example/ontology/LoincPart/{part_code}" ] ] .
+
+<#HasSystemMap> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT loinc_code, part AS part_code FROM eli_test_classic_catalog.care_protocol_terminology.loinc_parts WHERE predicate = 'has_system'" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/LabTest/{loinc_code}" ] ;
+  rr:predicateObjectMap [ rr:predicate cp:hasSystem ;
+     rr:objectMap [ rr:template "https://care-protocol.example/ontology/LoincPart/{part_code}" ] ] .
+
+<#HasMethodMap> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT loinc_code, part AS part_code FROM eli_test_classic_catalog.care_protocol_terminology.loinc_parts WHERE predicate = 'has_method'" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/LabTest/{loinc_code}" ] ;
+  rr:predicateObjectMap [ rr:predicate cp:hasMethod ;
+     rr:objectMap [ rr:template "https://care-protocol.example/ontology/LoincPart/{part_code}" ] ] .
+
+<#HasIngredientMap> a rr:TriplesMap ;
   rr:logicalTable [ rr:sqlQuery "SELECT code AS rx_code, parent_code AS ing_code FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE relationship = 'ingredient_of'" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/rx/{rx_code}" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/Medication/{rx_code}" ] ;
   rr:predicateObjectMap [ rr:predicate cp:hasIngredient ;
-     rr:objectMap [ rr:template "https://care-protocol.example/ing/{ing_code}" ] ] .
+     rr:objectMap [ rr:template "https://care-protocol.example/ontology/Ingredient/{ing_code}" ] ] .
 
-# ---- Ingredient -inDrugClass-> DrugClass. rev 6 (ADR-0014): protocol_edges has NO 'inDrugClass'
-#      predicate (the old map returned 0 rows, severing the drug->class hop and the class-8 hero path).
-#      Source statin membership from rxnorm_statin, joined to the Ingredient entity keys
-#      (rxnorm_hier.parent_code) so every emitted ing/ endpoint resolves (no danglers). Only statins are
-#      enumerated in the demo terminology subset -> only DRUGCLASS-STATIN is populated here; ACE/ARB/
-#      SGLT2/BIGUANIDE ingredient lists are a data-gen follow-on. ----
 <#InDrugClassMap> a rr:TriplesMap ;
   rr:logicalTable [ rr:sqlQuery "SELECT code AS ing_code, parent_code AS drug_class FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE relationship = 'class_member'" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/ing/{ing_code}" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/Ingredient/{ing_code}" ] ;
   rr:predicateObjectMap [ rr:predicate cp:inDrugClass ;
-     rr:objectMap [ rr:template "https://care-protocol.example/drugclass/{drug_class}" ] ] .
+     rr:objectMap [ rr:template "https://care-protocol.example/ontology/DrugClass/{drug_class}" ] ] .
 
-# ---- Care-protocol knowledge edges. rev 6 (ADR-0014): objects are value-set / cohort / measure ids,
-#      NOT ICD codes (the old icd/{} template made every one of these dangle). recommendedFor splits:
-#      SPD -> measure/ (SPD is a HEDIS measure), everything else -> valueset/. ----
-<#RecommendedForVsMap> a rr:TriplesMap ;
+<#ValueSetContainsMap> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT DISTINCT v.segment_id AS vs_id, v.code AS icd_code FROM eli_test_classic_catalog.care_protocol_terminology.value_set_segment v JOIN eli_test_classic_catalog.care_protocol_terminology.icd10_hier h ON v.code = h.code WHERE v.code_system = 'ICD10CM'" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/ValueSet/{vs_id}" ] ;
+  rr:predicateObjectMap [ rr:predicate cp:contains ;
+     rr:objectMap [ rr:template "https://care-protocol.example/ontology/Condition/{icd_code}" ] ] .
+
+# ---- Care-protocol knowledge (protocol_edges) ----
+<#RecommendedForValueSetMap> a rr:TriplesMap ;
   rr:logicalTable [ rr:sqlQuery "SELECT subject AS drug_class, object AS vs_id FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE predicate = 'recommendedFor' AND object <> 'SPD'" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/drugclass/{drug_class}" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/DrugClass/{drug_class}" ] ;
   rr:predicateObjectMap [ rr:predicate cp:recommendedFor ;
-     rr:objectMap [ rr:template "https://care-protocol.example/valueset/{vs_id}" ] ] .
+     rr:objectMap [ rr:template "https://care-protocol.example/ontology/ValueSet/{vs_id}" ] ] .
 
-<#RecommendedForSpdMap> a rr:TriplesMap ;
+<#RecommendedForMeasureMap> a rr:TriplesMap ;
   rr:logicalTable [ rr:sqlQuery "SELECT subject AS drug_class, object AS measure_id FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE predicate = 'recommendedFor' AND object = 'SPD'" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/drugclass/{drug_class}" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/DrugClass/{drug_class}" ] ;
   rr:predicateObjectMap [ rr:predicate cp:recommendedFor ;
-     rr:objectMap [ rr:template "https://care-protocol.example/measure/{measure_id}" ] ] .
+     rr:objectMap [ rr:template "https://care-protocol.example/ontology/Measure/{measure_id}" ] ] .
 
 <#ContraindicatedWithMap> a rr:TriplesMap ;
   rr:logicalTable [ rr:sqlQuery "SELECT subject AS drug_class, object AS vs_id FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE predicate = 'contraindicatedWith'" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/drugclass/{drug_class}" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/DrugClass/{drug_class}" ] ;
   rr:predicateObjectMap [ rr:predicate cp:contraindicatedWith ;
-     rr:objectMap [ rr:template "https://care-protocol.example/valueset/{vs_id}" ] ] .
+     rr:objectMap [ rr:template "https://care-protocol.example/ontology/ValueSet/{vs_id}" ] ] .
 
-# ---- firstLineFor (DrugClass -> ValueSet) + contraindicatedWhen (DrugClass -> Threshold): rev 6, were
-#      unmapped though present in protocol_edges. contraindicatedWhen carries the renal-dosing cutoffs. ----
 <#FirstLineForMap> a rr:TriplesMap ;
   rr:logicalTable [ rr:sqlQuery "SELECT subject AS drug_class, object AS vs_id FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE predicate = 'firstLineFor'" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/drugclass/{drug_class}" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/DrugClass/{drug_class}" ] ;
   rr:predicateObjectMap [ rr:predicate cp:firstLineFor ;
-     rr:objectMap [ rr:template "https://care-protocol.example/valueset/{vs_id}" ] ] .
+     rr:objectMap [ rr:template "https://care-protocol.example/ontology/ValueSet/{vs_id}" ] ] .
 
 <#ContraindicatedWhenMap> a rr:TriplesMap ;
   rr:logicalTable [ rr:sqlQuery "SELECT subject AS drug_class, object AS thr FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE predicate = 'contraindicatedWhen'" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/drugclass/{drug_class}" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/DrugClass/{drug_class}" ] ;
   rr:predicateObjectMap [ rr:predicate cp:contraindicatedWhen ;
-     rr:objectMap [ rr:template "https://care-protocol.example/threshold/{thr}" ] ] .
+     rr:objectMap [ rr:template "https://care-protocol.example/ontology/Threshold/{thr}" ] ] .
 
-# ---- ValueSet -contains-> coded members (rev 6): the hop that makes a value set traversable to patients.
-#      ICD10CM members -> icd/{code} (joined to icd10_hier so every endpoint resolves to a Condition).
-#      This closes DrugClass -recommendedFor/contraindicatedWith-> ValueSet -contains-> Condition <-hasDiagnosis- Patient. ----
-<#ValueSetContainsIcdMap> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT DISTINCT v.segment_id AS vs_id, v.code AS icd_code FROM eli_test_classic_catalog.care_protocol_terminology.value_set_segment v JOIN eli_test_classic_catalog.care_protocol_terminology.icd10_hier h ON v.code = h.code WHERE v.code_system = 'ICD10CM'" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/valueset/{vs_id}" ] ;
-  rr:predicateObjectMap [ rr:predicate cp:contains ;
-     rr:objectMap [ rr:template "https://care-protocol.example/icd/{icd_code}" ] ] .
-
-# ---- ValueSet -definedBy-> Threshold (rev 6): ALBUMINURIA definedBy uACR>=30 (a lab-defined cohort). ----
 <#DefinedByMap> a rr:TriplesMap ;
   rr:logicalTable [ rr:sqlQuery "SELECT subject AS vs_id, object AS thr FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE predicate = 'definedBy'" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/valueset/{vs_id}" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/ValueSet/{vs_id}" ] ;
   rr:predicateObjectMap [ rr:predicate cp:definedBy ;
-     rr:objectMap [ rr:template "https://care-protocol.example/threshold/{thr}" ] ] .
+     rr:objectMap [ rr:template "https://care-protocol.example/ontology/Threshold/{thr}" ] ] .
 
-# ---- Measure -hasThreshold-> Threshold (rev 6): GSD a1c<8/>9 bands, BPD <140/90 — HEDIS control cutoffs. ----
 <#HasThresholdMap> a rr:TriplesMap ;
   rr:logicalTable [ rr:sqlQuery "SELECT subject AS measure_id, object AS thr FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE predicate = 'hasThreshold'" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/measure/{measure_id}" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/Measure/{measure_id}" ] ;
   rr:predicateObjectMap [ rr:predicate cp:hasThreshold ;
-     rr:objectMap [ rr:template "https://care-protocol.example/threshold/{thr}" ] ] .
+     rr:objectMap [ rr:template "https://care-protocol.example/ontology/Threshold/{thr}" ] ] .
 
-# ---- Threshold -appliesTo-> LoincPart (2026-11-21): which lab a cutoff is compared with, so a traversal can
-#      test a patient's eGFR/A1c/uACR/BP result against eGFR_LT_30 etc. ----
 <#AppliesToMap> a rr:TriplesMap ;
   rr:logicalTable [ rr:sqlQuery "SELECT subject AS thr, object AS part_code FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE predicate = 'appliesTo'" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/threshold/{thr}" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/Threshold/{thr}" ] ;
   rr:predicateObjectMap [ rr:predicate cp:appliesTo ;
-     rr:objectMap [ rr:template "https://care-protocol.example/part/{part_code}" ] ] .
+     rr:objectMap [ rr:template "https://care-protocol.example/ontology/LoincPart/{part_code}" ] ] .
 
 <#MonitoredByMap> a rr:TriplesMap ;
   rr:logicalTable [ rr:sqlQuery "SELECT subject AS measure_id, object AS part_code FROM eli_test_classic_catalog.care_protocol_terminology.protocol_edges WHERE predicate = 'monitoredBy'" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/measure/{measure_id}" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/Measure/{measure_id}" ] ;
   rr:predicateObjectMap [ rr:predicate cp:monitoredBy ;
-     rr:objectMap [ rr:template "https://care-protocol.example/part/{part_code}" ] ] .
+     rr:objectMap [ rr:template "https://care-protocol.example/ontology/LoincPart/{part_code}" ] ] .
 
-# ---- Measure results: Patient -eligibleFor-> Measure (every row of a measure's gold table is an eligible patient),
-#      Patient -hasCareGap-> Measure (that measure's Compliance Status is NOT_MET). 2026-11-24 rev 8: ONE map per
-#      relationship, a UNION ALL over the measure tables. Ontobricks keeps one relationship per (source class,
-#      property, target class), so the earlier five per-measure maps collapsed into one that read GSD only (v5:
-#      eligibleFor 2,399 vs v3's 13,133). Gold is an evidence base with no verdict column; each NOT (...) below mirrors
-#      the governed view's rule (care_protocol_semantic.<m>_compliance_metrics, "Compliance Status"), with missing
-#      evidence counted as NOT_MET. Keep them in sync: GSD MET = last A1c <= 9% (HEDIS GSD, aligned 2026-11-21);
-#      BPD < 140/90; KED eGFR and uACR both tested; EED eye exam; SPD statin dispensed; MAD PDC >= 80%. ----
+# ---- Measure results (one map per relationship; each NOT (...) mirrors the governed view's Compliance Status) ----
 <#EligibleForMap> a rr:TriplesMap ;
   rr:logicalTable [ rr:sqlQuery "SELECT patient_id, 'GSD' AS measure_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd UNION ALL SELECT patient_id, 'BPD' AS measure_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_bpd UNION ALL SELECT patient_id, 'KED' AS measure_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked UNION ALL SELECT patient_id, 'EED' AS measure_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_eed UNION ALL SELECT patient_id, 'SPD' AS measure_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_spd UNION ALL SELECT patient_id, 'MAD' AS measure_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_mad" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/patient/{patient_id}" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/Patient/{patient_id}" ] ;
   rr:predicateObjectMap [ rr:predicate cp:eligibleFor ;
-     rr:objectMap [ rr:template "https://care-protocol.example/measure/{measure_id}" ] ] .
+     rr:objectMap [ rr:template "https://care-protocol.example/ontology/Measure/{measure_id}" ] ] .
 
 <#HasCareGapMap> a rr:TriplesMap ;
   rr:logicalTable [ rr:sqlQuery "SELECT patient_id, 'GSD' AS measure_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd WHERE NOT (COALESCE(evidence_value <= 9.0, false)) UNION ALL SELECT patient_id, 'BPD' AS measure_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_bpd WHERE NOT (COALESCE(systolic < 140 AND diastolic < 90, false)) UNION ALL SELECT patient_id, 'KED' AS measure_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked WHERE NOT (egfr_datetime IS NOT NULL AND uacr_datetime IS NOT NULL) UNION ALL SELECT patient_id, 'EED' AS measure_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_eed WHERE NOT (evidence_datetime IS NOT NULL) UNION ALL SELECT patient_id, 'SPD' AS measure_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_spd WHERE NOT (evidence_datetime IS NOT NULL) UNION ALL SELECT patient_id, 'MAD' AS measure_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_mad WHERE NOT (COALESCE(pdc >= 0.8, false))" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/patient/{patient_id}" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/Patient/{patient_id}" ] ;
   rr:predicateObjectMap [ rr:predicate cp:hasCareGap ;
-     rr:objectMap [ rr:template "https://care-protocol.example/measure/{measure_id}" ] ] .
+     rr:objectMap [ rr:template "https://care-protocol.example/ontology/Measure/{measure_id}" ] ] .

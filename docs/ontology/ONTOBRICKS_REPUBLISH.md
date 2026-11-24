@@ -15,51 +15,29 @@ documents the intended sources but uses different IRIs (`patient/`, `drugclass/`
 **Before republishing:** the DMVM app is pinned to v3 (`CARE_ONTOBRICKS_TABLE` in `src/app/app.yaml`); without the
 pin it would follow the new version within 5 minutes.
 
-## 2026-11-24: v5 check (published by Eli) — do not move the app pin yet
+## 2026-11-24: the repo files are the HEDIS graph now
 
-`check_graph_version.py` on `triplestore_clinicaldomain_v5_graph`: REQUIRED 11/12. Items 1, 2, 3 and 4 above are in
-(drug-class membership for all 16 ingredients, clean hasIngredient, the 7 appliesTo edges, the reflowed eGFR codes).
-The failing check is a real regression:
+v5 (`check_graph_version.py`: REQUIRED 11/12) showed the project mapping had drifted from the repo: eligibleFor and
+hasCareGap read GSD only, Patient read `panel_roster`, Pregnancy was bound to encounter rows, and half the edges used
+IRI segments (`icd/`, `obs/`, ...) that don't resolve to an entity, so the graph was split. Instead of editing the
+project by hand, `care_protocol.owl.ttl` + `care_protocol.r2rml.ttl` (rev 9) are rewritten to import cleanly, and
+`scripts/ontobricks_dry_run.py` checks them **with Ontobricks itself** (its own parse + Mapping -> Diagnostics in a
+temporary session, plus each parsed query's row count on ECT) before any import.
 
-**A. eligibleFor / hasCareGap cover GSD only** (13,133 -> 2,399 and 6,744 -> 618; HEDIS facts F09 and F24 no longer
-resolve). The project keeps one relationship per (source class, property, target class), and both relationships now
-read only `gold_adherence_gsd`. In the `clinicaldomain` project, replace the two relationship sources with:
+Dry run (2026-11-24): diagnostics 56/56 OK, 16 entities, 22 relationships, nothing dropped. Counts: Patient 25,000;
+hasDiagnosis 17,871; hasObservation / ofTest 15,094,145; prescribed 156,532; eligibleFor 13,136 (all six measures);
+hasCareGap 6,988 (GSD 877 = the GSD metric view's NOT_MET). Items 1, 2, 3 and 3b are in by construction (3b: the
+Observation entity and the edges now share `Observation/{obs_id}`). Still not modelled: 5 (containsTest), 5b (dates),
+6 (Clinic).
 
-- `Patient -eligibleFor-> Measure`:
-  ```sql
-   SELECT patient_id AS source_id, 'GSD' AS target_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd
-   UNION ALL SELECT patient_id AS source_id, 'BPD' AS target_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_bpd
-   UNION ALL SELECT patient_id AS source_id, 'KED' AS target_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked
-   UNION ALL SELECT patient_id AS source_id, 'EED' AS target_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_eed
-   UNION ALL SELECT patient_id AS source_id, 'SPD' AS target_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_spd
-   UNION ALL SELECT patient_id AS source_id, 'MAD' AS target_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_mad
-  ```
-- `Patient -hasCareGap-> Measure` (each NOT (...) is that measure's governed Compliance Status, missing evidence =
-  gap; GSD is the HEDIS rule, last A1c <= 9%, so the gap is poor control or no test, as aligned 2026-11-21):
-  ```sql
-   SELECT patient_id AS source_id, 'GSD' AS target_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd WHERE NOT (COALESCE(evidence_value <= 9.0, false))
-   UNION ALL SELECT patient_id AS source_id, 'BPD' AS target_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_bpd WHERE NOT (COALESCE(systolic < 140 AND diastolic < 90, false))
-   UNION ALL SELECT patient_id AS source_id, 'KED' AS target_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked WHERE NOT (egfr_datetime IS NOT NULL AND uacr_datetime IS NOT NULL)
-   UNION ALL SELECT patient_id AS source_id, 'EED' AS target_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_eed WHERE NOT (evidence_datetime IS NOT NULL)
-   UNION ALL SELECT patient_id AS source_id, 'SPD' AS target_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_spd WHERE NOT (evidence_datetime IS NOT NULL)
-   UNION ALL SELECT patient_id AS source_id, 'MAD' AS target_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_mad WHERE NOT (COALESCE(pdc >= 0.8, false))
-  ```
-- `Measure` entity: add `UNION SELECT 'MAD'` (v3 had MAD; the source above includes it).
+**Steps (Eli):** in `clinicaldomain`, create a version from v5; Ontology -> Import -> `care_protocol.owl.ttl` in
+**Replace** mode; Mapping -> import `care_protocol.r2rml.ttl`; source scope `care_protocol` +
+`care_protocol_terminology`; Mapping -> Diagnostics should read 56/56; build and publish.
 
-Expected after a rebuild: eligibleFor 13,136 (GSD 2,399, BPD 2,399, EED 2,399, KED 2,802, SPD 2,277, MAD 860) and
-hasCareGap 6,988 (GSD 877, which is the GSD metric view's NOT_MET count).
-
-**The other two shrinks are source changes, not losses:** `loincCode` 308 -> 11 and the LabTest labels follow the
-`loinc` table (11 rows today). `label` 26,027 -> 15,466 follows the Patient entity, which now reads `panel_roster`
-(3,031 attributed patients) instead of all 25,000 patients. Every measure patient is in the roster; the 4,563
-patients outside it keep their diagnosis edges but lose their Patient type and age. Fine for the benchmark; say if you
-want all patients typed (source `bronze_patient`, as v3).
-
-**Still open from the list above:** 3b (Observation IRI: resultValue is on `Observation/` but the edges point at
-`obs/`; F26), 5 (containsTest, F15), 5b (dates, F28), 6 (Clinic, F07).
-
-After A and a rebuild, Claude reruns the gate, moves `CARE_ONTOBRICKS_TABLE` to the new version, moves F22, F23 and F25
-from gap to pointer, and redeploys.
+**Then Claude:** the IRI segments change (`icd/` -> `Condition/`, `obs/` -> `Observation/`, `loinc/` -> `LabTest/`,
+`part/` -> `LoincPart/`, `rx/` -> `Medication/`, `ing/` -> `Ingredient/`), so the app, the eval provider, the gate
+and `hedis_facts.yaml` move to the new segments in the same change as the `CARE_ONTOBRICKS_TABLE` pin, after
+`check_graph_version.py` passes on the new version (with the baseline's edge prefixes updated for the rename).
 
 ## 2026-11-21 republish: what the benchmark needs (Eli, in the `clinicaldomain` project)
 
