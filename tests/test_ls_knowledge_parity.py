@@ -65,6 +65,62 @@ def test_mapping_reads_the_real_tables_only():
         assert schemas and schemas <= {"clinical_study", "clinical_study_standards"}, (m["cls"], schemas)
 
 
+def _outer_select_columns(sql: str) -> set[str]:
+    """The column names in the outer SELECT list, read from the text the way Ontobricks' diagnostics read it (no
+    `*` expansion): the alias after AS, else the bare column name."""
+    body = sql.strip()[len("SELECT"):]
+    depth, i = 0, 0
+    while i < len(body):
+        c = body[i]
+        depth += c == "("
+        depth -= c == ")"
+        if depth == 0 and re.match(r"\s+FROM\s", body[i:i + 6], re.I):
+            break
+        i += 1
+    items, depth, cur = [], 0, ""
+    for c in body[:i]:
+        depth += c == "("
+        depth -= c == ")"
+        if c == "," and depth == 0:
+            items.append(cur)
+            cur = ""
+        else:
+            cur += c
+    items.append(cur)
+    out = set()
+    for it in (x.strip() for x in items):
+        m = re.search(r"\bAS\s+(\w+)\s*$", it, re.I)
+        out.add(m.group(1) if m else it.split(".")[-1])
+    return out
+
+
+def test_every_mapped_column_is_named_in_the_outer_select():
+    """Ontobricks reads a map's output columns from the SQL text and does not expand `*` (the first diagnostics run
+    of the rewritten mapping: 32 entities failed on `* EXCEPT (ID)`). Every column a map uses must be named."""
+    import rdflib
+
+    rr = rdflib.Namespace("http://www.w3.org/ns/r2rml#")
+    g = rdflib.Graph().parse(R2RML)
+    for tm in g.subjects(rdflib.RDF.type, rr.TriplesMap):
+        sql = str(g.value(g.value(tm, rr.logicalTable), rr.sqlQuery))
+        cols = _outer_select_columns(sql)
+        assert not any("*" in c for c in cols), (tm, cols)
+        used = set(re.findall(r"\{(\w+)\}", str(g.value(g.value(tm, rr.subjectMap), rr.template))))
+        for pom in g.objects(tm, rr.predicateObjectMap):
+            om = g.value(pom, rr.objectMap)
+            if g.value(om, rr.column) is not None:
+                used.add(str(g.value(om, rr.column)))
+            if g.value(om, rr.template) is not None:
+                used |= set(re.findall(r"\{(\w+)\}", str(g.value(om, rr.template))))
+        assert used <= cols, (str(tm).rsplit("#", 1)[-1], sorted(used - cols))
+
+
+def test_no_union_domains_or_ranges():
+    """Ontobricks reads an owl:unionOf domain/range as a blank node and warns on every relationship that uses it
+    (25 warnings in the first diagnostics run). A property used by several classes states them in a comment."""
+    assert "owl:unionOf" not in OWL.read_text()
+
+
 def test_every_owl_class_has_an_entity_map():
     import rdflib
     from rdflib.namespace import OWL as O

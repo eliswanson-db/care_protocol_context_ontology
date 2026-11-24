@@ -13,6 +13,11 @@ Don't add `clinical_study_semantic`: plain `SELECT`s on its metric views abort t
 **IRIs:** class `https://clinical-study-lab.example/ontology#<Class>`, property
 `https://clinical-study-lab.example/ontology/<name>`, instance `https://clinical-study-lab.example/ontology/<Class>/<id>`.
 
+**Ontobricks reads the SQL text, not the result.** Its diagnostics take a map's output columns from the outer
+`SELECT` list (no `*` expansion) and can't resolve an `owl:unionOf` domain or range. So every map names its columns,
+and a property used by several classes states them in a comment instead. `tests/test_ls_knowledge_parity.py`
+checks both offline.
+
 **Id columns:** every class has its own id column, `<class>_id` (e.g. `disease_id`, `participant_id`). Every
 relationship uses those exact names for its endpoints, because Ontobricks matches an endpoint to an entity by column
 name. A same-class edge (Disease subClassOf Disease) uses `<class>_target_id` for its target.
@@ -27,9 +32,12 @@ that entity ids are unique, and that every relationship endpoint resolves (no da
 
 1. Open the Ontobricks project/domain **`ClinicalStudyLab`** (CamelCase). If it doesn't exist, create it. Keep it
    separate from `clinicaldomain`, so the HEDIS graph and its app pin are untouched.
-2. Import the ontology: `clinical_study.owl.ttl`. It replaces the earlier version.
+2. Import the ontology: `clinical_study.owl.ttl`. Make sure it **replaces** the loaded ontology: the current file has
+   32 classes, including `HeightObservation`, and no `KnowledgeConcept` or `DrugConcept`. If those two still show up,
+   the old file is loaded and Ontobricks auto-maps them.
 3. Import the mapping: `clinical_study.r2rml.ttl`. It replaces the earlier view-based mapping.
-4. Set the source scope to the two schemas above, then build and publish to `eswanson_demo.ontobricks`.
+4. Set the source scope to the two schemas above and run **Mapping → Diagnostics**. Expect 32 entities and 75
+   relationships, all OK. Then build and publish to `eswanson_demo.ontobricks`.
 5. Send Claude the published triplestore table name (e.g. `triplestore_clinicalstudylab_v1`). Claude then checks the
    graph facts in `docs/benchmark/ls_facts.yaml` against it.
 
