@@ -3,7 +3,7 @@ questions depend on, per approach.
 
 docs/benchmark/ls_facts.yaml gives each fact one entry per approach: a pointer that must resolve, `none` (the
 approach can't reasonably hold it) or `gap` (it could and doesn't yet). File pointers are checked offline; table
-pointers against ECT when CARE_LIVE=1 (read-only queries through scripts/q.py).
+and graph pointers against ECT when CARE_LIVE=1 (read-only queries through scripts/q.py).
 
     python3 -I tests/test_ls_facts.py            # offline + the gap list
     CARE_LIVE=1 python3 -I tests/test_ls_facts.py
@@ -23,6 +23,8 @@ FACTS = yaml.safe_load((ROOT / "docs/benchmark/ls_facts.yaml").read_text())["fac
 QUESTIONS = {q["id"] for q in yaml.safe_load((ROOT / "docs/benchmark/ls_questions.yaml").read_text())["questions"]}
 MODES = ["metric_view", "closure", "rag", "genie_ontology", "graph"]
 CATALOG = "eli_test_classic_catalog"
+NS = "https://clinical-study-lab.example/ontology/"
+GRAPH = "eswanson_demo.ontobricks.triplestore_clinicalstudylab_v1_graph"
 
 
 def _kind(entry: dict) -> str:
@@ -33,6 +35,8 @@ def _kind(entry: dict) -> str:
         return "file"
     if "table" in entry:
         return "table"
+    if "p" in entry:
+        return "triple"
     raise AssertionError(f"unrecognized entry {entry}")
 
 
@@ -80,6 +84,11 @@ def test_live_pointers_resolve():
             e = f[m]
             if _kind(e) == "table":
                 sql = f"SELECT count(*) AS n FROM {CATALOG}.{e['table']} WHERE {e['where']}"
+            elif _kind(e) == "triple":
+                conds = [f"{col} = '{NS}{e[k]}'" for k, col in (("s", "subject"), ("p", "predicate"), ("o", "object"))
+                         if e.get(k)]
+                sql = f"SELECT count(*) AS n FROM {GRAPH} WHERE " + " AND ".join(conds)
+            if _kind(e) in ("table", "triple"):
                 if int(run(sql)[0]["n"]) == 0:
                     bad.append((f["id"], m, sql))
     assert not bad, bad
@@ -97,7 +106,7 @@ if __name__ == "__main__":
     print(f"\n{len(FACTS)} facts. Held / none / gap per approach:")
     for m in MODES:
         kinds = [_kind(f[m]) for f in FACTS]
-        held = sum(k in ("file", "table") for k in kinds)
+        held = sum(k in ("file", "table", "triple") for k in kinds)
         print(f"  {m:15} {held:2} held  {kinds.count('none'):2} none  {kinds.count('gap'):2} gap")
     print("\nGaps (feasible, not yet held):")
     for fid, m, why in gaps():

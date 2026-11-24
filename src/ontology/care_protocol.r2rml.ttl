@@ -105,9 +105,9 @@
   rr:subjectMap [ rr:template "https://care-protocol.example/threshold/{thr}" ; rr:class cp:Threshold ] ;
   rr:predicateObjectMap [ rr:predicate cp:thresholdValue ; rr:objectMap [ rr:column "thr_value" ] ] .
 
-# ---- Measure (HEDIS measure) — measure/{measure_id}. The five demo measures. ----
+# ---- Measure (HEDIS measure) — measure/{measure_id}. The six measures with patient results in the graph. ----
 <#MeasureEntity> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT 'GSD' AS measure_id UNION SELECT 'BPD' UNION SELECT 'KED' UNION SELECT 'EED' UNION SELECT 'SPD'" ] ;
+  rr:logicalTable [ rr:sqlQuery "SELECT 'GSD' AS measure_id UNION SELECT 'BPD' UNION SELECT 'KED' UNION SELECT 'EED' UNION SELECT 'SPD' UNION SELECT 'MAD'" ] ;
   rr:subjectMap [ rr:template "https://care-protocol.example/measure/{measure_id}" ; rr:class cp:Measure ] .
 
 # ---- Observation — obs/{obs_id}. Surrogate key includes loinc_code so a multi-analyte panel
@@ -310,62 +310,22 @@
   rr:predicateObjectMap [ rr:predicate cp:monitoredBy ;
      rr:objectMap [ rr:template "https://care-protocol.example/part/{part_code}" ] ] .
 
-# ---- Measure results: Patient -eligibleFor-> Measure (all), -hasCareGap-> Measure (NOT_MET), + status.
-#      Gold is an EVIDENCE base (no verdict column); the compliance RULE lives in the governed metric view
-#      (care_protocol_semantic.<m>_compliance_metrics). Each `met` expression below MIRRORS that view's rule so
-#      the graph ABox materializes the same verdict -- keep the two in sync if a rule changes. ----
+# ---- Measure results: Patient -eligibleFor-> Measure (every row of a measure's gold table is an eligible patient),
+#      Patient -hasCareGap-> Measure (that measure's Compliance Status is NOT_MET). 2026-11-24 rev 8: ONE map per
+#      relationship, a UNION ALL over the measure tables. Ontobricks keeps one relationship per (source class,
+#      property, target class), so the earlier five per-measure maps collapsed into one that read GSD only (v5:
+#      eligibleFor 2,399 vs v3's 13,133). Gold is an evidence base with no verdict column; each NOT (...) below mirrors
+#      the governed view's rule (care_protocol_semantic.<m>_compliance_metrics, "Compliance Status"), with missing
+#      evidence counted as NOT_MET. Keep them in sync: GSD MET = last A1c <= 9% (HEDIS GSD, aligned 2026-11-21);
+#      BPD < 140/90; KED eGFR and uACR both tested; EED eye exam; SPD statin dispensed; MAD PDC >= 80%. ----
+<#EligibleForMap> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT patient_id, 'GSD' AS measure_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd UNION ALL SELECT patient_id, 'BPD' AS measure_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_bpd UNION ALL SELECT patient_id, 'KED' AS measure_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked UNION ALL SELECT patient_id, 'EED' AS measure_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_eed UNION ALL SELECT patient_id, 'SPD' AS measure_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_spd UNION ALL SELECT patient_id, 'MAD' AS measure_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_mad" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/patient/{patient_id}" ] ;
+  rr:predicateObjectMap [ rr:predicate cp:eligibleFor ;
+     rr:objectMap [ rr:template "https://care-protocol.example/measure/{measure_id}" ] ] .
 
-# GSD — Glycemic Status Assessment (A1c)
-<#GsdMeasureMap> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT patient_id, CASE WHEN evidence_datetime IS NOT NULL THEN 'MET' ELSE 'NOT_MET' END AS status FROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd" ] ;
+<#HasCareGapMap> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT patient_id, 'GSD' AS measure_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd WHERE NOT (COALESCE(evidence_value <= 9.0, false)) UNION ALL SELECT patient_id, 'BPD' AS measure_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_bpd WHERE NOT (COALESCE(systolic < 140 AND diastolic < 90, false)) UNION ALL SELECT patient_id, 'KED' AS measure_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked WHERE NOT (egfr_datetime IS NOT NULL AND uacr_datetime IS NOT NULL) UNION ALL SELECT patient_id, 'EED' AS measure_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_eed WHERE NOT (evidence_datetime IS NOT NULL) UNION ALL SELECT patient_id, 'SPD' AS measure_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_spd WHERE NOT (evidence_datetime IS NOT NULL) UNION ALL SELECT patient_id, 'MAD' AS measure_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_mad WHERE NOT (COALESCE(pdc >= 0.8, false))" ] ;
   rr:subjectMap [ rr:template "https://care-protocol.example/patient/{patient_id}" ] ;
-  rr:predicateObjectMap [ rr:predicate cp:eligibleFor ; rr:objectMap [ rr:constant "https://care-protocol.example/measure/GSD" ] ] ;
-  rr:predicateObjectMap [ rr:predicate cp:status ;      rr:objectMap [ rr:column "status" ] ] .
-<#GsdCareGapMap> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT patient_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd WHERE NOT (evidence_datetime IS NOT NULL)" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/patient/{patient_id}" ] ;
-  rr:predicateObjectMap [ rr:predicate cp:hasCareGap ; rr:objectMap [ rr:constant "https://care-protocol.example/measure/GSD" ] ] .
-
-# BPD — Blood Pressure control for diabetics
-<#BpdMeasureMap> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT patient_id, CASE WHEN COALESCE(systolic < 140 AND diastolic < 90, false) THEN 'MET' ELSE 'NOT_MET' END AS status FROM eli_test_classic_catalog.care_protocol.gold_adherence_bpd" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/patient/{patient_id}" ] ;
-  rr:predicateObjectMap [ rr:predicate cp:eligibleFor ; rr:objectMap [ rr:constant "https://care-protocol.example/measure/BPD" ] ] ;
-  rr:predicateObjectMap [ rr:predicate cp:status ;      rr:objectMap [ rr:column "status" ] ] .
-<#BpdCareGapMap> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT patient_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_bpd WHERE NOT (COALESCE(systolic < 140 AND diastolic < 90, false))" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/patient/{patient_id}" ] ;
-  rr:predicateObjectMap [ rr:predicate cp:hasCareGap ; rr:objectMap [ rr:constant "https://care-protocol.example/measure/BPD" ] ] .
-
-# KED — Kidney Health Evaluation (eGFR + uACR)
-<#KedMeasureMap> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT patient_id, CASE WHEN egfr_datetime IS NOT NULL AND uacr_datetime IS NOT NULL THEN 'MET' ELSE 'NOT_MET' END AS status FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/patient/{patient_id}" ] ;
-  rr:predicateObjectMap [ rr:predicate cp:eligibleFor ; rr:objectMap [ rr:constant "https://care-protocol.example/measure/KED" ] ] ;
-  rr:predicateObjectMap [ rr:predicate cp:status ;      rr:objectMap [ rr:column "status" ] ] .
-<#KedCareGapMap> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT patient_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked WHERE NOT (egfr_datetime IS NOT NULL AND uacr_datetime IS NOT NULL)" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/patient/{patient_id}" ] ;
-  rr:predicateObjectMap [ rr:predicate cp:hasCareGap ; rr:objectMap [ rr:constant "https://care-protocol.example/measure/KED" ] ] .
-
-# EED — Eye Exam for diabetics
-<#EedMeasureMap> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT patient_id, CASE WHEN evidence_datetime IS NOT NULL THEN 'MET' ELSE 'NOT_MET' END AS status FROM eli_test_classic_catalog.care_protocol.gold_adherence_eed" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/patient/{patient_id}" ] ;
-  rr:predicateObjectMap [ rr:predicate cp:eligibleFor ; rr:objectMap [ rr:constant "https://care-protocol.example/measure/EED" ] ] ;
-  rr:predicateObjectMap [ rr:predicate cp:status ;      rr:objectMap [ rr:column "status" ] ] .
-<#EedCareGapMap> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT patient_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_eed WHERE NOT (evidence_datetime IS NOT NULL)" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/patient/{patient_id}" ] ;
-  rr:predicateObjectMap [ rr:predicate cp:hasCareGap ; rr:objectMap [ rr:constant "https://care-protocol.example/measure/EED" ] ] .
-
-# SPD — Statin Therapy for diabetics
-<#SpdMeasureMap> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT patient_id, CASE WHEN evidence_datetime IS NOT NULL THEN 'MET' ELSE 'NOT_MET' END AS status FROM eli_test_classic_catalog.care_protocol.gold_adherence_spd" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/patient/{patient_id}" ] ;
-  rr:predicateObjectMap [ rr:predicate cp:eligibleFor ; rr:objectMap [ rr:constant "https://care-protocol.example/measure/SPD" ] ] ;
-  rr:predicateObjectMap [ rr:predicate cp:status ;      rr:objectMap [ rr:column "status" ] ] .
-<#SpdCareGapMap> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT patient_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_spd WHERE NOT (evidence_datetime IS NOT NULL)" ] ;
-  rr:subjectMap [ rr:template "https://care-protocol.example/patient/{patient_id}" ] ;
-  rr:predicateObjectMap [ rr:predicate cp:hasCareGap ; rr:objectMap [ rr:constant "https://care-protocol.example/measure/SPD" ] ] .
+  rr:predicateObjectMap [ rr:predicate cp:hasCareGap ;
+     rr:objectMap [ rr:template "https://care-protocol.example/measure/{measure_id}" ] ] .

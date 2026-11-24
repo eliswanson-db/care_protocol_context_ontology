@@ -43,3 +43,14 @@ that entity ids are unique, and that every relationship endpoint resolves (no da
 
 If the importer rejects or rewrites a map, send Claude the error. The map ids say what each one is
 (`map:DiseaseEntity`, `map:sub_class_of__disease__disease`, ...).
+
+## Published (2026-11-24)
+
+`eswanson_demo.ontobricks.triplestore_clinicalstudylab_v1_graph`: 1.5M triples. Every class's instance count and all
+61 relationship predicates match their source tables exactly, and the 14 graph facts in `ls_facts.yaml` resolve.
+
+**Open: the domain still holds the previous ontology** (it has `KnowledgeConcept`, `DrugConcept` and the union
+domains/ranges, and no `HeightObservation`). That is the source of the 26 diagnostics warnings and of the 3,257 extra
+`rdf:type` triples on those two abstract classes. The data is right; only the TBox is stale. To replace it, use the
+plain ontology **Import** (not merge: a merge skips duplicates and keeps removed classes). If the UI only merges, use
+**Reset ontology**, import the OWL, then re-import the R2RML (a reset also clears the mappings). Rebuild and publish.

@@ -15,6 +15,52 @@ documents the intended sources but uses different IRIs (`patient/`, `drugclass/`
 **Before republishing:** the DMVM app is pinned to v3 (`CARE_ONTOBRICKS_TABLE` in `src/app/app.yaml`); without the
 pin it would follow the new version within 5 minutes.
 
+## 2026-11-24: v5 check (published by Eli) — do not move the app pin yet
+
+`check_graph_version.py` on `triplestore_clinicaldomain_v5_graph`: REQUIRED 11/12. Items 1, 2, 3 and 4 above are in
+(drug-class membership for all 16 ingredients, clean hasIngredient, the 7 appliesTo edges, the reflowed eGFR codes).
+The failing check is a real regression:
+
+**A. eligibleFor / hasCareGap cover GSD only** (13,133 -> 2,399 and 6,744 -> 618; HEDIS facts F09 and F24 no longer
+resolve). The project keeps one relationship per (source class, property, target class), and both relationships now
+read only `gold_adherence_gsd`. In the `clinicaldomain` project, replace the two relationship sources with:
+
+- `Patient -eligibleFor-> Measure`:
+  ```sql
+   SELECT patient_id AS source_id, 'GSD' AS target_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd
+   UNION ALL SELECT patient_id AS source_id, 'BPD' AS target_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_bpd
+   UNION ALL SELECT patient_id AS source_id, 'KED' AS target_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked
+   UNION ALL SELECT patient_id AS source_id, 'EED' AS target_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_eed
+   UNION ALL SELECT patient_id AS source_id, 'SPD' AS target_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_spd
+   UNION ALL SELECT patient_id AS source_id, 'MAD' AS target_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_mad
+  ```
+- `Patient -hasCareGap-> Measure` (each NOT (...) is that measure's governed Compliance Status, missing evidence =
+  gap; GSD is the HEDIS rule, last A1c <= 9%, so the gap is poor control or no test, as aligned 2026-11-21):
+  ```sql
+   SELECT patient_id AS source_id, 'GSD' AS target_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_gsd WHERE NOT (COALESCE(evidence_value <= 9.0, false))
+   UNION ALL SELECT patient_id AS source_id, 'BPD' AS target_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_bpd WHERE NOT (COALESCE(systolic < 140 AND diastolic < 90, false))
+   UNION ALL SELECT patient_id AS source_id, 'KED' AS target_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_ked WHERE NOT (egfr_datetime IS NOT NULL AND uacr_datetime IS NOT NULL)
+   UNION ALL SELECT patient_id AS source_id, 'EED' AS target_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_eed WHERE NOT (evidence_datetime IS NOT NULL)
+   UNION ALL SELECT patient_id AS source_id, 'SPD' AS target_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_spd WHERE NOT (evidence_datetime IS NOT NULL)
+   UNION ALL SELECT patient_id AS source_id, 'MAD' AS target_id FROM eli_test_classic_catalog.care_protocol.gold_adherence_mad WHERE NOT (COALESCE(pdc >= 0.8, false))
+  ```
+- `Measure` entity: add `UNION SELECT 'MAD'` (v3 had MAD; the source above includes it).
+
+Expected after a rebuild: eligibleFor 13,136 (GSD 2,399, BPD 2,399, EED 2,399, KED 2,802, SPD 2,277, MAD 860) and
+hasCareGap 6,988 (GSD 877, which is the GSD metric view's NOT_MET count).
+
+**The other two shrinks are source changes, not losses:** `loincCode` 308 -> 11 and the LabTest labels follow the
+`loinc` table (11 rows today). `label` 26,027 -> 15,466 follows the Patient entity, which now reads `panel_roster`
+(3,031 attributed patients) instead of all 25,000 patients. Every measure patient is in the roster; the 4,563
+patients outside it keep their diagnosis edges but lose their Patient type and age. Fine for the benchmark; say if you
+want all patients typed (source `bronze_patient`, as v3).
+
+**Still open from the list above:** 3b (Observation IRI: resultValue is on `Observation/` but the edges point at
+`obs/`; F26), 5 (containsTest, F15), 5b (dates, F28), 6 (Clinic, F07).
+
+After A and a rebuild, Claude reruns the gate, moves `CARE_ONTOBRICKS_TABLE` to the new version, moves F22, F23 and F25
+from gap to pointer, and redeploys.
+
 ## 2026-11-21 republish: what the benchmark needs (Eli, in the `clinicaldomain` project)
 
 The data was reflowed on 2026-11-21 (year-aware value sets, the lab's CKD-EPI 2021 eGFR switch, Step 3 > 9%), so v3
