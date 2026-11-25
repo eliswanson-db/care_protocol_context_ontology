@@ -44,6 +44,10 @@ cp:HepaticDisease a owl:Class ; rdfs:subClassOf cp:Condition .
 cp:LabTest        a owl:Class .          # a LOINC term
 cp:LoincPart      a owl:Class .          # a LOINC Part (Component/System/Method axis value)
 cp:Observation    a owl:Class .          # a patient's lab result
+# rev 10 (2026-11-25, protocol v3 parity, ADR-0028): the dated patient record and the attribution the tables hold.
+cp:ConditionRecord a owl:Class .         # one recorded diagnosis: a Condition, with onset and stop dates
+cp:MedicationOrder a owl:Class .         # one medication order / fill: a Medication, with start and stop
+cp:Clinic          a owl:Class .         # the clinic a patient is attributed to
 
 cp:Medication     a owl:Class .          # an RxNorm clinical drug
 cp:Ingredient     a owl:Class .          # an RxNorm ingredient
@@ -71,6 +75,12 @@ cp:hasMethod          a owl:ObjectProperty ; rdfs:domain cp:LabTest ;    rdfs:ra
 cp:hasIngredient      a owl:ObjectProperty ; rdfs:domain cp:Medication ; rdfs:range cp:Ingredient .
 cp:inDrugClass        a owl:ObjectProperty ; rdfs:domain cp:Ingredient ; rdfs:range cp:DrugClass .
 cp:eligibleFor        a owl:ObjectProperty ; rdfs:domain cp:Patient ;    rdfs:range cp:Measure .
+cp:hasConditionRecord a owl:ObjectProperty ; rdfs:domain cp:Patient ;    rdfs:range cp:ConditionRecord .
+cp:recordsCondition   a owl:ObjectProperty ; rdfs:domain cp:ConditionRecord ; rdfs:range cp:Condition .
+cp:hasMedicationOrder a owl:ObjectProperty ; rdfs:domain cp:Patient ;    rdfs:range cp:MedicationOrder .
+cp:ordersMedication   a owl:ObjectProperty ; rdfs:domain cp:MedicationOrder ; rdfs:range cp:Medication .
+cp:attributedTo       a owl:ObjectProperty ; rdfs:domain cp:Patient ;    rdfs:range cp:Clinic .
+cp:containsTest       a owl:ObjectProperty ; rdfs:domain cp:ValueSet ;   rdfs:range cp:LabTest .   # MY2026 version
 cp:hasCareGap         a owl:ObjectProperty ; rdfs:domain cp:Patient ;    rdfs:range cp:Measure .
 # care-protocol knowledge edges (from the PDF) — the cross-domain, multi-hop relationships.
 # rev 6 (ADR-0014): recommendedFor/contraindicatedWith/firstLineFor target a ValueSet (the population a guideline
@@ -98,6 +108,11 @@ cp:icd10Code        a owl:DatatypeProperty ; rdfs:domain cp:Condition ;   rdfs:r
 cp:loincCode        a owl:DatatypeProperty ; rdfs:domain cp:LabTest ;     rdfs:range xsd:string .
 cp:rxnormCode       a owl:DatatypeProperty ; rdfs:domain cp:Medication ;  rdfs:range xsd:string .
 cp:resultValue      a owl:DatatypeProperty ; rdfs:domain cp:Observation ; rdfs:range xsd:double .
+cp:resultDateTime   a owl:DatatypeProperty ; rdfs:domain cp:Observation ; rdfs:range xsd:string .
+cp:onsetDate        a owl:DatatypeProperty ; rdfs:domain cp:ConditionRecord ; rdfs:range xsd:string .
+cp:stopDate         a owl:DatatypeProperty ; rdfs:domain cp:ConditionRecord ; rdfs:range xsd:string .
+cp:startDateTime    a owl:DatatypeProperty ; rdfs:domain cp:MedicationOrder ; rdfs:range xsd:string .
+cp:stopDateTime     a owl:DatatypeProperty ; rdfs:domain cp:MedicationOrder ; rdfs:range xsd:string .
 cp:ageAtPeriodEnd   a owl:DatatypeProperty ; rdfs:domain cp:Patient ;     rdfs:range xsd:integer .
 cp:thresholdValue   a owl:DatatypeProperty ; rdfs:domain cp:Threshold ;   rdfs:range xsd:double .   # numeric cutoff (30, 140, 8, ...)
 cp:valueSetId       a owl:DatatypeProperty ; rdfs:domain cp:ValueSet ;    rdfs:range xsd:string .   # the value-set / cohort id (segment_id)

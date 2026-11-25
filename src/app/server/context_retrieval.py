@@ -42,7 +42,10 @@ LEXICON: dict[str, list[str]] = {
     "arb": ["DrugClass/DRUGCLASS-ARB"],
     "albuminuria": ["ValueSet/ALBUMINURIA", "DrugClass/DRUGCLASS-ACE", "DrugClass/DRUGCLASS-ARB"],
     "uacr": ["ValueSet/ALBUMINURIA"], "pregnan": ["ValueSet/CONTRA_PREGNANCY"],
-    "hepatic": ["ValueSet/CONTRA_HEPATIC"], "contraindicat": ["ValueSet/CONTRA_PREGNANCY", "ValueSet/CONTRA_HEPATIC"],
+    # both kinds of protocol contraindication: a condition value set (contraindicatedWith) and a lab threshold
+    # (contraindicatedWhen, e.g. metformin at eGFR < 30)
+    "hepatic": ["ValueSet/CONTRA_HEPATIC"],
+    "contraindicat": ["ValueSet/CONTRA_PREGNANCY", "ValueSet/CONTRA_HEPATIC", "Threshold/eGFR_LT_30", "Threshold/eGFR_LT_20"],
     "a1c": ["Measure/GSD", "LoincPart/LP-HBA1C"], "hba1c": ["Measure/GSD", "LoincPart/LP-HBA1C"],
     "glycemic": ["Measure/GSD", "ValueSet/GLYCEMIC"],
     "egfr": ["LoincPart/LP-EGFR", "Measure/KED", "Threshold/eGFR_LT_30"],
@@ -165,7 +168,9 @@ def graph_context(question: str, run_sql, graph: str) -> list[dict]:
     header = {"page_content": (f"Source: Ontobricks triple table {graph} (columns subject, predicate, object). "
                                f"Node IRIs are {ONTO_NS}<Type>/<id> (e.g. {ONTO_NS}Patient/<patient_id>, "
                                f"{ONTO_NS}Condition/E11.9, {ONTO_NS}DrugClass/DRUGCLASS-STATIN); predicate IRIs are "
-                               f"{ONTO_NS}<predicate>. Triples below are shown with that prefix removed.\n"
+                               f"{ONTO_NS}<predicate>. Triples below are shown with that prefix removed. Query the graph with one SQL "
+                               f"statement over this table (self-joins on subject/object; literal objects are strings, "
+                               f"cast as needed; WITH RECURSIVE for subClassOf*).\n"
                                f"Graph schema (predicate: subject type -> object type, count): {graph_schema(run_sql, graph)}"),
               "metadata": {"source": "ontobricks", "kind": "provenance", "graph": graph, "linked_entities": linked}}
     order = sorted(seen, key=lambda k: (seen[k], tiers[k] != "patient"))
@@ -292,10 +297,15 @@ def closure_context(question: str, run_sql, catalog: str, schema: str, term_sche
     """Closure retrieval with four tools over the derived closures: resolve_nodes, get_ancestors, get_descendants and
     patients_under (the content join: patients with a recorded diagnosis / medication order anywhere in the subtree).
     Concepts matched by different words are ANDed (e.g. diabetes AND statin); synonyms matched by the same words are
-    ORed (E10.2 OR E11.2). Nothing is retrieved when the question names no hierarchy node."""
+    ORed (E10.2 OR E11.2). Protocol v3 (ADR-0028): the same entry points as the graph -- the shared entity linker's
+    protocol nodes (value sets, drug classes, measures, thresholds) and a named patient's own coded record -- plus the
+    edges attached and the table cards of the graph's source tables. Nothing is retrieved when nothing links."""
     term = f"{catalog}.{term_schema}"
     anchors = resolve_nodes(question, run_sql, term)
-    if not anchors:
+    exact, _ = link_entities(question)
+    protocol_ids = sorted({a.split("/", 1)[1] for a in exact if not a.startswith(("Patient/", "Condition/"))})
+    patients = sorted({a.split("/", 1)[1] for a in exact if a.startswith("Patient/")})
+    if not anchors and not protocol_ids and not patients:
         return []
     clos = {"icd": f"{term}.icd10_closure", "rx": f"{term}.rxnorm_closure"}
     facts = {"icd": (f"{catalog}.{schema}.bronze_pat_enc_dx", "icd10_code", "a recorded diagnosis"),
@@ -305,6 +315,22 @@ def closure_context(question: str, run_sql, catalog: str, schema: str, term_sche
                               + " (ancestor_code, descendant_code, depth). Content joined from "
                               + ", ".join(sorted({facts[a['h']][0] for a in anchors})) + "."),
              "metadata": {"source": "closure", "kind": "provenance"}}]
+    for pid in patients:  # the patient's own coded record, rolled up through the closures
+        dx = run_sql(f"SELECT DISTINCT d.icd10_code, c.ancestor_code, c.depth FROM {catalog}.{schema}.silver_condition d "
+                     f"JOIN {clos['icd']} c ON c.descendant_code = d.icd10_code WHERE d.patient_id = {q(pid)} "
+                     f"ORDER BY d.icd10_code, c.depth")
+        rx = run_sql(f"SELECT DISTINCT o.rxnorm_code, c.ancestor_code FROM {catalog}.{schema}.care_order_med o "
+                     f"JOIN {clos['rx']} c ON c.descendant_code = o.rxnorm_code WHERE o.patient_id = {q(pid)} "
+                     f"AND c.ancestor_code LIKE 'DRUGCLASS-%'")
+        roll: dict[str, list[str]] = {}
+        for r_ in dx:
+            roll.setdefault(r_["icd10_code"], []).append(f"{r_['ancestor_code']}[{r_['depth']}]")
+        docs.append({"page_content": (f"Patient {pid}: diagnosis codes with their closure ancestors: "
+                                      + "; ".join(f"{k} -> {', '.join(v)}" for k, v in roll.items())
+                                      + ". Medication orders in drug classes: "
+                                      + (", ".join(sorted({f"{r_['rxnorm_code']} in {r_['ancestor_code']}" for r_ in rx}))
+                                         or "none")),
+                     "metadata": {"source": "closure", "kind": "patient"}})
     groups: dict[tuple, list[dict]] = {}
     for a in anchors:
         groups.setdefault((a["h"], tuple(a["matched"])), []).append(a)
@@ -335,9 +361,75 @@ def closure_context(question: str, run_sql, catalog: str, schema: str, term_sche
         both = " INTERSECT ".join(f"({s})" for s in subq)
         n = run_sql(f"SELECT COUNT(*) AS n FROM ({both})")[0]["n"]
         counts.append(f"Patients matching ALL of the above concepts: {int(n):,}")
-    docs.append({"page_content": "patients_under(...) -> " + " | ".join(counts),
-                 "metadata": {"source": "closure", "kind": "content"}})
+    if counts:
+        docs.append({"page_content": "patients_under(...) -> " + " | ".join(counts),
+                     "metadata": {"source": "closure", "kind": "content"}})
+    codes = [a["code"] for a in anchors] + protocol_ids
+    anc_codes = [r["ancestor_code"] for a in anchors for r in run_sql(
+        f"SELECT ancestor_code FROM {clos[a['h']]} WHERE descendant_code = {q(a['code'])}")]
+    edges = _edges_for(run_sql, term, sorted(set(codes + anc_codes)))
+    if edges:
+        docs.append({"page_content": "Edges attached to these concepts (protocol rules, value sets):\n" + "\n".join(edges),
+                     "metadata": {"source": "closure", "kind": "edges"}})
+    docs.append({"page_content": ("Tables you can join the closure to (the same data the knowledge graph maps; "
+                                  "query with one SQL statement):\n"
+                                  + table_cards(run_sql, mapped_tables("src/ontology/care_protocol.r2rml.ttl"))),
+                 "metadata": {"source": "closure", "kind": "tables"}})
     return docs
+
+
+# ---- parity: the same data as the graph, relationally (protocol v3, ADR-0028) ------------------------------------
+# The closure approach's content tables are exactly the source tables of the graph's R2RML mapping, so closure and graph
+# hold the same data by construction; one is relational (closure + edge tables, SQL joins), the other a triple graph.
+import os as _os
+
+_REPO = _os.path.normpath(_os.path.join(_os.path.dirname(__file__), "..", "..", ".."))
+_CARDS: dict[tuple, str] = {}
+
+
+def mapped_tables(r2rml_rel: str) -> list[str]:
+    """catalog.schema.table names read by an R2RML mapping (its rr:sqlQuery / rr:tableName text)."""
+    path = _os.path.join(_REPO, r2rml_rel)
+    if not _os.path.isfile(path):  # deployed app bundle: the mapping lives next to the server code
+        return []
+    with open(path) as f:
+        txt = f.read()
+    return sorted(set(re.findall(r"eli_test_classic_catalog\.(?:care_protocol|care_protocol_terminology|clinical_study|"
+                                 r"clinical_study_standards)\.\w+", txt)))
+
+
+def table_cards(run_sql, tables: list[str]) -> str:
+    """One line per table: its columns (with types) and comment, read from information_schema. Cached."""
+    key = tuple(tables)
+    if key not in _CARDS:
+        lines = []
+        for fq in tables:
+            cat, sch, tbl = fq.split(".")
+            cols = run_sql(f"SELECT column_name, data_type, comment FROM {cat}.information_schema.columns "
+                           f"WHERE table_schema = '{sch}' AND table_name = '{tbl}' ORDER BY ordinal_position")
+            com = run_sql(f"SELECT comment FROM {cat}.information_schema.tables WHERE table_schema = '{sch}' "
+                          f"AND table_name = '{tbl}'")
+            desc = ((com[0].get("comment") or "") if com else "")[:160]
+            lines.append(f"- {fq}" + (f" -- {desc}" if desc else "") + ": "
+                         + ", ".join(f"{c['column_name']} {c['data_type']}" for c in cols))
+        _CARDS[key] = "\n".join(lines)
+    return _CARDS[key]
+
+
+def _edges_for(run_sql, term: str, codes: list[str]) -> list[str]:
+    """Protocol / value-set / drug-class edges that touch the resolved concepts or their ancestors (1 hop)."""
+    if not codes:
+        return []
+    q = ", ".join("'" + c.replace("'", "") + "'" for c in codes)
+    rows = run_sql(f"SELECT subject, predicate, object, value FROM {term}.protocol_edges WHERE subject IN ({q}) "
+                   f"OR object IN ({q}) OR object IN (SELECT segment_id FROM {term}.value_set_segment WHERE code IN ({q}))")
+    vs = run_sql(f"SELECT DISTINCT segment_id, code, code_system, measurement_year FROM {term}.value_set_segment "
+                 f"WHERE code IN ({q}) ORDER BY segment_id LIMIT 40")
+    out = [f"protocol_edges: {r['subject']} {r['predicate']} {r['object']}" + (f" (value {r['value']})" if r.get("value")
+                                                                                 else "") for r in rows]
+    out += [f"value_set_segment: {r['segment_id']} contains {r['code_system']} {r['code']} (MY{r['measurement_year']})"
+            for r in vs]
+    return out
 
 
 # ---- closure tools as single calls (the one-shot query for the closure approach) --------------------------------

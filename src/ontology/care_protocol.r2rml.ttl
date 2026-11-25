@@ -7,6 +7,8 @@
 # R2RML mappings: Unity Catalog tables -> Care Protocol Ontology (care_protocol.owl.ttl). This file IS the HEDIS graph:
 # Eli imports it into the Ontobricks project `clinicaldomain` (replacing the project mapping) and publishes.
 #
+# rev 10 (2026-11-25): + ConditionRecord / MedicationOrder (dated), Observation resultDateTime, Clinic + attributedTo,
+#   ValueSet containsTest LabTest (MY2026) -- the data the tables hold, for parity (ADR-0028).
 # rev 9 (2026-11-24): rewritten so it imports cleanly, the life-sciences pattern (clinical_study.r2rml.ttl):
 #   * IRIs are https://care-protocol.example/ontology/<Class>/{id}, the form Ontobricks publishes. A relationship
 #     endpoint resolves to an entity only when its IRI segment is the class name, so the old segments (icd/, obs/,
@@ -72,7 +74,7 @@
   rr:predicateObjectMap [ rr:predicate cp:icd10Code ; rr:objectMap [ rr:column "hep_code" ] ] .
 
 <#LabTestEntity> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT c.loinc_code, COALESCE(MAX(l.long_common_name), MAX(c.description)) AS loinc_name FROM (SELECT loinc_code, CAST(NULL AS STRING) AS description FROM eli_test_classic_catalog.care_protocol_terminology.loinc UNION ALL SELECT loinc_code, description FROM eli_test_classic_catalog.care_protocol.silver_observation) c LEFT JOIN eli_test_classic_catalog.care_protocol_terminology.loinc l ON l.loinc_code = c.loinc_code WHERE c.loinc_code IS NOT NULL GROUP BY c.loinc_code" ] ;
+  rr:logicalTable [ rr:sqlQuery "SELECT c.loinc_code, COALESCE(MAX(l.long_common_name), MAX(c.description)) AS loinc_name FROM (SELECT loinc_code, CAST(NULL AS STRING) AS description FROM eli_test_classic_catalog.care_protocol_terminology.loinc UNION ALL SELECT code AS loinc_code, CAST(NULL AS STRING) AS description FROM eli_test_classic_catalog.care_protocol_terminology.value_set_segment WHERE code_system = 'LOINC' UNION ALL SELECT loinc_code, description FROM eli_test_classic_catalog.care_protocol.silver_observation) c LEFT JOIN eli_test_classic_catalog.care_protocol_terminology.loinc l ON l.loinc_code = c.loinc_code WHERE c.loinc_code IS NOT NULL GROUP BY c.loinc_code" ] ;
   rr:subjectMap [ rr:template "https://care-protocol.example/ontology/LabTest/{loinc_code}" ; rr:class cp:LabTest ] ;
   rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "loinc_name" ] ] ;
   rr:predicateObjectMap [ rr:predicate cp:loincCode ; rr:objectMap [ rr:column "loinc_code" ] ] .
@@ -83,7 +85,7 @@
   rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "part_name" ] ] .
 
 <#MedicationEntity> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT rx_code, MAX(rx_name) AS rx_name FROM (SELECT code AS rx_code, name AS rx_name FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE relationship = 'ingredient_of' UNION ALL SELECT rxnorm_code AS rx_code, description AS rx_name FROM eli_test_classic_catalog.care_protocol.bronze_order_med WHERE rxnorm_code IS NOT NULL) m GROUP BY rx_code" ] ;
+  rr:logicalTable [ rr:sqlQuery "SELECT rx_code, MAX(rx_name) AS rx_name FROM (SELECT code AS rx_code, name AS rx_name FROM eli_test_classic_catalog.care_protocol_terminology.rxnorm_hier WHERE relationship = 'ingredient_of' UNION ALL SELECT rxnorm_code AS rx_code, description AS rx_name FROM eli_test_classic_catalog.care_protocol.bronze_order_med WHERE rxnorm_code IS NOT NULL UNION ALL SELECT rxnorm_code AS rx_code, description AS rx_name FROM eli_test_classic_catalog.care_protocol.care_order_med WHERE rxnorm_code IS NOT NULL) m GROUP BY rx_code" ] ;
   rr:subjectMap [ rr:template "https://care-protocol.example/ontology/Medication/{rx_code}" ; rr:class cp:Medication ] ;
   rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "rx_name" ] ] ;
   rr:predicateObjectMap [ rr:predicate cp:rxnormCode ; rr:objectMap [ rr:column "rx_code" ] ] .
@@ -114,9 +116,10 @@
   rr:subjectMap [ rr:template "https://care-protocol.example/ontology/Measure/{measure_id}" ; rr:class cp:Measure ] .
 
 <#ObservationEntity> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT CONCAT_WS('_', patient_id, loinc_code, CAST(result_ts AS STRING)) AS obs_id, value_num FROM eli_test_classic_catalog.care_protocol.silver_observation WHERE loinc_code IS NOT NULL" ] ;
+  rr:logicalTable [ rr:sqlQuery "SELECT CONCAT_WS('_', patient_id, loinc_code, CAST(result_ts AS STRING)) AS obs_id, value_num, CAST(result_ts AS STRING) AS result_dt FROM eli_test_classic_catalog.care_protocol.silver_observation WHERE loinc_code IS NOT NULL" ] ;
   rr:subjectMap [ rr:template "https://care-protocol.example/ontology/Observation/{obs_id}" ; rr:class cp:Observation ] ;
-  rr:predicateObjectMap [ rr:predicate cp:resultValue ; rr:objectMap [ rr:column "value_num" ] ] .
+  rr:predicateObjectMap [ rr:predicate cp:resultValue ; rr:objectMap [ rr:column "value_num" ] ] ;
+  rr:predicateObjectMap [ rr:predicate cp:resultDateTime ; rr:objectMap [ rr:column "result_dt" ] ] .
 
 # ---- Patient records ----
 <#HasDiagnosisMap> a rr:TriplesMap ;
@@ -253,3 +256,48 @@
   rr:subjectMap [ rr:template "https://care-protocol.example/ontology/Patient/{patient_id}" ] ;
   rr:predicateObjectMap [ rr:predicate cp:hasCareGap ;
      rr:objectMap [ rr:template "https://care-protocol.example/ontology/Measure/{measure_id}" ] ] .
+
+# ---- rev 10 (2026-11-25, protocol v3 parity, ADR-0028): the dated record, attribution and lab value sets ----
+<#ConditionRecordEntity> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT condrec_id, onset_dt, stop_dt FROM (SELECT concat_ws('_', patient_id, icd10_code, CAST(onset_date AS STRING)) AS condrec_id, patient_id, icd10_code AS icd_code, CAST(onset_date AS STRING) AS onset_dt, CAST(stop_date AS STRING) AS stop_dt FROM eli_test_classic_catalog.care_protocol.silver_condition WHERE icd10_code IS NOT NULL)" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/ConditionRecord/{condrec_id}" ; rr:class cp:ConditionRecord ] ;
+  rr:predicateObjectMap [ rr:predicate cp:onsetDate ; rr:objectMap [ rr:column "onset_dt" ] ] ;
+  rr:predicateObjectMap [ rr:predicate cp:stopDate ; rr:objectMap [ rr:column "stop_dt" ] ] .
+<#MedicationOrderEntity> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT medorder_id, start_dt, stop_dt FROM (SELECT DISTINCT concat_ws('_', patient_id, rxnorm_code, CAST(start_ts AS STRING), coalesce(CAST(stop_ts AS STRING), 'open')) AS medorder_id, patient_id, rxnorm_code AS rx_code, CAST(start_ts AS STRING) AS start_dt, CAST(stop_ts AS STRING) AS stop_dt FROM eli_test_classic_catalog.care_protocol.care_order_med WHERE rxnorm_code IS NOT NULL)" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/MedicationOrder/{medorder_id}" ; rr:class cp:MedicationOrder ] ;
+  rr:predicateObjectMap [ rr:predicate cp:startDateTime ; rr:objectMap [ rr:column "start_dt" ] ] ;
+  rr:predicateObjectMap [ rr:predicate cp:stopDateTime ; rr:objectMap [ rr:column "stop_dt" ] ] .
+<#ClinicEntity> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT DISTINCT clinic_id FROM eli_test_classic_catalog.care_protocol.panel_roster WHERE clinic_id IS NOT NULL" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/Clinic/{clinic_id}" ; rr:class cp:Clinic ] .
+<#HasConditionRecordMap> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT patient_id, condrec_id FROM (SELECT concat_ws('_', patient_id, icd10_code, CAST(onset_date AS STRING)) AS condrec_id, patient_id, icd10_code AS icd_code, CAST(onset_date AS STRING) AS onset_dt, CAST(stop_date AS STRING) AS stop_dt FROM eli_test_classic_catalog.care_protocol.silver_condition WHERE icd10_code IS NOT NULL)" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/Patient/{patient_id}" ] ;
+  rr:predicateObjectMap [ rr:predicate cp:hasConditionRecord ;
+     rr:objectMap [ rr:template "https://care-protocol.example/ontology/ConditionRecord/{condrec_id}" ] ] .
+<#RecordsConditionMap> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT condrec_id, icd_code FROM (SELECT concat_ws('_', patient_id, icd10_code, CAST(onset_date AS STRING)) AS condrec_id, patient_id, icd10_code AS icd_code, CAST(onset_date AS STRING) AS onset_dt, CAST(stop_date AS STRING) AS stop_dt FROM eli_test_classic_catalog.care_protocol.silver_condition WHERE icd10_code IS NOT NULL)" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/ConditionRecord/{condrec_id}" ] ;
+  rr:predicateObjectMap [ rr:predicate cp:recordsCondition ;
+     rr:objectMap [ rr:template "https://care-protocol.example/ontology/Condition/{icd_code}" ] ] .
+<#HasMedicationOrderMap> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT patient_id, medorder_id FROM (SELECT DISTINCT concat_ws('_', patient_id, rxnorm_code, CAST(start_ts AS STRING), coalesce(CAST(stop_ts AS STRING), 'open')) AS medorder_id, patient_id, rxnorm_code AS rx_code, CAST(start_ts AS STRING) AS start_dt, CAST(stop_ts AS STRING) AS stop_dt FROM eli_test_classic_catalog.care_protocol.care_order_med WHERE rxnorm_code IS NOT NULL)" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/Patient/{patient_id}" ] ;
+  rr:predicateObjectMap [ rr:predicate cp:hasMedicationOrder ;
+     rr:objectMap [ rr:template "https://care-protocol.example/ontology/MedicationOrder/{medorder_id}" ] ] .
+<#OrdersMedicationMap> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT medorder_id, rx_code FROM (SELECT DISTINCT concat_ws('_', patient_id, rxnorm_code, CAST(start_ts AS STRING), coalesce(CAST(stop_ts AS STRING), 'open')) AS medorder_id, patient_id, rxnorm_code AS rx_code, CAST(start_ts AS STRING) AS start_dt, CAST(stop_ts AS STRING) AS stop_dt FROM eli_test_classic_catalog.care_protocol.care_order_med WHERE rxnorm_code IS NOT NULL)" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/MedicationOrder/{medorder_id}" ] ;
+  rr:predicateObjectMap [ rr:predicate cp:ordersMedication ;
+     rr:objectMap [ rr:template "https://care-protocol.example/ontology/Medication/{rx_code}" ] ] .
+<#AttributedToMap> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT patient_id, clinic_id FROM eli_test_classic_catalog.care_protocol.panel_roster WHERE clinic_id IS NOT NULL" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/Patient/{patient_id}" ] ;
+  rr:predicateObjectMap [ rr:predicate cp:attributedTo ;
+     rr:objectMap [ rr:template "https://care-protocol.example/ontology/Clinic/{clinic_id}" ] ] .
+<#ContainsTestMap> a rr:TriplesMap ;
+  rr:logicalTable [ rr:sqlQuery "SELECT DISTINCT v.segment_id AS vs_id, v.code AS loinc_code FROM eli_test_classic_catalog.care_protocol_terminology.value_set_segment v WHERE v.code_system = 'LOINC' AND v.measurement_year = (SELECT max(w.measurement_year) FROM eli_test_classic_catalog.care_protocol_terminology.value_set_segment w WHERE w.segment_id = v.segment_id AND w.measurement_year <= '2026')" ] ;
+  rr:subjectMap [ rr:template "https://care-protocol.example/ontology/ValueSet/{vs_id}" ] ;
+  rr:predicateObjectMap [ rr:predicate cp:containsTest ;
+     rr:objectMap [ rr:template "https://care-protocol.example/ontology/LabTest/{loinc_code}" ] ] .

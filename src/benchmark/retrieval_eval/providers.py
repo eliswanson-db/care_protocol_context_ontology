@@ -50,6 +50,15 @@ def _qmeta() -> dict:
 QMETA = _qmeta()
 
 
+def _data_through() -> str:
+    import yaml
+    path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "docs", "benchmark", QUESTIONS_FILE)
+    return str(yaml.safe_load(open(os.path.normpath(path))).get("data_through") or "")
+
+
+DATA_THROUGH = _data_through()
+
+
 def _doc(content: str, **meta) -> dict:
     """An MLflow retriever document: page_content is what the judges read; metadata is provenance."""
     return {"page_content": content, "metadata": meta}

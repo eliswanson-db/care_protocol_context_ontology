@@ -438,3 +438,22 @@ cpl:usdmAlignment a owl:AnnotationProperty .
 # domain: HeightObservation | WeightObservation (several classes, so no rdfs:domain; Ontobricks reads a union as a blank node)
 <https://clinical-study-lab.example/ontology/visit> a owl:DatatypeProperty ; rdfs:range xsd:string .
 <https://clinical-study-lab.example/ontology/windowHalfWidthDays> a owl:DatatypeProperty ; rdfs:domain <https://clinical-study-lab.example/ontology#EndpointRuleVersion> ; rdfs:range xsd:integer .
+
+# rev 2026-11-25 (protocol v3 parity, ADR-0028; supersedes ADR-0025's exclusion): the population and deviation verdicts
+# gold holds, mapped as HEDIS maps eligibleFor / hasCareGap.
+<https://clinical-study-lab.example/ontology#ProtocolDeviation> a owl:Class ; rdfs:label "Protocol deviation" ;
+    rdfs:comment "A major protocol deviation recorded for a participant (eligibility violation, prohibited medication on treatment)." .
+<https://clinical-study-lab.example/ontology/inPopulation> a owl:ObjectProperty ; rdfs:label "in analysis population" ;
+    rdfs:domain <https://clinical-study-lab.example/ontology#Participant> ; rdfs:range <https://clinical-study-lab.example/ontology#AnalysisPopulation> ; cpl:source "gold_participant_population FASFL / PPSFL" .
+<https://clinical-study-lab.example/ontology/hasDeviation> a owl:ObjectProperty ; rdfs:label "has protocol deviation" ;
+    rdfs:domain <https://clinical-study-lab.example/ontology#Participant> ; rdfs:range <https://clinical-study-lab.example/ontology#ProtocolDeviation> ; cpl:source "gold_participant_population.deviations" .
+<https://clinical-study-lab.example/ontology/violatesCriterion> a owl:ObjectProperty ; rdfs:label "violates criterion" ;
+    rdfs:domain <https://clinical-study-lab.example/ontology#ProtocolDeviation> ; rdfs:range <https://clinical-study-lab.example/ontology#EligibilityCriterion> ; cpl:source "deviation evidence (criterion ids)" .
+<https://clinical-study-lab.example/ontology/evidencedBy> a owl:ObjectProperty ; rdfs:label "evidenced by" ;
+    rdfs:domain <https://clinical-study-lab.example/ontology#ProtocolDeviation> ; rdfs:range <https://clinical-study-lab.example/ontology#ConMedRecord> ; cpl:source "deviation evidence (CM record)" .
+<https://clinical-study-lab.example/ontology/failsCriterion> a owl:ObjectProperty ; rdfs:label "fails criterion" ;
+    rdfs:domain <https://clinical-study-lab.example/ontology#Participant> ; rdfs:range <https://clinical-study-lab.example/ontology#EligibilityCriterion> ;
+    cpl:source "gold_eligibility_criterion outcome TRIGGERED / NOT_MET" .
+<https://clinical-study-lab.example/ontology/deviationType> a owl:DatatypeProperty ; rdfs:domain <https://clinical-study-lab.example/ontology#ProtocolDeviation> ; rdfs:range xsd:string .
+<https://clinical-study-lab.example/ontology/severity> a owl:DatatypeProperty ; rdfs:domain <https://clinical-study-lab.example/ontology#ProtocolDeviation> ; rdfs:range xsd:string .
+<https://clinical-study-lab.example/ontology/ruleEligible> a owl:DatatypeProperty ; rdfs:domain <https://clinical-study-lab.example/ontology#Participant> ; rdfs:range xsd:boolean .

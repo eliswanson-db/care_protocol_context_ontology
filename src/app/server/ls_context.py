@@ -144,7 +144,9 @@ def graph_context(question: str, run_sql, graph: str) -> list[dict]:
     header = {"page_content": (f"Source: Ontobricks triple table {graph} (columns subject, predicate, object). Node IRIs "
                                f"are {NS}<Type>/<id> (e.g. {NS}Participant/CSL-A-103-0137, {NS}Disease/MONDO:0004982, "
                                f"{NS}ConceptClass/WRC-V1); predicate IRIs are {NS}<predicate>. Triples below are shown "
-                               f"with that prefix removed.\nGraph schema (predicate: subject type -> object type, "
+                               f"with that prefix removed. Query the graph with one SQL statement over this table "
+                               f"(self-joins on subject/object; literal objects are strings, cast as needed; WITH "
+                               f"RECURSIVE for subClassOf*).\nGraph schema (predicate: subject type -> object type, "
                                f"count): {graph_schema(run_sql, graph)}"),
               "metadata": {"source": "ontobricks", "kind": "provenance", "graph": graph, "linked_entities": sorted(seeds)}}
     return [header] + [
@@ -250,6 +252,23 @@ def closure_context(question: str, run_sql, catalog: str) -> list[dict]:
         counts.append(f"Participants with a recorded {r['what']} under {a['code']} ({a['name']}): {int(r['participants']):,}")
     docs.append({"page_content": "participants_under(...) -> " + " | ".join(counts),
                  "metadata": {"source": "closure", "kind": "content"}})
+    # Edges attached to the resolved concepts: class roots / carve-outs, and drug -> class / effect / contraindication.
+    codes = [a["code"] for a in anchors]
+    ql = ", ".join(q(c) for c in codes)
+    edges = [f"class_root: {r['class_id']} {r['kind']} {r['concept_id']}" for r in run_sql(
+        f"SELECT class_id, kind, concept_id FROM {std}.class_root WHERE class_id IN ({ql}) OR concept_id IN ({ql})")]
+    edges += [f"kb_edge: {r['subject']} {r['predicate']} {r['object']}" for r in run_sql(
+        f"SELECT subject, predicate, object FROM {std}.kb_edge WHERE (subject IN ({ql}) OR object IN ({ql})) AND "
+        f"predicate IN ('medrt:memberOf', 'medrt:has_PE', 'medrt:CI_with', 'skos:exactMatch', 'oboInOwl:hasDbXref') "
+        f"LIMIT 60")]
+    if edges:
+        docs.append({"page_content": "Edges attached to these concepts (class definitions, drug classes):\n"
+                                     + "\n".join(edges), "metadata": {"source": "closure", "kind": "edges"}})
+    from .context_retrieval import mapped_tables, table_cards
+    docs.append({"page_content": ("Tables you can join the closure to (the same data the knowledge graph maps; "
+                                  "query with one SQL statement):\n" + table_cards(
+                                      run_sql, mapped_tables("src/ontology/life_sciences/clinical_study.r2rml.ttl"))),
+                 "metadata": {"source": "closure", "kind": "tables"}})
     return docs
 
 

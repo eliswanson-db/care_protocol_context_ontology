@@ -80,6 +80,17 @@ class HarnessError(RuntimeError):
 
 
 # --- Tier 2: can the retrieved context alone get the agent to the answer with ONE query? -------------------------
+# The data's as-of date, the same for every approach (an analyst knows when their data was loaded). Set by the runner
+# from the question file's data_through; the questions name it ("through 2026-10-30") and nothing is loaded after it.
+DATA_THROUGH = os.environ.get("CARE_DATA_THROUGH", "")
+
+
+def _as_of() -> str:
+    return (f" The lakehouse holds data through {DATA_THROUGH}: nothing is loaded after that date, so a question's "
+            f"'through {DATA_THROUGH}' needs no filter on dates beyond what the data already holds."
+            if DATA_THROUGH else "")
+
+
 _SQL_SYSTEM = (
     "You write Databricks SQL. You are given a QUESTION and the CONTEXT retrieved by one retrieval approach. "
     "Write exactly ONE read-only SQL query (a single SELECT, CTEs allowed) whose result answers the question. "
@@ -97,7 +108,7 @@ def write_sql(question: str, context_docs: list[dict]) -> tuple[str | None, str]
     Returns (sql, "") or (None, the agent's one-line reason for declining)."""
     ctx = "\n\n".join(f"[{i + 1}] {d.get('page_content', '')}".strip() for i, d in enumerate(context_docs)) \
         or "(no context was retrieved)"
-    msg = [{"role": "system", "content": _SQL_SYSTEM},
+    msg = [{"role": "system", "content": _SQL_SYSTEM + _as_of()},
            {"role": "user", "content": f"QUESTION:\n{question}\n\nCONTEXT:\n{ctx}"}]
     # Reasoning tokens count against max_tokens on these endpoints, so the budget must be generous; a "length"
     # finish means the SQL was cut off -- a harness failure, never a retrieval verdict.
@@ -267,8 +278,21 @@ def _loads_lenient(raw: str) -> dict:
     return {}
 
 
-@mlflow.trace(span_type="LLM", name="judge_fact")
+_JUDGED: dict[tuple, dict] = {}
+
+
 def judge_fact(question: str, fact: str, text: str, where: str) -> dict:
+    """Memoized: the same question, fact and evidence always get the same verdict (across runs and approaches), so
+    judge noise can't make identical evidence pass in one run and fail in another."""
+    import hashlib
+    key = (question, fact, hashlib.sha256((text or "").encode()).hexdigest(), where)
+    if key not in _JUDGED:
+        _JUDGED[key] = _judge_fact(question, fact, text, where)
+    return dict(_JUDGED[key])
+
+
+@mlflow.trace(span_type="LLM", name="judge_fact")
+def _judge_fact(question: str, fact: str, text: str, where: str) -> dict:
     """{"ok", "verdict", "quote", "rationale"}. verdict = stated | contradicted | missing. ok (= stated) requires
     stated=true AND the quote to appear verbatim in the text; a contradiction needs a verbatim quote too."""
     if not text or not text.strip() or text.startswith("(no context retrieved)"):

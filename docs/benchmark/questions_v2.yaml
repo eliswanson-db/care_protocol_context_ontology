@@ -12,6 +12,8 @@
 
 # Hand check (2026-11-25, on the final run: 3 runs per cell, graph v7, corrected answer key). Every cell was read
 # against gold; the note says what the check found. Where it disagrees with the judge, hand_overrides wins.
+# The data's as-of date: nothing is loaded after it. Every approach's agent is told it (ADR-0028).
+data_through: "2026-10-30"
 hand_verified:
   metric_view: [q1, q2, q3, q4, q5, q6, q7, q8]
   closure_sql: [q1, q2, q3, q4, q5, q6, q7, q8]

@@ -249,7 +249,7 @@ map:SiteEntity a rr:TriplesMap ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/country> ; rr:objectMap [ rr:column "country" ; rr:datatype xsd:string ] ] .
 
 map:ParticipantEntity a rr:TriplesMap ;
-    rr:logicalTable [ rr:sqlQuery "SELECT ID AS participant_id, Label, age, sex, screening_date, screen_outcome, arm_code, randomization_date, first_dose, edc_eligible FROM (SELECT USUBJID AS ID, USUBJID AS Label, AGE AS age, SEX AS sex, DMDTC AS screening_date, CPL_SCREEN_OUTCOME AS screen_outcome, ARMCD AS arm_code, CPL_RANDDT AS randomization_date, RFXSTDTC AS first_dose, CPL_EDC_ELIGIBLE AS edc_eligible FROM eli_test_classic_catalog.clinical_study.silver_dm)" ] ;
+    rr:logicalTable [ rr:sqlQuery "SELECT ID AS participant_id, Label, age, sex, screening_date, screen_outcome, arm_code, randomization_date, first_dose, edc_eligible, rule_eligible FROM (SELECT d.USUBJID AS ID, d.USUBJID AS Label, d.AGE AS age, d.SEX AS sex, d.DMDTC AS screening_date, d.CPL_SCREEN_OUTCOME AS screen_outcome, d.ARMCD AS arm_code, d.CPL_RANDDT AS randomization_date, d.RFXSTDTC AS first_dose, d.CPL_EDC_ELIGIBLE AS edc_eligible, p.rule_eligible FROM eli_test_classic_catalog.clinical_study.silver_dm d LEFT JOIN eli_test_classic_catalog.clinical_study.gold_participant_population p ON p.USUBJID = d.USUBJID)" ] ;
     rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Participant/{participant_id}" ; rr:class <https://clinical-study-lab.example/ontology#Participant> ] ;
     rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "Label" ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/age> ; rr:objectMap [ rr:column "age" ; rr:datatype xsd:integer ] ] ;
@@ -259,7 +259,8 @@ map:ParticipantEntity a rr:TriplesMap ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/armCode> ; rr:objectMap [ rr:column "arm_code" ; rr:datatype xsd:string ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/randomizationDate> ; rr:objectMap [ rr:column "randomization_date" ; rr:datatype xsd:date ] ] ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/firstDoseDateTime> ; rr:objectMap [ rr:column "first_dose" ; rr:datatype xsd:string ] ] ;
-    rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/edcRecordedEligible> ; rr:objectMap [ rr:column "edc_eligible" ; rr:datatype xsd:string ] ] .
+    rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/edcRecordedEligible> ; rr:objectMap [ rr:column "edc_eligible" ; rr:datatype xsd:string ] ] ;
+    rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/ruleEligible> ; rr:objectMap [ rr:column "rule_eligible" ; rr:datatype xsd:boolean ] ] .
 
 map:MedicalHistoryRecordEntity a rr:TriplesMap ;
     rr:logicalTable [ rr:sqlQuery "SELECT ID AS medical_history_record_id, Label, start_date FROM (SELECT CPL_SOURCE_RECORD_ID AS ID, MHTERM AS Label, MHSTDTC AS start_date FROM eli_test_classic_catalog.clinical_study.silver_mh)" ] ;
@@ -774,3 +775,34 @@ map:document_for__document__study a rr:TriplesMap ;
     rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/documentFor> ;
         rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/Study/{study_id}" ] ] .
 
+# ---- rev 2026-11-25 (ADR-0028): population, deviation and criterion verdicts, mirroring HEDIS ----
+map:ProtocolDeviationEntity a rr:TriplesMap ;
+    rr:logicalTable [ rr:sqlQuery "SELECT protocol_deviation_id, deviation_type, severity FROM (SELECT concat(p.USUBJID, '.dev', CAST(x.pos AS STRING)) AS protocol_deviation_id, p.USUBJID AS participant_id, p.eligibility_rule_id AS rule_id, x.d.deviation AS deviation_type, x.d.severity AS severity, x.d.evidence AS evidence FROM eli_test_classic_catalog.clinical_study.gold_participant_population p LATERAL VIEW posexplode(p.deviations) x AS pos, d)" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/ProtocolDeviation/{protocol_deviation_id}" ; rr:class <https://clinical-study-lab.example/ontology#ProtocolDeviation> ] ;
+    rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/deviationType> ; rr:objectMap [ rr:column "deviation_type" ; rr:datatype xsd:string ] ] ;
+    rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/severity> ; rr:objectMap [ rr:column "severity" ; rr:datatype xsd:string ] ] .
+map:in_population__participant__analysis_population a rr:TriplesMap ;
+    rr:logicalTable [ rr:sqlQuery "SELECT USUBJID AS participant_id, 'FAS' AS analysis_population_id FROM eli_test_classic_catalog.clinical_study.gold_participant_population WHERE FASFL = 'Y' UNION ALL SELECT USUBJID, 'PPS' FROM eli_test_classic_catalog.clinical_study.gold_participant_population WHERE PPSFL = 'Y'" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Participant/{participant_id}" ] ;
+    rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/inPopulation> ;
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/AnalysisPopulation/{analysis_population_id}" ] ] .
+map:has_deviation__participant__protocol_deviation a rr:TriplesMap ;
+    rr:logicalTable [ rr:sqlQuery "SELECT participant_id, protocol_deviation_id FROM (SELECT concat(p.USUBJID, '.dev', CAST(x.pos AS STRING)) AS protocol_deviation_id, p.USUBJID AS participant_id, p.eligibility_rule_id AS rule_id, x.d.deviation AS deviation_type, x.d.severity AS severity, x.d.evidence AS evidence FROM eli_test_classic_catalog.clinical_study.gold_participant_population p LATERAL VIEW posexplode(p.deviations) x AS pos, d)" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Participant/{participant_id}" ] ;
+    rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/hasDeviation> ;
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/ProtocolDeviation/{protocol_deviation_id}" ] ] .
+map:violates_criterion__protocol_deviation__eligibility_criterion a rr:TriplesMap ;
+    rr:logicalTable [ rr:sqlQuery "SELECT protocol_deviation_id, concat(rule_id, '.', c) AS eligibility_criterion_id FROM (SELECT concat(p.USUBJID, '.dev', CAST(x.pos AS STRING)) AS protocol_deviation_id, p.USUBJID AS participant_id, p.eligibility_rule_id AS rule_id, x.d.deviation AS deviation_type, x.d.severity AS severity, x.d.evidence AS evidence FROM eli_test_classic_catalog.clinical_study.gold_participant_population p LATERAL VIEW posexplode(p.deviations) x AS pos, d) LATERAL VIEW explode(split(evidence, ',')) e AS c WHERE deviation_type = 'ELIGIBILITY_VIOLATION'" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/ProtocolDeviation/{protocol_deviation_id}" ] ;
+    rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/violatesCriterion> ;
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/EligibilityCriterion/{eligibility_criterion_id}" ] ] .
+map:evidenced_by__protocol_deviation__con_med_record a rr:TriplesMap ;
+    rr:logicalTable [ rr:sqlQuery "SELECT protocol_deviation_id, evidence AS con_med_record_id FROM (SELECT concat(p.USUBJID, '.dev', CAST(x.pos AS STRING)) AS protocol_deviation_id, p.USUBJID AS participant_id, p.eligibility_rule_id AS rule_id, x.d.deviation AS deviation_type, x.d.severity AS severity, x.d.evidence AS evidence FROM eli_test_classic_catalog.clinical_study.gold_participant_population p LATERAL VIEW posexplode(p.deviations) x AS pos, d) WHERE evidence LIKE 'EDC-CM-%'" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/ProtocolDeviation/{protocol_deviation_id}" ] ;
+    rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/evidencedBy> ;
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/ConMedRecord/{con_med_record_id}" ] ] .
+map:fails_criterion__participant__eligibility_criterion a rr:TriplesMap ;
+    rr:logicalTable [ rr:sqlQuery "SELECT USUBJID AS participant_id, concat(eligibility_rule_id, '.', criterion_id) AS eligibility_criterion_id FROM eli_test_classic_catalog.clinical_study.gold_eligibility_criterion WHERE outcome IN ('TRIGGERED', 'NOT_MET')" ] ;
+    rr:subjectMap [ rr:template "https://clinical-study-lab.example/ontology/Participant/{participant_id}" ] ;
+    rr:predicateObjectMap [ rr:predicate <https://clinical-study-lab.example/ontology/failsCriterion> ;
+        rr:objectMap [ rr:template "https://clinical-study-lab.example/ontology/EligibilityCriterion/{eligibility_criterion_id}" ] ] .

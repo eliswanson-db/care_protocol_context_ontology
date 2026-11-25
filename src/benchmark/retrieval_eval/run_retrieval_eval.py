@@ -54,8 +54,12 @@ def retrieve(arm: str, question: str, qid: str) -> list[dict]:
 
 
 # How each approach is allowed to query in the one-shot step: its OWN native interface.
+# Protocol v3 (docs/decisions.md ADR-0028): every approach's one query is SQL over the same lakehouse. Closure tables
+# are joined to the data; the graph is queried in its own store, the triplestore table (recursive CTEs for subClassOf*).
+# Ontobricks' SPARQL translator (2026-11-25) handles neither relationship patterns nor aggregates, so it can't be the
+# graph's query language yet; the graph runner stays in the app's Trace tab.
 INTERFACE = {"metric_view": "sql", "genie_ontology": "sql", "genie_ontology_dmvm": "sql", "rag": "sql",
-             "closed_book": "sql", "closure_sql": "closure", "ontobricks": "graph", "genie_one": "answer"}
+             "closed_book": "sql", "closure_sql": "sql", "ontobricks": "sql", "genie_one": "answer"}
 INTERFACE_LABEL = {"sql": "SQL", "closure": "closure-tool call", "graph": "graph-runner call",
                    "answer": "its own answer (no follow-up query)"}
 
@@ -162,7 +166,7 @@ def _outcome(arm, docs, sufficient, query, error, in_ctx, in_res) -> str:
     if not docs:
         return "nothing"
     if not query:
-        return "no_query"
+        return "incomplete" if any(x["ok"] for x in in_ctx) else "no_query"
     if error or in_res is None:
         return "query_failed"
     best = [c if c["ok"] else r for c, r in zip(in_ctx, in_res)]  # per fact: the context's verdict if it states it
@@ -190,6 +194,7 @@ def main():
     ap.add_argument("--repeats", type=int, default=1, help="runs per cell (test mode: 1); the majority tier is reported")
     ap.add_argument("--final", action="store_true", help="final demo testing: 3 runs per cell (overrides --repeats)")
     args = ap.parse_args()
+    agent.DATA_THROUGH = providers.DATA_THROUGH
     if args.final:
         args.repeats = 3
     ARMS = [a for a in args.arms.split(",") if a]
@@ -247,7 +252,9 @@ def main():
         rep = dict(next(r for r in rs if r["tier"] == maj))
         rep.update({"tier_runs": tiers, "stable": len(set(tiers)) == 1,
                     "harness_errors": sum(r["tier"] is None for r in rs),
-                    "runs": [{"tier": r["tier"], "outcome": r.get("outcome"),
+                    "runs": [{"tier": r["tier"], "outcome": r.get("outcome"), "facts": r.get("facts"),
+                              "sql_result": (r.get("sql_result") or "")[:2500], "reason": r.get("reason"),
+                              "declined_reason": r.get("declined_reason"),
                               "sql": (r.get("sql") or "")[:1500], "sql_error": r.get("sql_error"),
                               "facts_in_context": r.get("facts_in_context"), "facts_in_result": r.get("facts_in_result")}
                              for r in rs]})
