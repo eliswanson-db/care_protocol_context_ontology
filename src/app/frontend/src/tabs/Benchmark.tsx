@@ -43,6 +43,17 @@ const VERDICT: Record<string, { mark: string; cls: string; label: string }> = {
   contradicted: { mark: "✗", cls: "text-destructive", label: "contradicted" },
 };
 
+/** The nuance under a chip: expected facts stated (n/m) and how many of the runs reached the shown outcome (k/3). */
+function CellMeta({ c }: { c?: V2Cell }) {
+  if (!c || c.tier == null) return null;
+  const runs = c.run_outcomes ?? [];
+  const agree = runs.filter((o) => o === c.outcome).length;
+  const parts = [];
+  if (c.n_facts && c.facts_stated != null && c.tier !== 1 && c.tier !== 2) parts.push(`${c.facts_stated}/${c.n_facts} facts`);
+  if (runs.length > 1 && agree < runs.length) parts.push(`${agree}/${runs.length} runs`);
+  return parts.length ? <div className="mt-0.5 text-[10.5px] text-muted">{parts.join(" · ")}</div> : null;
+}
+
 function Cell({ armId, c }: { armId: string; c?: V2Cell }) {
   return armId === "genie_one" ? <GenieOneChip c={c} /> : <TierChip k={tierKey(c)} short />;
 }
@@ -100,6 +111,22 @@ function Detail({ q, arm, c, subject }: { q: BenchmarkV2["questions"][number]; a
               <div className="mt-3 text-[11px] font-bold uppercase tracking-wider text-muted">Why this score</div>
               <p className="mt-1 text-[13.5px]">{c.reason}</p>
             </>
+          )}
+          {!!c.needed_tables?.length && arm.kind !== "end_to_end" && (
+            <>
+              <div className="mt-3 text-[11px] font-bold uppercase tracking-wider text-muted">Tables the answer-key query reads</div>
+              <p className="mt-1 text-[13px]">
+                {c.needed_tables.map((t) => (
+                  <span key={t} className={`mr-2 font-mono text-[12px] ${c.context_tables?.includes(t) ? "text-success" : "text-muted line-through"}`}>
+                    {c.context_tables?.includes(t) ? "✓" : "✗"} {t}
+                  </span>
+                ))}
+              </p>
+              <p className="text-[11.5px] text-muted">✓ = named in what this approach retrieved. A diagnostic: another route to the answer is equally valid.</p>
+            </>
+          )}
+          {!!c.run_outcomes?.length && c.run_outcomes.length > 1 && (
+            <p className="mt-2 text-[12px] text-muted">Runs: {c.run_outcomes.map((o) => (o ?? "—").replace("_", " ")).join(" · ")}</p>
           )}
           {c.declined_reason && (
             <>
@@ -188,8 +215,9 @@ export function Benchmark({ source = HEDIS_BENCHMARK }: { source?: BenchmarkSour
       <h1 className="mt-1 text-[26px] font-bold leading-tight tracking-tight">Which context answers which question?</h1>
       <p className="mt-1.5 max-w-4xl text-[14.5px] text-muted">
         {source.intro(d.meta.data_horizon, d.questions.length)} The five retrieval approaches each
-        get the same simple agent: it reads what the approach retrieved and may make one query in that approach's own
-        interface. Genie One, a multi-step agent, answers on its own. Nothing is designed to win; click any cell for what
+        get the same simple agent: it reads what the approach retrieved (each approach's own retrieval) and may write one
+        read-only SQL query over the same lakehouse: metric views with MEASURE(), closure tables joined to the data, the
+        graph over its triplestore. Genie One, a multi-step agent, answers on its own. Nothing is designed to win; click any cell for what
         was retrieved, the query, and why it scored as it did.
       </p>
       <div className="mt-3 flex flex-wrap gap-2 text-[12px]">
@@ -232,6 +260,7 @@ export function Benchmark({ source = HEDIS_BENCHMARK }: { source?: BenchmarkSour
                       <button onClick={() => setSel(active ? null : { q: q.id, a: a.id })}
                         className={`rounded-md p-0.5 ${active ? "ring-2 ring-primary" : "hover:bg-surface-2"}`}>
                         <Cell armId={a.id} c={q.cells[a.id]} />
+                        <CellMeta c={q.cells[a.id]} />
                       </button>
                     </td>
                   );

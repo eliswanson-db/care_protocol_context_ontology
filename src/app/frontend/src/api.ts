@@ -364,6 +364,8 @@ export interface V2Cell {
   judge_tier?: number | null; override?: string; judge_outcome?: string | null;
   outcome?: "in_context" | "one_query" | "incomplete" | "wrong" | "query_failed" | "no_query" | "nothing" | null;
   declined_reason?: string | null; hand_note?: string | null;
+  facts_stated?: number | null; n_facts?: number; run_outcomes?: (string | null)[];
+  needed_tables?: string[]; context_tables?: string[];
 }
 export interface BenchmarkV2 {
   available: boolean;

@@ -82,8 +82,9 @@ def run_cell(arm: str, q: dict) -> dict:
     """One (arm x question) cell.
       1. Retrieve with the arm's own method.
       2. Judge each gold fact against the retrieved context. All stated -> tier 1 ("answered in context").
-      3. Otherwise the agent may make ONE query in the arm's native interface (SQL / closure tool / graph runner),
-         using only what the context names. We run it and judge each gold fact against the result -> tier 2.
+      3. Otherwise the agent may make ONE read-only SQL query (protocol v3, ADR-0028: every approach queries the same
+         lakehouse; the graph its triplestore table), using only what the context names. We run it and judge each
+         gold fact against the query and its rows; context and query count together -> tier 2.
       4. Neither -> tier 3. Every judgment keeps its rationale; `reason` is a one-line summary of why."""
     mlflow.update_current_trace(tags={"arm": arm, "qid": q["qid"], "cls": q["cls"]})
     docs = retrieve(arm, q["question"], q["qid"])
@@ -135,7 +136,12 @@ def run_cell(arm: str, q: dict) -> dict:
                "query": query, "query_result": (result or "")[:1500], "query_error": error}
     reason = agent.explain(q["question"], arm, outcome, ls=providers.LS)
     skipped = providers.genie_skipped(arm, q["qid"])
+    need = providers.needed_tables(q["qid"])
+    have = [t for t in need if t in ctx]
     return {"arm": arm, "qid": q["qid"], "tier": tier, "outcome": result_outcome, "declined_reason": declined or None,
+            "needed_tables": need, "context_tables": have,
+            "facts_stated": sum(1 for c, r in zip(in_ctx, in_res or [None] * len(in_ctx))
+                                if c["ok"] or (r or {}).get("ok")),
             "sufficient": sufficient, "query_correct": query_correct,
             "interface": INTERFACE_LABEL[interface], "query": query,
             "sql": (query or {}).get("sql") or (json.dumps({k: query[k] for k in ("tool", "args")}) if query else None),

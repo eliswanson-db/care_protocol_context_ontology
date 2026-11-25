@@ -242,14 +242,16 @@ def bench_payload(qpath: str, rpath: str, gpath: str, arms: list[dict], pred_key
         with open(gpath) as f:
             g1 = (json.load(f).get("workspaces", {}).get("ect", {}) or {}).get("questions", {})
     keep = ("tier", "outcome", "tier_runs", "stable", "interface", "retrieved", "facts", "reason", "sql", "sql_result",
-            "sql_error", "n_docs", "declined_reason")
+            "sql_error", "n_docs", "declined_reason", "facts_stated", "needed_tables", "context_tables")
     questions = []
     for q in spec["questions"]:
         cells = {}
         for a in arms:
             pred = q["predictions"].get(pred_key.get(a["id"], a["id"]))
             r = by.get((a["id"], q["id"]))
-            cells[a["id"]] = ({k: r.get(k) for k in keep} | {"hand_verified": q["id"] in (hv.get(a["id"]) or []),
+            cells[a["id"]] = ({k: r.get(k) for k in keep} | {"run_outcomes": [x.get("outcome") for x in r.get("runs") or []],
+                                                               "n_facts": len(q["expected_facts"]),
+                                                               "hand_verified": q["id"] in (hv.get(a["id"]) or []),
                                                                "prediction": pred,
                                                                "hand_note": (notes.get(a["id"]) or {}).get(q["id"])}
                               if r else {"tier": None, "prediction": pred})

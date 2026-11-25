@@ -38,6 +38,23 @@ RECORDING_FILE = "genie_ontology_retrieval_ls.json" if LS else "genie_ontology_r
 DEFAULT_CORPUS = "clinical_study" if LS else "care_protocol"
 GRAPH_PREFIX = "triplestore_clinicalstudylab_v" if LS else "triplestore_clinicaldomain_v"
 _GOLD_SQL = os.path.join(os.path.dirname(__file__), "..", "gold_queries.sql")
+_GOLD_FILE = os.path.join(os.path.dirname(__file__), "..", "ls_gold_queries.sql" if
+                          os.environ.get("CARE_DEMO") == "life_sciences_clinical" else "gold_queries.sql")
+
+
+def needed_tables(qid: str) -> list[str]:
+    """The tables the question's gold query reads (a diagnostic only: did the retrieval surface them?). Empty for a
+    document gold."""
+    meta = QMETA.get(qid, {})
+    ids = meta.get("gold") if isinstance(meta.get("gold"), list) else [meta.get("gold") or ""]
+    raw = open(os.path.normpath(_GOLD_FILE)).read()
+    blocks = {b.split("\n", 1)[0].strip(): b for b in re.split(r"(?m)^-- @id: ", raw)[1:]}
+    out: set[str] = set()
+    for gid in ids:
+        if gid in blocks:
+            sql = "\n".join(ln for ln in blocks[gid].splitlines() if not ln.lstrip().startswith("--"))
+            out |= set(re.findall(r"\{catalog\}\.(?:\{\w+\}|\w+)\.(\w+)", sql))
+    return sorted(out)
 
 
 # Per-question metadata from the locked set: the patient a question names and the identity it runs as.

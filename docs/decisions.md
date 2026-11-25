@@ -5,6 +5,47 @@ statement in the source plans under `docs/sources/`.
 
 ---
 
+## ADR-0028 — Benchmark protocol v3: every approach retrieves its own way, then writes one SQL query over the same data
+**Date:** 2026-11-25 · **Status:** accepted · *Supersedes the ADR-0010 addendum's closure tool calls (protocol rules kept
+out of closure) and ADR-0025's exclusion of population verdicts from the life-sciences graph.*
+
+The final runs of 2026-11-25 scored most retrieval approaches 0–2, and much of that was the setup, not the context.
+Closure and graph could only call our own tools, which can't filter dates, group, average or negate. The HEDIS graph
+lacked data the tables hold (dates on diagnoses and orders, clinics, lab value sets). No approach was told the data
+ends on the date every question names. The judge also gave identical evidence different verdicts.
+
+Decision (Eli):
+- **One protocol for the five retrieval approaches.** Each approach retrieves in its own way, and that retrieval may
+  query its own store:
+  - metric views: their metadata;
+  - closure: resolving the concepts, the attached edges, and table cards;
+  - RAG: passages;
+  - Genie Ontology: Genie's own snippets and Pages;
+  - graph: the entity-linked subgraph and the graph schema.
+
+  Then the same simple agent writes **one read-only SQL query** over the same lakehouse: metric views with
+  `MEASURE()`, closure tables joined to the data, the graph over its triplestore table. Facts count if the context or
+  the query states them.
+- **The data's as-of date is an environment fact,** told to every approach (`data_through` in each question file). A
+  filterable date dimension on the metric views was rejected: a WHERE on an evidence date drops the "no test" patients
+  from the denominator.
+- **The graph should hold what the tables hold.**
+  - HEDIS maps dated ConditionRecord and MedicationOrder records, Observation dates, Clinic attribution and
+    lab value-set membership.
+  - The life-sciences graph maps population membership, deviations and criterion outcomes, mirroring HEDIS's
+    eligibleFor / hasCareGap.
+- **Closure holds the same data as the graph,** relationally. Its table cards are the graph R2RML's source tables,
+  and it uses the same entity linker and the edges attached to the linked concepts. So closure and graph should agree
+  on every question except those that need the route itself ("why" questions); the closure keeps distances, not paths.
+- **SPARQL was the preferred graph query** (Ontobricks `/dtwin/translate`, `/dtwin/execute`). On 2026-11-25 its
+  translator handled class and attribute patterns but not relationship patterns or aggregates, so the graph's one
+  query is SQL over the triplestore until it does.
+- **Judging:**
+  - verdicts are memoized on (question, fact, evidence);
+  - every run keeps its evidence, and the hand check covers all runs;
+  - `scripts/benchmark_audit.py` flags runs whose result contains the expected values but was judged a miss, runs that
+    disagree, and every contradiction.
+
 ## ADR-0027 — Genie-space knowledge stores are repo-managed context, held to the same parity as everything else
 **Date:** 2026-11-19 · **Status:** accepted · **Extends:** ADR-0025, ADR-0026
 **Finding:** of 50 HEDIS inferred snippets in recorded Genie One runs, 36 were mined from Genie-space knowledge stores
