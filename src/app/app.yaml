@@ -31,4 +31,4 @@ env:
     value: "triplestore_clinicaldomain_v7"
   # Life-sciences graph (ClinicalStudyLab), used by the life-sciences traces.
   - name: CARE_LS_ONTOBRICKS_TABLE
-    value: "triplestore_clinicalstudylab_v3"
+    value: "triplestore_clinicalstudylab_v4"

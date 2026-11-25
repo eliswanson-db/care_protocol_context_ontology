@@ -88,7 +88,7 @@ questions:
     gold: bq5_egfr_measures_codes
     expected_facts:
       - "KED (Kidney Health Evaluation) is the measure that uses eGFR."
-      - "In MY2026 only LOINC 98979-8 (CKD-EPI 2021) counts as eGFR; MDRD 33914-3 was dropped."
+      - "In MY2026 only LOINC 98979-8 (CKD-EPI 2021) counts as eGFR."
       - "The eGFR value set is defined in care_protocol_terminology.value_set_segment, segment KED_EGFR (versioned by measurement year)."
     facts: [F12, F14, F15, F16]
     predictions:
@@ -99,7 +99,7 @@ questions:
       graph: "partial: KED monitoredBy LP-EGFR; measure value sets aren't mapped (F15)"
 
   - id: q6
-    question: "On 2026-10-30, which patients had an active order for a drug the care protocol contraindicates for a condition active that day, or for their last lab result on or before that day?"
+    question: "On 2026-10-30, how many patients had an active order for a drug the care protocol contraindicates for a condition active that day, or for their last lab result on or before that day, and for which drugs?"
     answer_type: count + reasons
     gold: [bq6_contra_active_patients, bq6_contra_active_reasons]
     expected_facts:
@@ -122,7 +122,7 @@ questions:
     expected_facts:
       - "The patient is coded E11.9, a form of type 2 diabetes (E11), so they are in the diabetes cohort."
       - "They are 61, inside SPD's 40-75 window."
-      - "No statin was dispensed between 2026-01-01 and 2026-10-30; their last statin (Simvastatin 20 MG) was dispensed on 2009-11-16."
+      - "No statin was dispensed between 2026-01-01 and 2026-10-30; their only statin record is an open-ended Simvastatin 20 MG order from 2009-11-16."
       - "The care protocol recommends a statin for SPD, so the patient is a statin care gap."
     facts: [F01, F08, F09, F24]
     predictions:
@@ -141,7 +141,7 @@ questions:
     run_as: clinician@example.org   # the letter is care-team only (document-level RLS)
     expected_facts:
       - "Yes: an outside consultation letter (Northside Optometry Group, LETTER-EYE-0b4f4745) documents a dilated fundus examination of both eyes on 2026-09-02, with no evidence of diabetic retinopathy."
-      - "The exam is not in the EHR, which is why the EED gap shows; the letter would need to be abstracted to close it."
+      - "The exam is not in the EHR, which is why the EED gap shows."
     facts: [F27]
     predictions:
       metric_view: "no: sees only the EHR, so it reports the gap"

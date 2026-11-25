@@ -62,7 +62,7 @@ def get_ontobricks_table() -> str:
 ONTOBRICKS_NS = os.environ.get("CARE_ONTOBRICKS_NS", "https://care-protocol.example/ontology/")
 # Life sciences: the ClinicalStudyLab graph, pinned the same way (move only after its checks pass: ls_facts graph
 # pointers + scripts/ontobricks_dry_run.py on the files it was built from).
-LS_ONTOBRICKS_TABLE = os.environ.get("CARE_LS_ONTOBRICKS_TABLE", "triplestore_clinicalstudylab_v3")
+LS_ONTOBRICKS_TABLE = os.environ.get("CARE_LS_ONTOBRICKS_TABLE", "triplestore_clinicalstudylab_v4")
 LS_ONTOBRICKS_NS = "https://clinical-study-lab.example/ontology/"
 
 

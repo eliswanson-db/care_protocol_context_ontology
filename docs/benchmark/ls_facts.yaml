@@ -12,7 +12,7 @@
 #
 # Sources per approach: metric_view = src/semantic/ls/metric_views; closure = the standards closure / edge / class
 # tables; rag = the Lakebase corpus (docs/life_sciences/documents/{corpus,monitoring}); genie_ontology = LS Pages and
-# column comments; graph = eswanson_demo.ontobricks.triplestore_clinicalstudylab_v3_graph (published 2026-11-25; every
+# column comments; graph = eswanson_demo.ontobricks.triplestore_clinicalstudylab_v4_graph (published 2026-11-25; every
 # class and relationship count matches its source tables).
 # Check: python3 -I tests/test_ls_facts.py   (CARE_LIVE=1 adds the table checks against ECT)
 

@@ -377,7 +377,9 @@ FROM (SELECT drug_class, reason, COUNT(DISTINCT patient_id) AS n
 -- holdout: benchmark question 7
 -- Why patient 00040be9-7fcf-0ca1-0263-b4197b8f8d28 was in the SPD statin gap for MY2026 through 2026-10-30 (hero = the
 -- lowest patient id among SPD gaps whose statin lapsed before 2026): diabetes code and root, age in the 40-75 window,
--- no statin dispensed in the period, the last statin ever, and the protocol edge that makes a statin the expectation.
+-- no statin dispensed in the period, the last statin order ever (care_order_med, the medication layer the measures
+-- read, as bq6; the 2009 record is an open-ended order, not a dispense), and the protocol edge that makes a statin the
+-- expectation.
 SELECT concat_ws('|',
   (SELECT min(dx.icd10_code) FROM {catalog}.{schema}.silver_condition dx
      JOIN {catalog}.{tschema}.icd10_closure cl ON cl.descendant_code = dx.icd10_code AND cl.ancestor_code IN ('E10', 'E11', 'E13')
@@ -388,7 +390,7 @@ SELECT concat_ws('|',
   CAST(s.age AS STRING),
   CASE WHEN s.evidence_datetime IS NULL OR s.evidence_datetime > TIMESTAMP'2026-10-30 23:59:59'
        THEN 'no statin 2026-01-01..2026-10-30' ELSE 'statin dispensed' END,
-  (SELECT concat('last statin ', CAST(CAST(max(m.start_ts) AS DATE) AS STRING)) FROM {catalog}.{schema}.bronze_order_med m
+  (SELECT concat('last statin ', CAST(CAST(max(m.start_ts) AS DATE) AS STRING)) FROM {catalog}.{schema}.care_order_med m
      JOIN {catalog}.{tschema}.rxnorm_closure c ON c.descendant_code = m.rxnorm_code AND c.ancestor_code = 'DRUGCLASS-STATIN'
      WHERE m.patient_id = s.patient_id AND m.start_ts <= TIMESTAMP'2026-10-30 23:59:59'),
   (SELECT concat(replace(subject, 'DRUGCLASS-', ''), ' ', predicate, ' ', object) FROM {catalog}.{tschema}.protocol_edges

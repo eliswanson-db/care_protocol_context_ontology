@@ -1,5 +1,11 @@
 # HEDIS benchmark v2: test-mode results (2026-11-22)
 
+
+> **2026-11-25: answer key corrected; these results are being re-scored.** Four expected facts asked for more than
+> their question did, or misstated the data: q5 no longer requires "MDRD was dropped"; q6 now asks *how many* patients
+> and for which drugs (its key checks counts); q7's 2009 statin is an open-ended **order**, not a dispense (Genie One
+> said so and was marked wrong); q8 no longer requires "the letter would need to be abstracted". The graph column
+> below was scored on graph v3; it is re-run on v7. Treat this page as superseded until the re-score lands.
 **Test mode: 1 run per cell.** Hand-verified: all of Genie One's column and every retrieval cell the judge scored as
 answered (where the hand check disagrees, it wins; `hand_overrides` in questions_v2.yaml). The judge's misses are
 not all hand-checked yet. Final numbers come from `--final` (3 runs) after the open items at the end. Questions, gold
