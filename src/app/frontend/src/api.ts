@@ -347,6 +347,7 @@ export const api = {
   arenaContext: (qid: string) => get<ArenaContext>(`/api/arena/${qid}/context`),
   capabilityMap: () => get<CapabilityMap>("/api/benchmark/capability_map"),
   benchmarkV2: () => get<BenchmarkV2>("/api/benchmark/v2"),
+  lsBenchmark: () => get<BenchmarkV2>("/api/ls/benchmark"),
   a1Runs: () => get<A1Runs>("/api/benchmark/a1_runs"),
   drift: () => get<Drift>("/api/drift"),
   ontology: () => get<OntologyGraph>("/api/ontology/graph"),
@@ -354,17 +355,20 @@ export const api = {
 
 // Benchmark v2 (docs/benchmark/questions_v2.yaml + benchmark_v2.json): 8 locked questions x 5 retrieval approaches
 // (one simple agent) + Genie One as the reasoning engine.
-export interface V2Fact { fact: string; in_context?: { ok: boolean; rationale: string }; in_result?: { ok: boolean; rationale: string } | null }
+export interface V2Judgment { ok: boolean; verdict?: "stated" | "missing" | "contradicted"; quote?: string; rationale: string }
+export interface V2Fact { fact: string; in_context?: V2Judgment; in_result?: V2Judgment | null }
 export interface V2Cell {
   tier: number | null; tier_runs?: number[]; stable?: boolean; interface?: string; retrieved?: string;
   facts?: V2Fact[]; reason?: string; sql?: string | null; sql_result?: string | null; sql_error?: string | null;
   n_docs?: number; hand_verified?: boolean; prediction?: string; answer?: string; genie_sql?: string[];
-  judge_tier?: number | null; override?: string;
+  judge_tier?: number | null; override?: string; judge_outcome?: string | null;
+  outcome?: "in_context" | "one_query" | "incomplete" | "wrong" | "query_failed" | "no_query" | "nothing" | null;
+  declined_reason?: string | null; hand_note?: string | null;
 }
 export interface BenchmarkV2 {
   available: boolean;
   arms: { id: string; label: string; kind: "retrieval" | "end_to_end" }[];
-  questions: { id: string; question: string; answer_type: string; expected_facts: string[]; hero_rule?: string;
+  questions: { id: string; short?: string | null; question: string; answer_type: string; expected_facts: string[]; hero_rule?: string;
     run_as?: string; cells: Record<string, V2Cell> }[];
-  meta: { agent: string; judge: string; repeats: number; mode: "test" | "final"; data_horizon: string };
+  meta: { agent: string; judge: string; repeats: number; mode: "test" | "final"; data_horizon: string; scoring?: string };
 }

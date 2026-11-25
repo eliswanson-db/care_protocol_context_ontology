@@ -19,13 +19,13 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
 
 import mlflow
 
 from . import agent, providers
 from .warehouse import run_readonly
-from server.context_retrieval import CLOSURE_TOOLS, closure_tool
 from server.graph_runner import TOOLS as GRAPH_TOOLS
 
 JUDGE = agent.JUDGE_MODEL
@@ -65,8 +65,7 @@ def _run_query(arm: str, query: dict) -> str:
     if query["kind"] == "sql":
         return _render_rows(run_readonly(query["sql"]))
     if query["interface"] == "closure":
-        res = closure_tool(query["tool"], query.get("args") or {}, providers.run_sql, providers.CATALOG,
-                           providers.SCHEMA, providers.SCHEMA_TERM)
+        res = providers.run_closure_tool(query["tool"], query.get("args") or {})
     else:
         from server import graph_runner as gr
         res = gr.call(providers.graph_runner(), query["tool"], query.get("args") or {})
@@ -91,19 +90,30 @@ def run_cell(arm: str, q: dict) -> dict:
     sufficient = all(x["ok"] for x in in_ctx)
 
     interface = INTERFACE.get(arm, "sql")
-    query, result, error, in_res = None, None, None, None
+    query, result, error, in_res, declined = None, None, None, None, ""
     if not sufficient and arm != "genie_one":
-        tools = {"closure": CLOSURE_TOOLS, "graph": GRAPH_TOOLS}.get(interface)
-        query = agent.write_query(q["question"], docs, interface, tools)
+        tools = {"closure": providers.closure_tools(), "graph": GRAPH_TOOLS}.get(interface)
+        query, declined = agent.write_query(q["question"], docs, interface, tools)
+        if query and query.get("kind") == "sql" and not re.search(r"\bFROM\b", query["sql"], re.IGNORECASE):
+            # SELECT 'a' AS x, 'b' AS y reads no table: it is the agent's answer typed as SQL, not a query. It is
+            # recorded as no query, and the cell is judged on the context alone.
+            declined = "The agent wrote a SELECT of constants (its answer as literals), which reads no table."
+            query = None
         if query:
             try:
                 result = _run_query(arm, query)
             except Exception as e:  # noqa: BLE001 -- a failed or rejected query is a miss, recorded verbatim
                 error = f"{type(e).__name__}: {str(e)[:300]}"
         if result is not None:
-            in_res = [agent.judge_fact(q["question"], f, result, "query result") for f in q["expected_facts"]]
-    query_correct = bool(in_res) and all(x["ok"] for x in in_res)
+            # The one query is judged as the agent would read it: the query (which table, which filters, which
+            # segment) together with the rows it returned. The rows must carry the values; the query says what they are.
+            shown = f"QUERY ({INTERFACE_LABEL[interface]}):\n{(query or {}).get('sql') or json.dumps(query)}\n\nRESULT:\n{result}"
+            in_res = [agent.judge_fact(q["question"], f, shown, "query and its result") for f in q["expected_facts"]]
+    # The agent has BOTH the context and its one query: a fact counts if either states it (the context can carry the
+    # definition while the query supplies the number).
+    query_correct = bool(in_res) and all(c["ok"] or r["ok"] for c, r in zip(in_ctx, in_res))
     tier = 1 if sufficient else (2 if query_correct else 3)
+    result_outcome = _outcome(arm, docs, sufficient, query, error, in_ctx, in_res)
     facts = [{"fact": f, "in_context": in_ctx[k], "in_result": (in_res[k] if in_res else None)}
              for k, f in enumerate(q["expected_facts"])]
     what = ("no recorded Genie One answer" if arm == "genie_one" and not docs else
@@ -111,16 +121,18 @@ def run_cell(arm: str, q: dict) -> dict:
             "Genie One's answer is missing or contradicts a gold fact" if arm == "genie_one" else
             "retrieved nothing" if not docs else
             "every gold fact is stated in what it retrieved (no query needed)" if sufficient else
-            "not every fact was in what it retrieved; the agent declined to write a query (NO_QUERY)" if not query else
+            f"not every fact was in what it retrieved; the agent declined to write a query (NO_QUERY): {declined}"
+            if not query else
             f"not every fact was in what it retrieved; the agent's {INTERFACE_LABEL[interface]} failed" if error else
             f"not every fact was in what it retrieved; the agent's {INTERFACE_LABEL[interface]} ran")
-    outcome = {"tier": tier, "what_happened": what, "interface": INTERFACE_LABEL[interface],
+    outcome = {"tier": tier, "outcome": result_outcome, "what_happened": what, "interface": INTERFACE_LABEL[interface],
                "retrieved": providers.summarize(arm, docs),
                "facts": facts,
                "query": query, "query_result": (result or "")[:1500], "query_error": error}
-    reason = agent.explain(q["question"], arm, outcome)
+    reason = agent.explain(q["question"], arm, outcome, ls=providers.LS)
     skipped = providers.genie_skipped(arm, q["qid"])
-    return {"arm": arm, "qid": q["qid"], "tier": tier, "sufficient": sufficient, "query_correct": query_correct,
+    return {"arm": arm, "qid": q["qid"], "tier": tier, "outcome": result_outcome, "declined_reason": declined or None,
+            "sufficient": sufficient, "query_correct": query_correct,
             "interface": INTERFACE_LABEL[interface], "query": query,
             "sql": (query or {}).get("sql") or (json.dumps({k: query[k] for k in ("tool", "args")}) if query else None),
             "sql_error": error, "sql_result": (result or None) and result[:2500],
@@ -128,6 +140,33 @@ def run_cell(arm: str, q: dict) -> dict:
             "n_docs": len(docs), "skipped_search": bool(skipped),
             "facts_in_context": [x["ok"] for x in in_ctx], "facts_in_result": [x["ok"] for x in in_res] if in_res else None,
             "context": ctx[:6000]}
+
+
+# The cell's outcome, one of: in_context, one_query (both answered: every gold fact stated by the context, or by the
+# context and the one query together); incomplete (some gold facts stated, the rest missing, none contradicted);
+# not_found (the query ran but states none of them); wrong (it contradicts a gold fact); query_failed; no_query (it
+# retrieved something but the agent declined to write its one query); nothing (it retrieved nothing). Genie One is
+# judged on its own answer. The tier (1/2/3) is unchanged; this only says which kind of miss.
+OUTCOMES = ("in_context", "one_query", "incomplete", "not_found", "wrong", "query_failed", "no_query", "nothing")
+
+
+def _outcome(arm, docs, sufficient, query, error, in_ctx, in_res) -> str:
+    def judged(xs):
+        if any(x.get("verdict") == "contradicted" for x in xs):
+            return "wrong"
+        return "incomplete" if any(x.get("ok") for x in xs) else "not_found"
+    if arm == "genie_one":
+        return "in_context" if sufficient else ("nothing" if not docs else judged(in_ctx))
+    if sufficient:
+        return "in_context"
+    if not docs:
+        return "nothing"
+    if not query:
+        return "no_query"
+    if error or in_res is None:
+        return "query_failed"
+    best = [c if c["ok"] else r for c, r in zip(in_ctx, in_res)]  # per fact: the context's verdict if it states it
+    return "one_query" if all(x["ok"] for x in best) else judged(best)
 
 
 def _render_rows(rows, limit: int = 40) -> str:
@@ -143,7 +182,8 @@ def main():
     global ARMS
     ap = argparse.ArgumentParser()
     ap.add_argument("--arms", default=",".join(ARMS), help="comma-separated subset of " + ",".join(ALL_ARMS))
-    ap.add_argument("--out", default="benchmark_v2.json", help="file name under docs/benchmark/")
+    ap.add_argument("--out", default="ls_benchmark.json" if providers.LS else "benchmark_v2.json",
+                    help="file name under docs/benchmark/ (set CARE_DEMO=life_sciences_clinical for the LS set)")
     ap.add_argument("--merge", action="store_true", help="replace only the (arm, question) rows run now in --out")
     ap.add_argument("--qids", default="", help="comma-separated question ids (default: the demo set in the CSV)")
     ap.add_argument("--workers", type=int, default=6)
@@ -207,7 +247,8 @@ def main():
         rep = dict(next(r for r in rs if r["tier"] == maj))
         rep.update({"tier_runs": tiers, "stable": len(set(tiers)) == 1,
                     "harness_errors": sum(r["tier"] is None for r in rs),
-                    "runs": [{"tier": r["tier"], "sql": (r.get("sql") or "")[:1500], "sql_error": r.get("sql_error"),
+                    "runs": [{"tier": r["tier"], "outcome": r.get("outcome"),
+                              "sql": (r.get("sql") or "")[:1500], "sql_error": r.get("sql_error"),
                               "facts_in_context": r.get("facts_in_context"), "facts_in_result": r.get("facts_in_result")}
                              for r in rs]})
         rows.append(rep)
@@ -226,7 +267,7 @@ def main():
         done = {(r["arm"], r["qid"]) for r in rows}
         old = [x for x in json.load(open(out)).get("rows", []) if (x["arm"], x["qid"]) not in done]
         rows = old + rows
-    json.dump({"judge": JUDGE, "agent": agent.AGENT_MODEL, "scoring": "tiers-v1", "repeats": args.repeats, "rows": rows}, open(out, "w"), indent=2, default=str)
+    json.dump({"demo": providers.DEMO, "judge": JUDGE, "agent": agent.AGENT_MODEL, "scoring": "tiers-v2 (per-fact stated/missing/contradicted)", "repeats": args.repeats, "rows": rows}, open(out, "w"), indent=2, default=str)
     print(f"\nPer-cell detail -> {out}")
     if providers._rag_error:
         print(f"NOTE: RAG arm ran in degraded mode ({providers._rag_error}).")

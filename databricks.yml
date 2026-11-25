@@ -55,7 +55,6 @@ targets:
   # so dev owns its own dev_<user>_care_protocol* schemas — no collision with the production catalog objects.
   dev:
     mode: development
-    default: true
     workspace:
       host: https://fevm-eli-test-classic.cloud.databricks.com   # profile: ECT
     # --- shared catalog-scoped UC objects (dev + ect own these; dmvm does NOT — ADR-0019) ---
@@ -404,6 +403,7 @@ targets:
   # BASELINE arm (ADR-0018): Genie Ontology OFF — Genie One answers from raw governed metric-views/comments
   # only. ECT also OWNS the shared catalog's schemas/volumes (via *shared_uc). Shares the catalog with dmvm.
   ect:
+    default: true   # ect is the working workspace for both demos (2026-11-25); dev needs -t dev
     mode: production
     workspace:
       host: https://fevm-eli-test-classic.cloud.databricks.com   # profile: ECT

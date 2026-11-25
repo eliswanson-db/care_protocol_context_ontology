@@ -349,6 +349,19 @@ def rules():
     return _stamp(cached(("rules",), build))
 
 
+# --------------------------------------------------------------------------------------------- benchmark
+@router.get("/benchmark")
+def ls_benchmark():
+    """The locked LS benchmark (docs/benchmark/ls_questions.yaml): the same five approaches, simple agent and Genie One
+    column as HEDIS, from the bundled copies in benchmark_data/ (ls_benchmark.json + the LS Genie recording)."""
+    import os
+
+    from .benchmark import BENCH_DIR, V2_ARMS, _PRED_KEY, bench_payload
+    return _stamp(bench_payload(os.path.join(BENCH_DIR, "ls_questions.yaml"), os.path.join(BENCH_DIR, "ls_benchmark.json"),
+                                os.path.join(BENCH_DIR, "genie_ontology_retrieval_ls.json"), V2_ARMS, _PRED_KEY,
+                                "2026-10-31"))
+
+
 # --------------------------------------------------------------------------------------------- arena
 @lru_cache(maxsize=1)
 def _questions() -> list[dict]:

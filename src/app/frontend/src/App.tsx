@@ -1,15 +1,13 @@
-import { BarChart3, FlaskConical, GitCompare, Network, Route, TrendingDown, User } from "lucide-react";
+import { BarChart3, FlaskConical, Network, Route, TrendingDown, User } from "lucide-react";
 import { useEffect, useState, type ReactElement } from "react";
 import { api, type Meta } from "./api";
 import { Header } from "./components/Header";
 import { useDemo, type DemoId } from "./demo";
-import { Benchmark } from "./tabs/Benchmark";
+import { Benchmark, LS_BENCHMARK } from "./tabs/Benchmark";
 import { DriftLab } from "./tabs/DriftLab";
 import { OntologyExplorer } from "./tabs/OntologyExplorer";
 import { LS_TRACES, TracerJourney } from "./tabs/TracerJourney";
 import { AmendmentLab } from "./tabs/ls/AmendmentLab";
-import { LsArena } from "./tabs/ls/LsArena";
-import { LsBenchmark } from "./tabs/ls/LsBenchmark";
 import { LsProvider } from "./tabs/ls/LsContext";
 import { ParticipantEvidence } from "./tabs/ls/ParticipantEvidence";
 import { StandardsExplorer } from "./tabs/ls/StandardsExplorer";
@@ -28,11 +26,12 @@ const TABS: Record<DemoId, Tab[]> = {
     { key: "ontology", label: "Ontology Explorer", icon: Network, render: () => <OntologyExplorer /> },
   ],
   life_sciences_clinical: [
-    // Trace leads, as in HEDIS (docs/CONTEXT_LAB_PLAN.md §4b step 3); same component, life-sciences endpoints.
+    // Trace + Benchmark lead, as in HEDIS (docs/CONTEXT_LAB_PLAN.md §4b step 7); the same components, life-sciences
+    // data. The previous Retrieval Arena and Benchmark placeholder (tabs/ls/LsArena.tsx, LsBenchmark.tsx) showed the
+    // retired question set; kept, not in the nav.
     { key: "ls_trace", label: "Trace", icon: Route, render: () => <TracerJourney source={LS_TRACES} /> },
+    { key: "ls_benchmark", label: "Benchmark", icon: BarChart3, render: () => <Benchmark source={LS_BENCHMARK} /> },
     { key: "ls_participant", label: "Participant Evidence", icon: User, render: () => <ParticipantEvidence /> },
-    { key: "ls_arena", label: "Retrieval Arena", icon: GitCompare, render: () => <LsArena /> },
-    { key: "ls_benchmark", label: "Benchmark", icon: BarChart3, render: () => <LsBenchmark /> },
     { key: "ls_amendment", label: "Amendment Lab", icon: FlaskConical, render: () => <AmendmentLab /> },
     { key: "ls_standards", label: "Standards & Ontology Explorer", icon: Network, render: () => <StandardsExplorer /> },
   ],

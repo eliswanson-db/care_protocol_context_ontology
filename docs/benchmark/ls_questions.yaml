@@ -15,11 +15,12 @@ hand_overrides: {}
 
 questions:
   - id: lq1
+    short: "Week 24 % change by arm (R2)"
     question: "In CSL-A, what was the mean percent change in body weight from baseline to Week 24, by arm, under the protocol 2.0 rule (SAP v2.0), for data through 2026-10-31?"
     answer_type: set of (arm, mean)
     gold: lq1_wt24_by_arm
     expected_facts:
-      - "CSL-A, EP-A-WT24.R2 (SAP v2.0), full analysis set, data through 2026-10-31: CSL-101 10 mg −12.66% (2,410 participants with a derived result), placebo −2.30% (1,115)."
+      - "Mean percent change in body weight to Week 24, CSL-A, EP-A-WT24.R2 (SAP v2.0): CSL-101 10 mg −12.66%, placebo −2.30%."
     facts: [LF01, LF02, LF03, LF05]
     predictions:
       metric_view: "exact: Mean Percent Change by Arm and Rule Version is a prebuilt governed measure"
@@ -29,11 +30,12 @@ questions:
       graph: "possible if results and arms are mapped (0b), with aggregation"
 
   - id: lq2
+    short: "Same, baseline BMI ≥ 35"
     question: "Among CSL-A full-analysis-set participants with a baseline BMI of 35 or more, what was the mean percent change in body weight from baseline to Week 24, by arm, under the protocol 2.0 rule, for data through 2026-10-31?"
     answer_type: set of (arm, mean)
     gold: lq2_wt24_bmi35_by_arm
     expected_facts:
-      - "Baseline BMI ≥ 35 (893 CSL-101 and 405 placebo participants with a derived result): CSL-101 −12.74%, placebo −2.30%; baseline weight over screening height squared, EP-A-WT24.R2."
+      - "For baseline BMI ≥ 35, EP-A-WT24.R2: CSL-101 −12.74%, placebo −2.30%."
     facts: [LF01, LF05, LF07]
     predictions:
       metric_view: "no: BMI is not a dimension of any view"
@@ -43,11 +45,12 @@ questions:
       graph: "possible if baseline weight and height observations are mapped (0b), with arithmetic"
 
   - id: lq3
+    short: "Randomized with a weight-related comorbidity"
     question: "How many randomized CSL-A participants (through 2026-10-31) have at least one weight-related comorbidity, as protocol 1.0 section 5.1 defines them, in their medical history?"
     answer_type: count
     gold: lq3_wrc_v1_randomized
     expected_facts:
-      - "3,123 of the 4,055 randomized CSL-A participants have at least one weight-related comorbidity under the protocol 1.0 definition (WRC-V1 roots and their subtrees, minus the three carve-outs)."
+      - "3,123 randomized CSL-A participants have at least one weight-related comorbidity under the protocol 1.0 definition."
     facts: [LF08, LF09]
     predictions:
       metric_view: "no: no comorbidity dimension"
@@ -57,6 +60,7 @@ questions:
       graph: "yes if MH terms and the MONDO subClassOf hierarchy are mapped (0b)"
 
   - id: lq4
+    short: "What Amendment 1 changed"
     question: "What did CSL-A Amendment 1 change, and from what date?"
     answer_type: stated fact
     gold: "doc: CSL-A-PROT-AMD1, section 1 Summary of changes"
@@ -71,11 +75,14 @@ questions:
       graph: "partial if study versions are mapped (0b)"
 
   - id: lq5
+    short: "Where body weight is stored, unit, rule version"
     question: "In the CSL-A standardized data, where is body weight stored, in what unit is the analysis value, and which endpoint rule version governs Week 24 results for data through 2026-10-31?"
     answer_type: stated fact
     gold: "doc: CSL-DMS-v1.0 section 2.1-2.2 + CSL-A-SAP-v2.0 section 9.4.1"
     expected_facts:
-      - "Body weight is in the SDTM VS domain (silver_vs) with VSTESTCD = WEIGHT; VSSTRESN holds the analysis value in kg (LB × 0.45359237, g × 0.001) and the raw site unit is kept for lineage. Week 24 results through 2026-10-31 are governed by EP-A-WT24.R2 (protocol 2.0 / SAP 2.0, effective 2025-10-27); R1 (SAP 1.0) remains derivable for comparison."
+      - "Body weight is in the SDTM VS domain (silver_vs) with VSTESTCD = WEIGHT."
+      - "The analysis value is VSSTRESN, in kg."
+      - "Week 24 results through 2026-10-31 are governed by EP-A-WT24.R2 (protocol 2.0 / SAP 2.0)."
     facts: [LF04, LF06]
     predictions:
       metric_view: "partial: Rule Version is a dimension; storage and units are not"
@@ -85,6 +92,7 @@ questions:
       graph: "partial if observations and rule versions are mapped (0b)"
 
   - id: lq6
+    short: "Prohibited drug started on treatment"
     question: "How many CSL-A participants started a medication the protocol prohibits (a GLP-1 receptor agonist or an appetite suppressant) on or after their first dose, through 2026-10-31, by arm?"
     answer_type: set of (arm, count)
     gold: lq6_prohibited_on_treatment_by_arm
@@ -99,12 +107,14 @@ questions:
       graph: "yes if medications, their MED-RT classes and dates are mapped (0b): drug → class multi-hop"
 
   - id: lq7
+    short: "Why CSL-A-103-0137 left the PPS"
     question: "Why was participant CSL-A-103-0137 excluded from the CSL-A per-protocol set (data through 2026-10-31)?"
     answer_type: explanation with a path
     participant_rule: "the lowest CSL-A USUBJID in the FAS but not the PPS whose only major deviation is an eligibility violation, through an exclusionary-history term reached through the MONDO hierarchy (not the root itself)"
     gold: "data: gold_eligibility_criterion path for the participant (checked against silver_mh + mondo_closure)"
     expected_facts:
-      - "CSL-A-103-0137 (CSL-101, SITE-103) is in the full analysis set but not the per-protocol set because of a major eligibility violation: their medical history records acute pancreatitis (MONDO:0006515, 2016-02), which is_a pancreatitis (MONDO:0004982), a root of the exclusionary history (EXC-MH). The EDC marked them eligible, so they were randomized in error."
+      - "CSL-A-103-0137 is out of the per-protocol set because of a major protocol deviation: an eligibility violation (the exclusionary-history criterion, EXC-MH)."
+      - "Their medical history records acute pancreatitis (MONDO:0006515), which is a form of pancreatitis (MONDO:0004982), an exclusionary-history root."
     facts: [LF05, LF09, LF12, LF13]
     predictions:
       metric_view: "no: the views count, they don't explain one participant"
@@ -114,6 +124,7 @@ questions:
       graph: "yes if MH terms and the MONDO hierarchy are mapped (0b): the path is the answer"
 
   - id: lq8
+    short: "Qualified only because of sleep apnea"
     question: "How many CSL-A participants screened from 2025-10-27 through 2026-10-31 had a BMI of 27 to under 30 and met the BMI inclusion criterion only because Amendment 1 added obstructive sleep apnea as a weight-related comorbidity?"
     answer_type: count
     gold: lq8_osa_only_qualified
@@ -128,11 +139,12 @@ questions:
       graph: "yes if MH terms, the hierarchy and screening data are mapped (0b)"
 
   - id: lq9
+    short: "Why SITE-118's Week 24 visits were late"
     question: "Why were SITE-118's Week 24 visits late, according to the monitoring visit reports through 2026-10-31?"
     answer_type: explanation
     gold: "doc: MVR-SITE-118-06 (triggered monitoring visit, 2025-09-18), section 6"
     expected_facts:
-      - "The site's visit-calculator spreadsheet computed the Week 24 visit as 25 weeks after first dose (study day 176) instead of study day 169, and visits were then booked into the next free research-clinic slot; recorded at the triggered monitoring visit of 2025-09-18, with the site to book from the IRT visit calendar."
+      - "The site's visit-calculator spreadsheet computed the Week 24 visit as 25 weeks after first dose (study day 176) instead of study day 169, and visits were then booked into the next free research-clinic slot; recorded at the triggered monitoring visit of 2025-09-18."
     facts: [LF15]
     predictions:
       metric_view: "no: an explanation is not in any table"

@@ -6,7 +6,9 @@ import { useSettings } from "../settings";
 export const TIER: Record<string, { label: string; short: string; cls: string; ok?: boolean }> = {
   tier1: { label: "✓ Answered — in the retrieved context", short: "✓ in context", cls: "bg-success/20 text-success", ok: true },
   tier2: { label: "✓ Answered — one query from the context", short: "✓ one query", cls: "bg-success/10 text-success", ok: true },
-  wrong_answer: { label: "✗ Query ran, wrong answer", short: "✗ wrong answer", cls: "bg-destructive/15 text-destructive" },
+  incomplete: { label: "✗ Incomplete: some facts stated, one missing, none contradicted", short: "✗ incomplete", cls: "bg-warning/15 text-warning" },
+  not_found: { label: "✗ Query ran, found none of the facts", short: "✗ found none", cls: "bg-surface-2 text-muted" },
+  wrong_answer: { label: "✗ Wrong: it contradicts an expected fact", short: "✗ wrong", cls: "bg-destructive/15 text-destructive" },
   query_failed: { label: "✗ Query failed", short: "✗ query failed", cls: "bg-destructive/15 text-destructive" },
   no_query: { label: "✗ Not enough to write a query", short: "✗ no query", cls: "bg-surface-2 text-muted" },
   no_retrieval: { label: "✗ Retrieved nothing", short: "✗ nothing", cls: "bg-surface-2 text-muted" },
@@ -22,8 +24,15 @@ export const SIMPLE_TIER: Record<string, { label: string; short: string; cls: st
 export const simpleKey = (k: string) =>
   k === "tier1" || k === "tier2" ? "answered" : k === "pending" || k === "skipped" ? k : "not_answered";
 
-export function tierKey(s?: { tier?: number | null; n_docs?: number; skipped_search?: boolean; sql?: string | null; sql_error?: string | null } | null): string {
+const OUTCOME_KEY: Record<string, string> = {
+  in_context: "tier1", one_query: "tier2", incomplete: "incomplete", not_found: "not_found", wrong: "wrong_answer",
+  query_failed: "query_failed",
+  no_query: "no_query", nothing: "no_retrieval",
+};
+
+export function tierKey(s?: { tier?: number | null; outcome?: string | null; n_docs?: number; skipped_search?: boolean; sql?: string | null; sql_error?: string | null } | null): string {
   if (!s || s.tier == null) return "pending";
+  if (s.outcome && OUTCOME_KEY[s.outcome]) return OUTCOME_KEY[s.outcome];  // the harness's explicit outcome (tiers-v2)
   if (s.tier === 1 || s.tier === 2) return `tier${s.tier}`;
   if (s.skipped_search) return "skipped";
   if (!s.n_docs) return "no_retrieval";

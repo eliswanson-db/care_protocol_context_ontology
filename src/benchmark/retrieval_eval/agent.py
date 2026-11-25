@@ -85,13 +85,16 @@ _SQL_SYSTEM = (
     "Write exactly ONE read-only SQL query (a single SELECT, CTEs allowed) whose result answers the question. "
     "Use ONLY tables, views, columns and code values that appear in the CONTEXT; do not invent table or column "
     "names and do not use outside knowledge of the schema. If the CONTEXT does not tell you enough to write such "
-    "a query, reply with exactly: NO_QUERY. Otherwise reply with the SQL only, no explanation, no markdown fences."
+    "a query, reply with NO_QUERY followed by a colon and one short sentence naming what the CONTEXT lacks (e.g. "
+    "'NO_QUERY: no table with patient-level A1c results is named.'). Otherwise reply with the SQL only, no "
+    "explanation, no markdown fences."
 )
 
 
 @mlflow.trace(span_type="CHAT_MODEL", name="write_sql")
-def write_sql(question: str, context_docs: list[dict]) -> str | None:
-    """One SQL query written from the retrieved context only (no schema dump, no retries). None = NO_QUERY."""
+def write_sql(question: str, context_docs: list[dict]) -> tuple[str | None, str]:
+    """One SQL query written from the retrieved context only (no schema dump, no retries).
+    Returns (sql, "") or (None, the agent's one-line reason for declining)."""
     ctx = "\n\n".join(f"[{i + 1}] {d.get('page_content', '')}".strip() for i, d in enumerate(context_docs)) \
         or "(no context was retrieved)"
     msg = [{"role": "system", "content": _SQL_SYSTEM},
@@ -102,13 +105,21 @@ def write_sql(question: str, context_docs: list[dict]) -> str | None:
     if resp.choices[0].finish_reason == "length":
         raise HarnessError("write_sql hit max_tokens (output truncated)")
     sql = _as_text(resp.choices[0].message.content).strip()
+    if sql.upper().startswith("NO_QUERY"):
+        return None, _decline_reason(sql)
     if sql.startswith("```"):
         sql = sql.strip("`").split("\n", 1)[-1] if "\n" in sql else ""
         sql = sql.rsplit("```", 1)[0]
     sql = sql.strip().rstrip(";").strip()
-    if not sql or sql.upper().startswith("NO_QUERY") or not _LOOKS_LIKE_SQL.match(sql):
-        return None  # empty, an explicit NO_QUERY, or prose instead of SQL
-    return sql
+    if not sql or not _LOOKS_LIKE_SQL.match(sql):
+        return None, "The agent replied with prose instead of a query."
+    return sql, ""
+
+
+def _decline_reason(text: str) -> str:
+    """The sentence after NO_QUERY, or a neutral note if the agent gave none."""
+    why = re.sub(r"^\s*NO_QUERY\s*[:\-–—]?\s*", "", text.strip(), flags=re.IGNORECASE).strip()
+    return why[:240] or "The agent declined without giving a reason."
 
 
 # --- One-shot query in each approach's NATIVE interface ----------------------------------------------------------
@@ -120,7 +131,7 @@ _TOOL_SYSTEM = (
     "{name}. Use only node ids / codes that appear in the CONTEXT (or that the CONTEXT's naming scheme makes "
     "unambiguous). Tools:\n{tools}\n"
     "Reply with JSON only: {{\"tool\": \"<name>\", \"args\": {{...}}}}. If one call cannot answer the question, reply "
-    "exactly NO_QUERY."
+    "NO_QUERY followed by a colon and one short sentence naming what the CONTEXT lacks."
 )
 
 
@@ -140,10 +151,11 @@ def _parse_tool(text: str) -> dict | None:
 
 @mlflow.trace(span_type="CHAT_MODEL", name="write_query")
 def write_query(question: str, context_docs: list[dict], interface: str, tools: dict[str, str] | None = None):
-    """Return {"kind": "sql", "sql": ...} | {"kind": "tool", "tool": ..., "args": {...}} | None (NO_QUERY)."""
+    """Return (query, decline_reason): query is {"kind": "sql", "sql": ...} | {"kind": "tool", "tool": ..., "args":
+    {...}}, or None with the agent's one-line reason for not writing one (NO_QUERY)."""
     if interface == "sql":
-        sql = write_sql(question, context_docs)
-        return {"kind": "sql", "sql": sql} if sql else None
+        sql, why = write_sql(question, context_docs)
+        return ({"kind": "sql", "sql": sql}, "") if sql else (None, why)
     name = {"graph": "graph runner (in-memory traversal over the Ontobricks graph)",
             "closure": "closure-table tools"}[interface]
     ctx = "\n\n".join(f"[{i + 1}] {d.get('page_content', '')}".strip() for i, d in enumerate(context_docs)) \
@@ -154,8 +166,12 @@ def write_query(question: str, context_docs: list[dict], interface: str, tools: 
     resp = _client().chat.completions.create(model=AGENT_MODEL, messages=msg, max_tokens=16000)
     if resp.choices[0].finish_reason == "length":
         raise HarnessError("write_query hit max_tokens (output truncated)")
-    call = _parse_tool(_as_text(resp.choices[0].message.content))
-    return {"kind": "tool", "interface": interface, **call} if call else None
+    text = _as_text(resp.choices[0].message.content)
+    call = _parse_tool(text)
+    if call:
+        return {"kind": "tool", "interface": interface, **call}, ""
+    return None, (_decline_reason(text) if text.strip().upper().startswith("NO_QUERY")
+                  else "The agent's reply was not a valid tool call.")
 
 
 APPROACH_DOES = {
@@ -168,10 +184,21 @@ APPROACH_DOES = {
     "ontobricks": "the subgraph around the entities the question names, from the published Ontobricks graph",
     "closed_book": "nothing (the no-retrieval floor)",
 }
+APPROACH_DOES_LS = {
+    **APPROACH_DOES,
+    "metric_view": "retrieves the YAML definitions of the certified clinical-study metric views most relevant to the "
+                   "question",
+    "closure_sql": "resolves disease / drug-class concepts and protocol concept classes named in the question to MONDO / "
+                   "MED-RT nodes, returns their ancestors, subtree, class roots and the participants recorded under "
+                   "them; nothing else",
+    "genie_ontology": "Genie's own retrieval: inferred snippets mined from Genie spaces and query history, plus Pages",
+    "rag": "the top 5 passages of the study documents and monitoring visit reports (prose, no tables)",
+    "ontobricks": "the subgraph around the entities the question names, from the published ClinicalStudyLab graph",
+}
 
 
 @mlflow.trace(span_type="CHAT_MODEL", name="explain")
-def explain(question: str, approach: str, outcome: dict) -> str:
+def explain(question: str, approach: str, outcome: dict, ls: bool = False) -> str:
     """One plain sentence (<= 16 words) saying exactly why this approach did or didn't answer, from the judged
     evidence: which gold fact was or wasn't in the context, what the one query returned, or how it failed."""
     msg = [{"role": "system", "content": (
@@ -185,9 +212,12 @@ def explain(question: str, approach: str, outcome: dict) -> str:
         "'Counted diabetes AND CKD, not diabetes with kidney complications: 1,791.'). Name it by its interface (SQL, "
         "closure-tool call, graph-runner call). If the result matches the gold, do not invent shortcomings.\n"
         "- retrieved nothing: say why this approach has nothing for this question, using APPROACH_DOES.\n"
+        "- EVIDENCE.outcome 'incomplete' means nothing contradicts the gold but a fact is missing: name the missing "
+        "fact. 'wrong' means a fact is contradicted: give the value it produced versus the gold value.\n"
         "Never write 'no SQL query was executed'. No preamble, no markdown.")},
         {"role": "user", "content": f"QUESTION: {question}\nAPPROACH: {approach}\n"
-                                    f"APPROACH_DOES: {APPROACH_DOES.get(approach, '')}\nEVIDENCE: "
+                                    f"APPROACH_DOES: {(APPROACH_DOES_LS if ls else APPROACH_DOES).get(approach, '')}"
+                                    f"\nEVIDENCE: "
                                     f"{json.dumps(outcome, ensure_ascii=False)[:6000]}"}]
     resp = _client().chat.completions.create(model=AGENT_MODEL, messages=msg, max_tokens=4000)
     return _as_text(resp.choices[0].message.content).strip().strip('"')[:220]
@@ -198,12 +228,21 @@ JUDGE_MODEL = os.environ.get("CARE_JUDGE_MODEL", "databricks:/databricks-claude-
 _JUDGE_SYSTEM = (
     "You check whether a TEXT states a FACT. The fact counts as stated only if the TEXT says it explicitly about the "
     "entities in the question -- not if it states a general rule the fact could be inferred from, lists codes it could "
-    "be looked up with, or describes how it could be computed. For a query RESULT, the rows must show the fact (allow "
+    "be looked up with, or describes how it could be computed. For a QUERY and its RESULT, read them together: the "
+    "query says what the rows are (the table, the filters, e.g. segment KED_EGFR for 2026), and the rows must show the "
+    "values (a filter alone, with no rows confirming it, states nothing). The rows must show the fact (allow "
     "formatting differences: a rate as a fraction or percent, rounding to 3 significant figures, a count as the number "
     "of rows, codes with or without a prefix). The quote must state the fact ON ITS OWN, read by someone who does not "
     "already know the answer; if you have to add an inference to get from the quote to the fact, it is not stated. "
     "Reply with JSON only: "
-    '{"stated": true|false, "quote": "<the shortest verbatim span of the TEXT that states it, or empty>", '
+    "Decide 'stated' exactly as above; the contradiction check below never changes it. If the fact is NOT stated, "
+    "also say whether the TEXT CONTRADICTS it: it gives a DIFFERENT VALUE for the same thing -- a different number, "
+    "date, yes/no, code or named entity (e.g. 40.1% where the fact says 39.7%, 'dispensed' where the fact says "
+    "'ordered', 'no record exists' where the fact says one does). Leaving part of the fact out, or describing the same "
+    "value more narrowly (e.g. naming two of the three codes behind the same count), is NOT a contradiction. "
+    "Reply with JSON only: "
+    '{"stated": true|false, "contradicted": true|false, '
+    '"quote": "<the shortest verbatim span of the TEXT that states it, or that contradicts it, or empty>", '
     '"why": "<one short sentence>"}'
 )
 
@@ -230,9 +269,10 @@ def _loads_lenient(raw: str) -> dict:
 
 @mlflow.trace(span_type="LLM", name="judge_fact")
 def judge_fact(question: str, fact: str, text: str, where: str) -> dict:
-    """{"ok", "quote", "rationale"}. ok requires stated=true AND the quote to appear verbatim in the text."""
+    """{"ok", "verdict", "quote", "rationale"}. verdict = stated | contradicted | missing. ok (= stated) requires
+    stated=true AND the quote to appear verbatim in the text; a contradiction needs a verbatim quote too."""
     if not text or not text.strip() or text.startswith("(no context retrieved)"):
-        return {"ok": False, "quote": "", "rationale": f"Nothing in the {where}."}
+        return {"ok": False, "verdict": "missing", "quote": "", "rationale": f"Nothing in the {where}."}
     msg = [{"role": "system", "content": _JUDGE_SYSTEM},
            {"role": "user", "content": f"QUESTION: {question}\nFACT: {fact}\nTEXT ({where}):\n{text[:24000]}"}]
     for attempt in range(2):
@@ -242,14 +282,20 @@ def judge_fact(question: str, fact: str, text: str, where: str) -> dict:
         if not d:
             raise HarnessError("judge_fact: unparseable judge reply")
         stated, quote, why = bool(d.get("stated")), str(d.get("quote") or ""), str(d.get("why") or "")
-        if not (stated and quote and _norm(quote) not in _norm(text)):
+        contra = bool(d.get("contradicted")) and not stated
+        if not ((stated or contra) and quote and _norm(quote) not in _norm(text)):
             break
         # One retry: the quote must be copied exactly, or the fact isn't stated.
         msg = msg + [{"role": "assistant", "content": raw},
                      {"role": "user", "content": "That quote does not appear verbatim in the TEXT. Copy the exact span "
                                                  "from the TEXT, or answer stated=false."}]
     if stated and quote and _norm(quote) not in _norm(text):
-        return {"ok": False, "quote": quote, "rationale": f"Judge quoted text that is not in the {where}: {why}"}
+        return {"ok": False, "verdict": "missing", "quote": quote,
+                "rationale": f"Judge quoted text that is not in the {where}: {why}"}
     if stated and not quote:
-        return {"ok": False, "quote": "", "rationale": f"Judge gave no supporting quote. {why}"}
-    return {"ok": stated, "quote": quote if stated else "", "rationale": why}
+        return {"ok": False, "verdict": "missing", "quote": "", "rationale": f"Judge gave no supporting quote. {why}"}
+    if stated:
+        return {"ok": True, "verdict": "stated", "quote": quote, "rationale": why}
+    if contra and quote and _norm(quote) in _norm(text):
+        return {"ok": False, "verdict": "contradicted", "quote": quote, "rationale": why}
+    return {"ok": False, "verdict": "missing", "quote": "", "rationale": why}

@@ -34,11 +34,19 @@ _LITERAL_PREDS = {"label", "ageAtPeriodEnd", "thresholdValue", "icd10Code", "loi
 MAX_ROWS = 50
 
 
+# Both demos' graphs: HEDIS (clinicaldomain) and life sciences (ClinicalStudyLab). Node ids drop the namespace.
+LS_NS = "https://clinical-study-lab.example/ontology/"
+_NAMESPACES = (NS, LS_NS)
+# The people in each graph: endpoints of a path, never traversed through (one person's record never routes to another).
+_PEOPLE = ("Patient/", "Participant/")
+
+
 def _short(x: str) -> str:
-    if x.startswith(NS):
-        return x[len(NS):]
-    if x.startswith("https://care-protocol.example/ontology#"):
-        return x.split("#", 1)[1]
+    for ns in _NAMESPACES:
+        if x.startswith(ns):
+            return x[len(ns):]
+        if x.startswith(ns[:-1] + "#"):
+            return x.split("#", 1)[1]
     return x
 
 
@@ -92,7 +100,7 @@ class Graph:
                 continue
             if t in n.lower() or t in self.label(n).lower():
                 hits.append(n)
-        hits.sort(key=lambda n: (n.startswith("Patient/"), len(n)))
+        hits.sort(key=lambda n: (n.startswith(_PEOPLE), len(n)))
         return {"count": len(hits), "rows": [{"node": n, "label": self.label(n), "type": self.kind(n)}
                                              for n in hits[:limit]]}
 
@@ -108,14 +116,14 @@ class Graph:
                         continue
                     for o in os:
                         rows.append({"s": n, "p": p, "o": o})
-                        if o not in seen and not o.startswith("Patient/"):
+                        if o not in seen and not o.startswith(_PEOPLE):
                             seen.add(o)
                             nxt.append(o)
                 for p, ss in self.inn.get(n, {}).items():
                     if preds and p not in preds:
                         continue
                     for s in ss:
-                        if s.startswith("Patient/") and s != node:
+                        if s.startswith(_PEOPLE) and s != node:
                             continue  # never fan out across the whole patient population
                         rows.append({"s": s, "p": p, "o": n})
                         if s not in seen:
@@ -157,7 +165,7 @@ class Graph:
             nbrs = [(p, o, "->") for p, os in self.out.get(n, {}).items() for o in os] + \
                    [(p, s, "<-") for p, ss in self.inn.get(n, {}).items() for s in ss]
             for p, m, d in nbrs:
-                if m in nodes or (m.startswith("Patient/") and m != target):
+                if m in nodes or (m.startswith(_PEOPLE) and m != target):
                     continue
                 st = steps + [(p, m, d)]
                 if m == target:

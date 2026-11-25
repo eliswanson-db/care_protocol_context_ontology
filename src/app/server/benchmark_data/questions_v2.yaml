@@ -27,6 +27,7 @@ hand_overrides:
 
 questions:
   - id: q1
+    short: "GSD poor control by clinic"
     question: "What was the GSD poor-control rate (last A1c of the year above 9%, or no A1c test) by clinic, for MY2026 through 2026-10-30?"
     answer_type: set of (clinic, rate)
     gold: bq1_gsd_poor_by_clinic
@@ -41,6 +42,7 @@ questions:
       graph: "no: patient-to-clinic isn't mapped (F07)"
 
   - id: q2
+    short: "65–75, A1c > 9%, no statin"
     question: "Of GSD-eligible diabetics aged 65-75 in MY2026, how many had a last MY2026 A1c (through 2026-10-30) above 9% and no statin dispensed in MY2026 through 2026-10-30?"
     answer_type: count
     gold: bq2_older_poor_no_statin
@@ -55,6 +57,7 @@ questions:
       graph: "yes once observation values and drug classes are reachable (republish items 1, 3b; F22, F26)"
 
   - id: q3
+    short: "Diabetes with a kidney complication"
     question: "How many patients have diabetes with a kidney complication (a diagnosis on or before 2026-10-30)?"
     answer_type: count
     gold: bq3_kidney_complication
@@ -69,6 +72,7 @@ questions:
       graph: "yes: subClassOf* walk from the diabetic-kidney roots"
 
   - id: q4
+    short: "A1c target, moderate comorbidity"
     question: "What A1c target does the care protocol (v2025.1) recommend for an older adult with moderate comorbidity?"
     answer_type: stated fact
     gold: "doc: CP-GLY-TARGETS-2025.1, section Individualized A1c targets"
@@ -83,6 +87,7 @@ questions:
       graph: "no: prose guidance isn't modeled as triples"
 
   - id: q5
+    short: "eGFR: measures, MY2026 codes, where defined"
     question: "Which measures use eGFR, which LOINC codes count as eGFR in MY2026, and where is that defined?"
     answer_type: stated facts
     gold: bq5_egfr_measures_codes
@@ -99,6 +104,7 @@ questions:
       graph: "partial: KED monitoredBy LP-EGFR; measure value sets aren't mapped (F15)"
 
   - id: q6
+    short: "Contraindicated on 2026-10-30"
     question: "On 2026-10-30, how many patients had an active order for a drug the care protocol contraindicates for a condition active that day, or for their last lab result on or before that day, and for which drugs?"
     answer_type: count + reasons
     gold: [bq6_contra_active_patients, bq6_contra_active_reasons]
@@ -114,6 +120,7 @@ questions:
       graph: "yes once the drug classes, threshold-to-lab edges and observation values are reachable (F22, F23, F26), and the graph carries dates (F28)"
 
   - id: q7
+    short: "Why patient 00040be9 is an SPD gap"
     question: "Why was patient 00040be9-7fcf-0ca1-0263-b4197b8f8d28 in the SPD statin gap for MY2026 (through 2026-10-30)?"
     answer_type: path
     gold: bq7_spd_gap_path
@@ -133,6 +140,7 @@ questions:
       graph: "yes: a traversal from the patient (eligibleFor, hasDiagnosis -> subClassOf*, prescribed history, recommendedFor)"
 
   - id: q8
+    short: "Outside eye exam for patient 0b4f4745"
     question: "Patient 0b4f4745-1c22-260c-494b-f91aa1e81cfc had an EED gap for MY2026 (through 2026-10-30). Is there any record of a diabetic eye exam outside our EHR?"
     answer_type: stated facts
     gold: bq8_eed_gap_outside_letter

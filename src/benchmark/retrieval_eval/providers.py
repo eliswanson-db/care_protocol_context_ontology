@@ -24,17 +24,26 @@ import mlflow
 
 from .warehouse import run_sql
 
+# Which demo's benchmark this run scores (the same harness, the same agent, the same five approaches):
+#   healthcare_hedis (default)  docs/benchmark/questions_v2.yaml, care_protocol*, the clinicaldomain graph
+#   life_sciences_clinical      docs/benchmark/ls_questions.yaml, clinical_study*, the ClinicalStudyLab graph
+DEMO = os.environ.get("CARE_DEMO", "healthcare_hedis")
+LS = DEMO == "life_sciences_clinical"
 CATALOG = os.environ.get("CARE_CATALOG", "eli_test_classic_catalog")
-SCHEMA = os.environ.get("CARE_SCHEMA", "care_protocol")
-SCHEMA_SEMANTIC = os.environ.get("CARE_SCHEMA_SEMANTIC", "care_protocol_semantic")
-SCHEMA_TERM = os.environ.get("CARE_SCHEMA_TERM", "care_protocol_terminology")
+SCHEMA = os.environ.get("CARE_SCHEMA", "clinical_study" if LS else "care_protocol")
+SCHEMA_SEMANTIC = os.environ.get("CARE_SCHEMA_SEMANTIC", "clinical_study_semantic" if LS else "care_protocol_semantic")
+SCHEMA_TERM = os.environ.get("CARE_SCHEMA_TERM", "clinical_study_standards" if LS else "care_protocol_terminology")
+QUESTIONS_FILE = "ls_questions.yaml" if LS else "questions_v2.yaml"
+RECORDING_FILE = "genie_ontology_retrieval_ls.json" if LS else "genie_ontology_retrieval_v2.json"
+DEFAULT_CORPUS = "clinical_study" if LS else "care_protocol"
+GRAPH_PREFIX = "triplestore_clinicalstudylab_v" if LS else "triplestore_clinicaldomain_v"
 _GOLD_SQL = os.path.join(os.path.dirname(__file__), "..", "gold_queries.sql")
 
 
 # Per-question metadata from the locked set: the patient a question names and the identity it runs as.
 def _qmeta() -> dict:
     import yaml
-    path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "docs", "benchmark", "questions_v2.yaml")
+    path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "docs", "benchmark", QUESTIONS_FILE)
     return {q["id"]: q for q in yaml.safe_load(open(os.path.normpath(path)))["questions"]}
 
 
@@ -55,6 +64,7 @@ import sys as _sys  # noqa: E402
 _sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "app")))
 from server.context_retrieval import (CLOSURE_TOOLS, closure_context, closure_tool, genie_ontology_docs,  # noqa: E402
                                       graph_context, link_entities)
+from server import ls_context  # noqa: E402  (the life-sciences closure + graph retrieval, same shapes)
 
 _STOP = set("the a an of to in on for and or is are was what which how many much does do did with by from this "
             "that their its it as at be any each all whether under show give name own".split())
@@ -106,7 +116,19 @@ def _q(v: str) -> str:
 def closure_sql(question: str, qid: str) -> list[dict]:
     """Closure tables as parameterized tools (resolve_node -> ancestors / descendants -> patients under the subtree).
     See closure_context in src/app/server/context_retrieval.py. No free-form SQL, no per-question queries."""
+    if LS:
+        return ls_context.closure_context(question, run_sql, CATALOG)
     return closure_context(question, run_sql, CATALOG, SCHEMA, SCHEMA_TERM)
+
+
+def closure_tools() -> dict[str, str]:
+    return ls_context.CLOSURE_TOOLS if LS else CLOSURE_TOOLS
+
+
+def run_closure_tool(tool: str, args: dict) -> dict:
+    if LS:
+        return ls_context.closure_tool(tool, args, run_sql, CATALOG)
+    return closure_tool(tool, args, run_sql, CATALOG, SCHEMA, SCHEMA_TERM)
 
 
 def _render(rows: list[dict], limit: int = 12) -> str:
@@ -156,7 +178,7 @@ def rag(question: str, qid: str) -> list[dict]:
     as_user = meta.get("run_as") or os.environ.get("CARE_RAG_AS_USER") or None
     try:
         hits = r.search_documents(question, k=5, mode="hybrid", as_user=as_user, patient_id=meta.get("patient"),
-                                  corpus=meta.get("corpus", "care_protocol"))
+                                  corpus=meta.get("corpus", DEFAULT_CORPUS))
     except Exception as e:  # noqa: BLE001
         return [_doc(f"[RAG query failed: {type(e).__name__}: {str(e)[:160]}]", source="rag_error")]
     docs = []
@@ -192,8 +214,8 @@ def _latest_ontobricks() -> str:
     rows = run_sql(f"SELECT table_name FROM {ONTOBRICKS_CATALOG}.information_schema.tables "
                    f"WHERE table_schema = '{ONTOBRICKS_SCHEMA}'")
     found = sorted((int(m.group(1)), m.group(0)[:-len("_graph")]) for r in rows
-                   if (m := re.match(r"^triplestore_clinicaldomain_v(\d+)_graph$", r["table_name"])))
-    return found[-1][1] if found else "triplestore_clinicaldomain_v2"
+                   if (m := re.match(rf"^{GRAPH_PREFIX}(\d+)_graph$", r["table_name"])))
+    return found[-1][1] if found else f"{GRAPH_PREFIX}1"
 _ONS = "https://care-protocol.example/ontology/"
 
 # The cross-vocabulary guideline + structural predicates -- the graph's lift over a closure join.
@@ -203,13 +225,13 @@ _ONS = "https://care-protocol.example/ontology/"
 def ontobricks(question: str, qid: str) -> list[dict]:
     graph = _graph_table()
     try:
-        return graph_context(question, run_sql, graph)
+        return (ls_context.graph_context if LS else graph_context)(question, run_sql, graph)
     except Exception as e:  # noqa: BLE001
         return [_doc(f"[Ontobricks query failed: {type(e).__name__}: {str(e)[:140]}]", source="ontobricks_error")]
 
 
 _GO_REC = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "docs", "benchmark",
-                                       "genie_ontology_retrieval_v2.json"))
+                                       RECORDING_FILE))
 
 
 def _go_rec(workspace: str, qid: str) -> dict | None:

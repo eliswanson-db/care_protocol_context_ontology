@@ -49,15 +49,18 @@ def main():
     ap.add_argument("--questions", default="docs/benchmark/questions_v2.yaml")
     ap.add_argument("--out", default="docs/benchmark/genie_ontology_retrieval_v2.json")
     ap.add_argument("--qids", default="", help="comma-separated subset (default: all); merged into --out")
+    ap.add_argument("--demo", default=None, help="the demo the questions belong to (on_topic = about it); default: "
+                                                  "life_sciences_clinical for ls_questions.yaml, else healthcare_hedis")
     ap.add_argument("--retry-missing", action="store_true",
                     help="re-run only questions where Genie One did not call its knowledge search (up to 3 attempts)")
     args = ap.parse_args()
+    demo = args.demo or ("life_sciences_clinical" if "ls_questions" in args.questions else "healthcare_hedis")
     dst = os.path.join(ROOT, args.out)
     prev = json.load(open(dst)) if (args.retry_missing or args.qids) and os.path.isfile(dst) else None
     qs = [(q["id"], q["question"]) for q in yaml.safe_load(open(os.path.join(ROOT, args.questions)))["questions"]]
     if args.qids:
         qs = [x for x in qs if x[0] in args.qids.split(",")]
-    result = {"recorded_at": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"), "workspaces": {}}
+    result = {"demo": demo, "recorded_at": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"), "workspaces": {}}
     for prof in args.profiles.split(","):
         w = WorkspaceClient(profile=prof)
         who = w.current_user.me().user_name
@@ -72,7 +75,7 @@ def main():
             attempts = 3 if args.retry_missing else 1
             for n in range(1, attempts + 1):
                 try:
-                    t = parse(events(w, q))
+                    t = parse(events(w, q), demo)
                 except Exception as e:  # noqa: BLE001
                     rec = {"error": f"{type(e).__name__}: {str(e)[:200]}"}
                     continue

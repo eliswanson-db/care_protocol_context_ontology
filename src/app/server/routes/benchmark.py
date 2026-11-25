@@ -221,10 +221,12 @@ V2_ARMS = [
 _PRED_KEY = {"closure_sql": "closure", "ontobricks": "graph"}  # questions_v2 prediction keys
 
 
-@router.get("/benchmark/v2")
-def benchmark_v2():
+def bench_payload(qpath: str, rpath: str, gpath: str, arms: list[dict], pred_key: dict, horizon: str) -> dict:
+    """A locked benchmark (questions yaml + harness rows + Genie recording) as the Benchmark tab's payload. Shared by
+    both demos. Each cell: the tier, the explicit outcome (in_context / one_query / incomplete / wrong / query_failed /
+    no_query / nothing), every fact's verdict with the judge's quote, the agent's reason when it declined, and the hand
+    check. A hand override wins over the judge (tier and outcome), with its reason."""
     import yaml
-    qpath, rpath = os.path.join(BENCH_DIR, "questions_v2.yaml"), os.path.join(BENCH_DIR, "benchmark_v2.json")
     if not (os.path.isfile(qpath) and os.path.isfile(rpath)):
         return {"available": False}
     with open(qpath) as f:
@@ -234,32 +236,43 @@ def benchmark_v2():
     by = {(r["arm"], r["qid"]): r for r in run.get("rows", [])}
     hv = spec.get("hand_verified") or {}
     ov = spec.get("hand_overrides") or {}
-    gpath = os.path.join(BENCH_DIR, "genie_ontology_retrieval_v2.json")  # Genie One's own answers (same recording)
+    notes = spec.get("hand_notes") or {}
     g1 = {}
     if os.path.isfile(gpath):
         with open(gpath) as f:
             g1 = (json.load(f).get("workspaces", {}).get("ect", {}) or {}).get("questions", {})
-    keep = ("tier", "tier_runs", "stable", "interface", "retrieved", "facts", "reason", "sql", "sql_result",
-            "sql_error", "n_docs")
+    keep = ("tier", "outcome", "tier_runs", "stable", "interface", "retrieved", "facts", "reason", "sql", "sql_result",
+            "sql_error", "n_docs", "declined_reason")
     questions = []
     for q in spec["questions"]:
         cells = {}
-        for a in V2_ARMS:
+        for a in arms:
+            pred = q["predictions"].get(pred_key.get(a["id"], a["id"]))
             r = by.get((a["id"], q["id"]))
             cells[a["id"]] = ({k: r.get(k) for k in keep} | {"hand_verified": q["id"] in (hv.get(a["id"]) or []),
-                                                               "prediction": q["predictions"].get(_PRED_KEY.get(a["id"], a["id"]))}
-                              if r else {"tier": None, "prediction": q["predictions"].get(_PRED_KEY.get(a["id"], a["id"]))})
+                                                               "prediction": pred,
+                                                               "hand_note": (notes.get(a["id"]) or {}).get(q["id"])}
+                              if r else {"tier": None, "prediction": pred})
         for arm_id, per_q in ov.items():  # the hand check wins over the judge, with its reason
             o = (per_q or {}).get(q["id"])
             if o and arm_id in cells:
-                cells[arm_id].update({"judge_tier": cells[arm_id].get("tier"), "tier": o["tier"], "override": o["note"]})
+                cells[arm_id].update({"judge_tier": cells[arm_id].get("tier"), "judge_outcome": cells[arm_id].get("outcome"),
+                                      "tier": o["tier"], "outcome": o.get("outcome", cells[arm_id].get("outcome")),
+                                      "override": o["note"]})
         if cells.get("genie_one", {}).get("tier") is not None and q["id"] in g1:
             cells["genie_one"]["answer"] = g1[q["id"]].get("genie_one_answer")
             cells["genie_one"]["genie_sql"] = g1[q["id"]].get("genie_one_sql") or []
-        questions.append({"id": q["id"], "question": q["question"], "answer_type": q["answer_type"],
-                          "expected_facts": q["expected_facts"], "hero_rule": q.get("hero_rule"),
+        questions.append({"id": q["id"], "short": q.get("short"), "question": q["question"],
+                          "answer_type": q["answer_type"], "expected_facts": q["expected_facts"],
+                          "hero_rule": q.get("hero_rule") or q.get("participant_rule"),
                           "run_as": q.get("run_as"), "cells": cells})
-    return {"available": True, "arms": V2_ARMS, "questions": questions,
+    return {"available": True, "arms": arms, "questions": questions,
             "meta": {"agent": run.get("agent"), "judge": run.get("judge"), "repeats": run.get("repeats"),
-                     "mode": "final" if (run.get("repeats") or 1) >= 3 else "test",
-                     "data_horizon": "2026-10-30"}}
+                     "scoring": run.get("scoring"), "mode": "final" if (run.get("repeats") or 1) >= 3 else "test",
+                     "data_horizon": horizon}}
+
+
+@router.get("/benchmark/v2")
+def benchmark_v2():
+    return bench_payload(os.path.join(BENCH_DIR, "questions_v2.yaml"), os.path.join(BENCH_DIR, "benchmark_v2.json"),
+                         os.path.join(BENCH_DIR, "genie_ontology_retrieval_v2.json"), V2_ARMS, _PRED_KEY, "2026-10-30")
