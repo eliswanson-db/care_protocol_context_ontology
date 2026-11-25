@@ -24,7 +24,7 @@ QUESTIONS = {q["id"] for q in yaml.safe_load((ROOT / "docs/benchmark/ls_question
 MODES = ["metric_view", "closure", "rag", "genie_ontology", "graph"]
 CATALOG = "eli_test_classic_catalog"
 NS = "https://clinical-study-lab.example/ontology/"
-GRAPH = "eswanson_demo.ontobricks.triplestore_clinicalstudylab_v4_graph"
+GRAPH = "eswanson_demo.ontobricks.triplestore_clinicalstudylab_v6_graph"
 
 
 def _kind(entry: dict) -> str:

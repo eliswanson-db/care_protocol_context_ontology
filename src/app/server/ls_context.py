@@ -145,7 +145,7 @@ def graph_context(question: str, run_sql, graph: str) -> list[dict]:
                                f"are {NS}<Type>/<id> (e.g. {NS}Participant/CSL-A-103-0137, {NS}Disease/MONDO:0004982, "
                                f"{NS}ConceptClass/WRC-V1); predicate IRIs are {NS}<predicate>. Triples below are shown "
                                f"with that prefix removed. Query the graph with one SQL statement over this table "
-                               f"(self-joins on subject/object; literal objects are strings, cast as needed; WITH "
+                               f"(self-joins on subject/object; the object column mixes IRIs and literals of every type, so convert a literal with try_cast(object AS DATE / TIMESTAMP / DOUBLE): a plain CAST can fail on other predicates' rows, since Spark may evaluate it before the predicate filter; WITH "
                                f"RECURSIVE for subClassOf*).\nGraph schema (predicate: subject type -> object type, "
                                f"count): {graph_schema(run_sql, graph)}"),
               "metadata": {"source": "ontobricks", "kind": "provenance", "graph": graph, "linked_entities": sorted(seeds)}}

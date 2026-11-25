@@ -321,8 +321,7 @@ PROVIDERS = {
 
 def warm() -> None:
     """Populate the per-run metadata caches (metric-view definitions, terminology table cards) before parallel use."""
-    _metric_views()
-    graph_runner()
+    _metric_views()  # (the graph runner is no longer loaded: protocol v3's graph query is SQL over the triplestore)
 
 
 # ---- what each approach retrieved, in one line (shown on every card) --------------------------------------------

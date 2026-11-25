@@ -96,10 +96,12 @@ def main():
     check("REQUIRED", f"no predicate shrank >10% (allowed by design: {', '.join(sorted(MAY_SHRINK))})", not shrunk,
           "; ".join(shrunk) or ("" if BASELINE_FILE.exists() else "skipped: no count baseline yet"))
     prefixes = edge_prefixes(g_tab)
-    ok = EDGE_PREFIXES <= prefixes and (prefixes == base_prefixes or not BASELINE_FILE.exists())
-    check("REQUIRED", "edge nodes use the class-named IRI convention", ok,
-          f"missing {sorted(base_prefixes - prefixes)}, new {sorted(prefixes - base_prefixes)}" if not ok else
-          ", ".join(sorted(prefixes)))
+    # A new node type (a class added to the mapping) is reported, not failed; a missing one fails.
+    ok = EDGE_PREFIXES <= prefixes and base_prefixes <= prefixes
+    added = sorted(prefixes - base_prefixes)
+    check("REQUIRED", "edge nodes use the class-named IRI convention (no node type lost)", ok,
+          f"missing {sorted(base_prefixes - prefixes)}" if not ok else
+          ", ".join(sorted(prefixes)) + (f" (new: {', '.join(added)})" if added else ""))
 
     one = lambda sql: int(run_sql(sql)[0]["n"])  # noqa: E731
     check("REQUIRED", "multi-parent edge Condition/E11.22 subClassOf Condition/N18",

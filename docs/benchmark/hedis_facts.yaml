@@ -76,7 +76,7 @@ facts:
     closure: {none: "attribution is operational data (panel_roster), not terminology"}
     rag: {none: "attribution is data, not document content"}
     genie_ontology: {file: src/semantic/comments/care_protocol.comments.sql, has: ["panel_roster.clinic_id"]}
-    graph: {gap: "Patient -> clinic isn't mapped (ONTOBRICKS_REPUBLISH 2026-11-21 item 6, optional)"}
+    graph: {p: attributedTo, o: Clinic/CLINIC-01}
 
   - id: F08
     fact: "A statin is any RxNorm drug whose ingredient is in the SPD_STATIN value set (resolved through RxNorm)."
@@ -148,7 +148,7 @@ facts:
     closure: {table: value_set_segment, where: "segment_id = 'KED_EGFR' AND measurement_year = '2026' AND code = '98979-8'"}
     rag: {file: docs/care_protocol/corpus/payer_policy_memo_MY2026.md, has: ["98979-8 (CKD-EPI 2021) only"]}
     genie_ontology: {file: docs/ontology/pages/measure-drift.md, has: ["MY2026", "98979-8"]}
-    graph: {gap: "measure lab value sets aren't mapped (ONTOBRICKS_REPUBLISH 2026-11-21 item 5, containsTest)"}
+    graph: {s: ValueSet/KED_EGFR, p: containsTest, o: LabTest/98979-8}
 
   - id: F16
     fact: "The eGFR value set is defined in care_protocol_terminology.value_set_segment (segment KED_EGFR)."
@@ -265,4 +265,4 @@ facts:
     closure: {none: "closures hold terminology, not patient dates"}
     rag: {none: "patient records aren't documents"}
     genie_ontology: {file: src/semantic/comments/care_protocol.comments.sql, has: ["silver_condition.stop_date"]}
-    graph: {gap: "hasDiagnosis and prescribed carry no dates, so the graph can't tell an active condition or order from a past one (ONTOBRICKS_REPUBLISH 2026-11-21 item 5b)"}
+    graph: {p: onsetDate}

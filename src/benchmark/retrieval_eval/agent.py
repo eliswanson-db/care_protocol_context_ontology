@@ -319,6 +319,9 @@ def _judge_fact(question: str, fact: str, text: str, where: str) -> dict:
     stated=true AND the quote to appear verbatim in the text; a contradiction needs a verbatim quote too."""
     if not text or not text.strip() or text.startswith("(no context retrieved)"):
         return {"ok": False, "verdict": "missing", "quote": "", "rationale": f"Nothing in the {where}."}
+    if "RESULT:\n(query returned no rows)" in text and "query" in where:
+        # An empty result states no value, so it can't contradict one; the context alone is judged separately.
+        return {"ok": False, "verdict": "missing", "quote": "", "rationale": "The query returned no rows."}
     msg = [{"role": "system", "content": _JUDGE_SYSTEM},
            {"role": "user", "content": f"QUESTION: {question}\nFACT: {fact}\nTEXT ({where}):\n{text[:24000]}"}]
     for attempt in range(2):
