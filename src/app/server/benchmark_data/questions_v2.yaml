@@ -10,20 +10,76 @@
 # tests/test_benchmark_v2.py checks: fixed dates only, every gold id exists and is holdout, every fact id exists, and
 # question 8's letter says what its gold says.
 
-# Cells checked by hand against gold (the judge is a first pass, not trusted alone). Grows as cells are verified.
+# Hand check (2026-11-25, on the final run: 3 runs per cell, graph v7, corrected answer key). Every cell was read
+# against gold; the note says what the check found. Where it disagrees with the judge, hand_overrides wins.
 hand_verified:
+  metric_view: [q1, q2, q3, q4, q5, q6, q7, q8]
+  closure_sql: [q1, q2, q3, q4, q5, q6, q7, q8]
+  rag: [q1, q2, q3, q4, q5, q6, q7, q8]
+  genie_ontology: [q1, q2, q3, q4, q5, q6, q7, q8]
+  ontobricks: [q1, q2, q3, q4, q5, q6, q7, q8]
   genie_one: [q1, q2, q3, q4, q5, q6, q7, q8]
-  metric_view: [q1]
-  closure_sql: [q3]
-  rag: [q4, q8]
-  genie_ontology: [q2]
-  ontobricks: [q3]
-# Where the hand check disagrees with the judge, it wins; the cell shows the reason.
 hand_overrides:
   ontobricks:
-    q3:
+    q7:
       tier: 3
-      note: "Right number, wrong reasoning: the pattern asked for diagnoses under BOTH N18 and E11 (only E11.22), not under E11.2 / E10.2 / E13.2. It matches 1,881 only because every kidney-complication patient in this data carries E11.22."
+      outcome: incomplete
+      note: "Hand check: its query result does state 'STATIN recommendedFor SPD' (expected fact 4; the judge found it in the previous run), so the outcome is incomplete, not found none. Diagnosis, age and dispense dates are missing."
+hand_notes:
+  metric_view:
+    q1: "Correct to decline under the rule, though the view's Poor Control Rate by Clinic is the answer: the agent found no date to apply 'through 2026-10-30' (the data ends there). Answered in 1 of 3 runs."
+    q2: "Correct: no single view combines GSD and SPD, and the definitions give no patient key to join them."
+    q3: "Correct: no measure is built for this cohort."
+    q4: "Correct: clinical guidance isn't a measure."
+    q5: "Correct: the KED view says eGFR is required, but holds neither the MY2026 codes nor where they're defined."
+    q6: "Correct: metric views are aggregates; there is no patient-level order, condition or lab data to query."
+    q7: "Correct: the definitions expose no patient identifier, so one patient's gap can't be explained from them."
+    q8: "Correct: the outside letter isn't in any table."
+  closure_sql:
+    q1: "Correct: closures hold terminology, not A1c results or clinics."
+    q2: "Correct: it resolves diabetes and statin subtrees but has no A1c values, ages or dispense dates."
+    q3: "Verified: 1,881 under E11.2 or E10.2. No E13.2 code exists, no patient has an E13 diagnosis, and no diagnosis is after 2026-10-30, so the undated count is the answer."
+    q4: "Correct: guidance, not terminology."
+    q5: "Correct: the closures cover ICD-10 and RxNorm, not LOINC value sets."
+    q6: "Correct: contraindication rules and dates are a different relationship from is-a; that's the graph's job."
+    q7: "Correct: it returns subtree counts, not one patient's record."
+    q8: "Correct: no letters in terminology tables."
+  rag:
+    q1: "Correct: documents define GSD but hold no patient data."
+    q2: "Correct: no patient data in documents."
+    q3: "Correct: the protocol names E11.2 / E10.2 / E13.2 but counts no patients."
+    q4: "Verified: the Glycemic Targets passage states 7.0–8.0% for moderate comorbidity, 5–10 year life expectancy."
+    q5: "Correct as incomplete in substance: the passages state KED and 98979-8, but not where the value set is defined (no document names the table)."
+    q6: "Correct: no patient data in documents (top passages were eye-exam letters; retrieval found nothing on contraindications)."
+    q7: "Correct: retrieval with the patient filter returned no document for this patient; protocol prose has no dispense history."
+    q8: "Verified: the patient's outside letter (Northside Optometry Group, 2026-09-02) states the exam and that it isn't in the EHR. Only RAG holds it."
+  genie_ontology:
+    q1: "Verified wrong: its query treats an A1c taken during 2026-10-30 as after the cutoff (> DATE'2026-10-30' is after midnight); gold counts through end of day. One patient at CLINIC-06: 109 vs 108 of 272."
+    q2: "Correct to decline: nothing Genie retrieved names the age column, so the agent couldn't filter 65–75."
+    q3: "Verified: one query on silver_condition (E1_.2%, onset on or before 2026-10-30) returned 1,881."
+    q4: "Correct: Genie ranked the HbA1c Page, which holds the 7.0–8.0% target, but read only the care-protocol-rules Page, so the target never reached the context."
+    q5: "Verified: the context names KED and value_set_segment; the one query returned only 98979-8 for KED_EGFR in 2026."
+    q6: "Verified: the query failed in 1 run, and in the others counted 65 metformin patients (gold 48) because it didn't take each patient's last eGFR result."
+    q7: "Verified: the query uses a `status` column gold no longer has. It comes from snippets mined from the deprecated dev dashboard, still served until Genie's snippet index refreshes."
+    q8: "Correct: Genie Ontology holds no patient correspondence."
+  ontobricks:
+    q1: "Correct: patients carry no clinic in the graph (not mapped; fact F07)."
+    q2: "Correct to decline: the graph has no dates on dispenses or results, so 'last A1c through 2026-10-30' can't be computed."
+    q3: "Correct to decline: hasDiagnosis has no date (fact F28). The structure is there: Condition/E11.22 subClassOf E11.2 and N18."
+    q4: "Correct: the graph holds the GSD thresholds (< 8, > 9), not the individualized targets."
+    q5: "Verified incomplete: it links KED to eGFR, but the graph has no MY2026 value-set membership (containsTest, fact F15) and no table location."
+    q6: "Correct to decline: no dates on orders, conditions or results (fact F28)."
+    q7: "Hand check: its query result does state 'STATIN recommendedFor SPD' (expected fact 4; the judge found it in the previous run), so the outcome is incomplete, not found none. Diagnosis, age and dispense dates are missing."
+    q8: "Correct: no letters in the graph, by design."
+  genie_one:
+    q1: "Verified: all eight clinic rates match."
+    q2: "Verified: 73."
+    q3: "Verified: 1,881, with E11.2 / E10.2 / E13.2 and the date filter."
+    q4: "Verified wrong: it searched the protocol-rules table and said targets are uniform. The 7.0–8.0% target is in the protocol document (RAG) and on the HbA1c Page, which it didn't read."
+    q5: "Verified: KED, 98979-8 only, and value_set_segment segment KED_EGFR."
+    q6: "Verified: 67 patients, 48 metformin / 11 ACE / 9 statin."
+    q7: "Verified: E11.9, age 61, no 2026 dispense, an open-ended 2009 Simvastatin order, and the SPD statin rule (correct under the fixed answer key)."
+    q8: "Verified wrong, for a structural reason: the letter is only in Lakebase, which Genie One can't reach, so it correctly found no outside record in the tables."
 
 questions:
   - id: q1
@@ -47,7 +103,7 @@ questions:
     answer_type: count
     gold: bq2_older_poor_no_statin
     expected_facts:
-      - "73 of the 821 GSD-eligible diabetics aged 65-75 had a last MY2026 A1c above 9% and no statin dispensed in MY2026 (through 2026-10-30), using the SPD statin rule."
+      - "73 GSD-eligible diabetics aged 65-75 had a last MY2026 A1c above 9% and no statin dispensed in MY2026 (through 2026-10-30)."
     facts: [F05, F06, F08, F09, F26]
     predictions:
       metric_view: "no: it crosses two measures (GSD and SPD); no prebuilt view combines them"
@@ -62,7 +118,7 @@ questions:
     answer_type: count
     gold: bq3_kidney_complication
     expected_facts:
-      - "1,881 patients have diabetes with a kidney complication: a diagnosis under E11.2, E10.2 or E13.2 on or before 2026-10-30."
+      - "1,881 patients have diabetes with a kidney complication (on or before 2026-10-30)."
     facts: [F01, F02]
     predictions:
       metric_view: "no: no measure is built for this cohort"

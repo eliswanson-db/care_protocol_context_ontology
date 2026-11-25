@@ -1,104 +1,105 @@
-# HEDIS benchmark v2: test-mode results (2026-11-22)
+# HEDIS benchmark v2: final results (2026-11-25)
 
+**Final run: 3 runs per cell, majority shown, every cell hand-checked.** The graph is clinicaldomain v7, and the
+answer key was corrected on 2026-11-25. The agent and judge are `databricks-claude-sonnet-5`. Questions, gold,
+predictions and the hand check: `docs/benchmark/questions_v2.yaml` (`hand_notes` holds one note per cell;
+`hand_overrides` holds where the check overrides the judge). Raw cells, with context, the one query, and every fact's
+verdict and quote: `docs/benchmark/benchmark_v2.json`.
 
-> **2026-11-25: answer key corrected; these results are being re-scored.** Four expected facts asked for more than
-> their question did, or misstated the data: q5 no longer requires "MDRD was dropped"; q6 now asks *how many* patients
-> and for which drugs (its key checks counts); q7's 2009 statin is an open-ended **order**, not a dispense (Genie One
-> said so and was marked wrong); q8 no longer requires "the letter would need to be abstracted". The graph column
-> below was scored on graph v3; it is re-run on v7. Treat this page as superseded until the re-score lands.
-**Test mode: 1 run per cell.** Hand-verified: all of Genie One's column and every retrieval cell the judge scored as
-answered (where the hand check disagrees, it wins; `hand_overrides` in questions_v2.yaml). The judge's misses are
-not all hand-checked yet. Final numbers come from `--final` (3 runs) after the open items at the end. Questions, gold
-and predictions: `docs/benchmark/questions_v2.yaml`. Raw cells (context, queries, judge rationales):
-`docs/benchmark/benchmark_v2.json`.
+## How a cell is scored
 
-How a cell is scored. **Retrieval approaches** (simple agent, plan step 5): each retrieves with its own method;
-**1** = every expected fact is in what it retrieved; **2** = not, but the agent made ONE query in the approach's
-native interface (SQL for metric views, RAG and Genie Ontology; one closure-tool call; one graph-runner call) and the
-result has every fact; **3** = neither. **Genie One** (plan step 6): its own end-to-end answer, after as many queries
-as it chose; ✓ = every fact, ✗ = not.
+**Retrieval approaches** use one simple agent. It reads what the approach retrieved, then may make **one query** in
+the approach's own interface: SQL for metric views, RAG and Genie Ontology; one closure-tool call; one graph-runner
+call.
+- Each expected fact is judged **stated / missing / contradicted**, with a verbatim quote that is checked in code.
+- A fact counts if the context states it **or** the one query does. The query is read with its rows: the query says
+  what the rows are, and the rows carry the values.
+- A SELECT of constants reads no table, so it isn't a query.
+
+Outcomes:
+- **in context** (tier 1): every fact is stated in what the approach retrieved.
+- **one query** (tier 2): the context and the one query together state every fact.
+- **incomplete**: some facts are stated, one is missing.
+- **found none**: the query ran but stated no fact.
+- **wrong**: it contradicts a fact.
+- **query failed**.
+- **no query**: the agent declined, and says why.
+- **nothing**: retrieved nothing.
+
+**Genie One**, a multi-step agent, is judged on its own answer.
 
 | Q | Question (short) | Metric views | Closure | RAG | Genie Ontology | Graph | **Genie One** |
 |---|---|---|---|---|---|---|---|
-| 1 | GSD poor control by clinic | **2** | 3 | 3 | 3 † | 3 | ✓ |
-| 2 | 65–75, A1c > 9%, no statin | 3 | 3 | 3 | **2** | 3 | ✓ |
-| 3 | Diabetes with kidney complication | 3 | **1** | 3 | 3 | 3 ‡ | ✓ |
-| 4 | A1c target, moderate comorbidity | 3 | 3 | **1** | 3 § | 3 | ✗ § |
-| 5 | eGFR measures, MY2026 codes, where defined | 3 (1 of 3) | 3 | 3 (2 of 3) | 3 (1 of 3) § | 3 | ✓ |
-| 6 | Contraindicated on 2026-10-30 | 3 | 3 | 3 | 3 | 3 ¶ | ✓ |
-| 7 | Why patient 00040be9 is an SPD gap | 3 | 3 | 3 | 3 † | 3 ¶ | ✗ (3 of 4) |
-| 8 | Outside eye exam for patient 0b4f4745 | 3 | 3 | **1** | 3 | 3 | ✗ |
+| 1 | GSD poor control by clinic | no query (1 of 3 ✓) | nothing | no query | **wrong** | no query | ✓ |
+| 2 | 65–75, A1c > 9%, no statin | no query | no query | no query | no query | no query | ✓ |
+| 3 | Diabetes with a kidney complication | no query | **✓ in context** | no query | **✓ one query** | no query | ✓ |
+| 4 | A1c target, moderate comorbidity | no query | nothing | **✓ in context** | no query | no query | **wrong** |
+| 5 | eGFR: measures, MY2026 codes, where defined | no query | nothing | no query | **✓ one query** | incomplete | ✓ |
+| 6 | Contraindicated on 2026-10-30 | no query | nothing | no query | query failed | no query | ✓ |
+| 7 | Why patient 00040be9 is an SPD gap | no query | no query | nothing | query failed | incomplete (hand) | ✓ |
+| 8 | Outside eye exam for patient 0b4f4745 | no query | no query | **✓ in context** | no query | found none | **wrong** |
+| | **Answered** | 0 of 8 | 1 | 2 | 2 | 0 | **6** |
 
-## The story the run tells (so far)
+## What the run shows
 
-- **The simplest approach is often enough, but only for what it was built for.** Metric views answer the prebuilt
-  measure exactly (q1) and nothing that crosses measures (q2). Closure tables answer the hierarchy rollup in context
-  (q3) and none of the questions that need a join across rules and dates (q6, q7).
-- **RAG wins where the information only exists in documents**: the protocol's individualized targets (q4) and a
-  patient's outside eye-exam letter (q8, care-team role, patient filter). No other approach holds per-patient
-  correspondence, and none should.
-- **Genie Ontology gives the agent the right tables and rules** (q2: its one query returned 73), but a single query
-  isn't enough for multi-rule questions (q6), and its inferred context carries stale schema (q7, †).
-- **Genie One, as a reasoning engine, answers 5 of 8** (q1, q2, q3, q5, q6), including the multi-hop, dated
-  contraindication question no single-shot approach answered. It misses where the answer lives in documents or
-  per-patient letters it doesn't read (q4, q8), and on q7 it explains the gap but not the protocol rule behind it.
-- **The graph** is held back by the published v3 (¶); its cells are expected to change after the republish.
+- **One query from a single layer's context answers little.** Six of the eight questions are data questions: a count,
+  a rate, or one patient's record. They need the right joins on the first try, from names the context supplies. Genie
+  One explores, runs several queries and retries, and answers 6 of 8. The comparison measures what each kind of
+  context is *enough for*, not which tool is best.
+- **Each answered retrieval cell is that approach's natural question.**
+  - Closure tables answer the hierarchy rollup (q3).
+  - Genie Ontology's context names the right tables and rules, so its one query works (q3, q5).
+  - RAG answers the two questions whose answer exists only in documents: the protocol's individualized targets (q4)
+    and a patient's outside eye-exam letter (q8).
+- **Metric views decline the prebuilt measure (q1)**, even though the view's *Poor Control Rate by Clinic* is the
+  answer. The question says "through 2026-10-30" and the view has no date to filter on; the data ends there anyway.
+  One of the three runs answered.
+- **Genie Ontology's misses are mostly about the context.**
+  - q2: nothing it retrieved names the age column.
+  - q4: it ranked the Page that holds the target but didn't read it.
+  - q7: snippets from the deprecated dev dashboard still name a removed `status` column.
+  - Its one outright wrong answer (q1) is a date boundary: an A1c taken during 2026-10-30 is counted as after the
+    cutoff.
+- **The graph (v7) holds the structure but not what these questions turn on.**
+  - It has no dates on diagnoses, orders or results (fact F28), so it declines q2, q3 and q6.
+  - It has no clinic (F07) and no MY2026 value-set membership (F15).
+  - Letters aren't in it, by design.
+  - In v7, a patient now reaches their own lab values (v3 couldn't). What it still lacks is listed in
+    `hedis_facts.yaml` as gaps.
+- **Genie One misses only the document questions, for a structural reason.** It can't reach the protocol text or the
+  Lakebase letters. On q4 it searched the rules table and said targets are uniform; on q8 it found, correctly, no
+  outside record in the tables.
 
-## Notes per cell
+## What changed on 2026-11-25 (all on ECT)
 
-- **† Genie Ontology q1, q7: agent errors on top of good context.** q1: right table and rule, but its SQL's date
-  boundary drops results taken during 2026-10-30, so a few rates are off by a fraction of a point. q7: it used a
-  `status` column gold no longer has. 5 of the 20 inferred snippets it retrieved describe `status = 'NOT_MET'`, mined
-  from an unmanaged dev dashboard ("[dev eli_swanson] HEDIS Diabetes Quality — Care Protocol (dev)"), the Clone dev
-  Genie space (`docs/ontology/GENIE_SPACES_FLAGGED.md`) and old query history. A real finding about inferred
-  context: it reflects everything in the workspace, stale assets included.
-- **§ q4, q5: freshness.** The HbA1c and eGFR Pages gained these facts on 2026-11-21/22; Genie's Page index and
-  snippet extraction run about daily. Genie One said the protocol sets no age/comorbidity target (it searched the
-  protocol-rules table; it doesn't read the documents, and the updated Page wasn't retrieved yet). Re-record after
-  the daily extraction before reading anything into these.
-- **Closure q6, q7: my prediction was wrong.** It assumed hand-written joins. Here, closure tables are reviewed
-  tools with one call each; none expresses "drug class × threshold × last lab on a date" or a per-patient path.
-  Writing those joins is what Genie One did on q6.
-- **¶ Graph q6, q7 (and q2):** the published v3 stops at the documented gaps (no drug class for metformin F22,
-  no threshold-to-lab edge F23, observation values on a different node F26, no dates F28).
-- **‡ Graph q3: overridden to not answered by the hand check.** Its pattern asked for diagnoses under both N18
-  and E11 (only E11.22), not under E11.2 / E10.2 / E13.2; it matched 1,881 only because every kidney-complication
-  patient in this data carries E11.22.
-- **Genie One q7 (3 of 4):** it explains eligibility, age and the missing 2026 fill, but calls the 2009 simvastatin
-  order "dispensed" and never cites the protocol rule that makes a statin expected for SPD.
-- **Genie One q8:** "no record". Expected: Genie doesn't read the RAG corpus, and the letters are care-team only.
+- **Answer key.** Every expected fact now asks only what its question asks and says what the data says:
+  - q2: no denominator; q3: no definition clause; q5: no "MDRD was dropped"; q8: no abstraction advice.
+  - q6 asks *how many*, which is what its key checks.
+  - q7: the 2009 statin is an open-ended **order**, not a dispense. Genie One said so and had been marked wrong; its
+    gold query now reads `care_order_med`, as q6's does.
+  - `verify_gold` 28/28.
+- **Judging.**
+  - Each fact gets a stated / missing / contradicted verdict, and a contradiction must be a different value.
+  - The one query is read with its rows, and the context and the query count together.
+  - A SELECT of constants doesn't count as a query.
+  - The agent gives its reason when it declines.
+  - Each change was made because a cell was misjudged. Each time, the fix was in the answer key or the judge's rules,
+    never in a single cell's score.
+- **Graph.** The column is scored on v7 (gate 12/12 required, 9/9 optional), not v3.
+- **Genie recording.** Genie One and Genie Ontology were re-recorded for the corrected questions on 2026-11-25. The
+  dev Genie spaces and dashboards were deprecated the same day, but Genie's snippet index hadn't refreshed: 49 of the
+  175 snippets still came from them.
 
-## What step 6 surfaced, and what changed (all on ECT, gold 28/28)
+## To re-check after Genie's snippet refresh
 
-Hand-verifying Genie One's misses found three problems on our side, all fixed:
+The deprecated dev assets still feed snippets until Genie re-indexes, roughly daily. After that, re-record and
+re-score the two Genie columns (the other columns don't change):
 
-1. **The recorder kept only the first 4,000 characters of Genie One's answer** (cut q1, q5, q6, q7 mid-table), and
-   its subset mode silently reused old recordings. Fixed; those questions re-recorded.
-2. **The judge isn't reliable on its own.** On the truncated q1 answer it claimed "matches all gold clinic rates"
-   with only 4 of 8 in the text. Hand verification is binding; the judge is a first pass.
-3. **The data, not Genie One, was wrong on q6**, three ways:
-   - the gold read `bronze_order_med` (Synthea's open-ended orders); the measures read `care_order_med`, the
-     effective layer of 30-day fills. Genie One used the effective layer. The gold does now.
-   - `care_behavior` floored the number of 30-day fill cycles, so every patient's last metformin fill ended before
-     2026-10-30 and almost no one held supply that day. Now the last fill runs its full 30 days (74% of 2026
-     metformin patients hold supply on 2026-10-30). MAD clips coverage at the horizon, so it only loses the
-     artificial end gap. Genie One then noticed every fill started on the same day ("a batch load"): all cycles
-     began on 2026-01-01. Ongoing patients now start on their own day 0-29 of January (97 distinct last-fill dates).
-     MAD rate 58.4% (860 eligible); MAD has no gold query, and its ground-truth note was stale.
-   - Synthea sends two different results for the same patient, code and moment (2,989 eGFR moments in MY2026), so
-     "last eGFR" depended on which row a query picked. Silver now keeps the lower value (decision 2026-11-22) and
-     records `source_rows`; 36,758 conflicts collapsed. The gold also took the last result per LOINC code, so a stale
-     MDRD value could count; it now takes the last result per lab component.
-   q6 gold: 67 patients (48 metformin with last eGFR < 30; 11 ACE inhibitor and 9 statin with an active pregnancy).
-   Genie One's answer matches it exactly (hand-verified).
+```
+.venv/bin/python -I scripts/record_genie_ontology.py --profiles ECT
+PYTHONPATH=src:src/app DATABRICKS_CONFIG_PROFILE=ECT .venv/bin/python -m benchmark.retrieval_eval.run_retrieval_eval \
+    --arms genie_ontology,genie_one --final --merge --out benchmark_v2.json
+cp docs/benchmark/{benchmark_v2.json,genie_ontology_retrieval_v2.json} src/app/server/benchmark_data/
+```
 
-Realism caveat found on q7: SPD counts a statin **dispensed** in the year, and our data approximates dispensing by
-an order's start date. The hero's only statin is an open-ended 2009 order; an EHR order isn't a fill, so "SPD gap"
-is right by the rule, but the patient could equally be "on a statin with no recorded 2026 fill".
-
-## Before the final run
-
-1. Re-record Genie Ontology / Genie One after the daily extraction (§ cells).
-2. Decide the unmanaged dev dashboard and dev/Clone Genie spaces (stale schema in inferred snippets, † q7).
-3. Ontobricks republish (`ONTOBRICKS_REPUBLISH.md` 2026-11-21 items 1, 2, 3, 3b, 4, 5b).
-4. Hand-check the judge's misses, then `--final`.
+Then hand-check any cell that changed against its note in `questions_v2.yaml`.

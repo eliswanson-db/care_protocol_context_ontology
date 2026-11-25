@@ -10,8 +10,76 @@
 # tests/test_ls_benchmark.py checks: the cutoff named and no relative dates, every gold id exists and is holdout,
 # every fact id exists, the holdouts never reach a Genie space, and the document golds say what they claim.
 
-hand_verified: {}
+# Hand check (2026-11-25, on the final run: 3 runs per cell, graph clinicalstudylab v4). Every cell was read against gold.
+hand_verified:
+  metric_view: [lq1, lq2, lq3, lq4, lq5, lq6, lq7, lq8, lq9]
+  closure_sql: [lq1, lq2, lq3, lq4, lq5, lq6, lq7, lq8, lq9]
+  rag: [lq1, lq2, lq3, lq4, lq5, lq6, lq7, lq8, lq9]
+  genie_ontology: [lq1, lq2, lq3, lq4, lq5, lq6, lq7, lq8, lq9]
+  ontobricks: [lq1, lq2, lq3, lq4, lq5, lq6, lq7, lq8, lq9]
+  genie_one: [lq1, lq2, lq3, lq4, lq5, lq6, lq7, lq8, lq9]
 hand_overrides: {}
+hand_notes:
+  metric_view:
+    lq1: "Correct to decline under the rule, though Mean Percent Change by Arm and Rule Version is the answer: the agent found no cutoff date to apply 'through 2026-10-31' (the data ends there). The same pattern as HEDIS q1."
+    lq2: "Correct: BMI is not a dimension of any view."
+    lq3: "Correct: no medical-history dimension."
+    lq4: "Correct: the views mention the R1 / R2 windows, but not the effective date or the sleep-apnea change."
+    lq5: "Correct: the views say nothing about storage or units."
+    lq6: "Correct: the views count all major deviations, not medications with start dates."
+    lq7: "Correct: the views count populations; they don't explain one participant."
+    lq8: "Correct: no BMI or comorbidity dimension."
+    lq9: "Correct: the explanation is only in a monitoring report."
+  closure_sql:
+    lq1: "Correct: closures hold terminology, not results."
+    lq2: "Correct: closures hold terminology, not results."
+    lq3: "Verified: participants_under(WRC-V1, CSL-A, randomized) = 3,123. Class membership is the WRC-V1 roots' subtrees minus the carve-outs. Answered in 2 of 3 runs."
+    lq4: "Correct: an amendment isn't terminology."
+    lq5: "Correct: dataset layout isn't terminology."
+    lq6: "Correct to decline: it counts 271 participants with a GLP-1 class drug ever, but has no first-dose dates or arms."
+    lq7: "Correct: the question names a participant, not a concept."
+    lq8: "Correct to decline: it has the sleep-apnea and WRC-V1 subtrees, but no BMI or screening dates."
+    lq9: "Correct: no reports in terminology tables."
+  rag:
+    lq1: "Correct: documents hold no participant data."
+    lq2: "Correct: documents hold no participant data."
+    lq3: "Correct: documents hold no participant data."
+    lq4: "Verified miss, and a real finding: all five passages were monitoring reports, not the amendment. 848 reports crowd 8 study documents out of the top five."
+    lq5: "Correct: the passages it got (SAP, reports) don't name silver_vs or VSSTRESN; the data management spec didn't rank."
+    lq6: "Correct: reports narrate single deviations; no counts by arm."
+    lq7: "Correct: no report mentions this participant."
+    lq8: "Correct: documents hold no participant data."
+    lq9: "Verified miss, as predicted: it ranked later SITE-118 reports that point back to the 2025-09-18 one, not the report that records the cause."
+  genie_ontology:
+    lq1: "Verified: one query on endpoint_result_metrics (Study CSL-A, Rule Version R2) returned −12.66 / −2.30. Answered in 2 of 3 runs."
+    lq2: "Correct to decline: nothing it retrieved names where height is or how to compute BMI."
+    lq3: "Correct to decline: nothing it retrieved names silver_mh or the MONDO closure."
+    lq4: "Verified: the Protocol amendments Page states both changes and 2025-10-27."
+    lq5: "Verified: the context states the storage and unit; its query looked up the protocol version in force on 2026-10-31 (2.0) in study_version. Answered in 2 of 3 runs."
+    lq6: "Correct to decline: no table linking medications, start dates and first dose was named."
+    lq7: "Correct to decline: no per-participant table was named."
+    lq8: "Correct to decline: no BMI, screening-date or history table was named."
+    lq9: "Correct: monitoring reports are not curated context."
+  ontobricks:
+    lq1: "Correct to decline: the graph holds the results, but the runner can't average them."
+    lq2: "Correct to decline: BMI needs arithmetic over two observations, which the runner can't do."
+    lq3: "Correct to decline: counting needs the carve-outs subtracted, and match has no negation."
+    lq4: "Verified: StudyVersion/CSL-A.P2.0 changeSummary and effectiveDate state both changes and the date."
+    lq5: "Verified found none: its one call went to a unit codelist term, not to the observation or rule nodes."
+    lq6: "Correct to decline: the runner can't compare dates (start on or after first dose)."
+    lq7: "Verified found none: it matched endpoint exclusionReason, which isn't why a participant leaves the PPS. The graph does hold the path (codedAs → subClassOf → EXCL-MH-V1 root, as the trace shows); population flags are deliberately not in it (ADR-0025)."
+    lq8: "Correct to decline: needs BMI arithmetic and negation."
+    lq9: "Correct: reports are not in the graph."
+  genie_one:
+    lq1: "Verified: −12.66% / −2.30%, R2."
+    lq2: "Verified: −12.74% / −2.30%."
+    lq3: "Verified: 3,123."
+    lq4: "Verified: both changes, 2025-10-27."
+    lq5: "Verified: silver_vs WEIGHT, VSSTRESN kg, R2."
+    lq6: "Verified: 20 / 40."
+    lq7: "Verified: EXC-MH via acute pancreatitis is_a pancreatitis."
+    lq8: "Verified: 60."
+    lq9: "Verified wrong, for a structural reason: the reports are only in Lakebase, which Genie One can't reach, so it said none exist. The same pattern as HEDIS q8."
 
 questions:
   - id: lq1

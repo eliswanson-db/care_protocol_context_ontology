@@ -210,8 +210,8 @@ the pipeline and endpoint engine, the KB and closures, the 8 study documents, Pa
 | 2 Fact list | `hedis_facts.yaml` + `test_hedis_facts.py` | `ls_facts.yaml` + presence test; replaces the per-KB-fact parity machinery. |
 | 3 Traces | 3 traces in the Tracer tab | **Done 2026-11-25** (`server/routes/ls_trace.py`, the Trace tab with `LS_TRACES`; participants from `ls_heroes.py` rules): a Week 24 weight keyed in lb → SDTM VS (kg) → candidate → R2 result; Amendment 1's window → rule registry → a SITE-118 participant R1 excludes and R2 derives; an MH term → MONDO → closure → EXC-MH. Every stage is live, including Genie One, Lakebase RAG and the ClinicalStudyLab graph walk. |
 | 4 Questions | `questions_v2.yaml`, holdout gold, fixed dates | ~8 analyst questions, LS data cutoff (2026-10-31) as the fixed anchor. |
-| 5–6 Benchmark + Genie One | harness, test mode, hand verification | same harness and app tab, `--demo` scoped. |
-| 7 App | Trace + Benchmark lead | LS tabs get the same two leading tabs. |
+| 5–6 Benchmark + Genie One | harness, test mode, hand verification | **Done 2026-11-25**: the same harness (`CARE_DEMO=life_sciences_clinical`), `server/ls_context.py` for the closure and graph retrieval, final run, every cell hand-checked (`LS_BENCHMARK_RESULTS.md`). |
+| 7 App | Trace + Benchmark lead | **Done 2026-11-25**: Trace, Benchmark, Participant Evidence, Amendment Lab, Standards; the old Arena and placeholder Benchmark out of the nav. |
 
 Order: 0a, then 1–4 (the questions decide what the graph must hold), then 0b and Eli's Ontobricks import, then 5–7.
 
@@ -256,7 +256,12 @@ HEDIS first (most of it exists), then life sciences, with the same steps:
 6. ✅ (2026-11-22, HEDIS) Genie One column, hand-verified: 5 of 8 (q1, q2, q3, q5, q6). Its misses led to fixes on
    our side: recorder truncation, the q6 gold's medication layer, a fill-cycle artifact, and conflicting duplicate
    lab results (silver keeps the lower). `docs/benchmark/BENCHMARK_V2_RESULTS.md`.
-7. App: Trace + Benchmark tabs.
+7. ✅ (2026-11-25, both demos) **Final runs** (3 per cell, every cell hand-checked with a note). The judge gives each
+   fact stated / missing / contradicted with a quote; the context and the one query count together; each cell's
+   outcome and the agent's decline reason are shown. HEDIS (graph v7, corrected answer key): Genie One 6 of 8;
+   retrieval approaches 0-2 each (`BENCHMARK_V2_RESULTS.md`). Life sciences (graph v4): Genie One 8 of 9; Genie
+   Ontology 3 (`LS_BENCHMARK_RESULTS.md`). App: Trace + Benchmark lead in both demos, the same components. Open:
+   re-record the two Genie columns after Genie's snippet index drops the deprecated dev assets.
 
 ## Decisions (2026-11-21)
 
