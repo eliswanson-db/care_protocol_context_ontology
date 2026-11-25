@@ -278,17 +278,39 @@ def _loads_lenient(raw: str) -> dict:
     return {}
 
 
-_JUDGED: dict[tuple, dict] = {}
+# Judgments persist on disk, keyed by the judge prompt, model, question, fact and evidence: re-running the benchmark
+# reproduces the same verdict for the same evidence instead of re-rolling borderline ones. Changing the judge prompt,
+# the model, a fact or the evidence makes a new key, so nothing stale is reused. (Local cache, not committed.)
+_CACHE_FILE = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".cache", "judgments.json"))
+_JUDGED: dict[str, dict] | None = None
+
+
+def _cache() -> dict[str, dict]:
+    global _JUDGED
+    if _JUDGED is None:
+        try:
+            with open(_CACHE_FILE) as f:
+                _JUDGED = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            _JUDGED = {}
+    return _JUDGED
+
+
+def save_judgments() -> None:
+    os.makedirs(os.path.dirname(_CACHE_FILE), exist_ok=True)
+    with open(_CACHE_FILE, "w") as f:
+        json.dump(_cache(), f)
 
 
 def judge_fact(question: str, fact: str, text: str, where: str) -> dict:
-    """Memoized: the same question, fact and evidence always get the same verdict (across runs and approaches), so
-    judge noise can't make identical evidence pass in one run and fail in another."""
+    """Memoized on disk: the same question, fact and evidence always get the same verdict (across runs, approaches and
+    re-runs), so judge noise can't make identical evidence pass once and fail the next time."""
     import hashlib
-    key = (question, fact, hashlib.sha256((text or "").encode()).hexdigest(), where)
-    if key not in _JUDGED:
-        _JUDGED[key] = _judge_fact(question, fact, text, where)
-    return dict(_JUDGED[key])
+    key = hashlib.sha256(json.dumps([_JUDGE_SYSTEM, JUDGE_MODEL, question, fact, text or "", where]).encode()).hexdigest()
+    c = _cache()
+    if key not in c:
+        c[key] = _judge_fact(question, fact, text, where)
+    return dict(c[key])
 
 
 @mlflow.trace(span_type="LLM", name="judge_fact")

@@ -11,6 +11,8 @@
 # every fact id exists, the holdouts never reach a Genie space, and the document golds say what they claim.
 
 # Hand check (2026-11-25, on the final run: 3 runs per cell, graph clinicalstudylab v4). Every cell was read against gold.
+# The data's as-of date: nothing is loaded after it. Every approach's agent is told it (ADR-0028).
+data_through: "2026-10-31"
 hand_verified:
   metric_view: [lq1, lq2, lq3, lq4, lq5, lq6, lq7, lq8, lq9]
   closure_sql: [lq1, lq2, lq3, lq4, lq5, lq6, lq7, lq8, lq9]
@@ -88,7 +90,7 @@ questions:
     answer_type: set of (arm, mean)
     gold: lq1_wt24_by_arm
     expected_facts:
-      - "Mean percent change in body weight to Week 24, CSL-A, EP-A-WT24.R2 (SAP v2.0): CSL-101 10 mg −12.66%, placebo −2.30%."
+      - "Mean percent change in body weight to Week 24, CSL-A, under the protocol 2.0 rule (SAP v2.0): CSL-101 10 mg −12.66%, placebo −2.30%."
     facts: [LF01, LF02, LF03, LF05]
     predictions:
       metric_view: "exact: Mean Percent Change by Arm and Rule Version is a prebuilt governed measure"
@@ -150,7 +152,7 @@ questions:
     expected_facts:
       - "Body weight is in the SDTM VS domain (silver_vs) with VSTESTCD = WEIGHT."
       - "The analysis value is VSSTRESN, in kg."
-      - "Week 24 results through 2026-10-31 are governed by EP-A-WT24.R2 (protocol 2.0 / SAP 2.0)."
+      - "Week 24 results are governed by EP-A-WT24.R2 (protocol 2.0 / SAP 2.0)."
     facts: [LF04, LF06]
     predictions:
       metric_view: "partial: Rule Version is a dimension; storage and units are not"

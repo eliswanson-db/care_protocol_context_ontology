@@ -25,3 +25,4 @@ docs/benchmark/a1_runs/raw_sample_*.jsonl
 mlflow.db
 mlruns/
 .isaac/
+.cache/

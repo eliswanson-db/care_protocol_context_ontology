@@ -12,6 +12,8 @@
 
 # Hand check (2026-11-25, on the final run: 3 runs per cell, graph v7, corrected answer key). Every cell was read
 # against gold; the note says what the check found. Where it disagrees with the judge, hand_overrides wins.
+# The data's as-of date: nothing is loaded after it. Every approach's agent is told it (ADR-0028).
+data_through: "2026-10-30"
 hand_verified:
   metric_view: [q1, q2, q3, q4, q5, q6, q7, q8]
   closure_sql: [q1, q2, q3, q4, q5, q6, q7, q8]
@@ -186,7 +188,7 @@ questions:
       - "The patient is coded E11.9, a form of type 2 diabetes (E11), so they are in the diabetes cohort."
       - "They are 61, inside SPD's 40-75 window."
       - "No statin was dispensed between 2026-01-01 and 2026-10-30; their only statin record is an open-ended Simvastatin 20 MG order from 2009-11-16."
-      - "The care protocol recommends a statin for SPD, so the patient is a statin care gap."
+      - "SPD expects a statin (the care protocol recommends one for SPD), so with none dispensed the patient is a statin care gap."
     facts: [F01, F08, F09, F24]
     predictions:
       metric_view: "the rule, not this patient (no patient dimension)"

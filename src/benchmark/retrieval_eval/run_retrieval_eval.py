@@ -247,6 +247,7 @@ def main():
     cells = [(q, arm) for _ in range(args.repeats) for q in QUESTIONS for arm in ARMS if q["qid"] in wanted]
     with ThreadPoolExecutor(max_workers=args.workers) as ex:
         runs = list(ex.map(one, cells))
+    agent.save_judgments()
     # The agent (tier 2) and judges are LLMs, so a cell can differ run to run. Report the MAJORITY tier over
     # --repeats runs (ties -> the worse tier), keep every run's tier, and flag cells that were not unanimous.
     groups: dict[tuple, list[dict]] = {}

@@ -152,7 +152,7 @@ questions:
     expected_facts:
       - "Body weight is in the SDTM VS domain (silver_vs) with VSTESTCD = WEIGHT."
       - "The analysis value is VSSTRESN, in kg."
-      - "Week 24 results through 2026-10-31 are governed by EP-A-WT24.R2 (protocol 2.0 / SAP 2.0)."
+      - "Week 24 results are governed by EP-A-WT24.R2 (protocol 2.0 / SAP 2.0)."
     facts: [LF04, LF06]
     predictions:
       metric_view: "partial: Rule Version is a dimension; storage and units are not"
