@@ -207,7 +207,12 @@ def resolve_nodes(question: str, run_sql, std: str) -> list[dict]:
 def closure_context(question: str, run_sql, catalog: str) -> list[dict]:
     std, cs = f"{catalog}.clinical_study_standards", f"{catalog}.clinical_study"
     anchors = resolve_nodes(question, run_sql, std)
-    if not anchors:
+    # Protocol v3 (ADR-0028): the same entry points as the graph (link_entities: participant, site, study, rule-version
+    # and concept-class ids), so closure and graph start from the same nodes.
+    linked = link_entities(question)
+    participants = sorted(n.split("/", 1)[1] for n in linked if n.startswith("Participant/"))
+    design_ids = sorted(n.split("/", 1)[1] for n in linked if not n.startswith(("Participant/", "Disease/")))
+    if not anchors and not participants and not design_ids:
         return []
     q = lambda v: "'" + str(v).replace("'", "") + "'"
     docs = [{"page_content": (f"Source: closure-table tools over {std}.mondo_closure and {std}.medrt_class_closure "
@@ -246,15 +251,46 @@ def closure_context(question: str, run_sql, catalog: str) -> list[dict]:
                                       + "; ".join(f"{r['descendant_code']} {r['descendant_name']} [{r['depth']}]"
                                                   for r in desc)),
                      "metadata": {"source": "closure", "kind": "subtree", "anchor": a["code"]}})
+    for u in participants:  # the participant's own coded record, rolled up through the closures
+        mh = run_sql(f"SELECT DISTINCT m.CPL_MONDO_ID AS code, m.MHTERM AS term, c.ancestor_code, c.depth "
+                     f"FROM {cs}.silver_mh m JOIN {std}.mondo_closure c ON c.descendant_code = m.CPL_MONDO_ID "
+                     f"WHERE m.USUBJID = {q(u)} ORDER BY code, c.depth")
+        roll: dict[str, list[str]] = {}
+        for x in mh:
+            roll.setdefault(f"{x['code']} ({x['term']})", []).append(f"{x['ancestor_code']}[{x['depth']}]")
+        cm = run_sql(f"SELECT DISTINCT cm.CPL_RXNORM_ID AS rx, cm.CMTRT AS term, e.object AS cls FROM {cs}.silver_cm cm "
+                     f"LEFT JOIN {std}.kb_edge e ON e.subject = cm.CPL_RXNORM_ID AND e.predicate IN ('medrt:memberOf', "
+                     f"'medrt:has_PE') WHERE cm.USUBJID = {q(u)}")
+        docs.append({"page_content": (f"Participant {u}: medical-history codes with their closure ancestors: "
+                                      + ("; ".join(f"{k} -> {', '.join(v)}" for k, v in roll.items()) or "none")
+                                      + ". Concomitant medications and their MED-RT classes: "
+                                      + (", ".join(sorted({f"{x['rx']} {x['term']} in {x['cls']}" for x in cm})) or "none")),
+                     "metadata": {"source": "closure", "kind": "participant"}})
+    if design_ids:  # the governed rule tables for linked rule versions, study versions and classes
+        ql_ = ", ".join(q(c) for c in design_ids)
+        rv = run_sql(f"SELECT endpoint_version, protocol_version, sap_version, window_half_width_days, target_offset_days, "
+                     f"baseline_method, review_state FROM {std}.rule_version WHERE endpoint_version IN ({ql_}) "
+                     f"OR study_id IN ({ql_}) OR endpoint_id IN ({ql_})")
+        sv = run_sql(f"SELECT study_version_id, study_id, protocol_version, sap_version, effective_date, change_summary "
+                     f"FROM {std}.study_version WHERE study_version_id IN ({ql_}) OR study_id IN ({ql_})")
+        lines = [f"rule_version: {x['endpoint_version']} protocol {x['protocol_version']} SAP {x['sap_version']} window "
+                 f"±{x['window_half_width_days']} target +{x['target_offset_days']} baseline {x['baseline_method']} "
+                 f"({x['review_state']})" for x in rv]
+        lines += [f"study_version: {x['study_version_id']} protocol {x['protocol_version']} SAP {x['sap_version']} effective "
+                  f"{x['effective_date']}: {x['change_summary']}" for x in sv]
+        if lines:
+            docs.append({"page_content": "Rule and study versions for the linked ids:\n" + "\n".join(lines),
+                         "metadata": {"source": "closure", "kind": "design"}})
     counts = []
     for a in anchors:
         r = closure_tool("participants_under", {"groups": [[a["code"]]]}, run_sql, catalog)["rows"][0]
         counts.append(f"Participants with a recorded {r['what']} under {a['code']} ({a['name']}): {int(r['participants']):,}")
-    docs.append({"page_content": "participants_under(...) -> " + " | ".join(counts),
-                 "metadata": {"source": "closure", "kind": "content"}})
+    if counts:
+        docs.append({"page_content": "participants_under(...) -> " + " | ".join(counts),
+                     "metadata": {"source": "closure", "kind": "content"}})
     # Edges attached to the resolved concepts: class roots / carve-outs, and drug -> class / effect / contraindication.
-    codes = [a["code"] for a in anchors]
-    ql = ", ".join(q(c) for c in codes)
+    codes = [a["code"] for a in anchors] + design_ids
+    ql = ", ".join(q(c) for c in codes) or "''"
     edges = [f"class_root: {r['class_id']} {r['kind']} {r['concept_id']}" for r in run_sql(
         f"SELECT class_id, kind, concept_id FROM {std}.class_root WHERE class_id IN ({ql}) OR concept_id IN ({ql})")]
     edges += [f"kb_edge: {r['subject']} {r['predicate']} {r['object']}" for r in run_sql(

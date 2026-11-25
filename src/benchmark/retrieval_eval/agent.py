@@ -118,9 +118,9 @@ def write_sql(question: str, context_docs: list[dict]) -> tuple[str | None, str]
     sql = _as_text(resp.choices[0].message.content).strip()
     if sql.upper().startswith("NO_QUERY"):
         return None, _decline_reason(sql)
-    if sql.startswith("```"):
-        sql = sql.strip("`").split("\n", 1)[-1] if "\n" in sql else ""
-        sql = sql.rsplit("```", 1)[0]
+    fence = re.match(r"^```[a-zA-Z]*\s*\n(.*?)\n?```\s*$", sql, re.DOTALL)
+    if fence:  # strip only the markdown fence, never a closing backtick of the last identifier
+        sql = fence.group(1)
     sql = sql.strip().rstrip(";").strip()
     if not sql or not _LOOKS_LIKE_SQL.match(sql):
         return None, "The agent replied with prose instead of a query."

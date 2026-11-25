@@ -112,8 +112,12 @@ def run_cell(arm: str, q: dict) -> dict:
         if result is not None:
             # The one query is judged as the agent would read it: the query (which table, which filters, which
             # segment) together with the rows it returned. The rows must carry the values; the query says what they are.
-            shown = f"QUERY ({INTERFACE_LABEL[interface]}):\n{(query or {}).get('sql') or json.dumps(query)}\n\nRESULT:\n{result}"
-            in_res = [agent.judge_fact(q["question"], f, shown, "query and its result") for f in q["expected_facts"]]
+            # The agent's answer combines what it read and what its query returned (e.g. the context says R2 is the
+            # protocol 2.0 rule, the rows give R2's means), so the result is judged together with that context.
+            shown = (f"QUERY ({INTERFACE_LABEL[interface]}):\n{(query or {}).get('sql') or json.dumps(query)}\n\n"
+                     f"RESULT:\n{result}\n\nCONTEXT THE AGENT READ (for what the names and codes mean):\n{ctx[:12000]}")
+            in_res = [agent.judge_fact(q["question"], f, shown, "query, its result and the context")
+                      for f in q["expected_facts"]]
     # The agent has BOTH the context and its one query: a fact counts if either states it (the context can carry the
     # definition while the query supplies the number).
     query_correct = bool(in_res) and all(c["ok"] or r["ok"] for c, r in zip(in_ctx, in_res))
