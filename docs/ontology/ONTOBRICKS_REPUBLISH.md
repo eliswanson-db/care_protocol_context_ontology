@@ -41,6 +41,10 @@ code, named from the subset or the observation's description; dry run 56/56, 312
 `icd10Code` 756 -> 77 is allowed by design (v3's 704 were Pregnancy nodes built from encounter rows). The app code now
 uses the class-named IRIs; `src/app/app.yaml` pins v6 (not yet deployed).
 
+**v7 (2026-11-25):** the LabTest fix imported. Gate REQUIRED 12/12, OPTIONAL 9/9 (312 lab tests, all named). Saved as
+the baseline; the app pins v7 (deployed). `hedis_facts.yaml`: the graph holds 20 facts; the 4 gaps left are real
+modelling work (Clinic F07, Protocol Step 3 F11, containsTest F15, dates F28), not drift.
+
 **Then Claude:** the IRI segments change (`icd/` -> `Condition/`, `obs/` -> `Observation/`, `loinc/` -> `LabTest/`,
 `part/` -> `LoincPart/`, `rx/` -> `Medication/`, `ing/` -> `Ingredient/`), so the app, the eval provider, the gate
 and `hedis_facts.yaml` move to the new segments in the same change as the `CARE_ONTOBRICKS_TABLE` pin, after

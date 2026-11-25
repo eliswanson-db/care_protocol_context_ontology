@@ -24,9 +24,8 @@ env:
   # Pin the Ontobricks graph version (published to eswanson_demo.ontobricks). Without a pin the app follows the
   # newest triplestore_clinicaldomain_v<N> within 5 minutes of a republish -- unverified. Move the pin only after a
   # new version passes scripts/check_graph_version.py.
-  # v6 (2026-11-25, R2RML rev 9): the first version with class-named IRIs (Condition/, Observation/, ...), which the
-  # app code now uses, so v3 no longer works with this code. Gate: REQUIRED 11/12, OPTIONAL 9/9; the one failure is
-  # LabTest typed for 11 curated LOINC codes instead of the 309 observations use, fixed in rev 9's LabTest source
-  # (next import). All three traces verified on v6 locally.
+  # v7 (2026-11-25, R2RML rev 9 + the LabTest source): REQUIRED 12/12, OPTIONAL 9/9; the committed baseline
+  # (docs/ontology/graph_baseline_clinicaldomain.json). Class-named IRIs (Condition/, Observation/, ...), which the app
+  # code uses, so versions before v6 don't work with this code.
   - name: CARE_ONTOBRICKS_TABLE
-    value: "triplestore_clinicaldomain_v6"
+    value: "triplestore_clinicaldomain_v7"
