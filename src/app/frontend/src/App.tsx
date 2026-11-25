@@ -6,7 +6,7 @@ import { useDemo, type DemoId } from "./demo";
 import { Benchmark } from "./tabs/Benchmark";
 import { DriftLab } from "./tabs/DriftLab";
 import { OntologyExplorer } from "./tabs/OntologyExplorer";
-import { TracerJourney } from "./tabs/TracerJourney";
+import { LS_TRACES, TracerJourney } from "./tabs/TracerJourney";
 import { AmendmentLab } from "./tabs/ls/AmendmentLab";
 import { LsArena } from "./tabs/ls/LsArena";
 import { LsBenchmark } from "./tabs/ls/LsBenchmark";
@@ -28,6 +28,8 @@ const TABS: Record<DemoId, Tab[]> = {
     { key: "ontology", label: "Ontology Explorer", icon: Network, render: () => <OntologyExplorer /> },
   ],
   life_sciences_clinical: [
+    // Trace leads, as in HEDIS (docs/CONTEXT_LAB_PLAN.md §4b step 3); same component, life-sciences endpoints.
+    { key: "ls_trace", label: "Trace", icon: Route, render: () => <TracerJourney source={LS_TRACES} /> },
     { key: "ls_participant", label: "Participant Evidence", icon: User, render: () => <ParticipantEvidence /> },
     { key: "ls_arena", label: "Retrieval Arena", icon: GitCompare, render: () => <LsArena /> },
     { key: "ls_benchmark", label: "Benchmark", icon: BarChart3, render: () => <LsBenchmark /> },

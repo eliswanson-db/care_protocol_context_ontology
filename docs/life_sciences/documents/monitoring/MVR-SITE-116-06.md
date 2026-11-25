@@ -37,8 +37,8 @@ SYNTHETIC DOCUMENT generated from the study data (scripts/gen_monitoring_reports
 
 ## 4 Protocol deviations identified
 
-- CSL-A-116-0033: prohibited medication on treatment (tirzepatide, started 2025-09-24); major deviation, reported in the CTMS
 - CSL-A-116-0054: prohibited medication on treatment (tirzepatide, started 2025-09-05); major deviation, reported in the CTMS
+- CSL-A-116-0033: prohibited medication on treatment (tirzepatide, started 2025-09-24); major deviation, reported in the CTMS
 - CSL-A-116-0072: eligibility not met at screening (EXC-CI, EXC-MH) but randomized; major deviation, PI notified, reported to the sponsor medical monitor
 
 ## 5 Source data verification

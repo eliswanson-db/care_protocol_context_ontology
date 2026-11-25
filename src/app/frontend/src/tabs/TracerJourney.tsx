@@ -1,6 +1,6 @@
 import { AlertTriangle, ChevronDown } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { api, type GenieResult, type Journey, type OntobricksResult, type RagResult, type RetrievalResult, type Tracer } from "../api";
+import { api, type GenieResult, type Journey, type OntobricksResult, type RagResult, type RetrievalResult, type StageDetail, type Tracer } from "../api";
 import { AnswerPanel } from "../components/AnswerPanel";
 import { FlowDiagram } from "../components/FlowDiagram";
 import { NodeDetail } from "../components/NodeDetail";
@@ -36,7 +36,29 @@ function Section({
   );
 }
 
-export function TracerJourney() {
+/** Where a demo's traces come from. HEDIS is the default; life sciences passes LS_TRACES. Same response shapes. */
+export interface TraceSource {
+  tracers: () => Promise<{ traces: Tracer[] }>;
+  journey: (id: string, trace: string) => Promise<Journey>;
+  stage: (id: string, key: string, trace: string) => Promise<StageDetail>;
+  blurb: string;          // the sentence under the trace title
+  buildHint: string;      // the hint on "The build" section
+  retrievalTrace?: string; // the trace that also shows the live retrieval row (HEDIS a1c)
+}
+export const HEDIS_TRACES: TraceSource = {
+  tracers: api.tracers, journey: api.journey, stage: api.stage, retrievalTrace: "a1c",
+  blurb: "Follow it from the care-protocol document through every data layer into each retrieval approach.",
+  buildHint: "protocol + raw extract → bronze → silver → gold → context & retrieval · click a node",
+};
+export const LS_TRACES: TraceSource = {
+  tracers: api.lsTraces, journey: api.lsJourney, stage: api.lsStage,
+  blurb: "Follow it from the study documents and the EDC export through every data layer into each retrieval approach.",
+  buildHint: "documents + EDC export → bronze → SDTM → derivation → context & retrieval · click a node",
+};
+// A UUID is shown by its first 8 characters; a USUBJID (CSL-A-118-0005) in full.
+const shortId = (id: string) => (/^[0-9a-f]{8}-/.test(id) ? id.slice(0, 8) : id);
+
+export function TracerJourney({ source = HEDIS_TRACES }: { source?: TraceSource }) {
   const { simple } = useSettings();
   const [tracers, setTracers] = useState<Tracer[]>([]);
   const [selected, setSelected] = useState<string | null>(null);  // the trace key (a1c / dx / rule)
@@ -113,7 +135,7 @@ export function TracerJourney() {
   };
 
   useEffect(() => {
-    api.tracers()
+    source.tracers()
       .then((r) => {
         setTracers(r.traces);
       })
@@ -137,11 +159,11 @@ export function TracerJourney() {
     setGraphResult(null);
     setGraphError(null);
     setRetrieval(null);
-    api.journey(pid, selected)
+    source.journey(pid, selected)
       .then(setJourney)
       .catch((e) => setError(String(e)))
       .finally(() => setLoadingJourney(false));
-    if (selected === "a1c")
+    if (selected === source.retrievalTrace)
       api.retrieval(pid)
         .then(setRetrieval)
         .catch(() => setRetrieval(null));
@@ -180,11 +202,10 @@ export function TracerJourney() {
               {journey?.answer.question ?? picked.question}
             </h1>
             <p className="mt-1.5 max-w-4xl text-[14.5px] text-muted">
-              {picked.summary} Follow it from the care-protocol document through every data layer into each
-              retrieval approach. Click a stage to see what that layer holds, retrieved live.
+              {picked.summary} {source.blurb} Click a stage to see what that layer holds, retrieved live.
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-border bg-surface px-4 py-3">
-              <span className="font-mono text-xl font-bold">{picked.patient_id.slice(0, 8)}</span>
+              <span className="font-mono text-xl font-bold">{shortId(picked.patient_id)}</span>
               {picked.chips.map((c, k) => (
                 <span key={c}
                   className={k === 0 ? "rounded-md bg-primary/15 px-2.5 py-1 font-mono text-base font-semibold text-primary"
@@ -215,7 +236,7 @@ export function TracerJourney() {
             <Section
               n="01"
               title="The build"
-              hint="protocol + raw extract → bronze → silver → gold → context & retrieval · click a node"
+              hint={source.buildHint}
               open={open.build}
               onToggle={() => toggle("build")}
             >
@@ -230,11 +251,11 @@ export function TracerJourney() {
               />
               {detailStage && selected && pid && (
                 <NodeDetail key={`${selected}-${detailStage.key}`} stage={detailStage} patientId={pid}
-                  trace={selected} onClose={() => setSelectedNode(null)} />
+                  trace={selected} onClose={() => setSelectedNode(null)} fetchStage={source.stage} />
               )}
             </Section>
 
-            {selected === "a1c" && (
+            {selected === source.retrievalTrace && (
             <Section
               n="02"
               title={`Retrieval — the same question, ${simple ? "three" : "five"} ways`}
@@ -253,7 +274,7 @@ export function TracerJourney() {
             )}
 
             <Section
-              n={selected === "a1c" ? "03" : "02"}
+              n={selected === source.retrievalTrace ? "03" : "02"}
               title="The answer"
               hint="trace any claim back to its source"
               open={open.answer}

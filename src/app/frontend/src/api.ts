@@ -335,6 +335,10 @@ export const api = {
   journey: (pid: string, trace: string) => get<Journey>(`/api/patient/${pid}/journey?trace=${trace}`),
   stage: (pid: string, key: string, trace: string) =>
     get<StageDetail>(`/api/patient/${pid}/stage/${key}?trace=${trace}`),
+  lsTraces: () => get<{ traces: Tracer[] }>("/api/ls/traces"),
+  lsJourney: (id: string, trace: string) => get<Journey>(`/api/ls/traces/${id}/journey?trace=${trace}`),
+  lsStage: (id: string, key: string, trace: string) =>
+    get<StageDetail>(`/api/ls/traces/${id}/stage/${key}?trace=${trace}`),
   genie: (pid: string) => get<GenieResult>(`/api/patient/${pid}/genie`),
   rag: (pid: string) => get<RagResult>(`/api/patient/${pid}/rag`),
   retrieval: (pid: string) => get<RetrievalResult>(`/api/patient/${pid}/retrieval`),

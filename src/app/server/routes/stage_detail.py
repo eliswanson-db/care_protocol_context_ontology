@@ -550,11 +550,16 @@ def _trace_question(pid: str, trace: str) -> str:
 
 def _page(pid, my, log, trace="a1c"):
     """Everything Genie Ontology retrieved for THIS trace's question, from a live Genie One run (background)."""
+    return genie_stage(_trace_question(pid, trace) + " Cite any ontology page you used.", log)
+
+
+def genie_stage(question: str, log: list, demo: str = "healthcare_hedis") -> dict:
+    """The Genie Ontology stage for any demo: run Genie One live on `question` (background, cached) and report every
+    component it retrieved, flagged by whether it is about `demo`. Shared by the HEDIS and life-sciences traces."""
     from ..genie_trace import get_trace
-    question = _trace_question(pid, trace) + " Cite any ontology page you used."
     log.append({"label": "Live Genie One run — retrieval captured from the response stream's tool outputs",
                 "sql": f"POST /api/2.0/data-rooms/tools/onechat/responses\n  input: {question!r}"})
-    r = get_trace(question)
+    r = get_trace(question, demo)
     if r["status"] == "running":
         return {"pending": True, "what": "Running Genie One live and capturing everything it retrieves (~30-60s).",
                 "takeaway": "", "source": None, "sections": []}
@@ -575,7 +580,7 @@ def _page(pid, my, log, trace="a1c"):
         row("Inferred knowledge snippets", "learned", "snippets Genie mined from Genie agents, metric views, usage",
             len(snips), f"{on_snip} about this demo, {len(snips) - on_snip} from other projects" if snips else "none returned"),
         row("Ontology Pages (ranked)", "modeled", "Pages matched to the question", len(pages),
-            f"{on_page} in Clinical Domain" if pages else "none"),
+            f"{on_page} about this demo" if pages else "none"),
         row("Ontology Pages (read in full)", "modeled", "Page bodies Genie opened", len(t["pages_read"]), ""),
         row("UC asset search", "metadata", "tables / metric views found by comments + synonyms",
             len(t["asset_searches"]), "; ".join(str(a["result"]) for a in t["asset_searches"])),

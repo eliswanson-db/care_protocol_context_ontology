@@ -20,6 +20,7 @@ from server.routes import (
     genie,
     health,
     ls,
+    ls_trace,
     ontobricks,
     ontology,
     rag,
@@ -39,7 +40,9 @@ app.include_router(demos.router, prefix="/api")
 HEDIS = [Depends(require_demo("healthcare_hedis"))]
 for r in (tracer, stage_detail, genie, rag, retrieval, ontobricks, benchmark, arena, drift, ontology):
     app.include_router(r.router, prefix="/api", dependencies=HEDIS)
-app.include_router(ls.router, prefix="/api", dependencies=[Depends(require_demo("life_sciences_clinical"))])
+LS = [Depends(require_demo("life_sciences_clinical"))]
+for r in (ls, ls_trace):
+    app.include_router(r.router, prefix="/api", dependencies=LS)
 
 _frontend = os.path.join(os.path.dirname(__file__), "frontend", "dist")
 if os.path.isdir(_frontend):

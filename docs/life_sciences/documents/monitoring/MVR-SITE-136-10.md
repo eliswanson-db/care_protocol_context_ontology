@@ -30,8 +30,8 @@ SYNTHETIC DOCUMENT generated from the study data (scripts/gen_monitoring_reports
 
 ## 4 Protocol deviations identified
 
-- CSL-A-136-0150: prohibited medication on treatment (liraglutide, started 2026-04-29); major deviation, reported in the CTMS
 - CSL-A-136-0152: prohibited medication on treatment (tirzepatide, started 2026-04-27); major deviation, reported in the CTMS
+- CSL-A-136-0150: prohibited medication on treatment (liraglutide, started 2026-04-29); major deviation, reported in the CTMS
 
 ## 5 Source data verification
 

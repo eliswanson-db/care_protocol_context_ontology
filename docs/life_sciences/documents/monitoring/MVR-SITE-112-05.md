@@ -37,8 +37,8 @@ SYNTHETIC DOCUMENT generated from the study data (scripts/gen_monitoring_reports
 
 ## 4 Protocol deviations identified
 
-- CSL-A-112-0085: eligibility not met at screening (EXC-MH) but randomized; major deviation, PI notified, reported to the sponsor medical monitor
 - CSL-A-112-0084: eligibility not met at screening (EXC-CI) but randomized; major deviation, PI notified, reported to the sponsor medical monitor
+- CSL-A-112-0085: eligibility not met at screening (EXC-MH) but randomized; major deviation, PI notified, reported to the sponsor medical monitor
 
 ## 5 Source data verification
 

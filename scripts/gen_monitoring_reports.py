@@ -164,9 +164,10 @@ def report(site: str, study: str, country: str, n: int, vdate: dt.date, vtype: s
             L.append(f"  - … and {len(outside) - 25} more")
     L += ["", "## 4 Protocol deviations identified", ""]
     items = [f"- {r['USUBJID']}: prohibited medication on treatment ({r['drug']}, started {str(r['CMSTDTC'])[:10]}); "
-             f"major deviation, reported in the CTMS" for r in devs]
+             f"major deviation, reported in the CTMS"
+             for r in sorted(devs, key=lambda r: (str(r["CMSTDTC"]), r["USUBJID"]))]
     items += [f"- {r['USUBJID']}: eligibility not met at screening ({r['criteria']}) but randomized; major deviation, "
-              f"PI notified, reported to the sponsor medical monitor" for r in errs]
+              f"PI notified, reported to the sponsor medical monitor" for r in sorted(errs, key=lambda r: r["USUBJID"])]
     L += items or ["- None."]
     L += ["", "## 5 Source data verification", ""]
     if vtype == "SIV":

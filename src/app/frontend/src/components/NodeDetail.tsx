@@ -188,8 +188,9 @@ function Section({ s, accent }: { s: StageSection; accent: string }) {
   );
 }
 
-export function NodeDetail({ stage, patientId, trace, onClose }: {
+export function NodeDetail({ stage, patientId, trace, onClose, fetchStage = api.stage }: {
   stage: Stage; patientId: string; trace: string; onClose: () => void;
+  fetchStage?: (id: string, key: string, trace: string) => Promise<StageDetail>;
 }) {
   const [d, setD] = useState<StageDetail | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -203,7 +204,7 @@ export function NodeDetail({ stage, patientId, trace, onClose }: {
     setD(null); setErr(null); setShowSql(false); setWaiting(null);
     const t0 = Date.now();
     const poll = () =>
-      api.stage(patientId, stage.key, trace)
+      fetchStage(patientId, stage.key, trace)
         .then((r) => {
           if (!live) return;
           if (r.pending) {  // long live run (Genie One): keep polling until the trace is ready
@@ -214,7 +215,7 @@ export function NodeDetail({ stage, patientId, trace, onClose }: {
         .catch((e) => live && setErr(String(e)));
     poll();
     return () => { live = false; if (timer) clearTimeout(timer); };
-  }, [patientId, stage.key, trace]);
+  }, [patientId, stage.key, trace, fetchStage]);
 
   return (
     <div className="mt-3 rounded-xl border border-t-[3px] border-border bg-surface p-5" style={{ borderTopColor: accent }}>

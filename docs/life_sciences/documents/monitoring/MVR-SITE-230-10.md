@@ -31,8 +31,8 @@ SYNTHETIC DOCUMENT generated from the study data (scripts/gen_monitoring_reports
 
 ## 4 Protocol deviations identified
 
-- CSL-B-230-0299: prohibited medication on treatment (semaglutide, started 2026-03-19); major deviation, reported in the CTMS
 - CSL-B-230-0354: prohibited medication on treatment (tirzepatide, started 2026-03-13); major deviation, reported in the CTMS
+- CSL-B-230-0299: prohibited medication on treatment (semaglutide, started 2026-03-19); major deviation, reported in the CTMS
 
 ## 5 Source data verification
 
