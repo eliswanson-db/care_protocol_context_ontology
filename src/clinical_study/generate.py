@@ -418,6 +418,7 @@ def vitals(subj: DataFrame, sv: DataFrame, seed: int) -> DataFrame:
         "usubjid",
         "study_id",
         "country",
+        "site_id",
         "screening_date",
         "height_cm",
         "screen_wt_kg",
@@ -473,16 +474,19 @@ def vitals(subj: DataFrame, sv: DataFrame, seed: int) -> DataFrame:
     for r in rows[1:]:
         y = y.unionByName(r)
     tc = F.col("vstestcd")
-    us = F.col("country") == "US"
+    # The unit is a property of the site's equipment, not of each record: most US sites weigh in lb and measure
+    # in inches, the rest (and every other country) in kg / cm. A GB coordinator occasionally keys stone on one
+    # record (data-entry noise, not valid for the endpoint).
+    imperial_site = (F.col("country") == "US") & (U(seed, "unitsite", F.col("site_id")) < 0.8)
     u_unit = U(seed, "unit", k, v, tc)
     unit = (
         F.when(
             tc == "WEIGHT",
-            F.when(us & (u_unit < 0.8), "lb")
+            F.when(imperial_site, "lb")
             .when((F.col("country") == "GB") & (u_unit < 0.004), "st")
             .otherwise("kg"),
         )
-        .when(tc.isin("HEIGHT", "WSTCIR"), F.when(us & (u_unit < 0.8), "in").otherwise("cm"))
+        .when(tc.isin("HEIGHT", "WSTCIR"), F.when(imperial_site, "in").otherwise("cm"))
         .when(tc.isin("SYSBP", "DIABP"), F.lit("mmHg"))
         .otherwise(F.lit("bpm"))
     )
