@@ -642,35 +642,36 @@ def _graph_focus(trace: str, pid: str, GRAPH: str, MAIN: str, walk_codes: list[s
     subj = f"{NS}Patient/{pid}"
     if trace == "a1c":
         q = (f"SELECT o.object AS obs, t.object AS test FROM {GRAPH} o JOIN {GRAPH} t ON t.subject = o.object "
-             f"AND t.predicate = '{NS}ofTest' AND t.object IN ('{NS}loinc/4548-4', '{NS}loinc/17856-6', "
-             f"'{NS}loinc/59261-8') WHERE o.subject = :s AND o.predicate = '{NS}hasObservation' "
+             f"AND t.predicate = '{NS}ofTest' AND t.object IN ('{NS}LabTest/4548-4', '{NS}LabTest/17856-6', "
+             f"'{NS}LabTest/59261-8') WHERE o.subject = :s AND o.predicate = '{NS}hasObservation' "
              f"ORDER BY obs DESC LIMIT 3")
-        obs = _q(q, {"s": subj}, log, "Patient → hasObservation → obs → ofTest (A1c LOINC)")
+        obs = _q(q, {"s": subj}, log, "Patient → hasObservation → Observation → ofTest (A1c LOINC)")
         last = obs[0]["obs"] if obs else None
         on_node = _q(f"SELECT predicate, object FROM {MAIN} WHERE subject = :o", {"o": last}, log,
                      "Everything on the observation node the edge reaches") if last else []
-        twin = last.replace(f"{NS}obs/", f"{NS}Observation/") if last else None
-        val = _q(f"SELECT object FROM {MAIN} WHERE subject = :o AND predicate = '{NS}resultValue'", {"o": twin}, log,
-                 "The same observation's value, on the Observation/ node the project's entity writes") if twin else []
         thr = _q(f"SELECT t.object AS threshold, v.object AS value FROM {GRAPH} t JOIN {MAIN} v ON v.subject = t.object "
                  f"AND v.predicate = '{NS}thresholdValue' WHERE t.subject = '{NS}Measure/GSD' "
                  f"AND t.predicate = '{NS}hasThreshold'", None, log, "GSD → hasThreshold → Threshold → thresholdValue")
-        has_val = any(r["predicate"].endswith("resultValue") for r in on_node)
+        val = [r for r in on_node if r["predicate"].endswith("resultValue")]
+        has_val = bool(val)
         warns = [] if has_val else [(
-            "The patient's edge reaches obs/…, but the A1c value is on Observation/… — the Ontobricks project writes "
-            "the Observation entity and its edges on different IRIs, so a traversal can't compare the result with "
-            "the threshold (ONTOBRICKS_REPUBLISH 2026-11-21, Observation IRI).")]
+            "The observation the patient's edge reaches has no resultValue in this graph version, so a traversal "
+            "can't compare the result with the threshold (graph versions before clinicaldomain v6 split the "
+            "Observation entity and its edges across two IRIs).")]
         sec = [{"label": "The A1c observation, as the graph holds it", "kind": "kv", "data": {
                     "Patient → hasObservation → ofTest": f"{_short(last)} → {_short(obs[0]['test'])}" if obs else "—",
                     "Triples on that node": ", ".join(_short(r["predicate"]) for r in on_node) or "—",
-                    "Value (on Observation/… instead)": val[0]["object"] if val else "—"}},
+                    "Value": val[0]["object"] if val else "—"}},
                {"label": "GSD thresholds in the graph", "kind": "table",
                 "rows": [{"threshold": _short(r["threshold"]), "value": r["value"]} for r in thr]}]
-        return sec, warns, (f"The graph holds the A1c observation (ofTest loinc/4548-4) and GSD's thresholds "
-                            f"({', '.join(_short(r['threshold']) for r in thr)}), but "
-                            f"{'can' if has_val else 'cannot yet'} reach the value from the patient. ")
+        thr_txt = ", ".join(_short(r["threshold"]) for r in thr)
+        return sec, warns, (f"The graph holds the A1c observation (ofTest LabTest/4548-4, value {val[0]['object']}) and "
+                            f"GSD's thresholds ({thr_txt}), so a traversal from the patient can compare them. "
+                            if has_val else
+                            f"The graph holds the A1c observation (ofTest LabTest/4548-4) and GSD's thresholds "
+                            f"({thr_txt}), but can't yet reach the value from the patient. ")
     if trace == "dx":
-        nodes = ", ".join(f"'{NS}icd/{c}'" for c in walk_codes)
+        nodes = ", ".join(f"'{NS}Condition/{c}'" for c in walk_codes)
         rows = _q(f"""SELECT c.subject AS value_set, c.object AS member, r.subject AS drug_class, r.predicate AS rel
                       FROM {GRAPH} c LEFT JOIN {GRAPH} r ON r.object = c.subject
                         AND r.predicate IN ('{NS}recommendedFor', '{NS}contraindicatedWith')
@@ -681,7 +682,7 @@ def _graph_focus(trace: str, pid: str, GRAPH: str, MAIN: str, walk_codes: list[s
                for r in rows]
         return ([{"label": "Value sets the code reaches, and the protocol edges into them (traversal)",
                   "kind": "table", "rows": tbl}], [],
-                f"Traversal from icd/{traces.DX_CODE} reaches {len({r['value set'] for r in tbl})} value sets. ")
+                f"Traversal from Condition/{traces.DX_CODE} reaches {len({r['value set'] for r in tbl})} value sets. ")
     # rule
     rule = _q(f"""SELECT w.subject AS drug_class, w.object AS threshold, v.object AS value, a.object AS measured_on
                   FROM {GRAPH} w JOIN {MAIN} v ON v.subject = w.object AND v.predicate = '{NS}thresholdValue'
@@ -694,13 +695,13 @@ def _graph_focus(trace: str, pid: str, GRAPH: str, MAIN: str, walk_codes: list[s
                   LEFT JOIN {GRAPH} c ON c.subject = i.object AND c.predicate = '{NS}inDrugClass'
                   WHERE rx.subject = :s AND rx.predicate = '{NS}prescribed'
                     AND rx.object IN (SELECT subject FROM {GRAPH} WHERE predicate = '{NS}hasIngredient'
-                                      AND object = '{NS}ing/6809')""", {"s": subj}, log,
+                                      AND object = '{NS}Ingredient/6809')""", {"s": subj}, log,
               "Patient → prescribed → rx → hasIngredient → ing → inDrugClass (metformin)")
     reaches = any(r["drug_class"] for r in path)
     applies = any(r["measured_on"] for r in rule)
     warns = []
     if not reaches:
-        warns.append("ing/6809 (metformin) has no inDrugClass edge in this graph version, so the patient's order "
+        warns.append("Ingredient/6809 (metformin) has no inDrugClass edge in this graph version, so the patient's order "
                      "can't be connected to the biguanide rule (ONTOBRICKS_REPUBLISH 2026-11-21 item 1).")
     if not applies:
         warns.append("No Threshold → appliesTo → LoincPart edge yet, so a traversal can't tell which lab eGFR_LT_30 "
@@ -746,12 +747,13 @@ def _ontobricks(pid, my, log, trace="a1c"):
             {"label": "Guideline edges reachable from the patient's measures", "sql": q_guide}]
     with ThreadPoolExecutor(max_workers=4) as ex:
         f_p = ex.submit(run_sql, q_patient, {"s": subj})
-        f_w = ex.submit(run_sql, q_walk, {"n": f"{NS}icd/{dx}"})
+        f_w = ex.submit(run_sql, q_walk, {"n": f"{NS}Condition/{dx}"})
         f_g = ex.submit(run_sql, q_guide, None)
         f_t = ex.submit(run_sql, q_asof, None)
         f_c = ex.submit(run_sql, f"SELECT ancestor_code FROM {C}.{ST}.icd10_closure WHERE descendant_code = :d "
                                  f"AND depth > 0 ORDER BY depth", {"d": dx})
-        f_s = ex.submit(run_sql, f"SELECT CASE WHEN evidence_datetime IS NOT NULL THEN 'MET' ELSE 'NOT_MET' END AS s "
+        # the governed rule (gsd_compliance_metrics "Compliance Status", HEDIS GSD): MET = last A1c <= 9%
+        f_s = ex.submit(run_sql, f"SELECT CASE WHEN evidence_value <= 9.0 THEN 'MET' ELSE 'NOT_MET' END AS s "
                                  f"FROM {C}.{S}.gold_adherence_gsd WHERE patient_id = :p AND measurement_year = :my",
                         {"p": pid, "my": my})
         prow, walk, guide = f_p.result(), f_w.result(), f_g.result()
@@ -771,7 +773,7 @@ def _ontobricks(pid, my, log, trace="a1c"):
     edges = [{"subject": f"Patient/{pid[:8]}", "predicate": _short(r["predicate"]), "object": _short(r["object"])}
              for r in prow]
     chain = [{"code": dx, "name": "patient's diagnosis", "depth": 0}] + \
-            [{"code": _short(r["ancestor"]).replace("icd/", ""), "name": f"subClassOf* hop {r['hops']}",
+            [{"code": _short(r["ancestor"]).replace("Condition/", ""), "name": f"subClassOf* hop {r['hops']}",
               "depth": r["hops"]} for r in walk]
     graph_anc = list(dict.fromkeys(n["code"] for n in chain[1:]))   # a node reachable by two routes counts once
     mat_anc = [r["ancestor_code"] for r in mat]
@@ -799,7 +801,7 @@ def _ontobricks(pid, my, log, trace="a1c"):
                      f"view computes {live_status}. The triplestore lags the pipeline until Ontobricks republishes.")
     focus, fwarn, ftake = _graph_focus(trace, pid, GRAPH, MAIN, [dx] + graph_anc, log)
     warns += fwarn
-    takeaway = ftake + (f"subClassOf* walked live from icd/{dx}: {walk_txt} ({len(graph_anc)} ancestors, query-time) — "
+    takeaway = ftake + (f"subClassOf* walked live from Condition/{dx}: {walk_txt} ({len(graph_anc)} ancestors, query-time) — "
                         f"{'identical to' if agrees else 'differs from'} the materialized icd10_closure."
                         if trace == "dx" else "")
     return {
@@ -816,7 +818,7 @@ def _ontobricks(pid, my, log, trace="a1c"):
                    "Same ancestors": "✓" if agrees else "✗"}}] if trace == "dx" else []),
 
             {"label": "Patient's typed edges (grouped)", "kind": "kv", "data": {
-                "hasDiagnosis": ", ".join(e["object"].replace("icd/", "") for e in edges if e["predicate"] == "hasDiagnosis"),
+                "hasDiagnosis": ", ".join(e["object"].replace("Condition/", "") for e in edges if e["predicate"] == "hasDiagnosis"),
                 "eligibleFor": ", ".join(e["object"].replace("Measure/", "") for e in edges if e["predicate"] == "eligibleFor"),
                 "hasCareGap (graph snapshot)": ", ".join(e["object"].replace("Measure/", "") for e in edges
                                                          if e["predicate"] == "hasCareGap") or "none",

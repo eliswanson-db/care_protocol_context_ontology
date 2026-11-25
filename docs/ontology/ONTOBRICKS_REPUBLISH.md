@@ -34,6 +34,13 @@ Observation entity and the edges now share `Observation/{obs_id}`). Still not mo
 **Replace** mode; Mapping -> import `care_protocol.r2rml.ttl`; source scope `care_protocol` +
 `care_protocol_terminology`; Mapping -> Diagnostics should read 56/56; build and publish.
 
+**v6 (published 2026-11-25):** Ontobricks diagnostics 56/56; every count matches the dry run; gate REQUIRED 11/12,
+OPTIONAL 9/9 (v3: 0/9). The one failure: LabTest was built from the 11-row curated `loinc` subset, so 301 of the 309
+LOINC codes observations use have no LabTest type or name (v3 had 308). Fixed in the R2RML (LabTest = every observed
+code, named from the subset or the observation's description; dry run 56/56, 312 lab tests). Needs one more import.
+`icd10Code` 756 -> 77 is allowed by design (v3's 704 were Pregnancy nodes built from encounter rows). The app code now
+uses the class-named IRIs; `src/app/app.yaml` pins v6 (not yet deployed).
+
 **Then Claude:** the IRI segments change (`icd/` -> `Condition/`, `obs/` -> `Observation/`, `loinc/` -> `LabTest/`,
 `part/` -> `LoincPart/`, `rx/` -> `Medication/`, `ing/` -> `Ingredient/`), so the app, the eval provider, the gate
 and `hedis_facts.yaml` move to the new segments in the same change as the `CARE_ONTOBRICKS_TABLE` pin, after

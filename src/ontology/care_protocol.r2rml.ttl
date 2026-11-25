@@ -21,7 +21,9 @@
 #     earlier five per-measure maps collapsed into one that read GSD only;
 #   * ICD-10 is-a uses cp:subClassOf (rdfs:subClassOf is not an ontology property, so Ontobricks warns on it);
 #   * the Condition subclasses are entities over icd10_closure, so nothing in the OWL is left for Ontobricks to
-#     auto-bind (v5 bound Pregnancy to encounter rows).
+#     auto-bind (v5 bound Pregnancy to encounter rows);
+#   * LabTest covers every LOINC code an observation uses (309), named from the curated loinc subset where it has the
+#     code and from the observation's description otherwise (v6 typed only the 11 curated codes; v3 had 308).
 # Source scope: care_protocol + care_protocol_terminology. NOT care_protocol_semantic (metric views abort the scan).
 # Check before every import: .venv/bin/python -I scripts/ontobricks_dry_run.py --owl src/ontology/care_protocol.owl.ttl
 #   --r2rml src/ontology/care_protocol.r2rml.ttl   (Ontobricks' own parse + diagnostics, plus row counts on ECT)
@@ -70,7 +72,7 @@
   rr:predicateObjectMap [ rr:predicate cp:icd10Code ; rr:objectMap [ rr:column "hep_code" ] ] .
 
 <#LabTestEntity> a rr:TriplesMap ;
-  rr:logicalTable [ rr:sqlQuery "SELECT loinc_code, long_common_name AS loinc_name FROM eli_test_classic_catalog.care_protocol_terminology.loinc WHERE loinc_code IS NOT NULL" ] ;
+  rr:logicalTable [ rr:sqlQuery "SELECT c.loinc_code, COALESCE(MAX(l.long_common_name), MAX(c.description)) AS loinc_name FROM (SELECT loinc_code, CAST(NULL AS STRING) AS description FROM eli_test_classic_catalog.care_protocol_terminology.loinc UNION ALL SELECT loinc_code, description FROM eli_test_classic_catalog.care_protocol.silver_observation) c LEFT JOIN eli_test_classic_catalog.care_protocol_terminology.loinc l ON l.loinc_code = c.loinc_code WHERE c.loinc_code IS NOT NULL GROUP BY c.loinc_code" ] ;
   rr:subjectMap [ rr:template "https://care-protocol.example/ontology/LabTest/{loinc_code}" ; rr:class cp:LabTest ] ;
   rr:predicateObjectMap [ rr:predicate rdfs:label ; rr:objectMap [ rr:column "loinc_name" ] ] ;
   rr:predicateObjectMap [ rr:predicate cp:loincCode ; rr:objectMap [ rr:column "loinc_code" ] ] .

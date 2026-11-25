@@ -33,7 +33,19 @@ BASELINE_FILE = ROOT / "docs/ontology/graph_baseline_clinicaldomain.json"
 V3_MAPPING = ROOT / "docs/ontology/ontobricks_compiled_mapping_v3.sql"
 OBS = f"'{NS}hasObservation', '{NS}ofTest', '{NS}resultValue'"
 # Edge-endpoint prefixes the app, the entity linker and the graph tools rely on.
-EDGE_PREFIXES = {"Patient", "icd", "rx", "ing", "DrugClass", "Measure", "ValueSet", "Threshold", "part", "loinc"}
+EDGE_PREFIXES = {"Patient", "Condition", "Medication", "Ingredient", "DrugClass", "Measure", "ValueSet", "Threshold",
+                 "LoincPart", "LabTest"}
+# clinicaldomain v6 (R2RML rev 9) renamed six IRI segments to their class names, so Ontobricks resolves every edge
+# endpoint; a baseline saved before then is read through this map.
+RENAMED = {"icd": "Condition", "rx": "Medication", "ing": "Ingredient", "part": "LoincPart", "loinc": "LabTest",
+           "obs": "Observation"}
+
+# Predicates allowed to shrink against an older baseline, each because the old count came from a wrong source.
+MAY_SHRINK = {
+    "hasIngredient": "class -> ingredient rows were mis-mapped as hasIngredient before republish item 2",
+    "icd10Code": "v3/v5 put 704 ICD codes on Pregnancy nodes built from encounter rows; rev 9 types the Condition "
+                 "subclasses from icd10_closure (39 conditions + 38 subclass codes)",
+}
 
 results: list[tuple[str, str, bool, str]] = []
 
@@ -70,7 +82,8 @@ def main():
     new = pred_counts(g_tab)
     if BASELINE_FILE.exists():
         bl = json.loads(BASELINE_FILE.read_text())
-        base, base_prefixes, what = bl["predicates"], set(bl["edge_prefixes"]), f"baseline {bl['graph']}"
+        base, base_prefixes, what = (bl["predicates"], {RENAMED.get(p, p) for p in bl["edge_prefixes"]},
+                                     f"baseline {bl['graph']}")
     else:
         names = set(re.findall(r"'https://care-protocol\.example/ontology/([A-Za-z]\w*)' AS predicate",
                                V3_MAPPING.read_text()))
@@ -79,26 +92,26 @@ def main():
     lost = sorted(p for p in base if p not in new)
     check("REQUIRED", f"no predicate lost vs {what}", not lost, f"lost: {lost}" if lost else f"{len(new)} predicates")
     shrunk = sorted(f"{p} {base[p]}->{new.get(p, 0)}" for p in base
-                    if base[p] and p in new and new[p] < 0.9 * base[p] and p not in ("hasIngredient",))
-    check("REQUIRED", "no predicate shrank >10% (hasIngredient may shrink by design)", not shrunk,
+                    if base[p] and p in new and new[p] < 0.9 * base[p] and p not in MAY_SHRINK)
+    check("REQUIRED", f"no predicate shrank >10% (allowed by design: {', '.join(sorted(MAY_SHRINK))})", not shrunk,
           "; ".join(shrunk) or ("" if BASELINE_FILE.exists() else "skipped: no count baseline yet"))
     prefixes = edge_prefixes(g_tab)
     ok = EDGE_PREFIXES <= prefixes and (prefixes == base_prefixes or not BASELINE_FILE.exists())
-    check("REQUIRED", "edge nodes keep the v3 IRI convention", ok,
+    check("REQUIRED", "edge nodes use the class-named IRI convention", ok,
           f"missing {sorted(base_prefixes - prefixes)}, new {sorted(prefixes - base_prefixes)}" if not ok else
           ", ".join(sorted(prefixes)))
 
     one = lambda sql: int(run_sql(sql)[0]["n"])  # noqa: E731
-    check("REQUIRED", "multi-parent edge icd/E11.22 subClassOf icd/N18",
-          one(f"SELECT count(*) AS n FROM {g_tab} WHERE subject = '{NS}icd/E11.22' AND predicate LIKE '%subClassOf' "
-              f"AND object = '{NS}icd/N18'") == 1)
+    check("REQUIRED", "multi-parent edge Condition/E11.22 subClassOf Condition/N18",
+          one(f"SELECT count(*) AS n FROM {g_tab} WHERE subject = '{NS}Condition/E11.22' AND predicate LIKE '%subClassOf' "
+              f"AND object = '{NS}Condition/N18'") == 1)
     check("REQUIRED", "BPD monitoredBy LP-SBP and LP-DBP (Nov 4 protocol_edges fix)",
           one(f"SELECT count(*) AS n FROM {g_tab} WHERE subject = '{NS}Measure/BPD' AND predicate LIKE '%monitoredBy' "
-              f"AND object IN ('{NS}part/LP-SBP', '{NS}part/LP-DBP')") == 2)
+              f"AND object IN ('{NS}LoincPart/LP-SBP', '{NS}LoincPart/LP-DBP')") == 2)
 
     # ---- the Ontobricks-side mapping fixes (optional until ported) ---------------------------------------------
-    for prefix, sample in (("icd", "icd/E11.2"), ("rx", "rx/314231"), ("ing", "ing/6809"),
-                           ("DrugClass", "DrugClass/DRUGCLASS-ACE"), ("ValueSet", "ValueSet/CONTRA_PREGNANCY")):
+    for sample in ("Condition/E11.2", "Medication/314231", "Ingredient/6809",
+                   "DrugClass/DRUGCLASS-ACE", "ValueSet/CONTRA_PREGNANCY"):
         n = one(f"SELECT count(*) AS n FROM {g_tab} WHERE subject = '{NS}{sample}' AND predicate LIKE '%rdf-schema#label'")
         check("OPTIONAL", f"name on the edge node {sample}", n >= 1)
     n_cls = one(f"SELECT count(*) AS n FROM {g_tab} WHERE predicate LIKE '%inDrugClass'")
@@ -114,11 +127,11 @@ def main():
         ["DrugClass/DRUGCLASS-STATIN", "contraindicatedWith", "?vs"], ["?vs", "contains", "?code"],
         ["?p", "hasDiagnosis", "?dx"], ["?dx", "subClassOf*", "?code"]], "select": "?p"})["count"]
     check("REQUIRED", "statin-contraindication cohort = 198 (gold)", cohort == 198, str(cohort))
-    kidney = gr.call(g, "match", {"pattern": [["?p", "hasDiagnosis", "?dx"], ["?dx", "subClassOf*", "icd/E11.2"]],
+    kidney = gr.call(g, "match", {"pattern": [["?p", "hasDiagnosis", "?dx"], ["?dx", "subClassOf*", "Condition/E11.2"]],
                                   "select": "?p"})["count"]
     check("REQUIRED", "diabetes with kidney complications (E11.2 subtree) = 1881 (gold)", kidney == 1881, str(kidney))
-    routes = {r["end"] for r in gr.call(g, "routes", {"node": "icd/E11.22", "predicate": "subClassOf"})["rows"]}
-    check("REQUIRED", "routes(E11.22) reaches both E11 and N18", routes == {"icd/E11", "icd/N18"}, str(sorted(routes)))
+    routes = {r["end"] for r in gr.call(g, "routes", {"node": "Condition/E11.22", "predicate": "subClassOf"})["rows"]}
+    check("REQUIRED", "routes(E11.22) reaches both E11 and N18", routes == {"Condition/E11", "Condition/N18"}, str(sorted(routes)))
     met = gr.call(g, "find_nodes", {"text": "metformin"})["count"]
     check("OPTIONAL", "find_nodes('metformin') finds a node by name", met >= 1, f"{met} nodes")
     ace = gr.call(g, "match", {"pattern": [["?p", "prescribed", "?rx"], ["?rx", "hasIngredient", "?ing"],

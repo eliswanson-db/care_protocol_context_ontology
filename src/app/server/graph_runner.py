@@ -7,7 +7,7 @@ instead of an agent hand-writing self-joins over raw triples.
 Loaded: every edge of the published triplestore except the observation layer (hasObservation / ofTest / resultValue
 and the Observation nodes' rdf:type -- ~15M rows that no tool here needs). Literal-valued predicates (labels, ages,
 thresholds, codes) become node attributes. Node ids are IRIs with the ontology namespace stripped, exactly as they
-appear in the retrieved context: "Patient/<uuid>", "icd/E11.22", "rx/314231", "DrugClass/DRUGCLASS-STATIN".
+appear in the retrieved context: "Patient/<uuid>", "Condition/E11.22", "Medication/314231", "DrugClass/DRUGCLASS-STATIN".
 
 Tools (all read-only, all deterministic):
   find_nodes(text, type=None)                    nodes whose label or id contains the text
@@ -181,7 +181,7 @@ class Graph:
         for s, p, o in pats:
             for term in (s, o):
                 if not term.startswith("?") and not self.exists(term):
-                    raise ValueError(f"node {term!r} is not in the graph (ids look like icd/E11.22, "
+                    raise ValueError(f"node {term!r} is not in the graph (ids look like Condition/E11.22, "
                                      f"DrugClass/DRUGCLASS-STATIN, Patient/<uuid>)")
         select = select.strip()
         if not select.startswith("?"):
@@ -267,10 +267,10 @@ TOOLS = {
     "find_nodes": "find_nodes(text, type=None): nodes whose label or id contains text",
     "neighbors": "neighbors(node, hops=1, predicates=None): edges around a node (max 3 hops)",
     "routes": "routes(node, predicate, direction='out'): EVERY chain following one predicate, e.g. "
-              "routes('icd/E11.22', 'subClassOf') lists each route up to a root",
+              "routes('Condition/E11.22', 'subClassOf') lists each route up to a root",
     "paths": "paths(source, target, max_hops=6): all simple paths between two nodes",
     "match": "match(pattern, select): count distinct ?select over a pattern of [s, p, o] triples; p may end in * "
-             "(0+ hops) or + (1+ hops), e.g. [['?p','hasDiagnosis','?dx'], ['?dx','subClassOf*','icd/N18']]",
+             "(0+ hops) or + (1+ hops), e.g. [['?p','hasDiagnosis','?dx'], ['?dx','subClassOf*','Condition/N18']]",
 }
 
 
@@ -300,7 +300,7 @@ def load(table: str, fetch_all, ttl_s: int = 3600) -> Graph:
         return hit[1]
     skip = ", ".join(f"'{NS}{p}'" for p in _SKIP_PREDS)
     sql = (f"SELECT subject, predicate, object FROM {table} WHERE predicate NOT IN ({skip}) "
-           f"AND NOT (predicate = '{_RDF_TYPE}' AND (subject LIKE '%/Observation/%' OR subject LIKE '%/obs/%'))")
+           f"AND NOT (predicate = '{_RDF_TYPE}' AND subject LIKE '%/Observation/%')")
     g = Graph(table)
     for s, p, o in fetch_all(sql):
         g.add(s, p, o)

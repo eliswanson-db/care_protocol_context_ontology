@@ -11,7 +11,7 @@
 #
 # Sources per approach: metric_view = src/semantic/metric_views; closure = terminology/closure/edge tables;
 # rag = the Lakebase corpus (docs/care_protocol/{corpus,html}); genie_ontology = Pages, column comments, metric views;
-# graph = eswanson_demo.ontobricks.triplestore_clinicaldomain_v3_graph.
+# graph = the published clinicaldomain graph (docs/ontology/graph_baseline_clinicaldomain.json names the version).
 # Check: python3 -I tests/test_hedis_facts.py   (CARE_LIVE=1 adds the table and graph checks against ECT)
 
 facts:
@@ -22,7 +22,7 @@ facts:
     closure: {table: icd10_closure, where: "ancestor_code = 'E11' AND descendant_code = 'E11.22'"}
     rag: {file: docs/care_protocol/html/diabetes_care_protocol.html, has: ["E10", "E11", "E13"]}
     genie_ontology: {file: docs/ontology/pages/diabetes-cohort.md, has: ["E10", "E11", "E13"]}
-    graph: {s: ValueSet/HEDIS_DIABETES_DENOM, p: contains, o: icd/E11}
+    graph: {s: ValueSet/HEDIS_DIABETES_DENOM, p: contains, o: Condition/E11}
 
   - id: F02
     fact: "Diabetes with a kidney complication is everything under E11.2, E10.2 or E13.2."
@@ -31,7 +31,7 @@ facts:
     closure: {table: icd10_closure, where: "ancestor_code = 'E11.2' AND descendant_code = 'E11.22'"}
     rag: {file: docs/care_protocol/html/diabetes_care_protocol.html, has: ["E11.21"]}
     genie_ontology: {file: docs/ontology/pages/icd10-subsumption.md, has: ["E11.2", "E10.2", "E13.2"]}
-    graph: {s: icd/E11.22, p: subClassOf, o: icd/E11.2}
+    graph: {s: Condition/E11.22, p: subClassOf, o: Condition/E11.2}
 
   - id: F03
     fact: "E11.22 has two parents: E11.2 (type 2 diabetes) and N18 (chronic kidney disease)."
@@ -40,7 +40,7 @@ facts:
     closure: {table: icd10_hier, where: "code = 'E11.22' AND parent_code = 'N18'"}
     rag: {none: "the care documents describe care, not the ICD-10 hierarchy"}
     genie_ontology: {file: docs/ontology/pages/icd10-subsumption.md, has: ["E11.22", "N18"]}
-    graph: {s: icd/E11.22, p: subClassOf, o: icd/N18}
+    graph: {s: Condition/E11.22, p: subClassOf, o: Condition/N18}
 
   - id: F04
     fact: "A1c is identified by its LOINC component across methods (4548-4, 17856-6, 59261-8)."
@@ -49,7 +49,7 @@ facts:
     closure: {table: loinc_parts, where: "loinc_code = '17856-6' AND part = 'LP-HBA1C'"}
     rag: {file: docs/care_protocol/html/diabetes_care_protocol.html, has: ["4548-4", "17856-6", "59261-8"]}
     genie_ontology: {file: docs/ontology/pages/hba1c.md, has: ["4548-4"]}
-    graph: {s: loinc/17856-6, p: hasComponent, o: part/LP-HBA1C}
+    graph: {s: LabTest/17856-6, p: hasComponent, o: LoincPart/LP-HBA1C}
 
   - id: F05
     fact: "GSD's denominator is diabetes patients aged 18-75; it scores the latest A1c in the measurement year."
@@ -85,7 +85,7 @@ facts:
     closure: {table: rxnorm_closure, where: "ancestor_code = 'DRUGCLASS-STATIN' AND descendant_code = '312961'"}
     rag: {file: docs/care_protocol/html/diabetes_care_protocol.html, has: ["atorvastatin", "simvastatin"]}
     genie_ontology: {file: docs/ontology/pages/spd.md, has: ["statin"]}
-    graph: {s: ing/36567, p: inDrugClass, o: DrugClass/DRUGCLASS-STATIN}
+    graph: {s: Ingredient/36567, p: inDrugClass, o: DrugClass/DRUGCLASS-STATIN}
 
   - id: F09
     fact: "SPD's denominator is diabetes patients aged 40-75; it is met by a statin dispensed in the measurement year."
@@ -121,7 +121,7 @@ facts:
     closure: {table: protocol_edges, where: "subject = 'KED' AND predicate = 'monitoredBy' AND object = 'LP-UACR'"}
     rag: {file: docs/care_protocol/html/diabetes_care_protocol.html, has: ["KED", "18–85"]}
     genie_ontology: {file: docs/ontology/pages/ked.md, has: ["18–85", "uACR"]}
-    graph: {s: Measure/KED, p: monitoredBy, o: part/LP-UACR}
+    graph: {s: Measure/KED, p: monitoredBy, o: LoincPart/LP-UACR}
 
   - id: F13
     fact: "KED is reported by the ked_compliance_metrics metric view."
@@ -139,7 +139,7 @@ facts:
     closure: {table: loinc_parts, where: "loinc_code = '98979-8' AND part = 'LP-EGFR'"}
     rag: {file: docs/care_protocol/corpus/payer_policy_memo_MY2026.md, has: ["33914-3", "98979-8"]}
     genie_ontology: {file: docs/ontology/pages/egfr.md, has: ["98979-8", "33914-3"]}
-    graph: {s: loinc/98979-8, p: hasComponent, o: part/LP-EGFR}
+    graph: {s: LabTest/98979-8, p: hasComponent, o: LoincPart/LP-EGFR}
 
   - id: F15
     fact: "Value sets are versioned by measurement year; the MY2026 KED eGFR set is 98979-8 only."
@@ -202,7 +202,7 @@ facts:
     closure: {table: value_set_segment, where: "segment_id = 'CONTRA_PREGNANCY' AND code = 'Z34'"}
     rag: {none: "the protocol names the conditions, not their codes"}
     genie_ontology: {file: docs/ontology/pages/value-set.md, has: ["CONTRA_PREGNANCY", "Z34", "O26", "K70", "K74"]}
-    graph: {s: ValueSet/CONTRA_PREGNANCY, p: contains, o: icd/Z34}
+    graph: {s: ValueSet/CONTRA_PREGNANCY, p: contains, o: Condition/Z34}
 
   - id: F22
     fact: "Metformin is a biguanide (every drug belongs to its drug class)."
@@ -211,7 +211,7 @@ facts:
     closure: {table: rxnorm_closure, where: "ancestor_code = 'DRUGCLASS-BIGUANIDE'"}
     rag: {file: docs/care_protocol/html/diabetes_care_protocol.html, has: ["Metformin"]}
     genie_ontology: {file: docs/ontology/pages/mad.md, has: ["biguanide"]}
-    graph: {gap: "inDrugClass exists only for statins (3 edges) (ONTOBRICKS_REPUBLISH 2026-11-21 item 1)"}
+    graph: {s: Ingredient/6809, p: inDrugClass, o: DrugClass/DRUGCLASS-BIGUANIDE}
 
   - id: F23
     fact: "The eGFR thresholds (eGFR_LT_30, eGFR_LT_20) apply to the eGFR test."
@@ -220,7 +220,7 @@ facts:
     closure: {table: protocol_edges, where: "subject = 'eGFR_LT_30' AND predicate = 'appliesTo' AND object = 'LP-EGFR'"}
     rag: {file: docs/care_protocol/html/diabetes_care_protocol.html, has: ["eGFR &lt; 30", "mL/min/1.73m"]}
     genie_ontology: {file: docs/ontology/pages/care-protocol-rules.md, has: ["eGFR below 30 mL/min/1.73m² is measured on eGFR"]}
-    graph: {gap: "no Threshold -> LoincPart edge, so a traversal can't compare eGFR_LT_30 with a patient's eGFR (ONTOBRICKS_REPUBLISH 2026-11-21 item 3)"}
+    graph: {s: Threshold/eGFR_LT_30, p: appliesTo, o: LoincPart/LP-EGFR}
 
   - id: F24
     fact: "Patient-level facts: who is eligible for each measure, who has a gap, what they were prescribed."
@@ -238,7 +238,7 @@ facts:
     closure: {none: "lab feed history isn't terminology"}
     rag: {none: "the documents don't describe this lab's feed"}
     genie_ontology: {file: docs/ontology/pages/egfr.md, has: ["2022-07-01"]}
-    graph: {gap: "v3 predates the 2026-11-21 reflow, so its eGFR observations still use 33914-3 (ONTOBRICKS_REPUBLISH 2026-11-21 item 4)"}
+    graph: {p: ofTest, o: LabTest/98979-8}
 
   - id: F26
     fact: "Each lab result carries its value (e.g. A1c 11.0% on 2026-07-26; eGFR 19.4 on 2026-10-23)."
@@ -247,7 +247,7 @@ facts:
     closure: {none: "patient results live in silver_observation, not the terminology tables"}
     rag: {none: "patient records aren't documents"}
     genie_ontology: {none: "Genie Ontology retrieves context; result values come from querying silver/gold"}
-    graph: {gap: "resultValue sits on Observation/{id}, but hasObservation points at obs/{id}, so traversal from a patient never reaches a value (ONTOBRICKS_REPUBLISH 2026-11-21 item 3b)"}
+    graph: {p: resultValue}
 
   - id: F27
     fact: "Patient 0b4f4745's diabetic eye exam on 2026-09-02 (no retinopathy) is recorded only in an outside, care-team-only letter, not in the EHR."

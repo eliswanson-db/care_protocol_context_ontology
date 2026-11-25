@@ -28,12 +28,12 @@ MEMBER_PREDS = ["hasDiagnosis", "eligibleFor", "prescribed", "hasCareGap"]
 # Synonym -> IRI-node anchors (local names). Entity-linking only: every value is a NODE in the graph -- never a
 # question-specific answer edge.
 LEXICON: dict[str, list[str]] = {
-    "diabetes": ["icd/E10", "icd/E11", "icd/E13"], "diabetic": ["icd/E10", "icd/E11", "icd/E13"],
-    "kidney": ["icd/N18", "icd/N17", "Measure/KED", "ValueSet/COMORBID_CKD"],
-    "nephropathy": ["icd/N18", "icd/E11.2"], "renal": ["icd/N18", "Measure/KED"],
-    "ckd": ["icd/N18", "ValueSet/COMORBID_CKD"], "retinopathy": ["icd/E11.3", "icd/E10.3"],
-    "heart failure": ["icd/I50", "ValueSet/COMORBID_HF"],
-    "cardiorenal": ["icd/I50", "icd/N18", "icd/E11", "ValueSet/COMORBID_HF", "ValueSet/COMORBID_CKD"],
+    "diabetes": ["Condition/E10", "Condition/E11", "Condition/E13"], "diabetic": ["Condition/E10", "Condition/E11", "Condition/E13"],
+    "kidney": ["Condition/N18", "Condition/N17", "Measure/KED", "ValueSet/COMORBID_CKD"],
+    "nephropathy": ["Condition/N18", "Condition/E11.2"], "renal": ["Condition/N18", "Measure/KED"],
+    "ckd": ["Condition/N18", "ValueSet/COMORBID_CKD"], "retinopathy": ["Condition/E11.3", "Condition/E10.3"],
+    "heart failure": ["Condition/I50", "ValueSet/COMORBID_HF"],
+    "cardiorenal": ["Condition/I50", "Condition/N18", "Condition/E11", "ValueSet/COMORBID_HF", "ValueSet/COMORBID_CKD"],
     "statin": ["DrugClass/DRUGCLASS-STATIN", "Measure/SPD"],
     "simvastatin": ["DrugClass/DRUGCLASS-STATIN", "Measure/SPD"],
     "metformin": ["DrugClass/DRUGCLASS-BIGUANIDE", "Threshold/eGFR_LT_30"],
@@ -43,9 +43,9 @@ LEXICON: dict[str, list[str]] = {
     "albuminuria": ["ValueSet/ALBUMINURIA", "DrugClass/DRUGCLASS-ACE", "DrugClass/DRUGCLASS-ARB"],
     "uacr": ["ValueSet/ALBUMINURIA"], "pregnan": ["ValueSet/CONTRA_PREGNANCY"],
     "hepatic": ["ValueSet/CONTRA_HEPATIC"], "contraindicat": ["ValueSet/CONTRA_PREGNANCY", "ValueSet/CONTRA_HEPATIC"],
-    "a1c": ["Measure/GSD", "part/LP-HBA1C"], "hba1c": ["Measure/GSD", "part/LP-HBA1C"],
+    "a1c": ["Measure/GSD", "LoincPart/LP-HBA1C"], "hba1c": ["Measure/GSD", "LoincPart/LP-HBA1C"],
     "glycemic": ["Measure/GSD", "ValueSet/GLYCEMIC"],
-    "egfr": ["part/LP-EGFR", "Measure/KED", "Threshold/eGFR_LT_30"],
+    "egfr": ["LoincPart/LP-EGFR", "Measure/KED", "Threshold/eGFR_LT_30"],
     "blood pressure": ["Measure/BPD"], "systolic": ["Measure/BPD", "Threshold/systolic_lt_140"],
     "diastolic": ["Measure/BPD", "Threshold/diastolic_lt_90"],
 }
@@ -64,12 +64,12 @@ def link_entities(question: str) -> tuple[set[str], set[str]]:
     for term, anchors in LEXICON.items():
         if term in q:
             for a in anchors:
-                (prefixes if a.startswith("icd/") else exact).add(a)
+                (prefixes if a.startswith("Condition/") else exact).add(a)
     for code, iri in MEASURE_CODES.items():
         if re.search(rf"\b{code}\b", q):
             exact.add(iri)
     for m in re.findall(r"\b([A-TV-Z][0-9]{2}(?:\.[0-9]{1,3})?)\b", question):  # raw ICD-10 codes in the prompt
-        prefixes.add("icd/" + m)
+        prefixes.add("Condition/" + m)
     for m in re.findall(_UUID, q):
         exact.add("Patient/" + m)
     return exact, prefixes
@@ -164,7 +164,7 @@ def graph_context(question: str, run_sql, graph: str) -> list[dict]:
     linked = sorted(exact | {p + "*" for p in prefixes})
     header = {"page_content": (f"Source: Ontobricks triple table {graph} (columns subject, predicate, object). "
                                f"Node IRIs are {ONTO_NS}<Type>/<id> (e.g. {ONTO_NS}Patient/<patient_id>, "
-                               f"{ONTO_NS}icd/E11.9, {ONTO_NS}DrugClass/DRUGCLASS-STATIN); predicate IRIs are "
+                               f"{ONTO_NS}Condition/E11.9, {ONTO_NS}DrugClass/DRUGCLASS-STATIN); predicate IRIs are "
                                f"{ONTO_NS}<predicate>. Triples below are shown with that prefix removed.\n"
                                f"Graph schema (predicate: subject type -> object type, count): {graph_schema(run_sql, graph)}"),
               "metadata": {"source": "ontobricks", "kind": "provenance", "graph": graph, "linked_entities": linked}}
@@ -272,7 +272,7 @@ def resolve_nodes(question: str, run_sql, term: str) -> list[dict]:
         if term_ in ql:
             for a in anchors:
                 code = a.split("/", 1)[1]
-                if (a.startswith("icd/") or a.startswith("DrugClass/")) and code in nodes and code not in cands:
+                if (a.startswith("Condition/") or a.startswith("DrugClass/")) and code in nodes and code not in cands:
                     cands[code] = frozenset(_toks(term_))
     keep = {k: v for k, v in cands.items() if not any(v < w for w in cands.values())}
 

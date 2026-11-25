@@ -22,8 +22,11 @@ env:
   - name: CARE_ARM
     value: "dmvm"
   # Pin the Ontobricks graph version (published to eswanson_demo.ontobricks). Without a pin the app follows the
-  # newest triplestore_clinicaldomain_v<N> within 5 minutes of a republish -- unverified. v3 was republished
-  # 2026-11-20 after the catalog was recreated and passes scripts/check_graph_version.py (REQUIRED 12/12). Move the
-  # pin only after a new version passes the same checks.
+  # newest triplestore_clinicaldomain_v<N> within 5 minutes of a republish -- unverified. Move the pin only after a
+  # new version passes scripts/check_graph_version.py.
+  # v6 (2026-11-25, R2RML rev 9): the first version with class-named IRIs (Condition/, Observation/, ...), which the
+  # app code now uses, so v3 no longer works with this code. Gate: REQUIRED 11/12, OPTIONAL 9/9; the one failure is
+  # LabTest typed for 11 curated LOINC codes instead of the 309 observations use, fixed in rev 9's LabTest source
+  # (next import). All three traces verified on v6 locally.
   - name: CARE_ONTOBRICKS_TABLE
-    value: "triplestore_clinicaldomain_v3"
+    value: "triplestore_clinicaldomain_v6"
